@@ -36,6 +36,7 @@
   --section-gap: 160px;
 }
 
+/* 深色模式设置 */
 @media (prefers-color-scheme: dark) {
   :root {
     --color-background: var(--vt-c-black);
@@ -58,6 +59,14 @@
   font-weight: normal;
 }
 
+@font-face {
+  font-family: 'PCL-English';
+  src: url('@/assets/fonts/PCL English.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 body {
   min-height: 100vh;
   color: var(--color-text);
@@ -67,6 +76,8 @@ body {
     background-color 0.5s;
   line-height: 1.6;
   font-family:
+    'PCL-English',
+    'HarmonyOS Sans SC',
     Inter,
     -apple-system,
     BlinkMacSystemFont,
