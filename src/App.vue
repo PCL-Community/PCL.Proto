@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import TitleMessage from './components/TitleMessage.vue'
+import { ref } from 'vue';
+
+const navWidth = ref('220px')
 </script>
 
 <template>
@@ -9,10 +12,14 @@ import TitleMessage from './components/TitleMessage.vue'
 
   <!-- 以下为主体部分 -->
   <main>
-    <nav>
-      <RouterLink to="/">Home</RouterLink>
-      <RouterLink to="/about">About</RouterLink>
-    </nav>
+    <header>
+      <nav>
+        <RouterLink to="/">启动</RouterLink>
+        <RouterLink to="/download">下载</RouterLink>
+        <RouterLink to="/link">联机</RouterLink>
+        <RouterLink to="/setup">设置</RouterLink>
+      </nav>
+    </header>
     <RouterView />
   </main>
 </template>
