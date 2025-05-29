@@ -2,10 +2,12 @@
   <div class="wrapper">
     <img alt="PCL.Proto logo" class="logo" src="/PCL.Proto.svg" width="125" height="125" />
     <div class="greetings">
-      <h1 class="blue">PCL.Proto</h1>
+      <h1 class="blue"><a href="https://github.com/PCL-Community/PCL.Proto.git">PCL.Proto</a></h1>
       <h3>
         Here's a prototype of
         <a href="https://github.com/Hex-Dragon/PCL2/" target="_blank" rel="noopener">PCL</a>.
+        <br />For deatiled information,
+        head to <a href="https://js.design/f/QVPQRY?p=zX2rcVk6Cy&mode=design">即时设计</a>.
       </h3>
     </div>
   </div>
@@ -24,6 +26,7 @@
   display: flex;
   /* display: none; */
   place-items: center;
+  margin: 0 2rem 2rem 2rem;
 }
 
 h1 {
@@ -35,6 +38,7 @@ h1 {
 
 h3 {
   font-size: 1.2rem;
+  padding-left: 0.5rem;
 }
 
 .greetings h1,
