@@ -1,32 +1,32 @@
 # PCL.Proto
 
-This template should help get you started developing with Vue 3 in Vite.
+<p align="center">
+  <img src="./public/PCL.Proto.svg" width="200" alt="PCL.Proto" />
+</p>
 
-## Recommended IDE Setup
+随着PCL的分支版本竞相启动，UI的还原成为了一大困扰众开发者的难题。PCL.Proto 应运而生。
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+本项目以[PCL2（龙腾猫跃）](https://github.com/Hex-Dragon/PCL2)和[PCL2-CE](https://github.com/PCL-Community/PCL2-CE)为蓝本。旨在为各PCL分支版本提供一个标准化的原型样本。该仓库使用 Vue3 搭建，如果你的仓库使用 Webview 作为前端，则可以直接引用该项目。
 
-## Type Support for `.vue` Imports in TS
+## 原型
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+如果你的 PCL 分支版本并非基于 Web 技术，则直接使用本仓库可能并不显得那么方便。那么，你可以前往 [即时设计 - 「PCL.Prototype」](https://js.design/f/QVPQRY?p=zX2rcVk6Cy&mode=design)查看具体的应用原型，并切图导出或参考其生成的样式代码。
 
-## Customize configuration
+如果你想协助修改原型设计文件，欢迎[点击此链接](https://js.design/ti?c=tS-6qs0WDQJ3H4)加入团队。
 
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+## 项目配置
 
 ```sh
 bun install
 ```
 
-### Compile and Hot-Reload for Development
+### 开发时热重载
 
 ```sh
 bun dev
 ```
 
-### Type-Check, Compile and Minify for Production
+### 发布
 
 ```sh
 bun run build
