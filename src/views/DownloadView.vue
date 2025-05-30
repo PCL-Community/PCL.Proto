@@ -1,8 +1,5 @@
 <template>
-  <nav>
-    下载页面
-  </nav>
-  <RouterView />
-</template>
 
-<style></style>
+  <div>Download page</div>
+
+</template>

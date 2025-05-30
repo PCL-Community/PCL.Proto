@@ -33,7 +33,7 @@ onMounted(() => {
 
 <template>
   <!-- 图文介绍的标题部分 -->
-  <TitleMessage />
+  <TitleMessage v-if="true" />
 
   <!-- 以下为主体部分 -->
   <main id="main-window">
@@ -55,18 +55,32 @@ onMounted(() => {
     </header>
 
     <main id="current">
-      <div ref="asideRef" class="side-nav-content">
-        <RouterView />
-      </div>
       <div class="side-nav-background" :style="{ width: asideWidth + 'px' }" />
+      <div ref="asideRef" class="side-nav-content">
+        <router-view v-slot="{ Component }" name="aside">
+          <transition name="slide">
+            <component :is="Component" :key="$route.path" />
+          </transition>
+        </router-view>
+      </div>
+
       <article>
-        2
+        <RouterView />
       </article>
     </main>
   </main>
 </template>
 
 <style scoped>
+.slide-enter-active {
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.slide-enter-from {
+  opacity: 0;
+  transform: translateX(-30%);
+}
+
 main#current {
   flex: 1 1 0;
   display: flex;
@@ -83,6 +97,7 @@ main#current .side-nav-background {
 main#current .side-nav-content {
   position: fixed;
   padding: 10px;
+  /* min-width: 100px; */
 }
 
 main#current article {

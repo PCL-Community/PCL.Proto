@@ -2,6 +2,8 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import GameDownload from '@/views/DownloadSubView/GameDownload.vue'
 import ModDownload from '@/views/DownloadSubView/ModDownload.vue'
+import HomeSubView from '@/views/HomeSubView/HomeSubView.vue'
+import DownloadView from '@/views/DownloadView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -13,27 +15,33 @@ const router = createRouter({
     {
       path: '/home',
       name: 'home',
-      component: HomeView,
+      components: {
+        aside: HomeView,
+        default: HomeSubView,
+      }
     },
     {
       path: '/download',
       name: 'download',
-      component: () => import('@/views/DownloadView.vue'),
+      components: {
+        aside: DownloadView,
+        default: GameDownload
+      },
     },
     {
       path: '/link',
       name: 'link',
-      component: () => import('@/views/LinkView.vue'),
+      components: { aside: () => import('@/views/LinkView.vue') },
     },
     {
       path: '/setup',
       name: 'setup',
-      component: () => import('@/views/SetupView.vue'),
+      components: { aside: () => import('@/views/SetupView.vue') },
     },
     {
       path: '/more',
       name: 'more',
-      component: () => import('@/views/MoreView.vue')
+      components: { aside: () => import('@/views/MoreView.vue') }
     }
   ],
 })
