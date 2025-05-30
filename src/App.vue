@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import TitleMessage from './components/TitleMessage.vue'
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import IconLaunch from './components/icons/IconLaunch.vue';
 import IconDownload from './components/icons/IconDownload.vue';
 import IconLink from './components/icons/IconLink.vue';
 import IconSetup from './components/icons/IconSetup.vue';
 import IconMore from './components/icons/IconMore.vue';
+import router from './router';
+import viewDic from './SubViewDic';
 
 const navItems = [
   { to: '/home', icon: IconLaunch, label: '启动' },
@@ -19,6 +21,8 @@ const navItems = [
 const asideWidth = ref(120)
 const asideRef = ref<HTMLElement>()
 let observer: MutationObserver | null = null
+const subNavSelect = ref<number>(0)
+
 function updateAsideBackgroundWidth() {
   asideWidth.value = asideRef.value!.scrollWidth
 }
@@ -27,6 +31,18 @@ onMounted(() => {
   observer = new MutationObserver(updateAsideBackgroundWidth)
   observer.observe(asideRef.value!, { childList: true, })
   updateAsideBackgroundWidth()
+})
+
+watch(subNavSelect, (to, from) => {
+  console.log(`from ${from} to ${to}`)
+})
+
+const currentSubView = computed(() => {
+  let currentView = router.currentRoute.value.name as keyof typeof viewDic;
+  if (currentView && viewDic[currentView]) {
+    return viewDic[currentView][subNavSelect.value]
+  }
+  else { return undefined }
 })
 
 </script>
@@ -57,30 +73,17 @@ onMounted(() => {
     <main id="current">
       <div class="side-nav-background" :style="{ width: asideWidth + 'px' }" />
       <div ref="asideRef" class="side-nav-content">
-        <router-view v-slot="{ Component }" name="aside">
-          <transition name="slide">
-            <component :is="Component" :key="$route.path" />
-          </transition>
-        </router-view>
+        <RouterView @nav-button="(i: number) => { subNavSelect = i }" />
       </div>
 
       <article>
-        <RouterView />
+        <component :is="currentSubView"></component>
       </article>
     </main>
   </main>
 </template>
 
 <style scoped>
-.slide-enter-active {
-  transition: opacity 0.6s, transform 0.6s;
-}
-
-.slide-enter-from {
-  opacity: 0;
-  transform: translateX(-30%);
-}
-
 main#current {
   flex: 1 1 0;
   display: flex;
