@@ -1,14 +1,34 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
 import TitleMessage from './components/TitleMessage.vue'
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import IconLaunch from './components/icons/IconLaunch.vue';
 import IconDownload from './components/icons/IconDownload.vue';
 import IconLink from './components/icons/IconLink.vue';
 import IconSetup from './components/icons/IconSetup.vue';
 import IconMore from './components/icons/IconMore.vue';
 
-const navWidth = ref('220px')
+const navItems = [
+  { to: '/home', icon: IconLaunch, label: '启动' },
+  { to: '/download', icon: IconDownload, label: '下载' },
+  { to: '/link', icon: IconLink, label: '联机' },
+  { to: '/setup', icon: IconSetup, label: '设置' },
+  { to: '/more', icon: IconMore, label: '更多' },
+]
+
+const asideWidth = ref(120)
+const asideRef = ref<HTMLElement>()
+let observer: MutationObserver | null = null
+function updateAsideBackgroundWidth() {
+  asideWidth.value = asideRef.value!.scrollWidth
+}
+
+onMounted(() => {
+  observer = new MutationObserver(updateAsideBackgroundWidth)
+  observer.observe(asideRef.value!, { childList: true, })
+  updateAsideBackgroundWidth()
+})
+
 </script>
 
 <template>
@@ -24,20 +44,8 @@ const navWidth = ref('220px')
         <div class="title-tag dev">dev</div>
       </div>
       <nav id="main-nav">
-        <RouterLink to="/home">
-          <IconLaunch />启动
-        </RouterLink>
-        <RouterLink to="/download">
-          <IconDownload />下载
-        </RouterLink>
-        <RouterLink to="/link">
-          <IconLink />联机
-        </RouterLink>
-        <RouterLink to="/setup">
-          <IconSetup />设置
-        </RouterLink>
-        <RouterLink to="/more">
-          <IconMore />更多
+        <RouterLink v-for="item in navItems" :key="item.to" :to="item.to">
+          <component :is="item.icon" />{{ item.label }}
         </RouterLink>
       </nav>
       <div class="right">
@@ -45,11 +53,44 @@ const navWidth = ref('220px')
         <div><img src="@/assets/icons/关闭.svg" /></div>
       </div>
     </header>
-    <RouterView />
+
+    <main id="current">
+      <div ref="asideRef" class="side-nav-content">
+        <RouterView />
+      </div>
+      <div class="side-nav-background" :style="{ width: asideWidth + 'px' }" />
+      <article>
+        2
+      </article>
+    </main>
   </main>
 </template>
 
 <style scoped>
+main#current {
+  flex: 1 1 0;
+  display: flex;
+  height: 0;
+}
+
+main#current .side-nav-background {
+  overflow: auto;
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.15);
+  transition: width 0.3s cubic-bezier(.4, 2, .6, 1);
+}
+
+main#current .side-nav-content {
+  position: fixed;
+  padding: 10px;
+}
+
+main#current article {
+  flex: 1 1 0;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: auto;
+}
+
 .title-tag {
   height: 20px;
   border-radius: 5px;
@@ -75,18 +116,22 @@ const navWidth = ref('220px')
   background: linear-gradient(137.92deg, rgba(192, 196, 221, 1) 0%, rgba(182, 211, 220, 1) 100%);
   box-shadow: 0px 0px 18px rgba(0, 0, 0, 0.15);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 #main-window header {
   top: 0;
   width: 100%;
   height: 48px;
+  position: relative;
   background: var(--color-titlebar);
 
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: 0 18px;
+  flex-shrink: 0;
 }
 
 .left {
