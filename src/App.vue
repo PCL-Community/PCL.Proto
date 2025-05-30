@@ -73,7 +73,7 @@ onMounted(() => {
 
 <style scoped>
 .slide-enter-active {
-  transition: opacity 0.3s, transform 0.3s;
+  transition: opacity 0.6s, transform 0.6s;
 }
 
 .slide-enter-from {

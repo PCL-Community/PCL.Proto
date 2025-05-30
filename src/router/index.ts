@@ -2,7 +2,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import GameDownload from '@/views/DownloadSubView/GameDownload.vue'
 import ModDownload from '@/views/DownloadSubView/ModDownload.vue'
-import HomeSubView from '@/views/HomeSubView/HomeSubView.vue'
+import HomeSubView from '@/views/HomeSubView.vue'
 import DownloadView from '@/views/DownloadView.vue'
 
 const router = createRouter({
@@ -26,7 +26,7 @@ const router = createRouter({
       components: {
         aside: DownloadView,
         default: GameDownload
-      },
+      }
     },
     {
       path: '/link',
