@@ -15,6 +15,20 @@
 </template>
 
 <style scoped>
+a,
+.blue {
+  text-decoration: none;
+  color: rgb(80, 91, 250);
+  transition: 0.4s;
+  padding: 3px;
+}
+
+@media (hover: hover) {
+  a:hover {
+    background-color: hsla(227, 100%, 37%, 0.2);
+  }
+}
+
 .logo {
   display: block;
   margin: 0 2rem 0 0;

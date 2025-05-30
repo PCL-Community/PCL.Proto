@@ -1,22 +1,20 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
 import TitleMessage from './components/TitleMessage.vue'
 import { ref, onMounted, watch, computed } from 'vue';
-import IconLaunch from './components/icons/IconLaunch.vue';
-import IconDownload from './components/icons/IconDownload.vue';
-import IconLink from './components/icons/IconLink.vue';
-import IconSetup from './components/icons/IconSetup.vue';
-import IconMore from './components/icons/IconMore.vue';
-import router from './router';
-import viewDic from './SubViewDic';
+import viewDic from './options/subviewDic';
+import navItems from '@/options/sideDic'
 
-const navItems = [
-  { to: '/home', icon: IconLaunch, label: '启动' },
-  { to: '/download', icon: IconDownload, label: '下载' },
-  { to: '/link', icon: IconLink, label: '联机' },
-  { to: '/setup', icon: IconSetup, label: '设置' },
-  { to: '/more', icon: IconMore, label: '更多' },
-]
+
+let router = useRouter()
+// // 根据当前路由设置 asideWidth
+// router.beforeEach((to, from) => {
+//   const item = navItems.find(i => i.to === to.path)
+//   if (item) {
+//     asideWidth.value = item.width
+//   }
+//   return true
+// })
 
 const asideWidth = ref(120)
 const asideRef = ref<HTMLElement>()
@@ -65,8 +63,8 @@ const currentSubView = computed(() => {
         </RouterLink>
       </nav>
       <div class="right">
-        <div><img src="@/assets/icons/最小化.svg" /></div>
-        <div><img src="@/assets/icons/关闭.svg" /></div>
+        <i class="button-animated"><img src="@/assets/icons/最小化.svg" /></i>
+        <i class="button-animated"><img src="@/assets/icons/关闭.svg" /></i>
       </div>
     </header>
 
@@ -98,8 +96,9 @@ main#current .side-nav-background {
 }
 
 main#current .side-nav-content {
-  position: fixed;
-  padding: 10px;
+  position: absolute;
+  /* padding-right: 20px; */
+  /* padding: 10px; */
   /* min-width: 100px; */
 }
 
@@ -165,7 +164,7 @@ main#current article {
 }
 
 /* 窗口控制按钮外面的圆形 */
-.right div {
+.right i {
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -176,13 +175,13 @@ main#current article {
   transition: background-color 0.4s;
 }
 
-.right div:hover {
+.right i:hover {
   background-color: rgba(255, 255, 255, 0.25);
 }
 
-.right div:active {
+/* .right i:active {
   transform: scale(0.9);
-}
+} */
 
 /* 导航栏 */
 header #main-nav {
@@ -202,6 +201,7 @@ header #main-nav a {
   border-radius: 13px;
   color: white;
   gap: 7px;
+  transition: 0.4s;
 }
 
 #main-nav a:hover {
