@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { RouterLink, RouterView } from 'vue-router'
 import TitleMessage from './components/TitleMessage.vue'
 import { ref, onMounted } from 'vue';
 import IconLaunch from './components/icons/IconLaunch.vue';
@@ -155,7 +155,7 @@ main#current article {
   align-items: center;
   justify-content: center;
   background-color: transparent;
-  transition: background-color color 0.4s;
+  transition: background-color 0.4s;
 }
 
 .right div:hover {
