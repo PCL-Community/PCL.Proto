@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import TitleMessage from './components/TitleMessage.vue'
-import viewDic from './options/subviewDic';
 import navItems from '@/options/sideDic'
 import { sideNavState } from '@/windowState';
 
@@ -25,8 +24,8 @@ import { sideNavState } from '@/windowState';
         </RouterLink>
       </nav>
       <div class="right">
-        <i class="button-animated"><img src="@/assets/icons/最小化.svg" /></i>
-        <i class="button-animated"><img src="@/assets/icons/关闭.svg" /></i>
+        <i class="button-animated"><img src="@/assets/icons/TitleMinimize.svg" /></i>
+        <i class="button-animated"><img src="@/assets/icons/TitleClose.svg" /></i>
       </div>
     </header>
     <main id="current">
@@ -46,14 +45,14 @@ main#current {
   z-index: 2;
 }
 
-main#current .side-nav-background {
+main#current>.side-nav-background {
   position: absolute;
   left: 0;
   top: 0;
   height: 100%;
   background: var(--color-background);
   box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.15);
-  transition: width 0.3s cubic-bezier(.4, 2, .6, 1);
+  transition: width 0.4s cubic-bezier(.4, 2, .6, 1);
   z-index: -1;
 }
 
@@ -128,7 +127,8 @@ main#current .side-nav-background {
   background-color: rgba(255, 255, 255, 0.25);
 }
 
-/* .right i:active {
+/* 按钮缩放已放入 main.css 中 
+.right i:active {
   transform: scale(0.9);
 } */
 

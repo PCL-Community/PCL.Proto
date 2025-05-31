@@ -20,3 +20,10 @@ body {
 .button-animated:active {
   transform: scale(0.9);
 }
+
+.subview {
+  padding: 23px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}

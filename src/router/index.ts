@@ -6,6 +6,7 @@ import SetupView from '@/views/SetupView.vue'
 import MoreView from '@/views/MoreView.vue'
 import GameDownload from '@/views/DownloadSubView/GameDownload.vue'
 import ManualDownload from '@/views/DownloadSubView/ManualDownload.vue'
+import HomeSubView from '@/views/HomeSubView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -16,8 +17,13 @@ const router = createRouter({
     },
     {
       path: '/home',
-      name: 'home',
-      component: HomeView
+      component: HomeView,
+      children: [
+        {
+          path: '',
+          component: HomeSubView
+        }
+      ]
     },
     {
       path: '/download',
