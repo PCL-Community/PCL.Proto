@@ -1,32 +1,75 @@
-<script setup lang="ts">
-import { sideNavState } from '@/router/windowState';
-import { onMounted, onUnmounted, ref } from 'vue';
+<script lang="ts">
+import { defineComponent, onMounted, onUnmounted } from 'vue'
+import { sideNavState } from '@/router/windowState'
+import { nextTick, ref } from 'vue'
 import SideGroup from '@/components/widget/SideGroup.vue'
-import { type INavItemGroup } from '@/router/naviOptions';
+import { type INavItemGroup } from '@/router/naviOptions'
 import { animateCssFor } from '@/animateCSS'
-defineProps<{
-    sideNavGroups: INavItemGroup[]
-}>()
+import { useRouter } from 'vue-router'
 
-let observer: ResizeObserver | null = null
-const asideRef = ref<HTMLElement>()
+export default defineComponent({
+    name: 'SideNavLayout',
+    components: {
+        SideGroup
+    },
+    props: {
+        sideNavGroups: {
+            type: Array as () => INavItemGroup[],
+            required: true
+        }
+    },
+    setup() {
+        let observer: ResizeObserver | null = null
+        const asideRef = ref<HTMLElement>()
+        const subviewRef = ref<HTMLElement>()
+        const router = useRouter()
+        let removeRouteGuard: (() => void) | null = null
 
-function updateAsideBackgroundWidth() {
-    if (asideRef.value) {
-        sideNavState.width = asideRef.value.offsetWidth
-    }
-}
+        function updateAsideBackgroundWidth() {
+            if (asideRef.value) {
+                sideNavState.width = asideRef.value.offsetWidth
+            }
+        }
 
-onMounted(async () => {
-    observer = new ResizeObserver(updateAsideBackgroundWidth)
-    if (asideRef.value) {
-        observer.observe(asideRef.value)
-        const sidenavLines = asideRef.value.querySelectorAll('.sidenav-line');
-        animateCssFor(sidenavLines, 'fadeInLeft', 20);
+        function animateSubviews() {
+            if (subviewRef.value) {
+                const allChildren = subviewRef.value.children
+                animateCssFor(allChildren, 'fadeInDown', 30)
+            }
+        }
+
+        function animateSidenavLines() {
+            if (asideRef.value) {
+                const sidenavLines = asideRef.value.querySelectorAll('.sidenav-line')
+                animateCssFor(sidenavLines, 'fadeInLeft', 20)
+            }
+        }
+
+        onMounted(async () => {
+            observer = new ResizeObserver(updateAsideBackgroundWidth)
+            observer.observe(asideRef.value!)
+            removeRouteGuard = router.afterEach(() => {
+                nextTick(() => {
+                    animateSubviews()
+                })
+            })
+            nextTick(() => {
+                animateSidenavLines()
+                animateSubviews()
+            })
+        })
+
+        onUnmounted(() => {
+            observer?.disconnect()
+            removeRouteGuard?.()
+        })
+
+        return {
+            asideRef,
+            subviewRef
+        }
     }
 })
-
-onUnmounted(() => observer?.disconnect())
 </script>
 
 <template>
@@ -34,11 +77,15 @@ onUnmounted(() => observer?.disconnect())
         <aside ref="asideRef">
             <SideGroup v-for="group in sideNavGroups" :title="group.title" :content="group.content" />
         </aside>
-        <article class="subview">
-            <slot></slot>
+        <article class="subview" ref="subviewRef">
+            <RouterView />
         </article>
     </div>
 </template>
+<!-- <template lang="pug">
+    .view-content
+        aside 
+</template> -->
 
 <style scoped>
 .view-content {

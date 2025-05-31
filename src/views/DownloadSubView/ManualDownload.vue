@@ -1,3 +1,6 @@
+<script setup>
+import MyCard from '@/components/widget/MyCard.vue';
+</script>
 <template>
-    ModDownload
+    <MyCard></MyCard>
 </template>
