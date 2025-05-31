@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import { sideNavState, defaultWidths } from '@/windowState';
+import { onMounted } from 'vue';
+
+onMounted(() => {
+  sideNavState.width = defaultWidths.link
+})
 </script>
 
 <template>

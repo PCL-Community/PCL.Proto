@@ -4,6 +4,8 @@ import DownloadView from '@/views/DownloadView.vue'
 import LinkView from '@/views/LinkView.vue'
 import SetupView from '@/views/SetupView.vue'
 import MoreView from '@/views/MoreView.vue'
+import GameDownload from '@/views/DownloadSubView/GameDownload.vue'
+import ManualDownload from '@/views/DownloadSubView/ManualDownload.vue'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -19,8 +21,21 @@ const router = createRouter({
     },
     {
       path: '/download',
-      name: 'download',
-      component: DownloadView
+      component: DownloadView,
+      children: [
+        {
+          path: '',
+          redirect: 'download/game'
+        },
+        {
+          path: 'game',
+          component: GameDownload,
+        },
+        {
+          path: 'manual',
+          component: ManualDownload
+        }
+      ]
     },
     {
       path: '/link',
