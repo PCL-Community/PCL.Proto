@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { INavItem } from '@/options/naviOptions';
-import IconRefresh from './icons/side/IconRefresh.vue';
+import IconRefresh from '@/components/icons/side/IconRefresh.vue';
 import { useRoute } from 'vue-router';
 defineProps<INavItem>()
 </script>
@@ -79,6 +79,6 @@ a:hover {
 }
 
 a.router-link-active {
-    color: var(--color-selected);
+    color: var(--color-tint);
 }
 </style>
