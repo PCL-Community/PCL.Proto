@@ -32,7 +32,7 @@ import { sideNavState } from '@/windowState';
       <!-- 次级页面 -->
       <RouterView />
       <!-- 用作动画 -->
-      <area class="side-nav-background" :style="{ width: sideNavState.width + 'px' }"></area>
+      <div class="side-nav-background" :style="{ width: sideNavState.width + 'px' }"></div>
     </main>
   </main>
 </template>
@@ -45,7 +45,7 @@ main#current {
   z-index: 2;
 }
 
-main#current>area {
+main#current>.side-nav-background {
   position: absolute;
   left: 0;
   top: 0;
