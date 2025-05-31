@@ -28,11 +28,8 @@ const router = createRouter({
     {
       path: '/download',
       component: DownloadView,
+      redirect: '/download/game',
       children: [
-        {
-          path: '',
-          redirect: 'download/game'
-        },
         {
           path: 'game',
           component: GameDownload,

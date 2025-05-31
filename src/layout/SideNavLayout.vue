@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { sideNavState } from '@/router/windowState';
-import { nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import SideGroup from '@/components/widget/SideGroup.vue'
 import { type INavItemGroup } from '@/router/naviOptions';
 import { animateCssFor } from '@/animateCSS'
@@ -9,7 +9,6 @@ defineProps<{
 }>()
 
 let observer: ResizeObserver | null = null
-
 const asideRef = ref<HTMLElement>()
 
 function updateAsideBackgroundWidth() {
@@ -18,16 +17,12 @@ function updateAsideBackgroundWidth() {
     }
 }
 
-const hasAnimated = ref(false)
-
 onMounted(async () => {
     observer = new ResizeObserver(updateAsideBackgroundWidth)
-    if (asideRef.value && !hasAnimated.value) {
+    if (asideRef.value) {
         observer.observe(asideRef.value)
-        await nextTick()
         const sidenavLines = asideRef.value.querySelectorAll('.sidenav-line');
         animateCssFor(sidenavLines, 'fadeInLeft', 20);
-        hasAnimated.value = true
     }
 })
 
