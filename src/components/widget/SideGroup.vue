@@ -5,16 +5,18 @@ import SideNavItem from './SideNavItem.vue';
 import { type INavItemGroup } from '@/router/naviOptions';
 </script>
 
-<template>
-    <div>
-        <!-- 添加 sidenav-line 类是为了方便外部做动画的 -->
-        <p class="side-group-title sidenav-line">{{ title }}</p>
-        <div class="side-group-content">
-            <SideNavItem v-for="item in content" :item-name="item.itemName" :icon="item.icon" :linkto="item.linkto"
-                class="sidenav-line" />
-        </div>
-    </div>
+<template lang="pug">
+    div
+        //- 添加 sidenav-line 类是为了方便外部做动画的
+        p.side-group-title.sidenav-line {{title}}
+        .side-group-content
+            SideNavItem.sidenav-line(
+                v-for="item in content" 
+                :item-name="item.itemName" 
+                :icon="item.icon" 
+                :linkto="item.linkto")
 </template>
+
 
 <style lang="css" scoped>
 .side-group-content {

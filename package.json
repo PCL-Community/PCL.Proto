@@ -14,11 +14,12 @@
   },
   "dependencies": {
     "animate.css": "^4.1.1",
-    "gh-pages": "^6.3.0",
+    "pug": "^3.0.3",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
+    "gh-pages": "^6.3.0",
     "@tsconfig/node22": "^22.0.1",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-vue": "^5.2.3",

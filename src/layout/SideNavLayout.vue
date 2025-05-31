@@ -72,20 +72,17 @@ export default defineComponent({
 })
 </script>
 
-<template>
-    <div class="view-content">
-        <aside ref="asideRef">
-            <SideGroup v-for="group in sideNavGroups" :title="group.title" :content="group.content" />
-        </aside>
-        <article class="subview" ref="subviewRef">
-            <RouterView />
-        </article>
-    </div>
+<template lang="pug">
+.view-content
+    aside(ref="asideRef")
+        SideGroup(
+                v-for="group in sideNavGroups"
+                :title="group.title"
+                :content="group.content"
+            )
+    article.subview(ref="subviewRef")
+        RouterView()
 </template>
-<!-- <template lang="pug">
-    .view-content
-        aside 
-</template> -->
 
 <style scoped>
 .view-content {
