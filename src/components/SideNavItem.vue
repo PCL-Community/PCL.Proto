@@ -1,70 +1,56 @@
 <script setup lang="ts">
-defineProps<{ itemName?: string, isSelected?: Boolean }>()
-import IconOverview from './icons/side/IconOverview.vue';
+import type { INavItem } from '@/options/naviOptions';
 import IconRefresh from './icons/side/IconRefresh.vue';
+import { useRoute } from 'vue-router';
+defineProps<INavItem>()
 </script>
 
 <template>
-    <div class="side-nav-item" :class="{ 'selected-blue': isSelected }">
-        <svg :style="{ visibility: isSelected ? 'visible' : 'hidden' }" width="4" height="23" viewBox="0 0 4 23">
-            <path stroke="currentColor" stroke-width="4" stroke-linecap="round" d="M2 2L2 21"></path>
+    <RouterLink :to="linkto ?? '/home'">
+        <svg width="4" height="23" viewBox="0 0 4 23" class="indicator">
+            <line x1="2" :y1="2" x2="2" :y2="21" stroke="currentColor" stroke-width="4" stroke-linecap="round"></line>
         </svg>
         <i class="side-nav-icon">
-            <slot>
-                <IconOverview />
-            </slot>
+            <component :is="icon" />
         </i>
-        <p class="side-nav-text">{{ itemName }}</p>
+        <p>{{ itemName }}</p>
         <i class="refresh-icon button-animated">
-            <IconRefresh />
+            <component :is="IconRefresh" />
         </i>
-    </div>
+    </RouterLink>
 </template>
 
 <style scoped>
+.indicator {
+    visibility: hidden;
+    transform: scaleY(0);
+    transform-origin: center;
+    transition: none;
+}
+
+a.router-link-active .indicator {
+    visibility: visible;
+    transform: scaleY(1);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 i.refresh-icon {
     margin-left: auto;
     color: var(--light-blue);
     opacity: 0;
     transition: 0.4s;
     margin-right: 10px;
-    /* visibility: hidden; */
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.side-nav-item:hover i.refresh-icon {
-    opacity: 1;
-    /* visibility: visible; */
 }
 
 i.refresh-icon:hover {
     color: var(--color-titlebar);
 }
 
-.side-nav-item {
-    width: 100%;
-    display: flex;
-    gap: 11px;
-    align-items: center;
-    justify-content: flex-start;
-    font-size: 13px;
-    height: 34px;
-    background-color: transparent;
-    transition: 0.4s;
-    /* border-width: 1px 0 1px 0;
-    border-color: transparent;
-    border-style: solid; */
-}
-
-.side-nav-item:hover {
-    background-color: var(--color-tint-lighter);
-    /* border-color: var(--color-tint-lightist) */
-}
-
-.selected-blue {
-    color: var(--color-selected);
+a:hover i.refresh-icon {
+    opacity: 1;
 }
 
 .side-nav-icon {
@@ -73,5 +59,26 @@ i.refresh-icon:hover {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+a {
+    width: 100%;
+    display: flex;
+    gap: 11px;
+    align-items: center;
+    justify-content: flex-start;
+    font-size: 13px;
+    color: var(--color-text-black);
+    height: 34px;
+    background-color: transparent;
+    transition: 0.4s;
+}
+
+a:hover {
+    background-color: var(--color-tint-lighter);
+}
+
+a.router-link-active {
+    color: var(--color-selected);
 }
 </style>

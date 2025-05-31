@@ -2,6 +2,7 @@
 import { sideNavState } from '@/windowState';
 import { onMounted, ref } from 'vue';
 import SideGroup from '@/components/SideGroup.vue'
+import { downloadSubViewManifest } from '@/options/naviOptions';
 
 let observer: ResizeObserver | null = null
 
@@ -22,7 +23,7 @@ onMounted(() => {
 <template>
   <div class="view-content">
     <aside ref="asideRef">
-      <SideGroup />
+      <SideGroup v-for="group in downloadSubViewManifest" :title="group.title" :content="group.content" />
     </aside>
     <article>
       <RouterView />
@@ -47,52 +48,6 @@ i.refresh-icon:hover {
   color: var(--color-titlebar);
 }
 
-/* .side-group a:hover i.refresh-icon {
-  opacity: 1;
-}
-
-.side-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.side-nav-icon {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.side-group a {
-  width: 100%;
-  display: flex;
-  gap: 11px;
-  align-items: center;
-  justify-content: flex-start;
-  font-size: 13px;
-  color: var(--color-text-black);
-  height: 34px;
-  background-color: transparent;
-  transition: 0.4s;
-}
-
-.side-group a:hover {
-  background-color: var(--color-tint-lighter);
-}
-
-.side-group a.router-link-active {
-  color: var(--color-selected);
-}
-
-.side-group a .indicator {
-  visibility: hidden;
-}
-
-.side-group a.router-link-active .indicator {
-  visibility: visible;
-} */
-
 article {
   flex: 1 1 0;
   overflow: auto;
@@ -106,10 +61,11 @@ article {
 }
 
 aside {
-  /* background: rgba(255, 255, 255, 0.2); */
-  /* box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.15); */
-  padding: 12px 0 0 0;
+  padding: 14px 0 0 0;
   height: 100%;
   flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
 }
 </style>
