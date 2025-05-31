@@ -7,7 +7,7 @@
         Here's a prototype of
         <a href="https://github.com/Hex-Dragon/PCL2/" target="_blank" rel="noopener">PCL</a>.
         <br />For deatiled information,
-        head to <a href="https://js.design/f/QVPQRY?p=zX2rcVk6Cy&mode=design">即时设计</a>.
+        head to <a href="https://js.design/f/QVPQRY?p=zX2rcVk6Cy&mode=design">js.design</a>.
       </h3>
     </div>
   </div>

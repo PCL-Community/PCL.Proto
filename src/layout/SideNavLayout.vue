@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { sideNavState } from '@/router/windowState';
-import { onMounted, onUnmounted, ref } from 'vue';
+import { nextTick, onMounted, onUnmounted, ref } from 'vue';
 import SideGroup from '@/components/widget/SideGroup.vue'
 import { type INavItemGroup } from '@/router/naviOptions';
+import { animateCssFor } from '@/animateCSS'
 defineProps<{
     sideNavGroups: INavItemGroup[]
 }>()
@@ -17,21 +18,16 @@ function updateAsideBackgroundWidth() {
     }
 }
 
-onMounted(() => {
-    observer = new ResizeObserver(updateAsideBackgroundWidth)
-    if (asideRef.value) {
-        observer.observe(asideRef.value)
+const hasAnimated = ref(false)
 
-        let sidenavLines = asideRef.value.querySelectorAll('.sidenav-line');
-        for (let i = 0; i < sidenavLines.length; i++) {
-            const line = sidenavLines[i] as HTMLElement;
-            line.classList.add('animate__animated', 'animate__fadeInLeft')
-            line.style.animationDelay = `${i * 20}ms`;
-            line.addEventListener('animationend', (event) => {
-                event.stopPropagation();
-                line.classList.remove('animate__animated', 'animate__fadeInLeft')
-            }, { once: true });
-        }
+onMounted(async () => {
+    observer = new ResizeObserver(updateAsideBackgroundWidth)
+    if (asideRef.value && !hasAnimated.value) {
+        observer.observe(asideRef.value)
+        await nextTick()
+        const sidenavLines = asideRef.value.querySelectorAll('.sidenav-line');
+        animateCssFor(sidenavLines, 'fadeInLeft', 20);
+        hasAnimated.value = true
     }
 })
 
