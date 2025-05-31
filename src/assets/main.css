@@ -27,3 +27,8 @@ body {
   flex-direction: column;
   gap: 20px;
 }
+
+/* animate.css的属性 */
+:root {
+  --animate-duration: 0.4s;
+}

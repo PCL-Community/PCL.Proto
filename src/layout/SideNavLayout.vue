@@ -19,10 +19,20 @@ function updateAsideBackgroundWidth() {
 
 onMounted(() => {
     observer = new ResizeObserver(updateAsideBackgroundWidth)
-    if (asideRef.value) { observer.observe(asideRef.value) }
+    if (asideRef.value) {
+        observer.observe(asideRef.value)
 
-    let sidenavLines = document.querySelectorAll('.sidenav-line');
-    sidenavLines.forEach((line) => { console.log(line.textContent + ': ' + line.classList.value) })
+        let sidenavLines = asideRef.value.querySelectorAll('.sidenav-line');
+        for (let i = 0; i < sidenavLines.length; i++) {
+            const line = sidenavLines[i] as HTMLElement;
+            line.classList.add('animate__animated', 'animate__fadeInLeft')
+            line.style.animationDelay = `${i * 20}ms`;
+            line.addEventListener('animationend', (event) => {
+                event.stopPropagation();
+                line.classList.remove('animate__animated', 'animate__fadeInLeft')
+            }, { once: true });
+        }
+    }
 })
 
 onUnmounted(() => observer?.disconnect())
