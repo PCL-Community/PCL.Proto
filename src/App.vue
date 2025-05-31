@@ -1,47 +1,9 @@
 <script setup lang="ts">
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import TitleMessage from './components/TitleMessage.vue'
-import { ref, onMounted, watch, computed } from 'vue';
 import viewDic from './options/subviewDic';
 import navItems from '@/options/sideDic'
-
-
-let router = useRouter()
-// // 根据当前路由设置 asideWidth
-// router.beforeEach((to, from) => {
-//   const item = navItems.find(i => i.to === to.path)
-//   if (item) {
-//     asideWidth.value = item.width
-//   }
-//   return true
-// })
-
-const asideWidth = ref(120)
-const asideRef = ref<HTMLElement>()
-let observer: MutationObserver | null = null
-const subNavSelect = ref<number>(0)
-
-function updateAsideBackgroundWidth() {
-  asideWidth.value = asideRef.value!.scrollWidth
-}
-
-onMounted(() => {
-  observer = new MutationObserver(updateAsideBackgroundWidth)
-  observer.observe(asideRef.value!, { childList: true, })
-  updateAsideBackgroundWidth()
-})
-
-watch(subNavSelect, (to, from) => {
-  console.log(`from ${from} to ${to}`)
-})
-
-const currentSubView = computed(() => {
-  let currentView = router.currentRoute.value.name as keyof typeof viewDic;
-  if (currentView && viewDic[currentView]) {
-    return viewDic[currentView][subNavSelect.value]
-  }
-  else { return undefined }
-})
+import { sideNavState } from '@/windowState';
 
 </script>
 
@@ -67,45 +29,32 @@ const currentSubView = computed(() => {
         <i class="button-animated"><img src="@/assets/icons/关闭.svg" /></i>
       </div>
     </header>
-
     <main id="current">
-      <div class="side-nav-background" :style="{ width: asideWidth + 'px' }" />
-      <div ref="asideRef" class="side-nav-content">
-        <RouterView @nav-button="(i: number) => { subNavSelect = i }" />
-      </div>
-
-      <article>
-        <component :is="currentSubView"></component>
-      </article>
+      <!-- 次级页面 -->
+      <RouterView />
+      <!-- 用作动画 -->
+      <div class="side-nav-background" :style="{ width: sideNavState.width + 'px' }"></div>
     </main>
   </main>
 </template>
 
 <style scoped>
 main#current {
-  flex: 1 1 0;
-  display: flex;
-  height: 0;
+  position: relative;
+  height: 100%;
+  width: 100%;
+  z-index: 2;
 }
 
 main#current .side-nav-background {
-  overflow: auto;
-  background: rgba(255, 255, 255, 1);
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--color-background);
   box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.15);
   transition: width 0.3s cubic-bezier(.4, 2, .6, 1);
-}
-
-main#current .side-nav-content {
-  position: absolute;
-  /* padding-right: 20px; */
-  /* padding: 10px; */
-  /* min-width: 100px; */
-}
-
-main#current article {
-  flex: 1 1 0;
-  background: rgba(255, 255, 255, 0.1);
-  overflow: auto;
+  z-index: -1;
 }
 
 .title-tag {
@@ -151,20 +100,20 @@ main#current article {
   flex-shrink: 0;
 }
 
-.left {
+#main-window header .left {
   justify-self: start;
   display: flex;
   gap: 10px;
 }
 
-.right {
+#main-window header .right {
   justify-self: end;
   display: flex;
   gap: 4px;
 }
 
 /* 窗口控制按钮外面的圆形 */
-.right i {
+#main-window header .right i {
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -175,7 +124,7 @@ main#current article {
   transition: background-color 0.4s;
 }
 
-.right i:hover {
+#main-window header .right i:hover {
   background-color: rgba(255, 255, 255, 0.25);
 }
 
@@ -184,7 +133,7 @@ main#current article {
 } */
 
 /* 导航栏 */
-header #main-nav {
+#main-window header #main-nav {
   justify-self: center;
   display: inline-flex;
   gap: 5px;
@@ -212,7 +161,7 @@ header #main-nav a {
   background-color: rgba(255, 255, 255, 0.5);
 }
 
-#main-nav a.router-link-exact-active {
+#main-nav a.router-link-active {
   background-color: white;
   color: var(--color-titlebar);
 }
