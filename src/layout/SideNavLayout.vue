@@ -42,6 +42,12 @@ onMounted(() => {
     box-sizing: border-box;
 }
 
+article {
+    flex: 1 1 0;
+    overflow-y: auto;
+    padding-bottom: 76px;
+}
+
 aside {
     padding: 14px 0 0 0;
     height: 100%;

@@ -15,7 +15,7 @@ onMounted(() => {
       主页
       <MyButton></MyButton>
     </aside>
-    <article>
+    <article class="subview">
       <RouterView />
     </article>
   </div>
@@ -30,7 +30,9 @@ aside {
 
 article {
   flex: 1 1 0;
-  overflow: auto;
+  overflow-y: auto;
+  padding-bottom: 76px;
+  /*我也不知道为什么要加这个padding，反正不加就会被遮挡 */
 }
 
 .view-content {

@@ -3,11 +3,12 @@
   --vt-c-white: #ffffff;
   --vt-c-black: #343d4a;
   --vt-c-grey: #8c8c8c;
-
+  --vt-c-white-soft: #f2f5f9;
   --pcl-blue: rgba(15, 111, 205, 1);
   --tint-blue: #1370f3;
   --light-blue: #4890f5;
   --lighter-blue: rgba(19, 112, 243, 0.1);
+  --shadow-blue: rgba(19, 112, 243, 0.6);
   --half-transparent-blue: rgba(15, 111, 205, 0.25);
 
   --warn-red: rgb(206, 33, 17);
@@ -19,6 +20,7 @@
 /* semantic color variables for this project */
 :root {
   --color-background: var(--vt-c-white);
+  --color-background-soft: var(--vt-c-white-soft);
   --color-text-black: var(--vt-c-black);
   --color-text-grey: var(--vt-c-grey);
 
@@ -27,7 +29,7 @@
   --color-tint-light: var(--light-blue);
   --color-tint-lighter: var(--lighter-blue);
   --color-tint-lightist: var(--half-transparent-blue);
-
+  --color-tint-shadow: var(--shadow-blue);
   --color-warn: var(--warn-red);
   --color-warn-lighter: var(--lighter-red);
 }
