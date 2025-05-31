@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import MyButton from '@/components/widget/MyButton.vue';
-import { sideNavState, defaultWidths } from '@/windowState';
+import { sideNavState, defaultWidths } from '@/router/windowState';
 import { onMounted } from 'vue';
 
 onMounted(() => {

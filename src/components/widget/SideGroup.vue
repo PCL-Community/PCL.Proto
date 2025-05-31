@@ -2,15 +2,16 @@
 
 defineProps<INavItemGroup>()
 import SideNavItem from './SideNavItem.vue';
-import { type INavItemGroup } from '@/options/naviOptions';
-
+import { type INavItemGroup } from '@/router/naviOptions';
 </script>
 
 <template>
     <div>
-        <p class="side-group-title">{{ title }}</p>
+        <!-- 添加 sidenav-line 类是为了方便外部做动画的 -->
+        <p class="side-group-title sidenav-line">{{ title }}</p>
         <div class="side-group-content">
-            <SideNavItem v-for="item in content" :item-name="item.itemName" :icon="item.icon" :linkto="item.linkto" />
+            <SideNavItem v-for="item in content" :item-name="item.itemName" :icon="item.icon" :linkto="item.linkto"
+                class="sidenav-line" />
         </div>
     </div>
 </template>

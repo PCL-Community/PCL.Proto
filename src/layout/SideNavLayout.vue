@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { sideNavState } from '@/windowState';
-import { onMounted, ref } from 'vue';
+import { sideNavState } from '@/router/windowState';
+import { onMounted, onUnmounted, ref } from 'vue';
 import SideGroup from '@/components/widget/SideGroup.vue'
-import { type INavItemGroup } from '@/options/naviOptions';
+import { type INavItemGroup } from '@/router/naviOptions';
 defineProps<{
     sideNavGroups: INavItemGroup[]
 }>()
@@ -20,7 +20,12 @@ function updateAsideBackgroundWidth() {
 onMounted(() => {
     observer = new ResizeObserver(updateAsideBackgroundWidth)
     if (asideRef.value) { observer.observe(asideRef.value) }
+
+    let sidenavLines = document.querySelectorAll('.sidenav-line');
+    sidenavLines.forEach((line) => { console.log(line.textContent + ': ' + line.classList.value) })
 })
+
+onUnmounted(() => observer?.disconnect())
 </script>
 
 <template>

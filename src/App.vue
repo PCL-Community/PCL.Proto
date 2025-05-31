@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { RouterLink, RouterView } from 'vue-router'
 import TitleMessage from './components/TitleMessage.vue'
-import navItems from '@/options/sideDic'
-import { sideNavState } from '@/windowState';
+import navItems from '@/router/navItems'
+import { sideNavState } from '@/router/windowState';
 
 </script>
 

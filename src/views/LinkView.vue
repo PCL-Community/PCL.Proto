@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { sideNavState, defaultWidths } from '@/windowState';
+import { sideNavState, defaultWidths } from '@/router/windowState';
 import { onMounted } from 'vue';
 
 onMounted(() => {

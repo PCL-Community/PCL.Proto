@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { INavItem } from '@/options/naviOptions';
+import type { INavItem } from '@/router/naviOptions';
 import IconRefresh from '@/components/icons/side/IconRefresh.vue';
 import { useRoute } from 'vue-router';
 defineProps<INavItem>()
@@ -8,7 +8,7 @@ defineProps<INavItem>()
 <template>
     <RouterLink :to="linkto ?? '/home'">
         <svg width="4" height="23" viewBox="0 0 4 23" class="indicator">
-            <line x1="2" :y1="2" x2="2" :y2="21" stroke="currentColor" stroke-width="4" stroke-linecap="round"></line>
+            <line x1="2" y1="2" x2="2" y2="21" stroke="currentColor" stroke-width="4" stroke-linecap="round"></line>
         </svg>
         <i class="side-nav-icon">
             <component :is="icon" />

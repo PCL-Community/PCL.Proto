@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import SideNavLayout from '@/layout/SideNavLayout.vue'
-import { downloadSubViewManifest } from '@/options/naviOptions';
+import { downloadSubViewManifest } from '@/router/naviOptions';
 </script>
 
 <template>
