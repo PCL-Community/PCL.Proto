@@ -3,7 +3,7 @@
   --vt-c-white: #ffffff;
   --vt-c-black: #343d4a;
   --vt-c-grey: #8c8c8c;
-  --vt-c-white-soft: #f2f5f9;
+  --vt-c-white-soft: rgba(255, 255, 255, 0.9);
   --pcl-blue: rgba(15, 111, 205, 1);
   --tint-blue: #1370f3;
   --light-blue: #4890f5;
