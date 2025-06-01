@@ -7,16 +7,9 @@ import { useRouter } from 'vue-router';
 
 const subviewRef = ref<HTMLElement>()
 const asideRef = ref<HTMLElement>()
-const router = useRouter()
-let removeRouteGuard: (() => void) | null = null
 
 onMounted(() => {
   sideNavState.width = defaultWidths.home
-  removeRouteGuard = router.afterEach(() => {
-    nextTick(() => {
-      animateSubview()
-    })
-  })
   nextTick(() => {
     animateCss(asideRef.value!, 'zoomIn')
     animateSubview()
@@ -27,11 +20,6 @@ onMounted(() => {
       animateCssFor(allChildren, 'fadeInDown', 30)
     }
   }
-})
-
-onUnmounted(() => {
-  // animateCss(asideRef.value!, 'zoomOut')
-  removeRouteGuard?.()
 })
 
 </script>
