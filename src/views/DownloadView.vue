@@ -16,17 +16,17 @@ export default {
       sideNavGroups: [{
         title: 'Minecraft',
         content: [
-          { itemName: '游戏下载', icon: IconOverview, linkto: 'game' },
-          { itemName: '手动安装包', icon: IconWrench, linkto: "manual" }
+          { text: '游戏下载', icon: IconOverview, linkto: 'game' },
+          { text: '手动安装包', icon: IconWrench, linkto: "manual" }
         ]
       }, {
         title: '社区资源',
         content: [
-          { itemName: 'Mod', icon: IconMod },
-          { itemName: '整合包', icon: IconPack },
-          { itemName: '数据包', icon: IconFourLeaves },
-          { itemName: '资源包', icon: IconPicture },
-          { itemName: '光影包', icon: IconSun }
+          { text: 'Mod', icon: IconMod },
+          { text: '整合包', icon: IconPack },
+          { text: '数据包', icon: IconFourLeaves },
+          { text: '资源包', icon: IconPicture },
+          { text: '光影包', icon: IconSun }
         ]
       }
       ]

@@ -1,10 +1,34 @@
 <script setup lang="ts">
 import MyButton from '@/components/widget/MyButton.vue';
 import { sideNavState, defaultWidths, sideNavWidthStr } from '@/router/windowState';
-import { onMounted } from 'vue';
+import { animateCssFor } from '@/util/animateCSS';
+import { nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+const subviewRef = ref<HTMLElement>()
+const router = useRouter()
+let removeRouteGuard: (() => void) | null = null
 
 onMounted(() => {
   sideNavState.width = defaultWidths.home
+  removeRouteGuard = router.afterEach(() => {
+    nextTick(() => {
+      animateSubview()
+    })
+  })
+  nextTick(() => {
+    animateSubview()
+  })
+  function animateSubview() {
+    if (subviewRef.value) {
+      const allChildren = subviewRef.value.children
+      animateCssFor(allChildren, 'fadeInDown', 30)
+    }
+  }
+})
+
+onUnmounted(() => {
+  removeRouteGuard?.()
 })
 
 </script>
@@ -15,7 +39,7 @@ onMounted(() => {
       | 主页
       MyButton()
 
-    article.subview
+    article.subview(ref="subviewRef")
       RouterView()
 
 </template>

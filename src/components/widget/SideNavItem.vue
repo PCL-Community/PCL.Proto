@@ -13,7 +13,7 @@ defineProps<INavItem>()
         i.side-nav-icon
             component(:is="icon")
 
-        p {{ itemName }}
+        p {{ text }}
         i.refresh-icon.button-animated
             component(:is="IconRefresh")
 

@@ -1,10 +1,10 @@
 export interface INavItem {
-    itemName: string,
+    text: string,
     icon?: any,
     linkto?: string
 }
 
 export interface INavItemGroup {
-    title: string,
+    title?: string,
     content: INavItem[],
 }

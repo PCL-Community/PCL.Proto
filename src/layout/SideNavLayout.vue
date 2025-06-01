@@ -31,7 +31,7 @@ export default defineComponent({
             }
         }
 
-        function animateSubviews() {
+        function animateSubview() {
             if (subviewRef.value) {
                 const allChildren = subviewRef.value.children
                 animateCssFor(allChildren, 'fadeInDown', 30)
@@ -50,12 +50,12 @@ export default defineComponent({
             observer.observe(asideRef.value!)
             removeRouteGuard = router.afterEach(() => {
                 nextTick(() => {
-                    animateSubviews()
+                    animateSubview()
                 })
             })
             nextTick(() => {
                 animateSidenavLines()
-                animateSubviews()
+                animateSubview()
             })
         })
 

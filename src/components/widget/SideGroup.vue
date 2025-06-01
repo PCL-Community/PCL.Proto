@@ -12,7 +12,7 @@ import { type INavItemGroup } from '@/router/naviOptions';
         .side-group-content
             SideNavItem.sidenav-line(
                 v-for="item in content" 
-                :item-name="item.itemName" 
+                :text="item.text" 
                 :icon="item.icon" 
                 :linkto="item.linkto")
 </template>
