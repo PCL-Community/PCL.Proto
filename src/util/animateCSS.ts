@@ -1,7 +1,6 @@
-export const animateCss = (element: string, animation: string, prefix = 'animate__') =>
+export const animateCss = (node: HTMLElement, animation: string, prefix = 'animate__') =>
   new Promise((resolve, reject) => {
     const animationName = `${prefix}${animation}`;
-    const node = document.querySelector(element) as HTMLElement;
 
     node.classList.add(`${prefix}animated`, animationName);
 

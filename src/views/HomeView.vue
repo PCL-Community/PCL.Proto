@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import MyButton from '@/components/widget/MyButton.vue';
 import { sideNavState, defaultWidths, sideNavWidthStr } from '@/router/windowState';
-import { animateCssFor } from '@/util/animateCSS';
+import { animateCss, animateCssFor } from '@/util/animateCSS';
 import { nextTick, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const subviewRef = ref<HTMLElement>()
+const asideRef = ref<HTMLElement>()
 const router = useRouter()
 let removeRouteGuard: (() => void) | null = null
 
@@ -17,6 +18,7 @@ onMounted(() => {
     })
   })
   nextTick(() => {
+    animateCss(asideRef.value!, 'zoomIn')
     animateSubview()
   })
   function animateSubview() {
@@ -28,6 +30,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  // animateCss(asideRef.value!, 'zoomOut')
   removeRouteGuard?.()
 })
 
@@ -35,7 +38,7 @@ onUnmounted(() => {
 
 <template lang="pug">
   .view-content
-    aside.left
+    aside.left(ref="asideRef")
       | 主页
       MyButton()
 
