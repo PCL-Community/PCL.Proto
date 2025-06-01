@@ -4,7 +4,7 @@ import { sideNavState } from '@/router/windowState'
 import { nextTick, ref } from 'vue'
 import SideGroup from '@/components/widget/SideGroup.vue'
 import { type INavItemGroup } from '@/router/naviOptions'
-import { animateCssFor } from '@/animateCSS'
+import { animateCssFor } from '@/util/animateCSS'
 import { useRouter } from 'vue-router'
 
 export default defineComponent({

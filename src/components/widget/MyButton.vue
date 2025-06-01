@@ -6,10 +6,9 @@ defineProps<{ type?: ButtonType }>()
 
 </script>
 
-<template>
-    <button class="mybutton" :class="type ?? 'default'">
-        <slot>我的按钮</slot>
-    </button>
+<template lang="pug">
+    button.mybutton(:class="type ?? 'default'")
+        slot 我的按钮
 </template>
 
 <style scoped>

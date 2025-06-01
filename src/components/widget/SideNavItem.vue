@@ -5,19 +5,18 @@ import { useRoute } from 'vue-router';
 defineProps<INavItem>()
 </script>
 
-<template>
-    <RouterLink :to="linkto ?? '/home'">
-        <svg width="4" height="23" viewBox="0 0 4 23" class="indicator">
-            <line x1="2" y1="2" x2="2" y2="21" stroke="currentColor" stroke-width="4" stroke-linecap="round"></line>
-        </svg>
-        <i class="side-nav-icon">
-            <component :is="icon" />
-        </i>
-        <p>{{ itemName }}</p>
-        <i class="refresh-icon button-animated">
-            <component :is="IconRefresh" />
-        </i>
-    </RouterLink>
+<template lang="pug">
+    RouterLink(:to="linkto ?? '/home'")
+        svg.indicator(width="4" height="23" viewBox="0 0 4 23")
+            line(x1="2" y1="2" x2="2" y2="21" stroke="currentColor" stroke-width="4" stroke-linecap="round")
+
+        i.side-nav-icon
+            component(:is="icon")
+
+        p {{ itemName }}
+        i.refresh-icon.button-animated
+            component(:is="IconRefresh")
+
 </template>
 
 <style scoped>

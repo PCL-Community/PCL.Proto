@@ -1,4 +1,4 @@
-import { reactive } from "vue";
+import { computed, reactive } from "vue";
 
 export const defaultWidths = {
     home: 286,
@@ -14,3 +14,4 @@ export const sideNavState = reactive({
     width: defaultWidths.home
 })
 
+export const sideNavWidthStr = computed(() => sideNavState.width + 'px');

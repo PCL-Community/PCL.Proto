@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import MyButton from '@/components/widget/MyButton.vue';
-import { sideNavState, defaultWidths } from '@/router/windowState';
+import { sideNavState, defaultWidths, sideNavWidthStr } from '@/router/windowState';
 import { onMounted } from 'vue';
 
 onMounted(() => {
@@ -9,16 +9,15 @@ onMounted(() => {
 
 </script>
 
-<template>
-  <div class="view-content">
-    <aside class="left" :style="{ width: sideNavState.width + 'px' }">
-      主页
-      <MyButton></MyButton>
-    </aside>
-    <article class="subview">
-      <RouterView />
-    </article>
-  </div>
+<template lang="pug">
+  .view-content
+    aside.left
+      | 主页
+      MyButton()
+
+    article.subview
+      RouterView()
+
 </template>
 
 <style scoped>
@@ -26,6 +25,10 @@ aside {
   height: 100%;
   flex: 0 0 auto;
   padding: 20px;
+}
+
+aside.left {
+  width: v-bind('sideNavWidthStr');
 }
 
 article {

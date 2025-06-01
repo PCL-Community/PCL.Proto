@@ -2,15 +2,14 @@
 defineProps<{ hideTitle?: boolean }>()
 </script>
 
-<template>
-    <div class="mycard">
-        <p v-if="!hideTitle" class="mycard-title">
-            <slot name="title">标题</slot>
-        </p>
-        <div class="mycard-content">
-            <slot name="content">正文</slot>
-        </div>
-    </div>
+<template lang="pug">
+    .mycard
+        p(v-if="!hideTitle" class="mycard-title")
+            slot(name="title") 标题
+
+        .mycard-content
+            slot(name="content") 正文
+
 </template>
 
 <style>

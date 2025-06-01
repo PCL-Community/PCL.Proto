@@ -1,17 +1,17 @@
-<template>
-  <div class="wrapper">
-    <img alt="PCL.Proto logo" class="logo" src="/PCL.Proto.svg" width="125" height="125" />
-    <div class="greetings">
-      <h1 class="blue"><a href="https://github.com/PCL-Community/PCL.Proto.git">PCL.Proto</a></h1>
-      <h3>
-        Here's a prototype of
-        <a href="https://github.com/Hex-Dragon/PCL2/" target="_blank" rel="noopener">PCL</a>.
-        <br />For deatiled information,
-        head to <a href="https://js.design/f/QVPQRY?p=zX2rcVk6Cy&mode=design">js.design</a>.
-      </h3>
-    </div>
-  </div>
-
+<template lang="pug">
+.wrapper
+  img.logo(alt="PCL.Proto logo", src="/PCL.Proto.svg", width="125", height="125")
+  .greetings
+    h1.blue
+      a(href="https://github.com/PCL-Community/PCL.Proto.git") PCL.Proto
+    h3
+      | Here's a prototype of
+      a(href="https://github.com/Hex-Dragon/PCL2/", target="_blank", rel="noopener") PCL
+      br
+      | For deatiled information,
+      | head to 
+      a(href="https://js.design/f/QVPQRY?p=zX2rcVk6Cy") js.design
+      | .
 </template>
 
 <style scoped>
