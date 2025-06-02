@@ -36,7 +36,7 @@ const handleButtonClick = async (btn: any) => {
 
 </template>
 
-<style>
+<style scoped>
 .modal-mask {
   position: absolute;
   z-index: 2;
@@ -89,10 +89,7 @@ const handleButtonClick = async (btn: any) => {
  * 以下样式会被自动应用。
  */
 
-.modal-enter-from {
-  opacity: 0;
-}
-
+.modal-enter-from,
 .modal-leave-to {
   opacity: 0;
 }
