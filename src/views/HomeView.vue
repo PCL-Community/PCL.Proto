@@ -3,8 +3,10 @@ import MyButton from '@/components/widget/MyButton.vue';
 import { sideNavState, defaultWidths, sideNavWidthStr } from '@/util/windowState';
 import { animateCssFor } from '@/util/animateCSS';
 import { nextTick, onMounted, ref } from 'vue';
+import MinecraftAvatar from '@/components/widget/MinecraftAvatar.vue';
 
 const subviewRef = ref<HTMLElement>()
+const username = ref('AMagicPear')
 // const asideRef = ref<HTMLElement>()
 
 onMounted(() => {
@@ -27,9 +29,12 @@ onMounted(() => {
     aside.left
       #center
         #avatar
-        p PCL-Community
-        p.gray 离线验证
-
+          //- MinecraftAvatar(type="url", src='default-skin/Steve_(classic_texture)_JE6.png')
+          //- MinecraftAvatar(type='uuid', src='31bbe537-9fea-4e68-aa4a-d7aacca23d13')
+          MinecraftAvatar(type='username',:src='username')
+        //- p {{username}}
+        input(v-model="username")
+        p.gray 点击上方用户名可输入
       #button-grid
         MyButton#launch(type="tint")
           p 启动游戏
@@ -49,6 +54,21 @@ onMounted(() => {
   background: rgba(19, 112, 243, 1);
   box-shadow: var(--box-shadow);
   margin: 16px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#center>input {
+  font-size: 15px;
+  text-align: center;
+  color: var(--color-text-black);
+  font-family: 'PCL-English';
+  border: none;
+  border-radius: 4px;
+  outline: none;
+  background-color: transparent;
 }
 
 #button-grid {

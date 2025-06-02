@@ -3,6 +3,7 @@ import MyButton from '@/components/widget/MyButton.vue';
 import MyCard from '@/components/widget/MyCard.vue';
 import { useModal } from '@/composables/useModal';
 import { ModalWidthVirant } from '@/types/modal';
+// import MinecraftAvatar from '@/components/widget/MinecraftAvatar.vue';
 const modal = useModal()
 
 const showDeleteConfirm = async (i: number) => {
@@ -35,6 +36,7 @@ const showDeleteConfirm = async (i: number) => {
     MyCard(hideTitle)
     MyButton(type="tint") 我的按钮
     MyButton(type="warn") 你的按钮
+    //- MinecraftAvatar()
     //- MyCard
     MyButton(v-for="i in 8" type="default" @click="showDeleteConfirm(i)") 你的按钮
 </template>
