@@ -22,10 +22,8 @@ import navItems from '@/components/navItems'
 
 <style scoped>
 header {
-  top: 0;
   width: 100%;
   height: 48px;
-  position: relative;
   background: var(--color-titlebar);
 
   display: grid;

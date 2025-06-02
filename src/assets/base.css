@@ -2,7 +2,7 @@
 :root {
   --vt-c-white: #ffffff;
   --vt-c-black: #343d4a;
-  --vt-c-grey: #8c8c8c;
+  --vt-c-gray: #8c8c8c;
   --vt-c-white-slight-transparent: rgba(255, 255, 255, 0.9);
   --vt-c-white-soft: rgb(251, 251, 251);
   --pcl-blue: rgba(15, 111, 205, 1);
@@ -24,7 +24,7 @@
   --color-background: var(--vt-c-white-soft);
   --color-background-soft: var(--vt-c-white-slight-transparent);
   --color-text-black: var(--vt-c-black);
-  --color-text-grey: var(--vt-c-grey);
+  --color-text-gray: var(--vt-c-gray);
 
   --color-titlebar: var(--pcl-blue);
   --color-tint: var(--tint-blue);

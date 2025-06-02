@@ -27,6 +27,6 @@ import { type INavItemGroup } from '@/types/naviOptions';
 .side-group-title {
     margin-left: 12px;
     font-size: 11px;
-    color: var(--color-text-grey);
+    color: var(--color-text-gray);
 }
 </style>

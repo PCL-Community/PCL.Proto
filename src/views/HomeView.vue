@@ -26,8 +26,15 @@ onMounted(() => {
 <template lang="pug">
   .view-content
     aside.left(ref="asideRef")
-      | 主页
-      MyButton()
+      #center
+        p Text Center
+
+      #button-grid
+        MyButton#launch(type="tint")
+          p 启动游戏
+          p.gray Fabulouly Optimized
+        MyButton 版本选择
+        MyButton 版本设置
 
     article.subview(ref="subviewRef")
       RouterView()
@@ -35,21 +42,45 @@ onMounted(() => {
 </template>
 
 <style scoped>
-aside {
-  height: 100%;
-  flex: 0 0 auto;
-  padding: 20px;
+#button-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+#launch {
+  grid-column: span 2;
+}
+
+#launch p.gray {
+  color: var(--color-text-gray);
+  font-size: 11px;
 }
 
 aside.left {
+  height: 100%;
+  flex: 0 0 auto;
+  padding: 20px;
+  /* padding-bottom: 68px; */
   width: v-bind('sideNavWidthStr');
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+#center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
 }
 
 article {
   flex: 1 1 0;
   overflow-y: auto;
-  padding-bottom: 76px;
-  /*我也不知道为什么要加这个padding，反正不加就会被遮挡 */
 }
 
 .view-content {

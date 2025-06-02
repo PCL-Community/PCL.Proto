@@ -31,10 +31,12 @@ const showDeleteConfirm = async (i: number) => {
 </script>
 
 <template lang="pug">
+    MyCard()
+    MyCard(hideTitle)
     MyButton(type="tint") 我的按钮
     MyButton(type="warn") 你的按钮
     //- MyCard
-    MyButton(v-for="i in 12" type="default" @click="showDeleteConfirm(i)") 你的按钮
+    MyButton(v-for="i in 8" type="default" @click="showDeleteConfirm(i)") 你的按钮
 </template>
 
 <style></style>

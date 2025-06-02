@@ -95,7 +95,6 @@ export default defineComponent({
 article {
     flex: 1 1 0;
     overflow-y: auto;
-    padding-bottom: 76px;
 }
 
 aside {

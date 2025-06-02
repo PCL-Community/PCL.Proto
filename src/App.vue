@@ -12,7 +12,7 @@ import Modal from './components/Modal.vue';
   //- 以下为主体部分
   #main-window
     WindowHeader()
-    main
+    #page
       //- 次级页面
       RouterView()
       //- 用作动画
@@ -22,14 +22,14 @@ import Modal from './components/Modal.vue';
 </template>
 
 <style scoped>
-main {
+#page {
   position: relative;
   height: 100%;
   width: 100%;
   z-index: 2;
 }
 
-main>div.side-nav-background {
+#page>div.side-nav-background {
   position: absolute;
   left: 0;
   top: 0;
@@ -51,6 +51,13 @@ main>div.side-nav-background {
   display: flex;
   flex-direction: column;
   position: relative;
+}
+
+#page {
+  position: relative;
+  flex: 1 1 0;
+  width: 100%;
+  overflow: hidden;
 }
 </style>
 
