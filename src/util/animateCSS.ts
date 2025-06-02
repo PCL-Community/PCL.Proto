@@ -1,3 +1,4 @@
+// 需要在 main.ts 中 import 'animate.css'
 export const animateCss = (node: HTMLElement, animation: string, prefix = 'animate__') =>
   new Promise((resolve, reject) => {
     const animationName = `${prefix}${animation}`;

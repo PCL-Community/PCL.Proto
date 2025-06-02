@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { INavItem } from '@/router/naviOptions';
+import type { INavItem } from '@/types/naviOptions';
 import IconRefresh from '@/components/icons/side/IconRefresh.vue';
 import { useRoute } from 'vue-router';
 defineProps<INavItem>()

@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import MyButton from '@/components/widget/MyButton.vue';
-import { sideNavState, defaultWidths, sideNavWidthStr } from '@/router/windowState';
+import { sideNavState, defaultWidths, sideNavWidthStr } from '@/util/windowState';
 import { animateCss, animateCssFor } from '@/util/animateCSS';
-import { nextTick, onMounted, onUnmounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { nextTick, onMounted, ref } from 'vue';
 
 const subviewRef = ref<HTMLElement>()
 const asideRef = ref<HTMLElement>()

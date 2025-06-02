@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import TitleMessage from './components/TitleMessage.vue'
-import { sideNavState, sideNavWidthStr } from '@/router/windowState';
+import { sideNavState, sideNavWidthStr } from '@/util/windowState';
 import WindowHeader from './components/WindowHeader.vue';
+import Modal from './components/Modal.vue';
 </script>
 
 <template lang="pug">
@@ -16,6 +17,9 @@ import WindowHeader from './components/WindowHeader.vue';
       RouterView()
       //- 用作动画
       .side-nav-background
+    
+    Modal()
+
 </template>
 
 <style scoped>

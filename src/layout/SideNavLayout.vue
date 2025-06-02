@@ -1,9 +1,9 @@
 <script lang="ts">
 import { defineComponent, onMounted, onUnmounted } from 'vue'
-import { sideNavState } from '@/router/windowState'
+import { sideNavState } from '@/util/windowState'
 import { nextTick, ref } from 'vue'
 import SideGroup from '@/components/widget/SideGroup.vue'
-import { type INavItemGroup } from '@/router/naviOptions'
+import { type INavItemGroup } from '@/types/naviOptions'
 import { animateCssFor } from '@/util/animateCSS'
 import { useRouter } from 'vue-router'
 

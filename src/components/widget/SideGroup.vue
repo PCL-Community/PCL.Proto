@@ -2,7 +2,7 @@
 
 defineProps<INavItemGroup>()
 import SideNavItem from './SideNavItem.vue';
-import { type INavItemGroup } from '@/router/naviOptions';
+import { type INavItemGroup } from '@/types/naviOptions';
 </script>
 
 <template lang="pug">
