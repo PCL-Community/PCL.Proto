@@ -10,7 +10,8 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "format": "prettier --write src/",
-    "deploy": "vite build && gh-pages -d dist"
+    "deploy": "vite build && gh-pages -d dist",
+    "tauri": "tauri"
   },
   "dependencies": {
     "animate.css": "^4.1.1",
@@ -19,11 +20,12 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
-    "gh-pages": "^6.3.0",
+    "@tauri-apps/cli": "^2.5.0",
     "@tsconfig/node22": "^22.0.1",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-vue": "^5.2.3",
     "@vue/tsconfig": "^0.7.0",
+    "gh-pages": "^6.3.0",
     "npm-run-all2": "^7.0.2",
     "prettier": "3.5.3",
     "typescript": "~5.8.0",
