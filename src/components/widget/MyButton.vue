@@ -1,7 +1,7 @@
 <!-- 一个自定义的按钮：传入参数tint，若为true则为高亮 -->
 
 <script setup lang="ts">
-type ButtonType = 'default' | 'tint' | 'warn'
+export type ButtonType = 'default' | 'tint' | 'warn'
 defineProps<{ type?: ButtonType }>()
 
 </script>
@@ -17,7 +17,7 @@ defineProps<{ type?: ButtonType }>()
 }
 
 button.mybutton {
-    padding: 0.7rem;
+    padding: 0.5rem;
     background-color: transparent;
     border-radius: 4px;
     border: 1px solid rgba(52, 61, 74, 1);

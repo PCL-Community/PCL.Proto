@@ -7,8 +7,7 @@ const resolvePromise: Ref<((value: boolean) => void) | null> = ref(null)
 
 export function useModal(): ModalApi {
   const open = (options: ModalOptions): Promise<boolean> => {
-    state.value.options.content = options.content || '模态框内容'
-    state.value.options.title = options.title || '模态框标题'
+    state.value.options = options
     state.value.isOpen = true
 
     return new Promise((resolve) => {

@@ -98,7 +98,7 @@ header #main-nav a {
 }
 
 #main-nav a.router-link-active {
-  background-color: white;
+  background-color: var(--color-background);
   color: var(--color-titlebar);
 }
 
@@ -117,6 +117,6 @@ header #main-nav a {
 
 .title-tag.dev {
   background: rgba(155, 240, 11, 1);
-  color: rgba(52, 61, 74, 1);
+  color: var(--color-text-black);
 }
 </style>
