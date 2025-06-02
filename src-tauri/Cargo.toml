@@ -1,8 +1,8 @@
 [package]
-name = "app"
+name = "pcl-proto"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "PCL.Proto"
+authors = ["AMagicPear"]
 license = ""
 repository = ""
 edition = "2021"

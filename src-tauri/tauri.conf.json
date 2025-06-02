@@ -16,7 +16,8 @@
         "width": 814,
         "height": 464,
         "resizable": false,
-        "fullscreen": false
+        "fullscreen": false,
+        "decorations": false
       }
     ],
     "security": {
