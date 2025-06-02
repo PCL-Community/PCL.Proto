@@ -13,7 +13,7 @@ import Modal from './components/Modal.vue';
   #main-window
     WindowHeader()
     #page
-      //- 次级页面
+      //- 页面
       RouterView()
       //- 用作动画
       .side-nav-background

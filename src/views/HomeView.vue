@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import MyButton from '@/components/widget/MyButton.vue';
 import { sideNavState, defaultWidths, sideNavWidthStr } from '@/util/windowState';
-import { animateCss, animateCssFor } from '@/util/animateCSS';
+import { animateCssFor } from '@/util/animateCSS';
 import { nextTick, onMounted, ref } from 'vue';
 
 const subviewRef = ref<HTMLElement>()
-const asideRef = ref<HTMLElement>()
+// const asideRef = ref<HTMLElement>()
 
 onMounted(() => {
   sideNavState.width = defaultWidths.home
   nextTick(() => {
-    animateCss(asideRef.value!, 'zoomIn')
     animateSubview()
   })
   function animateSubview() {
@@ -25,9 +24,11 @@ onMounted(() => {
 
 <template lang="pug">
   .view-content
-    aside.left(ref="asideRef")
+    aside.left
       #center
-        p Text Center
+        #avatar
+        p PCL-Community
+        p.gray 离线验证
 
       #button-grid
         MyButton#launch(type="tint")
@@ -42,6 +43,14 @@ onMounted(() => {
 </template>
 
 <style scoped>
+#avatar {
+  width: 45px;
+  height: 45px;
+  background: rgba(19, 112, 243, 1);
+  box-shadow: var(--box-shadow);
+  margin: 16px;
+}
+
 #button-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -52,22 +61,35 @@ onMounted(() => {
   grid-column: span 2;
 }
 
-#launch p.gray {
+p.gray {
   color: var(--color-text-gray);
   font-size: 11px;
+}
+
+@keyframes pclZoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 aside.left {
   height: 100%;
   flex: 0 0 auto;
   padding: 20px;
-  /* padding-bottom: 68px; */
   width: v-bind('sideNavWidthStr');
 
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: stretch;
+
+  animation: pclZoomIn 0.4s ease forwards;
 }
 
 #center {
