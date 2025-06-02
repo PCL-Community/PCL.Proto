@@ -12,12 +12,13 @@
   "app": {
     "windows": [
       {
-        "title": "PCL.Proto",
+        "title": "",
         "width": 814,
         "height": 464,
         "resizable": false,
         "fullscreen": false,
-        "decorations": false
+        "titleBarStyle": "Overlay",
+        "trafficLightPosition": {"x": 16.0, "y": 24.0}
       }
     ],
     "security": {

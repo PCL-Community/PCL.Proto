@@ -1,20 +1,28 @@
 <script lang="ts" setup>
 import navItems from '@/components/navItems'
+import currentPlatform from '@/util/platform';
+import { onMounted } from 'vue';
+
+// onMounted(() => {
+//   if (currentPlatform.value == 'macos') {
+//     console.log('h')
+//   }
+// })
 </script>
 
 <template lang="pug">
-  header
-    .left
-      img(src="@/assets/icons/TitleLogo.svg")
+  header(data-tauri-drag-region)
+    .left(:class="{'mac-margin-title': currentPlatform == 'macos'}")
+      img(src="@/assets/icons/TitleLogo.svg" data-tauri-drag-region)
       .title-tag Proto
       .title-tag.dev dev
 
-    nav#main-nav
+    nav#main-nav(:class="{'mac-margin-nav': currentPlatform == 'macos'}")
       RouterLink(v-for="item in navItems" :key="item.to" :to="item.to")
         component(:is="item.icon")
         | {{ item.label }}
 
-    .right
+    .right(v-if="currentPlatform != 'macos'")
       each icon in ['TitleMinimize', 'TitleClose']
         i.button-animated: img(src=`@/assets/icons/${icon}.svg`)
 
@@ -37,6 +45,10 @@ header .left {
   justify-self: start;
   display: flex;
   gap: 10px;
+}
+
+.mac-margin-title {
+  margin-left: 64px;
 }
 
 header .right {
@@ -71,6 +83,10 @@ header #main-nav {
   justify-self: center;
   display: inline-flex;
   gap: 5px;
+}
+
+.mac-margin-nav {
+  margin-left: 40px;
 }
 
 /* 导航栏元素 */
