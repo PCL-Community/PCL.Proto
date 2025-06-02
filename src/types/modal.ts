@@ -1,10 +1,10 @@
 import type { ButtonType } from "@/components/widget/MyButton.vue";
 import { type Ref } from "vue";
 
-export interface MyButtonOption {
-  type: ButtonType;
+export interface ModalButtonOption {
+  type?: ButtonType;
   content: string;
-  operation: any;
+  operation?: () => void | Promise<void>;
 }
 
 export enum ModalWidthVirant {
@@ -16,6 +16,7 @@ export interface ModalOptions {
   content?: string;
   title?: string;
   width?: ModalWidthVirant;
+  buttons?: ModalButtonOption[];
 }
 
 export interface ModalApi {

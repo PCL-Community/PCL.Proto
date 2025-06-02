@@ -4,15 +4,29 @@ import MyCard from '@/components/widget/MyCard.vue';
 import { useModal } from '@/composables/useModal';
 import { ModalWidthVirant } from '@/types/modal';
 const modal = useModal()
+
 const showDeleteConfirm = async (i: number) => {
-    const confirmed = await modal.open({
-        title: '导入 / 导出档案',
-        content: 'PCL Proto 不支持导入 HMCL 的全局账户列表，也不能导出档案列表至 HMCL 全局账户列表。😄',
-        width: ModalWidthVirant.Slim
+    await modal.open({
+        title: '模态框标题',
+        content: `你点击了第${i}个按钮`,
+        width: ModalWidthVirant.Slim,
+        buttons: [
+            {
+                type: 'tint',
+                content: '自定义确认',
+                operation: () => {
+                    console.log('自定义确认逻辑', i)
+                }
+            },
+            {
+                type: 'warn',
+                content: '自定义取消',
+                operation: () => {
+                    console.log('自定义取消逻辑', i)
+                }
+            }
+        ]
     })
-    if (confirmed) {
-        console.log("点击了按钮" + i)
-    }
 }
 </script>
 

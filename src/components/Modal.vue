@@ -4,6 +4,11 @@ import { ref } from 'vue';
 import MyButton from './widget/MyButton.vue';
 
 const { isOpen, options, close } = useModal()
+const handleButtonClick = async (btn: any) => {
+  if (btn.operation) await btn.operation()
+  close(true)
+}
+
 </script>
 
 <template lang="pug">
@@ -18,8 +23,16 @@ const { isOpen, options, close } = useModal()
         .modal-body {{ options.content ?? '模态框正文未设置' }}
 
         .modal-footer
-          MyButton(@click="close(true)" type="tint") 确认
-          MyButton(@click="close(false)") 取消
+          template(v-if="options.buttons && options.buttons.length")
+            MyButton(
+              v-for="(btn, idx) in options.buttons"
+              :key="idx"
+              :type="btn.type"
+              @click="handleButtonClick(btn)"
+            ) {{ btn.content }}
+          template(v-else)
+            MyButton(@click="close(true)" type="tint") 确认
+            MyButton(@click="close(false)") 取消
 
 </template>
 
