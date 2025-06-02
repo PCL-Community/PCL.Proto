@@ -1,27 +1,22 @@
-<!-- src/components/GlobalModal.vue -->
 <script setup lang="ts">
-import { useModal } from '@/composables/modalService'
+import { useModal } from '@/composables/useModal'
 
-const { isOpen, content, title, close } = useModal()
+const { isOpen, options, close } = useModal()
 </script>
 
-<template>
-    <Transition name="modal">
-        <div v-if="isOpen" class="modal-mask">
-            <div class="modal-container">
-                <div class="modal-header">
-                    <h3>{{ title }}</h3>
-                </div>
-                <div class="modal-body">
-                    {{ content }}
-                </div>
-                <div class="modal-footer">
-                    <button @click="close(false)">取消</button>
-                    <button @click="close(true)">确认</button>
-                </div>
-            </div>
-        </div>
-    </Transition>
+<template lang="pug">
+    Transition(name="modal")
+        .modal-mask(v-if="isOpen")
+            .modal-container
+                .modal-header
+                    h3 {{ options.title }}
+
+                .modal-body {{ options.content }}
+
+                .modal-footer
+                    button(@click="close(false)") 取消
+                    button(@click="close(true)") 确认
+
 </template>
 
 <style>
