@@ -82,7 +82,7 @@ onMounted(() => {
 }
 
 p.gray {
-  color: var(--color-text-gray);
+  color: var(--color-text-grey);
   font-size: 11px;
 }
 

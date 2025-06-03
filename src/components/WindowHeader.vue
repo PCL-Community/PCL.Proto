@@ -31,6 +31,7 @@ header {
   align-items: center;
   padding: 0 18px;
   flex-shrink: 0;
+  z-index: 4;
 }
 
 header .left {

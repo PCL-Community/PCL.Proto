@@ -4,6 +4,7 @@ import TitleMessage from './components/TitleMessage.vue'
 import { sideNavState, sideNavWidthStr } from '@/util/windowState';
 import WindowHeader from './components/WindowHeader.vue';
 import Modal from './components/Modal.vue';
+import SideTip from './components/SideTip.vue';
 </script>
 
 <template lang="pug">
@@ -11,14 +12,17 @@ import Modal from './components/Modal.vue';
   TitleMessage(v-if="true")
   //- 以下为主体部分
   #main-window
+    //- 标题框
     WindowHeader()
+    //- 主页面
     #page
       //- 页面
       RouterView()
       //- 用作动画
       .side-nav-background
-
+    //- 一些浮动内容
     Modal()
+    SideTip()
 </template>
 
 <style scoped>

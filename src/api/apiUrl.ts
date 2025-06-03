@@ -7,7 +7,7 @@ export const apiUrl = computed(() => {
     if (!url.endsWith('/')) {
         url += '/';
     }
-    if (!url.startsWith('http://')) {
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
         url = 'http://' + url;
     }
     return url;

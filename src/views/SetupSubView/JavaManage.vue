@@ -1,8 +1,7 @@
 <script lang="ts" setup>
 import MyCard from '@/components/widget/MyCard.vue';
 import { getJavaList, type IJavaRuntimeInfo, archMap } from '@/api/javaReq';
-import { onActivated, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { onMounted, ref } from 'vue';
 
 const loading = ref(false)
 const error = ref(null)
@@ -12,6 +11,8 @@ onMounted(async () => {
     error.value = null
     loading.value = true
     try {
+        // await new Promise(resolve => setTimeout(resolve, 3000));
+        // throw new Error('模拟获取 Java 信息失败'); // 模拟出错
         javaList.value = await getJavaList();
     } catch (err: any) {
         error.value = err.toString();
@@ -26,13 +27,13 @@ onMounted(async () => {
     <MyCard>
         <template #title>Java 列表</template>
         <template #content>
-            <p v-if="loading">Loading...</p>
+            <p v-if="loading">加载中...</p>
             <p v-if="error">未能获取 Java 信息，请检查本地服务是否已经运行。</p>
             <div v-for="runtime in javaList" class="java-info">
-                <p class="java-info-h">{{ runtime.isJre ? "JRE" : "JDK" }} {{ runtime.slugVersion }}({{ runtime.version
+                <p>{{ runtime.isJre ? "JRE" : "JDK" }} {{ runtime.slugVersion }}({{ runtime.version
                     }})
                     {{ archMap[runtime.architecture] }} {{ runtime.implementor }}</p>
-                <p>{{ runtime.directoryPath }}</p>
+                <p class="java-info-c">{{ runtime.directoryPath }}</p>
             </div>
         </template>
     </MyCard>
@@ -40,7 +41,7 @@ onMounted(async () => {
 
 <style scoped>
 .java-info {
-    padding: 4px;
+    padding: 4px 6px;
     border-radius: 4px;
     transition: background-color 0.4s ease;
 }
@@ -49,7 +50,7 @@ onMounted(async () => {
     background-color: var(--color-tint-lighter);
 }
 
-.java-info-h {
-    font-size: 15px;
+.java-info-c {
+    color: var(--color-text-grey);
 }
 </style>

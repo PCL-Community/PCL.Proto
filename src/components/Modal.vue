@@ -39,7 +39,7 @@ const handleButtonClick = async (btn: any) => {
 <style scoped>
 .modal-mask {
   position: absolute;
-  z-index: 2;
+  z-index: 5;
   top: 0;
   left: 0;
   width: 100%;
