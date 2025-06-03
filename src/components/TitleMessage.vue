@@ -1,3 +1,7 @@
+<script lang="ts" setup>
+import { apiUrlInput } from '@/api/apiUrl';
+</script>
+
 <template lang="pug">
 .wrapper
   img.logo(alt="PCL.Proto logo", src="/PCL.Proto.svg", width="125", height="125")
@@ -12,9 +16,21 @@
       | head to 
       a(href="https://js.design/f/QVPQRY?p=zX2rcVk6Cy") js.design
       | .
+      br
+      p.webapi PCL.Neo.WebApi Service base URL：
+        input(type="text" v-model="apiUrlInput")
 </template>
 
 <style scoped>
+p.webapi {
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+p.webapi>input {
+  color: var(--color-text-black);
+}
+
 a,
 .blue {
   text-decoration: none;

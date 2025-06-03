@@ -3,6 +3,7 @@ import IconLaunch from '@/components/icons/header/IconLaunch.vue';
 import IconPack from '@/components/icons/side/IconPack.vue';
 import IconPaint from '@/components/icons/side/IconPaint.vue';
 import SideNavLayout from '@/layout/SideNavLayout.vue';
+import type { INavItem } from '@/types/naviOptions';
 import { h } from 'vue';
 
 export default {
@@ -13,7 +14,8 @@ export default {
                     { text: '启动', icon: IconLaunch },
                     { text: '个性化', icon: IconPaint },
                     { text: '其他', icon: IconPack },
-                ]
+                    { text: 'Java管理', icon: IconPack, linkto: 'javamanage' }
+                ] as INavItem[]
             }
             ]
         })

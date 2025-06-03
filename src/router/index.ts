@@ -7,6 +7,7 @@ import GameDownload from '@/views/DownloadSubView/GameDownload.vue'
 import ManualDownload from '@/views/DownloadSubView/ManualDownload.vue'
 import HomeSubView from '@/views/HomeSubView.vue'
 import DownloadView from '@/views/DownloadView.vue'
+import JavaManage from '@/views/SetupSubView/JavaManage.vue'
 
 
 const router = createRouter({
@@ -50,6 +51,13 @@ const router = createRouter({
       path: '/setup',
       name: 'setup',
       component: SetupView,
+      redirect: '/setup/javamanage',
+      children: [
+        {
+          path: 'javamanage',
+          component: JavaManage
+        }
+      ]
     },
     {
       path: '/more',
