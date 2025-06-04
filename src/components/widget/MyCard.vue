@@ -97,5 +97,7 @@ function SwitchFoldState() {
     font-size: 12px;
     margin: 9px;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 </style>

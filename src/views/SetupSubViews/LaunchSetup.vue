@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import Dropdown from '@/components/widget/Dropdown.vue';
+import DropdownWithDescription from '@/components/widget/DropdownWithDescription.vue';
+import MyButton from '@/components/widget/MyButton.vue';
 import MyCard from '@/components/widget/MyCard.vue';
 
 </script>
@@ -7,5 +10,5 @@ import MyCard from '@/components/widget/MyCard.vue';
     MyCard()
         template(#title) 启动选项
         template(#content)
-            p 该页面用于设置启动选项。
+            DropdownWithDescription()
 </template>
