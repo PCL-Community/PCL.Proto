@@ -8,8 +8,10 @@
 }
 
 a,
-.blue {
+.blue,
+.tint {
   text-decoration: none;
+  color: var(--tint-blue);
 }
 
 body {

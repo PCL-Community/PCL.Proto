@@ -4,10 +4,10 @@ import { sideNavState, defaultWidths, sideNavWidthStr } from '@/util/windowState
 import { animateCssFor } from '@/util/animateCSS';
 import { nextTick, onMounted, ref } from 'vue';
 import MinecraftAvatar from '@/components/widget/MinecraftAvatar.vue';
+import { accontInfo } from '@/util/account';
+import { selectedGame } from '@/util/gameLaunch';
 
 const subviewRef = ref<HTMLElement>()
-const username = ref('AMagicPear')
-// const asideRef = ref<HTMLElement>()
 
 onMounted(() => {
   sideNavState.width = defaultWidths.home
@@ -31,14 +31,14 @@ onMounted(() => {
         #avatar
           //- MinecraftAvatar(type="url", src='default-skin/Steve_(classic_texture)_JE6.png')
           //- MinecraftAvatar(type='uuid', src='31bbe537-9fea-4e68-aa4a-d7aacca23d13')
-          MinecraftAvatar(type='username',:src='username')
+          MinecraftAvatar(type='username',:src='accontInfo.username')
         //- p {{username}}
-        input(v-model="username")
+        input(v-model="accontInfo.username")
         p.gray 点击上方用户名可输入
       #button-grid
         MyButton#launch(type="tint")
           p 启动游戏
-          p.gray Fabulouly Optimized
+          p.gray {{ selectedGame.name }}
         MyButton 版本选择
         MyButton 版本设置
 

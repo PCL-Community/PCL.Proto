@@ -3,11 +3,12 @@ import HomeView from '../views/HomeView.vue'
 import LinkView from '@/views/LinkView.vue'
 import SetupView from '@/views/SetupView.vue'
 import MoreView from '@/views/MoreView.vue'
-import GameDownload from '@/views/DownloadSubView/GameDownload.vue'
-import ManualDownload from '@/views/DownloadSubView/ManualDownload.vue'
+import GameDownload from '@/views/DownloadSubViews/GameDownload.vue'
+import ManualDownload from '@/views/DownloadSubViews/ManualDownload.vue'
 import HomeSubView from '@/views/HomeSubView.vue'
 import DownloadView from '@/views/DownloadView.vue'
-import JavaManage from '@/views/SetupSubView/JavaManage.vue'
+import JavaManage from '@/views/SetupSubViews/JavaSetup.vue'
+import LaunchSetup from '@/views/SetupSubViews/LaunchSetup.vue'
 
 
 const router = createRouter({
@@ -51,11 +52,15 @@ const router = createRouter({
       path: '/setup',
       name: 'setup',
       component: SetupView,
-      redirect: '/setup/javamanage',
+      redirect: '/setup/launch',
       children: [
         {
-          path: 'javamanage',
+          path: 'java',
           component: JavaManage
+        },
+        {
+          path: 'launch',
+          component: LaunchSetup
         }
       ]
     },

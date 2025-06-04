@@ -59,7 +59,7 @@ function manualAdd() {
             <p v-if="javaList?.length == 0">当前 Java 列表为空。</p>
             <div v-for="runtime in javaList" class="java-info">
                 <p>{{ runtime.isJre ? "JRE" : "JDK" }} {{ runtime.slugVersion }}({{ runtime.version
-                }})
+                    }})
                     {{ archMap[runtime.architecture] }} {{ runtime.implementor }}</p>
                 <p class="java-info-c">{{ runtime.directoryPath }}</p>
             </div>

@@ -36,7 +36,7 @@ const showDeleteConfirm = async (i: number) => {
     MyCard(defaultFoldStatus="unfold")
         template(#title) 欢迎来到 PCL.Proto！
         template(#content)
-            p 随着PCL的分支版本竞相启动，UI的还原成为了一大困扰众开发者的难题。PCL.Proto 应运而生。
+            p 随着PCL的分支版本竞相启动，UI的还原成为了一大困扰众开发者的难题。#[span.tint PCL.Proto] 应运而生。
             p 本项目以PCL2（龙腾猫跃）和PCL2-CE为蓝本。旨在为各PCL分支版本提供一个标准化的原型样本。该仓库使用 Vue3 搭建，如果你的仓库使用 Webview 作为前端，则可以直接引用该项目。
 
     MyCard(hideTitle)

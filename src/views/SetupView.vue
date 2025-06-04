@@ -11,10 +11,10 @@ export default {
         return () => h(SideNavLayout, {
             sideNavGroups: [{
                 content: [
-                    { text: '启动', icon: IconLaunch },
+                    { text: '启动', icon: IconLaunch, linkto: 'launch' },
                     { text: '个性化', icon: IconPaint },
                     { text: '其他', icon: IconPack },
-                    { text: 'Java管理', icon: IconPack, linkto: 'javamanage' }
+                    { text: 'Java管理', icon: IconPack, linkto: 'java' }
                 ] as INavItem[]
             }
             ]
