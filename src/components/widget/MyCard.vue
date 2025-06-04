@@ -1,11 +1,21 @@
 <script lang="ts" setup>
-defineProps<{ hideTitle?: boolean }>()
+type FoldStatus = 'unfold' | 'fold' | 'unfoldable';
+
+const props = defineProps<{ hideTitle?: boolean, defaultFoldState?: FoldStatus }>()
+import { watch } from 'vue';
+import IconUnfold from '../icons/control/IconUnfold.vue';
+
+function SwitchFoldState() {
+
+}
+
 </script>
 
 <template lang="pug">
-    .mycard
-        p(v-if="!hideTitle" class="mycard-title")
-            slot(name="title") 标题
+    .mycard(:class="(defaultFoldState ?? 'unfoldable')")
+        .mycard-title(v-if="!hideTitle" @click="SwitchFoldState")
+            p: slot(name="title") 标题
+            i: IconUnfold()
 
         .mycard-content
             slot(name="content") 正文
@@ -17,15 +27,22 @@ defineProps<{ hideTitle?: boolean }>()
     border-radius: 6px;
     background: var(--color-background-soft);
     box-shadow: 0px 0px 6px rgba(0, 0, 0, 0.1);
-    padding: 11px 14px;
+    padding: 8px 14px;
     transition: box-shadow 0.4s;
+}
+
+.mycard>.mycard-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--color-text);
 }
 
 .mycard:hover {
     box-shadow: 0px 0px 6px var(--color-tint-shadow);
 }
 
-.mycard>.mycard-title {
+.mycard>.mycard-title>p {
     font-size: 12px;
     font-weight: bold;
     letter-spacing: 0px;
