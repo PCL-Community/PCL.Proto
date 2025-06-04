@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import navItems from '@/components/navItems'
+import navItems from '@/util/navItems'
 </script>
 
 <template lang="pug">
