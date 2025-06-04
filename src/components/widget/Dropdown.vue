@@ -17,8 +17,8 @@ function updateModel(event: Event) {
     .dropdown-wrapper
         select(:value="model" @change="updateModel")
             option(v-for="option in options" 
-                :key="option.value" 
-                :value="option.value")
+                :key="option.key" 
+                :value="option.key")
                 | {{ option.text }}
         i: IconUnfold
 </template>

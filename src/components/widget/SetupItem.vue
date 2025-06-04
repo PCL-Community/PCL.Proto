@@ -1,26 +1,36 @@
 <script setup lang="ts">
 import Dropdown from './Dropdown.vue';
-import { type ISetupOption } from '@/util/setup';
+import { type ISetupOption, type SetupItemType } from '@/util/setup';
+import MyInput from './MyInput.vue';
+import { computed } from 'vue';
 
 defineProps<{
     label: string;
     options: ISetupOption[];
+    type: SetupItemType;
 }>();
 
 const model = defineModel<string>();
+
 </script>
 
 <template lang="pug">
-.dropdown-with-text-container
+.setupitem-with-text-container
     p.text-label {{ label }}
-    Dropdown.dropdown-component(
+    Dropdown.input(
+        v-if="type == 'select' && options"
         :options="options"
+        v-model="model"
+    )
+    MyInput.input(
+        v-else-if="type == 'input'"
+        :placeholder="options.find(v => v.key === 'placeholder')?.text"
         v-model="model"
     )
 </template>
 
 <style lang="css" scoped>
-.dropdown-with-text-container {
+.setupitem-with-text-container {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -32,7 +42,7 @@ const model = defineModel<string>();
     margin: 0;
 }
 
-.dropdown-component {
+.input {
     flex: 4;
 }
 </style>
