@@ -10,5 +10,3 @@ export async function doSomething(msg: string) {
     const data = await res.json()
     return data
 }
-
-console.log(await doSomething('不嘻嘻'))

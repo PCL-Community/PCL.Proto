@@ -21,8 +21,21 @@ export interface IJavaRuntimeInfo {
     javaWExe: string,
     implementor: string,
 }
-export async function getJavaList(): Promise<IJavaRuntimeInfo[]> {
-    const res = await fetch(new URL('javalist', apiUrl.value));
-    const data = await res.json();
-    return data;
+export default () => {
+    async function getJavaList(): Promise<IJavaRuntimeInfo[]> {
+        const res = await fetch(new URL('java/list', apiUrl.value));
+        const data = await res.json();
+        return data;
+    }
+
+    async function refreshJavaList() {
+        const res = await fetch(new URL('java/refresh', apiUrl.value), { method: 'POST' })
+        const data = await res.json();
+        return data
+    }
+
+    return {
+        getJavaList,
+        refreshJavaList
+    }
 }

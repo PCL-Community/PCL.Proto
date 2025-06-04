@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { useSideTip } from '@/composables/useSideTip';
+import sideTip from '@/composables/sideTip';
 import type { ISideTipItem } from '@/types/sideTip';
 import { ref } from 'vue';
-
-const { tips } = useSideTip()
+const tips = sideTip.tips;
 </script>
 
 <template lang="pug">

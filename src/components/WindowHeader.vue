@@ -112,6 +112,7 @@ header #main-nav a {
   padding-inline: 5px;
   background: rgba(255, 255, 255, 1);
   color: var(--color-titlebar);
+  cursor: default;
 }
 
 .title-tag.dev {

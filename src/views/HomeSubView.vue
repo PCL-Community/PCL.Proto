@@ -2,11 +2,10 @@
 import MyButton from '@/components/widget/MyButton.vue';
 import MyCard from '@/components/widget/MyCard.vue';
 import { useModal } from '@/composables/useModal';
-import { useSideTip } from '@/composables/useSideTip';
+import sideTip from '@/composables/sideTip';
 import { ModalWidthVirant } from '@/types/modal';
 // import MinecraftAvatar from '@/components/widget/MinecraftAvatar.vue';
 const modal = useModal()
-const sideTip = useSideTip()
 
 const showDeleteConfirm = async (i: number) => {
     await modal.open({
@@ -36,8 +35,8 @@ const showDeleteConfirm = async (i: number) => {
 <template lang="pug">
     MyCard()
     MyCard(hideTitle)
-    MyButton(type="tint" @click="sideTip.open('我的按钮')") 我的按钮
-    MyButton(type="warn" @click="sideTip.open('你的按钮但是文字比较长','warn')") 你的按钮
+    MyButton(type="tint" @click="sideTip.show('我的按钮')") 我的按钮
+    MyButton(type="warn" @click="sideTip.show('你的按钮但是文字比较长','warn')") 你的按钮
     //- MinecraftAvatar()
     //- MyCard
     MyButton(v-for="i in 8" type="default" @click="showDeleteConfirm(i)") 你的按钮
