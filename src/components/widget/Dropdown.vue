@@ -1,15 +1,28 @@
 <script setup lang="ts">
 import IconUnfold from '../icons/control/IconUnfold.vue';
+import { type SetupOption } from '@/util/setup';
 
+defineProps<{
+    options: SetupOption[];
+    modelValue: string;
+}>();
+
+defineEmits<{
+    (e: 'update:modelValue', value: string): void;
+}>();
 </script>
 
-<template lang="pug">
-    .dropdown-wrapper
-        select
-            option(value='a') 选项 A
-            option(value='b') 选项 B
-            option(value='c') 选项 C
-        i: IconUnfold
+<template>
+    <div class="dropdown-wrapper">
+        <select :value="modelValue" @change="$emit('update:modelValue', ($event.target as HTMLSelectElement).value)">
+            <option v-for="option in options" :key="option.value" :value="option.value">
+                {{ option.text }}
+            </option>
+        </select>
+        <i>
+            <IconUnfold />
+        </i>
+    </div>
 </template>
 
 <style lang="css" scoped>
