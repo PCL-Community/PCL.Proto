@@ -7,15 +7,12 @@ defineProps<{
 }>();
 
 const model = defineModel<string>();
-function updateModel(event: Event) {
-    model.value = (event.target as HTMLSelectElement).value;
-}
 
 </script>
 
 <template lang="pug">
     .dropdown-wrapper
-        select(:value="model" @change="updateModel")
+        select(v-model="model")
             option(v-for="option in options" 
                 :key="option.key" 
                 :value="option.key")

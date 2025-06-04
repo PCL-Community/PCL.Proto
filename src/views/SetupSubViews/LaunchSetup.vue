@@ -2,21 +2,25 @@
 import SetupItem from '@/components/widget/SetupItem.vue';
 import MyCard from '@/components/widget/MyCard.vue';
 import { setup, setupOptions } from '@/util/setup';
+import GameMemorySet from '@/components/widget/GameMemorySet.vue';
 
 </script>
 
 <template lang="pug">
-  MyCard()
+  MyCard(default-fold-status="unfold")
     template(#title) 启动选项
     template(#content)
-
-        SetupItem(:label="setupOptions.launch.defaultVersionIsolation.label"
-                  :type="setupOptions.launch.defaultVersionIsolation.type"
-                  :options="setupOptions.launch.defaultVersionIsolation.options"
-                  v-model="setup.launch.defaultVersionIsolation")
-
-        SetupItem(:label="setupOptions.launch.gameWindowTitle.label"
-                  :type="setupOptions.launch.gameWindowTitle.type"
-                  :options="setupOptions.launch.gameWindowTitle.options"
-                  v-model="setup.launch.gameWindowTitle")
+        SetupItem(
+          v-for="(item, key) in setupOptions.launch"
+          :key="key"
+          :label="item.label"
+          :type="item.type"
+          :options="item.options"
+          v-model="setup.launch[key]"
+        )
+  
+  MyCard()
+    template(#title) 游戏内存
+    template(#content)
+      GameMemorySet()
 </template>

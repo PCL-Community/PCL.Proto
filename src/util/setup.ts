@@ -37,28 +37,21 @@ export const setupOptions = {
                 { key: 'close-immediately', text: '游戏启动后立即关闭' },
             ] as ISetupOption[],
         }
-    },
-
-    gameMemory: {
-        mode: {
-            label: '内存分配模式',
-            options: [
-                { key: 'default', text: '默认' },
-                { key: 'custom', text: '自定义' }
-            ],
-            default: 'default'
-        }
     }
 };
 
-// 导出响应式设置对象
+// 导出响应式设置对象，需要设置默认值要在这里设置
 export const setup = reactive({
     launch: {
         defaultVersionIsolation: 'isolate-all',
         gameWindowTitle: '',
+        customInfo: 'PCL.Proto',
+        launcherVisibility: 'close-immediately',
     },
     gameMemory: {
-        mode: setupOptions.gameMemory.mode.default
+        mode: 'auto' as 'auto' | 'custom',
+        percent: 0,
+        optimizeBeforeStart: true,
     }
 });
 
