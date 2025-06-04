@@ -76,10 +76,10 @@ export default defineComponent({
 .view-content
     aside(ref="asideRef")
         SideGroup(
-                v-for="group in sideNavGroups"
-                :title="group.title"
-                :content="group.content"
-            )
+            v-for="group in sideNavGroups"
+            :title="group.title"
+            :content="group.content"
+)
     article.subview(ref="subviewRef")
         RouterView()
 </template>
@@ -93,7 +93,7 @@ export default defineComponent({
 }
 
 article {
-    flex: 1 1 0;
+    flex: 1 1 auto;
     overflow-y: auto;
 }
 

@@ -44,7 +44,7 @@ const refresh = async () => {
 
 /** 
  * 未来如果用Tauri打包，可以使用 Tauri 的文件选择器
-*/ 
+*/
 function manualAdd() {
     sideTip.show('手动添加 Java 功能仅在本地客户端中可用', 'warn');
 }
@@ -59,7 +59,7 @@ function manualAdd() {
             <p v-if="javaList?.length == 0">当前 Java 列表为空。</p>
             <div v-for="runtime in javaList" class="java-info">
                 <p>{{ runtime.isJre ? "JRE" : "JDK" }} {{ runtime.slugVersion }}({{ runtime.version
-                    }})
+                }})
                     {{ archMap[runtime.architecture] }} {{ runtime.implementor }}</p>
                 <p class="java-info-c">{{ runtime.directoryPath }}</p>
             </div>
