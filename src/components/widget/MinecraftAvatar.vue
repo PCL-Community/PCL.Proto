@@ -2,7 +2,10 @@
 import { computed } from 'vue';
 
 type AvatarInputType = 'url' | 'username' | 'uuid'
-const props = defineProps<{ type?: AvatarInputType, src: string }>()
+const props = withDefaults(defineProps<{ type?: AvatarInputType, src: string }>(), {
+    type: 'username',
+    src: 'AMagicPear'
+})
 
 const skinUrl = computed(() => {
     switch (props.type) {

@@ -1,11 +1,14 @@
 <script lang="ts" setup>
 type FoldStatus = 'unfold' | 'fold' | 'unfoldable';
 
-const props = defineProps<{ hideTitle?: boolean, defaultFoldStatus?: FoldStatus }>()
+const props = withDefaults(defineProps<{ hideTitle?: boolean, defaultFoldStatus?: FoldStatus }>(), {
+    hideTitle: false,
+    defaultFoldStatus: 'unfoldable'
+})
 import { ref } from 'vue';
 import IconUnfold from '../icons/control/IconUnfold.vue';
 
-const foldState = ref<FoldStatus>(props.defaultFoldStatus ?? 'unfoldable');
+const foldState = ref<FoldStatus>(props.defaultFoldStatus);
 function SwitchFoldState() {
     switch (foldState.value) {
         case 'unfold':
