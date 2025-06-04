@@ -1,27 +1,22 @@
 <script setup lang="ts">
 import Dropdown from './Dropdown.vue';
-import { type SetupOption } from '@/util/setup';
+import { type ISetupOption } from '@/util/setup';
 
 defineProps<{
     label: string;
-    options: SetupOption[];
-    modelValue: string;
+    options: ISetupOption[];
 }>();
 
-defineEmits<{
-    (e: 'update:modelValue', value: string): void;
-}>();
-
+const model = defineModel<string>();
 </script>
 
 <template lang="pug">
-    .dropdown-with-text-container
-        p.text-label {{ label}}
-        Dropdown.dropdown-component(
-            :options="options"
-            :modelValue="modelValue"
-            @update:modelValue="$emit('update:modelValue', $event)"
-        )
+.dropdown-with-text-container
+    p.text-label {{ label }}
+    Dropdown.dropdown-component(
+        :options="options"
+        v-model="model"
+    )
 </template>
 
 <style lang="css" scoped>

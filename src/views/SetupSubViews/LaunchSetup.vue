@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import Dropdown from '@/components/widget/Dropdown.vue';
 import DropdownWithDescription from '@/components/widget/DropdownWithDescription.vue';
-import MyButton from '@/components/widget/MyButton.vue';
 import MyCard from '@/components/widget/MyCard.vue';
 import { setup, setupOptions } from '@/util/setup';
+
 </script>
 
 <template lang="pug">
