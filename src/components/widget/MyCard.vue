@@ -5,7 +5,7 @@ const props = withDefaults(defineProps<{ hideTitle?: boolean, defaultFoldStatus?
     hideTitle: false,
     defaultFoldStatus: 'unfoldable'
 })
-import { nextTick, onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import IconUnfold from '../icons/control/IconUnfold.vue';
 
 const foldState = ref<FoldStatus>(props.defaultFoldStatus);
@@ -14,22 +14,34 @@ const cardHeight = ref<number>(40)
 
 const mycardInnerRef = ref<HTMLElement>()
 
+let observer: ResizeObserver | null = null
+
 function SwitchFoldState() {
     switch (foldState.value) {
         case 'unfold':
             foldState.value = 'fold';
+            // 卡片折叠状态固定为高度40
+            // 在此处赋值是因为卡片内容有过渡时间
+            // 切换时就赋值可以让卡片高度和内容的过渡同时进行
             cardHeight.value = 40
             break;
         case 'fold':
             foldState.value = 'unfold';
-            nextTick(() => cardHeight.value = mycardInnerRef.value!.offsetHeight)
             break;
     }
 }
 
 onMounted(() => {
-    nextTick(() => cardHeight.value = mycardInnerRef.value!.offsetHeight)
+    observer = new ResizeObserver(() => {
+        // 若非折叠状态需要根据内容调整高度
+        // 为了方便使高度动画具有回弹动效，使用observer侦测内容来赋值而非让其自动撑开
+        if (foldState.value != 'fold')
+            cardHeight.value = mycardInnerRef.value!.offsetHeight
+    })
+    observer.observe(mycardInnerRef.value!)
 })
+
+onUnmounted(() => observer?.disconnect())
 
 </script>
 

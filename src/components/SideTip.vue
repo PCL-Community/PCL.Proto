@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import sideTip from '@/composables/sideTip';
-import type { ISideTipItem } from '@/types/sideTip';
-import { ref } from 'vue';
 const tips = sideTip.tips;
 </script>
 
