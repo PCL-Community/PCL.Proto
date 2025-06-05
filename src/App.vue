@@ -41,7 +41,7 @@ import SideTip from './components/SideTip.vue';
   height: 100%;
   background: var(--color-background-soft);
   box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.15);
-  transition: width 0.4s cubic-bezier(.4, 2, .6, 1);
+  transition: width 0.4s cubic-bezier(.4, 1.8, .6, 1);
   z-index: -1;
 }
 
