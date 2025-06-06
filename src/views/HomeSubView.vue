@@ -5,6 +5,7 @@ import { useModal } from '@/composables/useModal';
 import sideTip from '@/composables/sideTip';
 import { ModalWidthVirant } from '@/types/modal';
 import { ref } from 'vue';
+import MyLoading, { type LoadingState } from '@/components/widget/MyLoading.vue';
 // import MinecraftAvatar from '@/components/widget/MinecraftAvatar.vue';
 const modal = useModal()
 const count = ref<number>(0)
@@ -37,6 +38,8 @@ const showDeleteConfirm = async (i: number) => {
         ]
     })
 }
+
+const loadingState = ref<LoadingState>('loading')
 </script>
 
 <template lang="pug">
@@ -47,6 +50,12 @@ const showDeleteConfirm = async (i: number) => {
             p 本项目以PCL2（龙腾猫跃）和PCL2-CE为蓝本。旨在为各PCL分支版本提供一个标准化的原型样本。该仓库使用 Vue3 搭建，如果你的仓库使用 Webview 作为前端，则可以直接引用该项目。
 
     MyButton(type="tint" @click="presentBtnClick") 点击这个按钮会有提示哦 😬
+
+    MyLoading(:state='loadingState')
+
+    #loading-control
+        MyButton(type="tint" @click="loadingState = 'loading'") 设置为loading
+        MyButton(type="warn" @click="loadingState = 'error'") 设置为error
 
     MyCard(hideTitle)
         template(#content)
@@ -61,3 +70,10 @@ const showDeleteConfirm = async (i: number) => {
     //- MyCard
     MyButton(v-for="i in 3" type="default" @click="showDeleteConfirm(i)") 你的按钮 {{ i }}
 </template>
+
+<style lang="css" scoped>
+#loading-control {
+    display: flex;
+    justify-content: space-around;
+}
+</style>
