@@ -2,7 +2,6 @@
 import Dropdown from './Dropdown.vue';
 import { type ISetupOption, type SetupItemType } from '@/util/setup';
 import MyInput from './MyInput.vue';
-import { computed } from 'vue';
 
 defineProps<{
     label: string;

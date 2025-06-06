@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterView } from 'vue-router'
 import TitleMessage from './components/TitleMessage.vue'
 import { sideNavState, sideNavWidthStr } from '@/util/windowState';
 import WindowHeader from './components/WindowHeader.vue';
