@@ -1,16 +1,16 @@
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { ref, watchEffect } from 'vue';
 
 export type LoadingState = 'loading' | 'error'
 const props = defineProps<{ state: LoadingState }>()
 const hammerRef = ref<SVGPathElement>()
 const trainglesRef = ref<SVGPathElement>()
 
-watch(() => props.state, (state) => {
-  const playState = state === 'loading' ? 'running' : 'paused'
+watchEffect(() => {
+  const playState = props.state === 'loading' ? 'running' : 'paused'
   hammerRef.value && (hammerRef.value.style.animationPlayState = playState)
   trainglesRef.value && (trainglesRef.value.style.animationPlayState = playState)
-}, { immediate: true })
+})
 
 </script>
 
@@ -93,7 +93,11 @@ watch(() => props.state, (state) => {
   }
 
   16% {
-    opacity: 0.7;
+    opacity: 1;
+  }
+
+  85% {
+    opacity: 0;
   }
 
   100% {
