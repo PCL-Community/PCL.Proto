@@ -1,4 +1,3 @@
-<script lang="ts">
 import IconFourLeaves from '@/components/icons/side/IconFourLeaves.vue';
 import IconMod from '@/components/icons/side/IconMod.vue';
 import IconOverview from '@/components/icons/side/IconOverview.vue';
@@ -33,4 +32,3 @@ export default {
     })
   }
 }
-</script>
