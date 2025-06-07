@@ -9,6 +9,7 @@ import HomeSubView from '@/views/HomeSubView.vue'
 import DownloadView from '@/views/DownloadView'
 import JavaManage from '@/views/SetupSubViews/JavaSetup.vue'
 import LaunchSetup from '@/views/SetupSubViews/LaunchSetup.vue'
+import AboutAndThanks from '@/views/MoreSubViews/AboutAndThanks.vue'
 
 
 const router = createRouter({
@@ -67,7 +68,14 @@ const router = createRouter({
     {
       path: '/more',
       name: 'more',
-      component: MoreView
+      component: MoreView,
+      redirect: '/more/about_and_thanks',
+      children: [
+        {
+          path: 'about_and_thanks',
+          component: AboutAndThanks
+        }
+      ]
     }
   ],
 })

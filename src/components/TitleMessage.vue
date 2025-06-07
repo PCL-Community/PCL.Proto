@@ -9,7 +9,7 @@ import { apiUrlInput } from '@/api/apiUrl';
     h1.blue
       a(href="https://github.com/PCL-Community/PCL.Proto.git") PCL.Proto
     h3
-      | Here's a prototype of
+      | Here's a prototype of 
       a(href="https://github.com/Hex-Dragon/PCL2/", target="_blank", rel="noopener") PCL
       br
       | For deatiled information,

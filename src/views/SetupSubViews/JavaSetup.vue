@@ -5,6 +5,7 @@ import JavaReq from '@/api/javaReq';
 import { onMounted, ref } from 'vue';
 import MyButton from '@/components/widget/MyButton.vue';
 import sideTip from '@/composables/sideTip';
+import PlainTextInfoItem from '@/components/widget/PlainTextInfoItem.vue';
 
 const loading = ref(false)
 const error = ref(null)
@@ -57,12 +58,14 @@ function manualAdd() {
         <template #content>
             <p v-if="error">未能获取 Java 信息，请检查本地服务是否已经运行。</p>
             <p v-if="javaList?.length == 0">当前 Java 列表为空。</p>
-            <div v-for="runtime in javaList" class="java-info">
-                <p>{{ runtime.isJre ? "JRE" : "JDK" }} {{ runtime.slugVersion }}({{ runtime.version
-                    }})
-                    {{ archMap[runtime.architecture] }} {{ runtime.implementor }}</p>
-                <p class="java-info-c">{{ runtime.directoryPath }}</p>
-            </div>
+            <PlainTextInfoItem v-for="runtime in javaList">
+                <template #title>{{ runtime.isJre ? "JRE" : "JDK" }} {{ runtime.slugVersion }}({{ runtime.version
+                    }}) {{ archMap[runtime.architecture] }} {{ runtime.implementor }}
+                </template>
+                <template #content>
+                    {{ runtime.directoryPath }}
+                </template>
+            </PlainTextInfoItem>
             <div class="refrsh-button-wrapper">
                 <MyButton @click="manualAdd">手动添加</MyButton>
                 <MyButton @click="refresh">刷新</MyButton>
@@ -82,19 +85,5 @@ function manualAdd() {
     justify-content: flex-end;
     gap: 10px;
     margin-top: 10px;
-}
-
-.java-info {
-    padding: 4px 6px;
-    border-radius: 4px;
-    transition: background-color 0.4s ease;
-}
-
-.java-info:hover {
-    background-color: var(--color-tint-lighter);
-}
-
-.java-info-c {
-    color: var(--color-text-grey);
 }
 </style>
