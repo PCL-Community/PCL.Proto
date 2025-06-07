@@ -3,7 +3,10 @@ import { ref, watchEffect } from 'vue';
 import MyCard from './MyCard.vue';
 
 export type LoadingState = 'loading' | 'error'
-const props = defineProps<{ state: LoadingState, loadingText?: string }>()
+const props = withDefaults(defineProps<{ state: LoadingState, loadingText?: string }>(), {
+  state: 'loading',
+  loadingText: '正在加载中...'
+})
 const hammerRef = ref<SVGPathElement>()
 const trainglesRef = ref<SVGPathElement>()
 
@@ -50,7 +53,7 @@ watchEffect(() => {
         </svg>
       </div>
       <p class="loading-text" :class="state">
-        {{ state == 'loading' ? (loadingText ?? '正在加载中') : '网络环境不佳，请重试或尝试使用 VPN' }}
+        {{ state == 'loading' ? loadingText : '网络环境不佳，请重试或尝试使用 VPN' }}
       </p>
     </template>
   </MyCard>

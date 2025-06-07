@@ -6,11 +6,13 @@ import SideGroup from '@/components/widget/SideGroup.vue'
 import { type INavItemGroup } from '@/types/naviOptions'
 import { animateCssFor } from '@/util/animateCSS'
 import { useRouter } from 'vue-router'
+import MyLoading from '@/components/widget/MyLoading.vue'
 
 export default defineComponent({
     name: 'SideNavLayout',
     components: {
-        SideGroup
+        SideGroup,
+        MyLoading
     },
     props: {
         sideNavGroups: {
@@ -24,6 +26,7 @@ export default defineComponent({
         const subviewRef = ref<HTMLElement>()
         const router = useRouter()
         let removeRouteGuard: (() => void) | null = null
+        // const 
 
         function updateAsideBackgroundWidth() {
             if (asideRef.value) {
@@ -81,10 +84,19 @@ export default defineComponent({
             :content="group.content"
 )
     article.subview(ref="subviewRef")
+        //- .subview-loading-container(): MyLoading(state='loading')
         RouterView()
 </template>
 
 <style scoped>
+.subview-loading-container {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .view-content {
     display: flex;
     width: 100%;

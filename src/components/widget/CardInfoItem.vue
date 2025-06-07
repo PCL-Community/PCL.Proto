@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { showIconPath } from '@/util/gameInfo';
 import IconButtonSave from '../icons/control/IconButtonSave.vue';
 import IconInfo from '../icons/control/IconInfo.vue';
 import IconServer from '../icons/control/IconServer.vue';
@@ -6,15 +7,16 @@ import MyButton from './MyButton.vue';
 type InfoType = 'game-info' | 'about'
 
 withDefaults(defineProps<{
-    icon: string,
-    title: string,
-    subtitle: string,
+    icon?: string,
+    title?: string,
+    subtitle?: string,
     infoType?: InfoType,
     btn?: {
         text: string,
         link: string,
     },
 }>(), {
+    icon: showIconPath.grass,
     infoType: 'game-info'
 })
 
