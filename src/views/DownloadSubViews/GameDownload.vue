@@ -6,8 +6,10 @@ import { getMinecraftVersions, versionData } from '@/api/gameVersions';
 import { onMounted } from 'vue';
 import sideTip from '@/composables/sideTip';
 onMounted(async () => {
-    sideTip.show('正在获取游戏版本信息...')
-    versionData.value = await getMinecraftVersions()
+    if (!versionData.value) {
+        sideTip.show('正在获取游戏版本信息...')
+        versionData.value = await getMinecraftVersions()
+    }
 })
 </script>
 
