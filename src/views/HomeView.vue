@@ -28,11 +28,9 @@ onMounted(() => {
   .view-content
     aside.left
       #center
-        #avatar
-          //- MinecraftAvatar(type="url", src='default-skin/Steve_(classic_texture)_JE6.png')
-          //- MinecraftAvatar(type='uuid', src='31bbe537-9fea-4e68-aa4a-d7aacca23d13')
-          MinecraftAvatar(type='username',:src='accontInfo.username')
-        //- p {{username}}
+        //- MinecraftAvatar(type="url", src='default-skin/Steve_(classic_texture)_JE6.png')
+        //- MinecraftAvatar(type='uuid', src='31bbe537-9fea-4e68-aa4a-d7aacca23d13')
+        MinecraftAvatar(type='username' :src='accontInfo.username')
         input(v-model="accontInfo.username")
         p.gray 点击上方用户名可输入
       #button-grid
@@ -48,18 +46,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-#avatar {
-  width: 45px;
-  height: 45px;
-  background: rgba(19, 112, 243, 1);
-  box-shadow: var(--box-shadow);
-  margin: 16px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 #center>input {
   font-size: 15px;
   text-align: center;
