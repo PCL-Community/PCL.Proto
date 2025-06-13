@@ -1,12 +1,15 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import LinkView from '@/views/LinkView.vue'
-import SetupView from '@/views/SetupView.vue'
-import MoreView from '@/views/MoreView.vue'
-import GameDownload from '@/views/DownloadSubView/GameDownload.vue'
-import ManualDownload from '@/views/DownloadSubView/ManualDownload.vue'
+import LinkView from '@/views/LinkView'
+import SetupView from '@/views/SetupView'
+import MoreView from '@/views/MoreView'
+import GameDownload from '@/views/DownloadSubViews/GameDownload.vue'
+import ManualDownload from '@/views/DownloadSubViews/ManualDownload.vue'
 import HomeSubView from '@/views/HomeSubView.vue'
-import DownloadView from '@/views/DownloadView.vue'
+import DownloadView from '@/views/DownloadView'
+import JavaManage from '@/views/SetupSubViews/JavaSetup.vue'
+import LaunchSetup from '@/views/SetupSubViews/LaunchSetup.vue'
+import AboutAndThanks from '@/views/MoreSubViews/AboutAndThanks.vue'
 
 
 const router = createRouter({
@@ -50,11 +53,29 @@ const router = createRouter({
       path: '/setup',
       name: 'setup',
       component: SetupView,
+      redirect: '/setup/launch',
+      children: [
+        {
+          path: 'java',
+          component: JavaManage
+        },
+        {
+          path: 'launch',
+          component: LaunchSetup
+        }
+      ]
     },
     {
       path: '/more',
       name: 'more',
-      component: MoreView
+      component: MoreView,
+      redirect: '/more/about_and_thanks',
+      children: [
+        {
+          path: 'about_and_thanks',
+          component: AboutAndThanks
+        }
+      ]
     }
   ],
 })

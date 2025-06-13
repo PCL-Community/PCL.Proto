@@ -1,4 +1,3 @@
-<script lang="ts">
 import IconLaunch from '@/components/icons/header/IconLaunch.vue';
 import IconPack from '@/components/icons/side/IconPack.vue';
 import IconPaint from '@/components/icons/side/IconPaint.vue';
@@ -6,7 +5,7 @@ import SideNavLayout from '@/layout/SideNavLayout.vue';
 import { h } from 'vue';
 
 export default {
-  setup(props, ctx) {
+  setup() {
     return () => h(SideNavLayout, {
       sideNavGroups: [{
         content: [
@@ -19,4 +18,3 @@ export default {
     })
   },
 }
-</script>

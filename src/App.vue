@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterView } from 'vue-router'
 import TitleMessage from './components/TitleMessage.vue'
 import { sideNavState, sideNavWidthStr } from '@/util/windowState';
 import WindowHeader from './components/WindowHeader.vue';
 import Modal from './components/Modal.vue';
+import SideTip from './components/SideTip.vue';
 </script>
 
 <template lang="pug">
@@ -11,14 +12,17 @@ import Modal from './components/Modal.vue';
   //- TitleMessage(v-if="true")
   //- 以下为主体部分
   #main-window
+    //- 标题框
     WindowHeader()
+    //- 主页面
     #page
       //- 页面
       RouterView()
       //- 用作动画
       .side-nav-background
-
+    //- 一些浮动内容
     Modal()
+    SideTip()
 </template>
 
 <style scoped>
@@ -37,7 +41,7 @@ import Modal from './components/Modal.vue';
   height: 100%;
   background: var(--color-background-soft);
   box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.15);
-  transition: width 0.4s cubic-bezier(.4, 2, .6, 1);
+  transition: width 0.4s cubic-bezier(.4, 1.8, .6, 1);
   z-index: -1;
 }
 

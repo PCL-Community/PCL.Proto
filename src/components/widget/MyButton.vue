@@ -2,12 +2,12 @@
 
 <script setup lang="ts">
 export type ButtonType = 'default' | 'tint' | 'warn'
-defineProps<{ type?: ButtonType }>()
+defineProps<{ type?: ButtonType, inline?: boolean }>()
 
 </script>
 
 <template lang="pug">
-    button.mybutton(:class="type ?? 'default'")
+    button.mybutton(:class="[type ?? 'default', inline ? 'inline' : '']")
         slot 我的按钮
 </template>
 
@@ -22,6 +22,10 @@ button.mybutton {
     border-radius: 4px;
     border: 1px solid rgba(52, 61, 74, 1);
     transition: all 0.2s;
+}
+
+button.inline {
+    padding-block: 5px;
 }
 
 button.tint {

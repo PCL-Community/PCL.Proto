@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import navItems from '@/components/navItems'
+import navItems from '@/util/navItems'
 import currentPlatform from '@/util/platform';
 import { onMounted } from 'vue';
 
@@ -12,12 +12,12 @@ import { onMounted } from 'vue';
 
 <template lang="pug">
   header(data-tauri-drag-region)
-    .left(:class="{'mac-margin-title': currentPlatform == 'macos'}")
+    .left(:class="{ 'mac-margin-title': currentPlatform == 'macos' }")
       img(src="@/assets/icons/TitleLogo.svg" data-tauri-drag-region)
       .title-tag Proto
       .title-tag.dev dev
 
-    nav#main-nav(:class="{'mac-margin-nav': currentPlatform == 'macos'}")
+    nav#main-nav(:class="{ 'mac-margin-nav': currentPlatform == 'macos' }")
       RouterLink(v-for="item in navItems" :key="item.to" :to="item.to")
         component(:is="item.icon")
         | {{ item.label }}
@@ -39,6 +39,7 @@ header {
   align-items: center;
   padding: 0 18px;
   flex-shrink: 0;
+  z-index: 4;
 }
 
 header .left {
@@ -127,6 +128,7 @@ header #main-nav a {
   padding-inline: 5px;
   background: rgba(255, 255, 255, 1);
   color: var(--color-titlebar);
+  cursor: default;
 }
 
 .title-tag.dev {
