@@ -1,15 +1,9 @@
 <script lang="ts" setup>
-import { ref } from 'vue'
-import IconUnfold from '@/components/icons/control/IconUnfold.vue'
-// import IconFold from '@/components/icons/control/IconFold.vue';
+import { ref, onMounted } from 'vue'
 import { h, render } from 'vue'
-// 定义 SVG 图标组件数组
-const svgIconComponents = ref([
-  { name: 'IconUnfold', component: IconUnfold },
-  { name: 'IconFold', component: IconUnfold },
-  // 可以添加更多 SVG 图标组件
-])
 
+// 存储 SVG 图标组件信息
+const svgIconComponents = ref<{ name: string; component: any }[]>([])
 // 控制抽屉展开状态
 const isOpen = ref(false)
 
@@ -36,6 +30,18 @@ const downloadSvg = (name: string, component: any) => {
     URL.revokeObjectURL(url)
   }
 }
+
+onMounted(async () => {
+  // 使用 Vite 的动态导入功能获取图标组件
+  const iconModules = import.meta.glob('@/components/icons/**/*.vue', { eager: true })
+  for (const path in iconModules) {
+    const module = iconModules[path] as { default: any }
+    const name = path.split('/').pop()?.replace('.vue', '')
+    if (name && module.default) {
+      svgIconComponents.value.push({ name, component: module.default })
+    }
+  }
+})
 </script>
 
 <template>
@@ -114,8 +120,9 @@ const downloadSvg = (name: string, component: any) => {
   width: 100%;
   height: 80px;
   background-color: #f0f0f0;
-  border-radius: 4px;
+  border-radius: 5px;
   margin-bottom: 8px;
+  padding: 10px;
 }
 
 .svg-name {
