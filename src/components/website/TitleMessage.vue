@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { apiUrlInput } from '@/api/apiUrl';
+import { apiUrlInput } from '@/api/apiUrl'
 </script>
 
 <template lang="pug">
@@ -27,7 +27,7 @@ p.webapi {
   font-size: 14px;
 }
 
-p.webapi>input {
+p.webapi > input {
   color: var(--color-text-black);
 }
 

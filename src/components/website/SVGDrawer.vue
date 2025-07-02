@@ -1,0 +1,125 @@
+<script lang="ts" setup>
+import { ref } from 'vue'
+import IconUnfold from '@/components/icons/control/IconUnfold.vue'
+// import IconFold from '@/components/icons/control/IconFold.vue';
+import { h, render } from 'vue'
+// 定义 SVG 图标组件数组
+const svgIconComponents = ref([
+  { name: 'IconUnfold', component: IconUnfold },
+  { name: 'IconFold', component: IconUnfold },
+  // 可以添加更多 SVG 图标组件
+])
+
+// 控制抽屉展开状态
+const isOpen = ref(false)
+
+// 切换抽屉展开状态
+const toggleDrawer = () => {
+  isOpen.value = !isOpen.value
+}
+
+// 下载 SVG 图标
+const downloadSvg = (name: string, component: any) => {
+  const div = document.createElement('div')
+  // 手动渲染组件
+  const instance = h(component)
+  render(instance, div)
+  const svgElement = div.querySelector('svg')
+  if (svgElement) {
+    const svgContent = new XMLSerializer().serializeToString(svgElement)
+    const blob = new Blob([svgContent], { type: 'image/svg+xml' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${name}.svg`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+}
+</script>
+
+<template>
+  <div class="drawer-container">
+    <!-- 抽屉触发按钮 -->
+    <button class="drawer-toggle" @click="toggleDrawer">
+      {{ isOpen ? '收起SVG图标库' : '展开SVG图标库' }}
+    </button>
+    <!-- 抽屉内容 -->
+    <div class="drawer" :class="{ open: isOpen }">
+      <div class="drawer-content">
+        <!-- 以网格布局展示 SVG 图标 -->
+        <div class="svg-grid">
+          <div v-for="icon in svgIconComponents" :key="icon.name" class="svg-item">
+            <component :is="icon.component" @click="downloadSvg(icon.name, icon.component)" />
+            <div class="svg-name">{{ icon.name }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style lang="css" scoped>
+.drawer-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+.drawer-toggle {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 5px 5px 0 0;
+}
+
+.drawer {
+  background-color: white;
+  height: 0;
+  overflow: hidden;
+  transition: height 0.3s ease;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.drawer.open {
+  height: 50vh; /* 展开时占屏幕一半高度 */
+}
+
+.drawer-content {
+  height: 100%;
+  overflow-y: auto; /* 内容溢出时可滚动 */
+  padding: 16px;
+}
+
+.svg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 16px;
+}
+
+.svg-item {
+  text-align: center;
+  cursor: pointer;
+}
+
+.svg-item > svg {
+  width: 100%;
+  height: 80px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.svg-name {
+  font-size: 12px;
+  color: #333;
+}
+</style>
