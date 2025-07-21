@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import CardInfoItem from '@/components/widget/CardInfoItem.vue';
-import MyCard from '@/components/widget/MyCard.vue';
+import CardInfoItem from '@/components/widget/CardInfoItem.vue'
+import MyCard from '@/components/widget/MyCard.vue'
 import picLongTengMaoYue from '@/assets/pictures/龙腾猫跃头像.jpg'
 import picPCLProto from '/PCL.Proto.svg?url'
-import PlainTextInfoItem from '@/components/widget/PlainTextInfoItem.vue';
+import PlainTextInfoItem from '@/components/widget/PlainTextInfoItem.vue'
 </script>
 
 <template lang="pug">
@@ -24,7 +24,7 @@ import PlainTextInfoItem from '@/components/widget/PlainTextInfoItem.vue';
                 )
             CardInfoItem(:icon="picPCLProto"
                 title="Plain Craft Launcher: Edition Prototype"
-                subtitle="当前版本：早期开发中，暂无版本号"
+                subtitle="当前版本：0.1.0"
                 infoType="about"
                 :btn="{text: 'GitHub 仓库', link:'https://github.com/PCL-Community/PCL.Proto.git'}"
                 )

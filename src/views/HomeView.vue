@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import MyButton from '@/components/widget/MyButton.vue';
-import { sideNavState, defaultWidths, sideNavWidthStr } from '@/util/windowState';
-import { animateCssFor } from '@/util/animateCSS';
-import { nextTick, onMounted, ref } from 'vue';
-import MinecraftAvatar from '@/components/widget/MinecraftAvatar.vue';
-import { accontInfo } from '@/util/account';
-import { selectedGame } from '@/util/gameLaunch';
+import MyButton from '@/components/widget/MyButton.vue'
+import { sideNavState, defaultWidths, sideNavWidthStr } from '@/util/windowState'
+import { animateCssFor } from '@/util/animateCSS'
+import { nextTick, onMounted, ref } from 'vue'
+import MinecraftAvatar from '@/components/widget/MinecraftAvatar.vue'
+import { accontInfo } from '@/util/account'
+import { selectedGame } from '@/util/gameLaunch'
+import router from '@/router'
 
 const subviewRef = ref<HTMLElement>()
 
@@ -22,6 +23,12 @@ onMounted(() => {
   }
 })
 
+const versionSelectClicked = () => {
+  router.push({ name: 'version_select' })
+}
+const versionSettingClicked = () => {
+  router.push({ name: 'version_setting' })
+}
 </script>
 
 <template lang="pug">
@@ -37,8 +44,8 @@ onMounted(() => {
         MyButton#launch(type="tint")
           p 启动游戏
           p.gray {{ selectedGame.name }}
-        MyButton 版本选择
-        MyButton 版本设置
+        MyButton(@click="versionSelectClicked") 版本选择
+        MyButton(@click="versionSettingClicked") 版本设置
 
     article.subview(ref="subviewRef")
       RouterView()
@@ -46,7 +53,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-#center>input {
+#center > input {
   font-size: 15px;
   text-align: center;
   color: var(--color-text-black);

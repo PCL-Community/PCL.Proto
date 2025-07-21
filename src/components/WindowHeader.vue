@@ -1,18 +1,61 @@
 <script lang="ts" setup>
 import navItems from '@/util/navItems'
+import { ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+const isSubPage = ref(false)
+const route = useRoute()
+const router = useRouter()
+
+const fromPage = ref<string>() // 在进入特殊页面时记录的来源页面
+const title = ref<string>() // 页面标题
+
+// 监听路由变化，判断是否为特殊页面，并记录来源页面
+watch(
+  () => route.fullPath,
+  (newPath, oldPath) => {
+    if (route.meta.isSubPage) {
+      // 进入特殊页面时记录来源
+      if (!isSubPage.value) {
+        fromPage.value = oldPath
+        title.value = route.meta.title as string
+      }
+      isSubPage.value = true
+    } else {
+      isSubPage.value = false
+      fromPage.value = undefined
+    }
+  },
+  { immediate: true },
+)
+
+const backClicked = () => {
+  if (fromPage.value) {
+    router.push(fromPage.value)
+  } else {
+    router.back()
+  }
+}
 </script>
 
 <template lang="pug">
   header
-    .left
-      img(src="@/assets/icons/TitleLogo.svg")
-      .title-tag Proto
-      .title-tag.dev dev
+    Transition(name="nav")
+      .left(v-if="!isSubPage")
+        img(src="@/assets/icons/TitleLogo.svg")
+        .title-tag Proto
+        .title-tag.dev(@click="isSubPage = !isSubPage") dev
+      .left(v-else)
+        i.button-animated(@click="backClicked")
+          img(src="@/assets/icons/ArrowLeft.svg")
+        span.title-text {{ title }}
 
-    nav#main-nav
-      RouterLink(v-for="item in navItems" :key="item.to" :to="item.to")
-        component(:is="item.icon")
-        | {{ item.label }}
+    
+    Transition(name="nav")
+      .center(v-if="!isSubPage")
+        nav#main-nav
+          RouterLink(v-for="item in navItems" :key="item.to" :to="item.to")
+            component(:is="item.icon")
+            | {{ item.label }}
 
     .right
       each icon in ['TitleMinimize', 'TitleClose']
@@ -21,33 +64,65 @@ import navItems from '@/util/navItems'
 </template>
 
 <style scoped>
+.left > .title-text {
+  color: white;
+}
+
+.nav-enter-active,
+.nav-leave-active {
+  transition: all 0.4s ease;
+}
+
+.nav-enter-from,
+.nav-leave-to {
+  opacity: 0;
+  transform: translateX(10px);
+}
+
 header {
   width: 100%;
   height: 48px;
   background: var(--color-titlebar);
 
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
   align-items: center;
   padding: 0 18px;
   flex-shrink: 0;
   z-index: 4;
+  position: relative;
 }
 
 header .left {
-  justify-self: start;
   display: flex;
   gap: 10px;
+  position: absolute;
+  left: 18px;
+  top: 0;
+  height: 100%;
+  align-items: center;
+}
+
+header .center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
 }
 
 header .right {
-  justify-self: end;
   display: flex;
   gap: 4px;
+  position: absolute;
+  right: 18px;
+  top: 0;
+  height: 100%;
+  align-items: center;
 }
 
 /* 窗口控制按钮外面的圆形 */
-header .right i {
+.right i,
+.left i {
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -58,7 +133,8 @@ header .right i {
   transition: background-color 0.4s;
 }
 
-header .right i:hover {
+.right i:hover,
+.left i:hover {
   background-color: rgba(255, 255, 255, 0.25);
 }
 
@@ -69,7 +145,7 @@ header .right i:hover {
 
 /* 导航栏 */
 header #main-nav {
-  justify-self: center;
+  /* justify-self: center; */
   display: inline-flex;
   gap: 5px;
 }

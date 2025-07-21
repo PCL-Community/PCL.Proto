@@ -6,7 +6,7 @@ import WindowHeader from './components/WindowHeader.vue'
 import Modal from './components/Modal.vue'
 import SideTip from './components/SideTip.vue'
 // 引入 SvgDrawer 组件
-import SvgDrawer from './components/website/SvgDrawer.vue'
+import SvgDrawer from './components/website/SVGDrawer.vue'
 </script>
 
 <template lang="pug">
@@ -25,8 +25,8 @@ import SvgDrawer from './components/website/SvgDrawer.vue'
     //- 一些浮动内容
     Modal()
     SideTip()
-    // 添加 SvgDrawer 组件
-    SvgDrawer()
+  // 添加 SvgDrawer 组件
+  SvgDrawer()
 </template>
 
 <style scoped>

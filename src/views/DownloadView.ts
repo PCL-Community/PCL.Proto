@@ -1,3 +1,4 @@
+import IconFavorites from '@/components/icons/side/IconFavorites.vue';
 import IconFourLeaves from '@/components/icons/side/IconFourLeaves.vue';
 import IconMod from '@/components/icons/side/IconMod.vue';
 import IconOverview from '@/components/icons/side/IconOverview.vue';
@@ -25,7 +26,8 @@ export default {
           { text: '整合包', icon: IconPack },
           { text: '数据包', icon: IconFourLeaves },
           { text: '资源包', icon: IconPicture },
-          { text: '光影包', icon: IconSun }
+          { text: '光影包', icon: IconSun },
+          { text: '收藏夹', icon: IconFavorites }
         ]
       }
       ]

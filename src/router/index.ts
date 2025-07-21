@@ -1,5 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import HomeView from '@/views/HomeView.vue'
 import LinkView from '@/views/LinkView'
 import SetupView from '@/views/SetupView'
 import MoreView from '@/views/MoreView'
@@ -10,6 +10,10 @@ import DownloadView from '@/views/DownloadView'
 import JavaManage from '@/views/SetupSubViews/JavaSetup.vue'
 import LaunchSetup from '@/views/SetupSubViews/LaunchSetup.vue'
 import AboutAndThanks from '@/views/MoreSubViews/AboutAndThanks.vue'
+import VersionSelect from '@/views/VersionSelect'
+import VersionSelectSubView from '@/views/VersionSelectSubView.vue'
+import VersionSetting from '@/views/VersionSetting'
+import Overview from '@/views/VersionSettingSubViews/Overview.vue'
 
 
 const router = createRouter({
@@ -74,6 +78,32 @@ const router = createRouter({
         {
           path: 'about_and_thanks',
           component: AboutAndThanks
+        }
+      ]
+    },
+    {
+      path: '/version_select',
+      name: 'version_select',
+      component: VersionSelect,
+      redirect: '/version_select/version_select_sub',
+      meta: { isSubPage: true, title: '版本选择' }, // 用于标识当前处于特殊子页面
+      children: [
+        {
+          path: 'version_select_sub',
+          component: VersionSelectSubView
+        }
+      ]
+    },
+    {
+      path: '/version_setting',
+      name: 'version_setting',
+      component: VersionSetting,
+      redirect: '/version_setting/overview',
+      meta: { isSubPage: true, title: '版本设置' }, // 用于标识当前处于特殊子页面
+      children: [
+        {
+          path: 'overview',
+          component: Overview
         }
       ]
     }
