@@ -1,3 +1,5 @@
+import IconButtonAdd from "@/components/icons/side/IconButtonAdd.vue"
+import IconImportModpack from "@/components/icons/side/IconImportModpack.vue"
 import SideNavLayout from "@/layout/SideNavLayout.vue"
 import { h } from "vue"
 
@@ -13,8 +15,8 @@ export default {
             }, {
                 title: '添加或导入',
                 content: [
-                    { text: '添加新文件夹' },
-                    { text: '导入整合包' }
+                    { text: '添加新文件夹', icon: IconButtonAdd },
+                    { text: '导入整合包', icon: IconImportModpack }
                 ]
             }]
         })
