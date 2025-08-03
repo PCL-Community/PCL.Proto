@@ -14,7 +14,7 @@ import VersionSelect from '@/views/VersionSelect'
 import VersionSelectSubView from '@/views/VersionSelectSubView.vue'
 import VersionSetting from '@/views/VersionSetting'
 import Overview from '@/views/VersionSettingSubViews/Overview.vue'
-
+import { selectedGame } from '@/util/gameLaunch'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -29,9 +29,9 @@ const router = createRouter({
       children: [
         {
           path: '',
-          component: HomeSubView
-        }
-      ]
+          component: HomeSubView,
+        },
+      ],
     },
     {
       path: '/download',
@@ -44,9 +44,9 @@ const router = createRouter({
         },
         {
           path: 'manual',
-          component: ManualDownload
-        }
-      ]
+          component: ManualDownload,
+        },
+      ],
     },
     {
       path: '/link',
@@ -61,13 +61,13 @@ const router = createRouter({
       children: [
         {
           path: 'java',
-          component: JavaManage
+          component: JavaManage,
         },
         {
           path: 'launch',
-          component: LaunchSetup
-        }
-      ]
+          component: LaunchSetup,
+        },
+      ],
     },
     {
       path: '/more',
@@ -77,9 +77,9 @@ const router = createRouter({
       children: [
         {
           path: 'about_and_thanks',
-          component: AboutAndThanks
-        }
-      ]
+          component: AboutAndThanks,
+        },
+      ],
     },
     {
       path: '/version_select',
@@ -90,23 +90,23 @@ const router = createRouter({
       children: [
         {
           path: 'version_select_sub',
-          component: VersionSelectSubView
-        }
-      ]
+          component: VersionSelectSubView,
+        },
+      ],
     },
     {
       path: '/version_setting',
       name: 'version_setting',
       component: VersionSetting,
       redirect: '/version_setting/overview',
-      meta: { isSubPage: true, title: '版本设置' }, // 用于标识当前处于特殊子页面
+      meta: { isSubPage: true, title: '版本设置 - ' + selectedGame.name }, // 用于标识当前处于特殊子页面
       children: [
         {
           path: 'overview',
-          component: Overview
-        }
-      ]
-    }
+          component: Overview,
+        },
+      ],
+    },
   ],
 })
 

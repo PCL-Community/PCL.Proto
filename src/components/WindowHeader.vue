@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { selectedGame } from '@/util/gameLaunch'
 import navItems from '@/util/navItems'
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -49,7 +50,7 @@ const backClicked = () => {
           img(src="@/assets/icons/ArrowLeft.svg")
         span.title-text {{ title }}
 
-    
+
     Transition(name="nav")
       .center(v-if="!isSubPage")
         nav#main-nav
@@ -70,7 +71,7 @@ const backClicked = () => {
 
 .nav-enter-active,
 .nav-leave-active {
-  transition: all 0.4s ease;
+  transition: all 0.5s ease;
 }
 
 .nav-enter-from,
@@ -138,7 +139,7 @@ header .right {
   background-color: rgba(255, 255, 255, 0.25);
 }
 
-/* 按钮缩放已放入 main.css 中 
+/* 按钮缩放已放入 main.css 中
 .right i:active {
   transform: scale(0.9);
 } */
