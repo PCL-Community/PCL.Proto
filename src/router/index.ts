@@ -10,8 +10,8 @@ import DownloadView from '@/views/DownloadView'
 import JavaManage from '@/views/SetupSubViews/JavaSetup.vue'
 import LaunchSetup from '@/views/SetupSubViews/LaunchSetup.vue'
 import AboutAndThanks from '@/views/MoreSubViews/AboutAndThanks.vue'
-import VersionSelect from '@/views/VersionSelect'
-import VersionSelectSubView from '@/views/VersionSelectSubView.vue'
+import VersionSelect from '@/views/InstanceSelect'
+import VersionSelectSubView from '@/views/InstanceSelectSubView.vue'
 import VersionSetting from '@/views/VersionSetting'
 import Overview from '@/views/VersionSettingSubViews/Overview.vue'
 import { selectedGame } from '@/util/gameLaunch'
@@ -86,7 +86,7 @@ const router = createRouter({
       name: 'version_select',
       component: VersionSelect,
       redirect: '/version_select/version_select_sub',
-      meta: { isSubPage: true, title: '版本选择' }, // 用于标识当前处于特殊子页面
+      meta: { isSubPage: true, title: '实例选择' }, // 用于标识当前处于特殊子页面
       children: [
         {
           path: 'version_select_sub',
@@ -99,7 +99,7 @@ const router = createRouter({
       name: 'version_setting',
       component: VersionSetting,
       redirect: '/version_setting/overview',
-      meta: { isSubPage: true, title: '版本设置 - ' + selectedGame.name }, // 用于标识当前处于特殊子页面
+      meta: { isSubPage: true, title: '实例设置 - ' + selectedGame.name }, // 用于标识当前处于特殊子页面
       children: [
         {
           path: 'overview',

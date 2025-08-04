@@ -44,8 +44,8 @@ const versionSettingClicked = () => {
         MyButton#launch(type="tint")
           p 启动游戏
           p.gray {{ selectedGame.name }}
-        MyButton(@click="versionSelectClicked") 版本选择
-        MyButton(@click="versionSettingClicked") 版本设置
+        MyButton(@click="versionSelectClicked") 实例选择
+        MyButton(@click="versionSettingClicked") 实例设置
 
     article.subview(ref="subviewRef")
       RouterView()
