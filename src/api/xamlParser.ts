@@ -1,3 +1,5 @@
+import type { ButtonType } from "@/components/widget/MyButton.vue"
+import MyButton from "@/components/widget/MyButton.vue"
 import type { FoldStatus } from "@/components/widget/MyCard.vue"
 import MyCard from "@/components/widget/MyCard.vue"
 import type { Severity } from "@/components/widget/MyHint.vue"
@@ -10,7 +12,7 @@ export default function renderFromXaml(xaml: string): (VNode | string)[] {
     return page.elements?.map((el: any) => parseXamlElement(el))
 }
 
-function parseXamlElement(element: Element): VNode | string {
+function parseXamlElement(element: Element): VNode | string | (VNode | string)[] {
     if (element.name?.startsWith('local:')) {
         const localType = element.name.split(':')[1]
         console.log('[xaml] got local-element:', localType)
@@ -33,10 +35,16 @@ function parseXamlElement(element: Element): VNode | string {
                     { title: attributes.Title, content: element.elements?.map((el) => parseXamlElement(el)) },
                 )
             case 'MyHint':
-                let severity = 'info' as Severity
+                let severity: Severity = 'info'
                 if (element.attributes?.Theme == 'Yellow') severity = 'warning'
                 if (element.attributes?.Theme == 'Red') severity = 'error'
                 return h(MyHint, { severity }, element.attributes?.Text || element.text)
+            case 'MyButton':
+                let type: ButtonType = 'default'
+                if (element.attributes?.ColorType == 'Highlight') type = 'tint'
+                if (element.attributes?.ColorType == 'Red') type = 'warn'
+                console.log('[xaml] got button:', element)
+                return h(MyButton, { type, tooltip: element.attributes?.ToolTip as string | undefined }, element.attributes?.Text)
             default:
                 return JSON.stringify(element)
         }
@@ -45,6 +53,7 @@ function parseXamlElement(element: Element): VNode | string {
             case 'StackPanel':
                 return h(
                     'section',
+                    { style: { display: "flex", flexDirection: 'column' } },
                     element.elements?.map((el) => parseXamlElement(el)),
                 )
             case 'TextBlock':
