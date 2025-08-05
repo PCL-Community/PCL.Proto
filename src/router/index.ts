@@ -13,8 +13,9 @@ import AboutAndThanks from '@/views/MoreSubViews/AboutAndThanks.vue'
 import VersionSelect from '@/views/InstanceSelect'
 import VersionSelectSubView from '@/views/InstanceSelectSubView.vue'
 import VersionSetting from '@/views/VersionSetting'
-import Overview from '@/views/VersionSettingSubViews/Overview.vue'
+import Overview from '@/views/InstanceSettingSubViews/Overview.vue'
 import { selectedGame } from '@/util/gameLaunch'
+import HomeNew from '@/views/HomeNew.vue'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),

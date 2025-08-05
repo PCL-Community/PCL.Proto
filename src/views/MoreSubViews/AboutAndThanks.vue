@@ -4,6 +4,8 @@ import MyCard from '@/components/widget/MyCard.vue'
 import picLongTengMaoYue from '@/assets/pictures/龙腾猫跃头像.jpg'
 import picPCLProto from '/PCL.Proto.svg?url'
 import PlainTextInfoItem from '@/components/widget/PlainTextInfoItem.vue'
+declare const __APP_VERSION__: string
+const version = __APP_VERSION__
 </script>
 
 <template lang="pug">
@@ -24,7 +26,7 @@ import PlainTextInfoItem from '@/components/widget/PlainTextInfoItem.vue'
                 )
             CardInfoItem(:icon="picPCLProto"
                 title="Plain Craft Launcher: Edition Prototype"
-                subtitle="当前版本：0.1.0"
+                :subtitle="`当前版本：${version}`"
                 infoType="about"
                 :btn="{text: 'GitHub 仓库', link:'https://github.com/PCL-Community/PCL.Proto.git'}"
                 )
