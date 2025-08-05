@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, markRaw } from 'vue'
 import { h, render } from 'vue'
 
 // 存储 SVG 图标组件信息
@@ -54,7 +54,11 @@ onMounted(async () => {
     const module = vueIconModules[path] as { default: any }
     const name = path.split('/').pop()?.replace('.vue', '')
     if (name && module.default) {
-      svgIconComponents.value.push({ name, component: module.default, isVueComponent: true })
+      svgIconComponents.value.push({
+        name,
+        component: markRaw(module.default),
+        isVueComponent: true,
+      })
     }
   }
 

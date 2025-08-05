@@ -24,10 +24,10 @@ onMounted(() => {
 })
 
 const versionSelectClicked = () => {
-  router.push({ name: 'version_select' })
+  router.push({ name: 'instance_select' })
 }
 const versionSettingClicked = () => {
-  router.push({ name: 'version_setting' })
+  router.push({ name: 'instance_setting' })
 }
 </script>
 

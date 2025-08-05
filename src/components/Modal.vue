@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { useModal } from '@/composables/useModal'
-import { ref } from 'vue';
-import MyButton from './widget/MyButton.vue';
+import MyButton from './widget/MyButton.vue'
 
 const { isOpen, options, close } = useModal()
 const handleButtonClick = async (btn: any) => {
   if (btn.operation) await btn.operation()
   close(true)
 }
-
 </script>
 
 <template lang="pug">
@@ -56,7 +54,7 @@ const handleButtonClick = async (btn: any) => {
   background-color: var(--color-background);
   border-radius: 6px;
   box-shadow: var(--box-shadow);
-  transition: transform 0.6s cubic-bezier(.4, 2, .6, 1);
+  transition: transform 0.6s cubic-bezier(0.4, 2, 0.6, 1);
 }
 
 .modal-header h2 {

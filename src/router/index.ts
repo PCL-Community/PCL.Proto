@@ -10,9 +10,9 @@ import DownloadView from '@/views/DownloadView'
 import JavaManage from '@/views/SetupSubViews/JavaSetup.vue'
 import LaunchSetup from '@/views/SetupSubViews/LaunchSetup.vue'
 import AboutAndThanks from '@/views/MoreSubViews/AboutAndThanks.vue'
-import VersionSelect from '@/views/InstanceSelect'
-import VersionSelectSubView from '@/views/InstanceSelectSubView.vue'
-import VersionSetting from '@/views/VersionSetting'
+import InstanceSelect from '@/views/InstanceSelect'
+import InstanceSelectSubView from '@/views/InstanceSelectSubView.vue'
+import InstanceSetting from '@/views/VersionSetting'
 import Overview from '@/views/InstanceSettingSubViews/Overview.vue'
 import { selectedGame } from '@/util/gameLaunch'
 import HomeNew from '@/views/HomeNew'
@@ -26,6 +26,7 @@ const router = createRouter({
     },
     {
       path: '/home',
+      name: 'home',
       component: HomeView,
       children: [
         {
@@ -36,6 +37,7 @@ const router = createRouter({
     },
     {
       path: '/download',
+      name: 'download',
       component: DownloadView,
       redirect: '/download/game',
       children: [
@@ -83,23 +85,23 @@ const router = createRouter({
       ],
     },
     {
-      path: '/version_select',
-      name: 'version_select',
-      component: VersionSelect,
-      redirect: '/version_select/version_select_sub',
+      path: '/instance_select',
+      name: 'instance_select',
+      component: InstanceSelect,
+      redirect: '/instance_select/instance_select_sub',
       meta: { isSubPage: true, title: '实例选择' }, // 用于标识当前处于特殊子页面
       children: [
         {
-          path: 'version_select_sub',
-          component: VersionSelectSubView,
+          path: 'instance_select_sub',
+          component: InstanceSelectSubView,
         },
       ],
     },
     {
-      path: '/version_setting',
-      name: 'version_setting',
-      component: VersionSetting,
-      redirect: '/version_setting/overview',
+      path: '/instance_setting',
+      name: 'instance_setting',
+      component: InstanceSetting,
+      redirect: '/instance_setting/overview',
       meta: { isSubPage: true, title: '实例设置 - ' + selectedGame.name }, // 用于标识当前处于特殊子页面
       children: [
         {
