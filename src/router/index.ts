@@ -15,7 +15,7 @@ import VersionSelectSubView from '@/views/InstanceSelectSubView.vue'
 import VersionSetting from '@/views/VersionSetting'
 import Overview from '@/views/InstanceSettingSubViews/Overview.vue'
 import { selectedGame } from '@/util/gameLaunch'
-import HomeNew from '@/views/HomeNew.vue'
+import HomeNew from '@/views/HomeNew'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -30,7 +30,7 @@ const router = createRouter({
       children: [
         {
           path: '',
-          component: HomeSubView,
+          component: HomeNew,
         },
       ],
     },

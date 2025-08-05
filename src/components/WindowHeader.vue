@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import { selectedGame } from '@/util/gameLaunch'
 import navItems from '@/util/navItems'
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
