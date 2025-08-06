@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import MyButton from '@/components/widget/MyButton.vue'
+import MyButton from '@/components/widget/PButton.vue'
 import { sideNavState, defaultWidths, sideNavWidthStr } from '@/util/windowState'
 import { animateCssFor } from '@/util/animateCSS'
 import { nextTick, onMounted, ref } from 'vue'
@@ -26,7 +26,7 @@ onMounted(() => {
 const versionSelectClicked = () => {
   router.push({ name: 'instance_select' })
 }
-const versionSettingClicked = () => {
+const InstanceSettingClicked = () => {
   router.push({ name: 'instance_setting' })
 }
 </script>
@@ -45,7 +45,7 @@ const versionSettingClicked = () => {
           p 启动游戏
           p.gray {{ selectedGame.name }}
         MyButton(@click="versionSelectClicked") 实例选择
-        MyButton(@click="versionSettingClicked") 实例设置
+        MyButton(@click="InstanceSettingClicked") 实例设置
 
     article.subview(ref="subviewRef")
       RouterView()

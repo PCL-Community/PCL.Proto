@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import MyCard from '@/components/widget/MyCard.vue'
+import PCard from '@/components/widget/PCard.vue'
 </script>
 
 <template>
-  <MyCard>
+  <PCard>
     <template #title> 收藏夹 </template>
-  </MyCard>
+  </PCard>
 </template>

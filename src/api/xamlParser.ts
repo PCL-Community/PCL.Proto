@@ -1,10 +1,10 @@
 import CardInfoItem from "@/components/widget/CardInfoItem.vue"
-import type { ButtonType } from "@/components/widget/MyButton.vue"
-import MyButton from "@/components/widget/MyButton.vue"
-import type { FoldStatus } from "@/components/widget/MyCard.vue"
-import MyCard from "@/components/widget/MyCard.vue"
-import type { Severity } from "@/components/widget/MyHint.vue"
-import MyHint from "@/components/widget/MyHint.vue"
+import type { ButtonType } from "@/components/widget/PButton.vue"
+import MyButton from "@/components/widget/PButton.vue"
+import type { FoldStatus } from "@/components/widget/PCard.vue"
+import PCard from "@/components/widget/PCard.vue"
+import type { Severity } from "@/components/widget/PHint.vue"
+import PHint from "@/components/widget/PHint.vue"
 import sideTip from "@/composables/sideTip"
 import { useModal } from "@/composables/useModal"
 import router from "@/router"
@@ -39,7 +39,7 @@ function parseXamlElement(element: Element): VNode | string | (VNode | string)[]
           foldStatus = attributes.IsSwaped == 'True' ? 'fold' : 'unfold'
         }
         return h(
-          MyCard,
+          PCard,
           { defaultFoldStatus: foldStatus },
           { title: () => attributes.Title, content: () => element.elements?.map((el) => parseXamlElement(el)) },
         )
@@ -47,7 +47,7 @@ function parseXamlElement(element: Element): VNode | string | (VNode | string)[]
         let severity: Severity = 'error'
         if (element.attributes?.Theme == 'Blue') severity = 'info'
         if (element.attributes?.Theme == 'Red') severity = 'error'
-        return h(MyHint, { severity }, () => element.attributes?.Text || element.text)
+        return h(PHint, { severity }, () => element.attributes?.Text || element.text)
       case 'MyButton':
         let type: ButtonType = 'default'
         if (element.attributes?.ColorType == 'Highlight') type = 'tint'

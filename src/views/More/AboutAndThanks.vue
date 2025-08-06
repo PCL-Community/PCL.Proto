@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import CardInfoItem from '@/components/widget/CardInfoItem.vue'
-import MyCard from '@/components/widget/MyCard.vue'
+import PCard from '@/components/widget/PCard.vue'
 import picLongTengMaoYue from '@/assets/pictures/龙腾猫跃头像.jpg'
 import picPCLProto from '/PCL.Proto.svg?url'
 import PlainTextInfoItem from '@/components/widget/PlainTextInfoItem.vue'
@@ -9,7 +9,7 @@ const version = __APP_VERSION__
 </script>
 
 <template lang="pug">
-    MyCard
+    PCard
         template(#title) 关于
         template(#content)
             CardInfoItem(:icon="picLongTengMaoYue"
@@ -30,7 +30,7 @@ const version = __APP_VERSION__
                 infoType="about"
                 :btn="{text: 'GitHub 仓库', link:'https://github.com/PCL-Community/PCL.Proto.git'}"
                 )
-    MyCard
+    PCard
         template(#title) 特别鸣谢
         template(#content)
             CardInfoItem(icon="https://avatars.githubusercontent.com/u/165488354?s=200&v=4"
@@ -45,13 +45,13 @@ const version = __APP_VERSION__
                 infoType="about"
                 :btn="{text: 'GitHub 仓库', link:'https://github.com/PCL-Community/PCL.Neo'}"
                 )
-    MyCard
+    PCard
         template(#title) 法律信息
         template(#content)
             p 本软件为原版 PCL 的社区衍生版本之一。仓库代码开源，但倘若您需要使用此项目或参考本仓库的源码，需遵守#[a(href="https://github.com/PCL-Community/PCL2-CE/blob/dev/LICENCE") 与原版 PCL 相同的协议]。
             p 本项目主导社区为 PCL-Community，如果你有对此项目的建议或在使用中遇到问题，欢迎提 Issue 和 Pull Request！
  
-    MyCard(defaultFoldStatus='fold')
+    PCard(defaultFoldStatus='fold')
         template(#title) 许可与版权声明
         template(#content)
             PlainTextInfoItem

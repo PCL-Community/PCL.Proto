@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import SetupItem from '@/components/widget/SetupItem.vue';
-import MyCard from '@/components/widget/MyCard.vue';
-import { setup, setupOptions } from '@/util/setup';
-import GameMemorySet from '@/components/widget/GameMemorySet.vue';
-
+import SetupItem from '@/components/widget/SetupItem.vue'
+import PCard from '@/components/widget/PCard.vue'
+import { setup, setupOptions } from '@/util/setup'
+import GameMemorySet from '@/components/widget/GameMemorySet.vue'
 </script>
 
 <template lang="pug">
-  MyCard(default-fold-status="unfold")
+  PCard(default-fold-status="unfold")
     template(#title) 启动选项
     template(#content)
         SetupItem(
@@ -19,7 +18,7 @@ import GameMemorySet from '@/components/widget/GameMemorySet.vue';
           v-model="setup.launch[key]"
         )
   
-  MyCard()
+  PCard()
     template(#title) 游戏内存
     template(#content)
       GameMemorySet()

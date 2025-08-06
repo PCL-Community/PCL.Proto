@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import Dropdown from './Dropdown.vue';
-import { type ISetupOption, type SetupItemType } from '@/util/setup';
-import MyInput from './MyInput.vue';
+import Dropdown from './Dropdown.vue'
+import { type ISetupOption, type SetupItemType } from '@/util/setup'
+import PInput from './PInput.vue'
 
 defineProps<{
-    label: string;
-    options: ISetupOption[];
-    type: SetupItemType;
-}>();
+  label: string
+  options: ISetupOption[]
+  type: SetupItemType
+}>()
 
-const model = defineModel<string>();
-
+const model = defineModel<string>()
 </script>
 
 <template lang="pug">
@@ -21,7 +20,7 @@ const model = defineModel<string>();
         :options="options"
         v-model="model"
     )
-    MyInput.input(
+    PInput.input(
         v-else-if="type == 'input'"
         :placeholder="options.find(v => v.key === 'placeholder')?.text"
         v-model="model"
@@ -30,18 +29,18 @@ const model = defineModel<string>();
 
 <style lang="css" scoped>
 .setupitem-with-text-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-block: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-block: 4px;
 }
 
 .text-label {
-    flex: 1;
-    margin: 0;
+  flex: 1;
+  margin: 0;
 }
 
 .input {
-    flex: 4;
+  flex: 4;
 }
 </style>

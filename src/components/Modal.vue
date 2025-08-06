@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useModal } from '@/composables/useModal'
-import MyButton from './widget/MyButton.vue'
+import MyButton from './widget/PButton.vue'
 
 const { isOpen, options, close } = useModal()
 const handleButtonClick = async (btn: any) => {

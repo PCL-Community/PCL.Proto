@@ -1,25 +1,27 @@
 <script setup lang="ts">
-import { showIconPath } from '@/util/gameInfo';
-import IconButtonSave from '../icons/control/IconButtonSave.vue';
-import IconInfo from '../icons/control/IconInfo.vue';
-import IconServer from '../icons/control/IconServer.vue';
-import MyButton from './MyButton.vue';
+import { showIconPath } from '@/util/gameInfo'
+import IconButtonSave from '../icons/control/IconButtonSave.vue'
+import IconInfo from '../icons/control/IconInfo.vue'
+import IconServer from '../icons/control/IconServer.vue'
+import MyButton from './PButton.vue'
 type InfoType = 'game-info' | 'about'
 
-withDefaults(defineProps<{
-    icon?: string,
-    title?: string,
-    subtitle?: string,
-    infoType?: InfoType,
+withDefaults(
+  defineProps<{
+    icon?: string
+    title?: string
+    subtitle?: string
+    infoType?: InfoType
     btn?: {
-        text: string,
-        link: string,
-    },
-}>(), {
+      text: string
+      link: string
+    }
+  }>(),
+  {
     icon: showIconPath.grass,
-    infoType: 'game-info'
-})
-
+    infoType: 'game-info',
+  },
+)
 </script>
 
 <template lang="pug">
@@ -39,62 +41,62 @@ withDefaults(defineProps<{
 
 <style lang="css" scoped>
 .left {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
 }
 
-.about>.left>img {
-    border-radius: 50%;
+.about > .left > img {
+  border-radius: 50%;
 }
 
-.gameinfo-container.game-info>.right {
-    margin-right: 6px;
-    color: var(--color-tint-light);
-    opacity: 0;
-    transition: opacity 0.4s ease;
-    display: flex;
-    align-items: center;
-    gap: 9.5px;
+.gameinfo-container.game-info > .right {
+  margin-right: 6px;
+  color: var(--color-tint-light);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  display: flex;
+  align-items: center;
+  gap: 9.5px;
 }
 
-.right>svg {
-    width: 14px;
+.right > svg {
+  width: 14px;
 }
 
-.gameinfo-container.game-info:hover>.right {
-    opacity: 1;
+.gameinfo-container.game-info:hover > .right {
+  opacity: 1;
 }
 
 .gameinfo-container {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px;
-    border-radius: 4px;
-    gap: 6px;
-    transition: background-color 0.4s ease;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px;
+  border-radius: 4px;
+  gap: 6px;
+  transition: background-color 0.4s ease;
 }
 
 .gameinfo-container.game-info:hover {
-    background-color: var(--color-tint-lighter);
+  background-color: var(--color-tint-lighter);
 }
 
 .title {
-    font-size: 13px;
-    line-height: 1.1rem;
+  font-size: 13px;
+  line-height: 1.1rem;
 }
 
 .subtitle {
-    font-size: 11px;
-    color: var(--color-text-grey);
-    line-height: normal;
+  font-size: 11px;
+  color: var(--color-text-grey);
+  line-height: normal;
 }
 
 img {
-    width: 30px;
-    height: 30px;
+  width: 30px;
+  height: 30px;
 }
 </style>

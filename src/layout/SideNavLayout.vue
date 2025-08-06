@@ -6,13 +6,13 @@ import SideGroup from '@/components/widget/SideGroup.vue'
 import { type INavItemGroup } from '@/types/naviOptions'
 import { animateCssFor } from '@/util/animateCSS'
 import { useRouter } from 'vue-router'
-import MyLoading from '@/components/widget/MyLoading.vue'
+import PLoading from '@/components/widget/PLoading.vue'
 
 export default defineComponent({
   name: 'SideNavLayout',
   components: {
     SideGroup,
-    MyLoading,
+    PLoading,
   },
   props: {
     sideNavGroups: {
@@ -83,7 +83,7 @@ export default defineComponent({
             :content="group.content"
 )
     article.subview(ref="subviewRef")
-        //- .subview-loading-container(): MyLoading(state='loading')
+        //- .subview-loading-container(): PLoading(state='loading')
         RouterView()
 </template>
 
