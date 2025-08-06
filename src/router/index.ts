@@ -13,10 +13,9 @@ import AboutAndThanks from '@/views/More/AboutAndThanks.vue'
 import InstanceSelect from '@/views/InstanceSelect/InstanceSelect'
 import InstanceSelectSubView from '@/views/InstanceSelect/InstanceSelectSubView.vue'
 import InstanceSetting from '@/views/InstanceSetting/InstanceSetting'
-import Overview from '@/views/InstanceSetting/Overview.vue'
+import Overview from '@/views/InstanceSetting/InstanceOverview.vue'
 import { selectedInstance } from '@/util/gameLaunch'
 import HomeNew from '@/views/Home/HomeNew'
-import InstanceSettingSetting from '@/views/InstanceSetting/InstanceSettingSetting.vue'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -111,8 +110,16 @@ const router = createRouter({
         },
         {
           path: 'setting',
-          component: InstanceSettingSetting,
-        }
+          component: () => import('@/views/InstanceSetting/InstanceSettingSetting.vue'),
+        },
+        {
+          path: 'modify',
+          component: () => import('@/views/InstanceSetting/InstanceModify.vue'),
+        },
+        {
+          path: 'export',
+          component: () => import('@/views/InstanceSetting/InstanceExport.vue'),
+        },
       ],
     },
   ],

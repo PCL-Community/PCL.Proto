@@ -1,6 +1,8 @@
+import type { VNodeTypes } from "vue";
+
 export interface INavItem {
     text: string,
-    icon?: any,
+    icon?: VNodeTypes,
     linkto?: string
 }
 

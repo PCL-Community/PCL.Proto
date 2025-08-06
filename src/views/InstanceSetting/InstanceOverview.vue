@@ -1,33 +1,16 @@
 <script setup lang="ts">
-import CardInfoItem from '@/components/widget/CardInfoItem.vue'
 import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import SetupItem from '@/components/widget/SetupItem.vue'
-import { showIconPath, type showIconType } from '@/util/gameInfo'
-import { selectedInstance } from '@/util/gameLaunch'
-import { computed, ref } from 'vue'
-
-// 实例信息展示
-const cardInfo = computed(() => {
-  return {
-    title: selectedInstance.name,
-    subtitle: `${selectedInstance.version}, ${selectedInstance.modLoaderInfo}`,
-    icon: showIconPath[selectedInstance.modLoader as showIconType],
-    hoverEffect: false,
-  }
-})
+import { ref } from 'vue'
+import { OverviewCard } from './InstanceSetting'
 
 const icon = ref<string>('auto')
 const category = ref<string>('auto')
 </script>
 
 <template>
-  <PCard hide-title>
-    <template #content>
-      <CardInfoItem v-bind="cardInfo" />
-    </template>
-  </PCard>
-
+  <OverviewCard />
   <PCard>
     <template #title>个性化</template>
     <template #content>

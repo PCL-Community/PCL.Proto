@@ -8,14 +8,14 @@ import PHint from "@/components/widget/PHint.vue"
 import sideTip from "@/composables/sideTip"
 import { useModal } from "@/composables/useModal"
 import router from "@/router"
-import { h, type VNode } from "vue"
+import { h, type VNode, type VNodeTypes } from "vue"
 import { xml2js, type Element } from "xml-js"
 const modal = useModal()
 
 const pageTypes = ['home', 'download', 'link', 'setup', 'more', 'instance_select', 'download_manager', 'instance_setting', 'comp_detail', 'help_detail']
 // const pageSubType = []
 
-export default function renderFromXaml(xaml: string): (VNode | string)[] {
+export default function renderFromXaml(xaml: string): VNodeTypes {
   const page = xml2js(xaml, { compact: false })
   return page.elements?.map((el: any) => parseXamlElement(el))
 }

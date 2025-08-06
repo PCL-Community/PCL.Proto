@@ -5,7 +5,7 @@ import PInput from './PInput.vue'
 
 defineProps<{
   label: string
-  options: ISetupOption[]
+  options?: ISetupOption[]
   type: SetupItemType
 }>()
 
@@ -22,7 +22,7 @@ const model = defineModel<string>()
     )
     PInput.input(
         v-else-if="type == 'input'"
-        :placeholder="options.find(v => v.key === 'placeholder')?.text"
+        :placeholder="options?.find(v => v.key === 'placeholder')?.text"
         v-model="model"
     )
 </template>
