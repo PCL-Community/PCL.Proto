@@ -3,7 +3,7 @@ import PCard from '@/components/widget/PCard.vue'
 import { type IJavaRuntimeInfo, archMap } from '@/api/javaReq'
 import JavaReq from '@/api/javaReq'
 import { onMounted, ref } from 'vue'
-import MyButton from '@/components/widget/PButton.vue'
+import PButton from '@/components/widget/PButton.vue'
 import sideTip from '@/composables/sideTip'
 import PlainTextInfoItem from '@/components/widget/PlainTextInfoItem.vue'
 
@@ -66,8 +66,8 @@ function manualAdd() {
         </template>
       </PlainTextInfoItem>
       <div class="refrsh-button-wrapper">
-        <MyButton @click="manualAdd">手动添加</MyButton>
-        <MyButton @click="refresh">刷新</MyButton>
+        <PButton :click="manualAdd">手动添加</PButton>
+        <PButton :click="refresh">刷新</PButton>
       </div>
     </template>
   </PCard>

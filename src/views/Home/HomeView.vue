@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import MyButton from '@/components/widget/PButton.vue'
+import PButton from '@/components/widget/PButton.vue'
 import { sideNavState, defaultWidths, sideNavWidthStr } from '@/util/windowState'
 import { animateCssFor } from '@/util/animateCSS'
 import { nextTick, onMounted, ref } from 'vue'
 import MinecraftAvatar from '@/components/widget/MinecraftAvatar.vue'
 import { accontInfo } from '@/util/account'
-import { selectedGame } from '@/util/gameLaunch'
+import { selectedInstance } from '@/util/gameLaunch'
 import router from '@/router'
 
 const subviewRef = ref<HTMLElement>()
@@ -41,11 +41,11 @@ const InstanceSettingClicked = () => {
         input(v-model="accontInfo.username")
         p.gray 点击上方用户名可输入
       #button-grid
-        MyButton#launch(type="tint")
+        PButton#launch(type="tint")
           p 启动游戏
-          p.gray {{ selectedGame.name }}
-        MyButton(@click="versionSelectClicked") 实例选择
-        MyButton(@click="InstanceSettingClicked") 实例设置
+          p.gray {{ selectedInstance.name }}
+        PButton(:click="versionSelectClicked") 实例选择
+        PButton(:click="InstanceSettingClicked") 实例设置
 
     article.subview(ref="subviewRef")
       RouterView()

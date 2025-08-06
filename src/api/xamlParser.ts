@@ -1,6 +1,6 @@
 import CardInfoItem from "@/components/widget/CardInfoItem.vue"
 import type { ButtonType } from "@/components/widget/PButton.vue"
-import MyButton from "@/components/widget/PButton.vue"
+import PButton from "@/components/widget/PButton.vue"
 import type { FoldStatus } from "@/components/widget/PCard.vue"
 import PCard from "@/components/widget/PCard.vue"
 import type { Severity } from "@/components/widget/PHint.vue"
@@ -89,7 +89,7 @@ function parseXamlElement(element: Element): VNode | string | (VNode | string)[]
             }
             break
         }
-        return h(MyButton, { type, tooltip: element.attributes?.ToolTip as string | undefined, onClick: () => onClick() }, () => element.attributes?.Text)
+        return h(PButton, { type, tooltip: element.attributes?.ToolTip as string | undefined, click: () => onClick() }, () => element.attributes?.Text)
       case 'MyListItem':
         return h(CardInfoItem, {
           title: element.attributes?.Title as string,

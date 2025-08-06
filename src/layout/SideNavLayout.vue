@@ -1,7 +1,7 @@
 <script lang="ts">
 import { defineComponent, onMounted, onUnmounted, useTemplateRef } from 'vue'
 import { sideNavState } from '@/util/windowState'
-import { nextTick, ref } from 'vue'
+import { nextTick } from 'vue'
 import SideGroup from '@/components/widget/SideGroup.vue'
 import { type INavItemGroup } from '@/types/naviOptions'
 import { animateCssFor } from '@/util/animateCSS'

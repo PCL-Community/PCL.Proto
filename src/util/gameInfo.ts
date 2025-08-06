@@ -1,8 +1,11 @@
 import picCommand from '@/assets/icons/Impulse_Command_Block.gif'
 import picGrass from '@/assets/icons/Grass_Block_JE7_BE6.png'
+import picCubblestone from '@/assets/icons/Cobblestone_JE5_BE3.png'
+import picGold from '@/assets/icons/Block_of_Gold_JE6_BE3.png'
+import picFabric from '@/assets/icons/Fabric.png'
 import type { gameVersionType } from '@/api/gameVersions';
 
-type showIconType = 'command' | 'grass' | 'stone' | 'gold' | 'neoforge';
+export type showIconType = 'command' | 'grass' | 'stone' | 'gold' | 'neoforge' | 'fabric';
 type showGameType = gameVersionType | 'fool';
 
 export const gameInfoIcon: Record<showGameType, showIconType> = {
@@ -16,7 +19,8 @@ export const gameInfoIcon: Record<showGameType, showIconType> = {
 export const showIconPath: Record<showIconType, string> = {
     command: picCommand,
     grass: picGrass,
-    stone: '',
-    gold: '',
+    stone: picCubblestone,
+    gold: picGold,
     neoforge: '',
+    fabric: picFabric
 }

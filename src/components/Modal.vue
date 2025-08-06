@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useModal } from '@/composables/useModal'
-import MyButton from './widget/PButton.vue'
+import PButton from './widget/PButton.vue'
 
 const { isOpen, options, close } = useModal()
 const handleButtonClick = async (btn: any) => {
@@ -22,15 +22,15 @@ const handleButtonClick = async (btn: any) => {
 
         .modal-footer
           template(v-if="options.buttons && options.buttons.length")
-            MyButton(
+            PButton(
               v-for="(btn, idx) in options.buttons"
               :key="idx"
               :type="btn.type"
-              @click="handleButtonClick(btn)"
+              :click="() => handleButtonClick(btn)"
             ) {{ btn.content }}
           template(v-else)
-            MyButton(@click="close(true)" type="tint") 确认
-            MyButton(@click="close(false)") 取消
+            PButton(:click="() => close(true)" type="tint") 确认
+            PButton(:click="() => close(false)" type="warn") 取消
 
 </template>
 

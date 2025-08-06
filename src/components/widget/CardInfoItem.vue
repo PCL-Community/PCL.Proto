@@ -1,41 +1,42 @@
 <script setup lang="ts">
-import { showIconPath } from '@/util/gameInfo'
 import IconButtonSave from '../icons/control/IconButtonSave.vue'
 import IconInfo from '../icons/control/IconInfo.vue'
 import IconServer from '../icons/control/IconServer.vue'
-import MyButton from './PButton.vue'
-type InfoType = 'game-info' | 'about'
+import PButton from './PButton.vue'
 
 withDefaults(
   defineProps<{
     icon?: string
-    title?: string
+    title: string
     subtitle?: string
-    infoType?: InfoType
+    isGameInfo?: boolean
+    roundImg?: boolean
+    hoverEffect?: boolean
     btn?: {
       text: string
       link: string
     }
   }>(),
   {
-    icon: showIconPath.grass,
-    infoType: 'game-info',
+    isGameVersion: false,
+    hoverEffect: true,
+    roundImg: false,
   },
 )
 </script>
 
 <template lang="pug">
-    .gameinfo-container(:class="infoType")
+    .gameinfo-container(:class="{'game-info': isGameInfo, 'hover-effect': hoverEffect, 'round-img': roundImg }")
         .left
-            img(:src="icon")
+            img(:src="icon" v-if="icon")
             .text
                 .title {{ title }}
                 .subtitle {{ subtitle }}
         .right
-            IconButtonSave(v-if="infoType=='game-info'")
-            IconInfo(v-if="infoType=='game-info'")
-            IconServer(v-if="infoType=='game-info'")
-            a(v-if="btn" :href="btn.link"): MyButton(:inline="true") {{btn.text}}
+            IconButtonSave(v-if="isGameInfo")
+            IconInfo(v-if="isGameInfo")
+            IconServer(v-if="isGameInfo")
+            a(v-if="btn" :href="btn.link"): PButton(:inline="true") {{btn.text}}
             
 </template>
 
@@ -47,7 +48,13 @@ withDefaults(
   gap: 6px;
 }
 
-.about > .left > img {
+.left > img {
+  width: 30px;
+  height: 30px;
+  image-rendering: pixelated;
+}
+
+.round-img > .left > img {
   border-radius: 50%;
 }
 
@@ -65,7 +72,7 @@ withDefaults(
   width: 14px;
 }
 
-.gameinfo-container.game-info:hover > .right {
+.hover-effect:hover > .right {
   opacity: 1;
 }
 
@@ -80,7 +87,7 @@ withDefaults(
   transition: background-color 0.4s ease;
 }
 
-.gameinfo-container.game-info:hover {
+.gameinfo-container.hover-effect:hover {
   background-color: var(--color-tint-lighter);
 }
 
@@ -93,10 +100,5 @@ withDefaults(
   font-size: 11px;
   color: var(--color-text-grey);
   line-height: normal;
-}
-
-img {
-  width: 30px;
-  height: 30px;
 }
 </style>

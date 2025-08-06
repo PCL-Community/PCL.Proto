@@ -16,6 +16,7 @@ withDefaults(defineProps<{ severity: Severity }>(), {
   border-radius: 3px;
   border-left: 3px solid;
   padding: 6px 8px;
+  font-size: 12px;
 }
 
 .hint-container.error {

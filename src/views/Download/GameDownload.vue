@@ -14,11 +14,11 @@ onMounted(() => {
 </script>
 
 <template lang="pug">
-    PCard(:hide-title="false")
+    PCard(:hide-title="false" v-if="versionDataRef")
         template(#title) 最新版本
         template(#content)
-            CardInfoItem(:icon="showIconPath.grass" :title="versionDataRef?.latest.release.id" :subtitle="`最新正式版，发布于 ${versionDataRef?.latest.release.releaseTime}`")
-            CardInfoItem(:icon='showIconPath.command' :title="versionDataRef?.latest.snapshot.id" :subtitle="`最新预览版，发布于 ${versionDataRef?.latest.snapshot.releaseTime}`")
+            CardInfoItem(:icon="showIconPath.grass" :title="versionDataRef?.latest.release.id" :subtitle="`最新正式版，发布于 ${versionDataRef?.latest.release.releaseTime}`" isGameInfo) 
+            CardInfoItem(:icon='showIconPath.command' :title="versionDataRef?.latest.snapshot.id" :subtitle="`最新预览版，发布于 ${versionDataRef?.latest.snapshot.releaseTime}`" isGameInfo)
     PCard(default-fold-status="fold")
         template(#title) 正式版({{ versionDataRef?.release.length }})
         template(#content)

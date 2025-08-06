@@ -2,11 +2,11 @@
 
 <script setup lang="ts">
 export type ButtonType = 'default' | 'tint' | 'warn'
-defineProps<{ type?: ButtonType; inline?: boolean; tooltip?: string }>()
+defineProps<{ type?: ButtonType; inline?: boolean; tooltip?: string; click?: () => void }>()
 </script>
 
 <template lang="pug">
-    button.mybutton(:class="[type ?? 'default', inline ? 'inline' : '']" :title="tooltip")
+    button.mybutton(:class="[type ?? 'default', inline ? 'inline' : '']" :title="tooltip" @click="click")
         slot 我的按钮
 </template>
 

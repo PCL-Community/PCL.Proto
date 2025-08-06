@@ -14,8 +14,9 @@ import InstanceSelect from '@/views/InstanceSelect/InstanceSelect'
 import InstanceSelectSubView from '@/views/InstanceSelect/InstanceSelectSubView.vue'
 import InstanceSetting from '@/views/InstanceSetting/InstanceSetting'
 import Overview from '@/views/InstanceSetting/Overview.vue'
-import { selectedGame } from '@/util/gameLaunch'
+import { selectedInstance } from '@/util/gameLaunch'
 import HomeNew from '@/views/Home/HomeNew'
+import InstanceSettingSetting from '@/views/InstanceSetting/InstanceSettingSetting.vue'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -31,7 +32,7 @@ const router = createRouter({
       children: [
         {
           path: '',
-          component: HomeNew,
+          component: HomeSubView,
         },
       ],
     },
@@ -102,12 +103,16 @@ const router = createRouter({
       name: 'instance_setting',
       component: InstanceSetting,
       redirect: '/instance_setting/overview',
-      meta: { isSubPage: true, title: '实例设置 - ' + selectedGame.name }, // 用于标识当前处于特殊子页面
+      meta: { isSubPage: true, title: '实例设置 - ' + selectedInstance.name }, // 用于标识当前处于特殊子页面
       children: [
         {
           path: 'overview',
           component: Overview,
         },
+        {
+          path: 'setting',
+          component: InstanceSettingSetting,
+        }
       ],
     },
   ],

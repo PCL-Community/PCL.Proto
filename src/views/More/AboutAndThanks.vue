@@ -15,19 +15,19 @@ const version = __APP_VERSION__
             CardInfoItem(:icon="picLongTengMaoYue"
                 title="龙腾猫跃"
                 subtitle="Plain Craft Launcher 的原作者！"
-                infoType="about"
+                :roundImg="true"
                 :btn="{text: '赞助作者', link:'https://afdian.com/a/LTCat'}"
                 )
             CardInfoItem(icon="https://avatars.githubusercontent.com/u/63146698?v=4"
                 title="一只会魔法的梨 | AMagicPear"
                 subtitle="PCL.Proto 的作者以及 Logo 设计者～"
-                infoType="about"
+                :roundImg="true"
                 :btn="{text: '去我的主页看看 👀', link:'https://www.amagicpear.sbs/'}"
                 )
             CardInfoItem(:icon="picPCLProto"
                 title="Plain Craft Launcher: Edition Prototype"
                 :subtitle="`当前版本：${version}`"
-                infoType="about"
+                :roundImg="true"
                 :btn="{text: 'GitHub 仓库', link:'https://github.com/PCL-Community/PCL.Proto.git'}"
                 )
     PCard
@@ -36,13 +36,11 @@ const version = __APP_VERSION__
             CardInfoItem(icon="https://avatars.githubusercontent.com/u/165488354?s=200&v=4"
                 title="PCL Community"
                 subtitle="Plain Craft Launcher 社区"
-                infoType="about"
                 :btn="{text: 'GitHub 主页', link:'https://github.com/PCL-Community'}"
                 )
             CardInfoItem(icon="https://github.com/PCL-Community/PCL.Neo/raw/main/Icon.svg"
                 title="PCL.Neo"
-                subtitle="本项目使用 PCL.Neo.Core 作为后端启动核心"
-                infoType="about"
+                subtitle="感谢 PCL.Neo 带我进入了这个社区！"
                 :btn="{text: 'GitHub 仓库', link:'https://github.com/PCL-Community/PCL.Neo'}"
                 )
     PCard

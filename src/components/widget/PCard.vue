@@ -1,18 +1,19 @@
 <script lang="ts" setup>
+import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
+import IconUnfold from '../icons/control/IconUnfold.vue'
+
 export type FoldStatus = 'unfold' | 'fold' | 'unfoldable'
 
 const props = withDefaults(defineProps<{ hideTitle?: boolean; defaultFoldStatus?: FoldStatus }>(), {
   hideTitle: false,
   defaultFoldStatus: 'unfoldable',
 })
-import { onMounted, onUnmounted, ref } from 'vue'
-import IconUnfold from '../icons/control/IconUnfold.vue'
 
 const foldState = ref<FoldStatus>(props.defaultFoldStatus)
 
 const cardHeight = ref<number>(40)
 
-const mycardInnerRef = ref<HTMLElement>()
+const mycardInnerRef = useTemplateRef<HTMLElement>('mycardInner')
 
 let observer: ResizeObserver | null = null
 
@@ -45,7 +46,7 @@ onUnmounted(() => observer?.disconnect())
 
 <template lang="pug">
 .mycard-container(:class="foldState")
-    .mycard(ref="mycardInnerRef")
+    .mycard(ref="mycardInner" :class="{'hide-title': hideTitle }")
         .mycard-title(v-if="!hideTitle" @click="SwitchFoldState")
             p: slot(name="title") 标题
             i: IconUnfold()
@@ -92,6 +93,11 @@ onUnmounted(() => observer?.disconnect())
 
 .mycard {
   padding: 8px 14px;
+}
+
+.mycard.hide-title {
+  /* 不知道为什么必须有上下的padding */
+  padding: 1px 6px;
 }
 
 .mycard > .mycard-title {
