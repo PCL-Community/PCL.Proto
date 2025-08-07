@@ -9,28 +9,23 @@ import IconWrench from '@/components/icons/side/IconWrench.vue';
 import SideNavLayout from '@/layout/SideNavLayout.vue'
 import { h } from 'vue';
 
-
-export default {
-  setup() {
-    return () => h(SideNavLayout, {
-      sideNavGroups: [{
-        title: 'Minecraft',
-        content: [
-          { text: '游戏下载', icon: IconOverview, linkto: 'game' },
-          { text: '手动安装包', icon: IconWrench, linkto: "manual" }
-        ]
-      }, {
-        title: '社区资源',
-        content: [
-          { text: 'Mod', icon: IconMod },
-          { text: '整合包', icon: IconPack },
-          { text: '数据包', icon: IconFourLeaves },
-          { text: '资源包', icon: IconPicture },
-          { text: '光影包', icon: IconSun },
-          { text: '收藏夹', icon: IconFavorites }
-        ]
-      }
-      ]
-    })
+export default h(SideNavLayout, {
+  sideNavGroups: [{
+    title: 'Minecraft',
+    content: [
+      { text: '游戏下载', icon: IconOverview, linkto: 'game' },
+      { text: '手动安装包', icon: IconWrench, linkto: "manual" }
+    ]
+  }, {
+    title: '社区资源',
+    content: [
+      { text: 'Mod', icon: IconMod },
+      { text: '整合包', icon: IconPack },
+      { text: '数据包', icon: IconFourLeaves },
+      { text: '资源包', icon: IconPicture },
+      { text: '光影包', icon: IconSun },
+      { text: '收藏夹', icon: IconFavorites }
+    ]
   }
-}
+  ]
+})
