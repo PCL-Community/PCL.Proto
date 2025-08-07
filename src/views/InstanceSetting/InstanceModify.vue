@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { OverviewCard } from './InstanceSetting'
+import OverviewCard from './OverviewCard'
 import { type pluginType, pluginShowText } from '@/util/gameInfo'
 import ModifyCard from '@/components/widget/ModifyCard.vue'
 

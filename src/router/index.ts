@@ -13,7 +13,7 @@ import AboutAndThanks from '@/views/More/AboutAndThanks.vue'
 import InstanceSelect from '@/views/InstanceSelect/InstanceSelect'
 import InstanceSelectSubView from '@/views/InstanceSelect/InstanceSelectSubView.vue'
 import InstanceSetting from '@/views/InstanceSetting/InstanceSetting'
-import Overview from '@/views/InstanceSetting/InstanceOverview.vue'
+import InstanceOverview from '@/views/InstanceSetting/InstanceOverview.vue'
 import { selectedInstance } from '@/util/gameLaunch'
 import HomeNew from '@/views/Home/HomeNew'
 
@@ -22,11 +22,11 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      name: 'home',
       redirect: '/home',
     },
     {
       path: '/home',
-      name: 'home',
       component: HomeView,
       children: [
         {
@@ -106,7 +106,7 @@ const router = createRouter({
       children: [
         {
           path: 'overview',
-          component: Overview,
+          component: InstanceOverview,
         },
         {
           path: 'setting',

@@ -1,18 +1,29 @@
-import CardInfoItem from "@/components/widget/CardInfoItem.vue"
-import type { ButtonType } from "@/components/widget/PButton.vue"
-import PButton from "@/components/widget/PButton.vue"
-import type { FoldStatus } from "@/components/widget/PCard.vue"
-import PCard from "@/components/widget/PCard.vue"
-import type { Severity } from "@/components/widget/PHint.vue"
-import PHint from "@/components/widget/PHint.vue"
-import sideTip from "@/composables/sideTip"
-import { useModal } from "@/composables/useModal"
-import router from "@/router"
-import { h, type VNode, type VNodeTypes } from "vue"
-import { xml2js, type Element } from "xml-js"
+import CardInfoItem from '@/components/widget/CardInfoItem.vue'
+import type { ButtonType } from '@/components/widget/PButton.vue'
+import PButton from '@/components/widget/PButton.vue'
+import type { FoldStatus } from '@/components/widget/PCard.vue'
+import PCard from '@/components/widget/PCard.vue'
+import type { Severity } from '@/components/widget/PHint.vue'
+import PHint from '@/components/widget/PHint.vue'
+import sideTip from '@/composables/sideTip'
+import { useModal } from '@/composables/useModal'
+import router from '@/router'
+import { type VNode, type VNodeTypes } from 'vue'
+import { xml2js, type Element } from 'xml-js'
 const modal = useModal()
 
-const pageTypes = ['home', 'download', 'link', 'setup', 'more', 'instance_select', 'download_manager', 'instance_setting', 'comp_detail', 'help_detail']
+const pageTypes = [
+  'home',
+  'download',
+  'link',
+  'setup',
+  'more',
+  'instance_select',
+  'download_manager',
+  'instance_setting',
+  'comp_detail',
+  'help_detail',
+]
 // const pageSubType = []
 
 export default function renderFromXaml(xaml: string): VNodeTypes {
@@ -38,16 +49,19 @@ function parseXamlElement(element: Element): VNode | string | (VNode | string)[]
         if (attributes.CanSwap == 'True') {
           foldStatus = attributes.IsSwaped == 'True' ? 'fold' : 'unfold'
         }
-        return h(
-          PCard,
-          { defaultFoldStatus: foldStatus },
-          { title: () => attributes.Title, content: () => element.elements?.map((el) => parseXamlElement(el)) },
+        return (
+          <PCard defaultFoldStatus={foldStatus}>
+            {{
+              title: () => attributes.Title,
+              content: () => element.elements?.map((el) => parseXamlElement(el)),
+            }}
+          </PCard>
         )
       case 'MyHint':
         let severity: Severity = 'error'
         if (element.attributes?.Theme == 'Blue') severity = 'info'
         if (element.attributes?.Theme == 'Red') severity = 'error'
-        return h(PHint, { severity }, () => element.attributes?.Text || element.text)
+        return <PHint severity={severity}>{element.attributes?.Text || element.text}</PHint>
       case 'MyButton':
         let type: ButtonType = 'default'
         if (element.attributes?.ColorType == 'Highlight') type = 'tint'
@@ -89,35 +103,45 @@ function parseXamlElement(element: Element): VNode | string | (VNode | string)[]
             }
             break
         }
-        return h(PButton, { type, tooltip: element.attributes?.ToolTip as string | undefined, click: () => onClick() }, () => element.attributes?.Text)
+        return (
+          <PButton
+            type={type}
+            tooltip={element.attributes?.ToolTip as string | undefined}
+            click={() => onClick()}
+          >
+            {element.attributes?.Text}
+          </PButton>
+        )
       case 'MyListItem':
-        return h(CardInfoItem, {
-          title: element.attributes?.Title as string,
-          subtitle: element.attributes?.Info as string,
-          isGameInfo: false,
-          icon: element.attributes?.Logo as string
-        })
+        return (
+          <CardInfoItem
+            title={element.attributes?.Title as string}
+            subtitle={element.attributes?.Info as string}
+            isGameInfo={false}
+            icon={element.attributes?.Logo as string}
+          />
+        )
       default:
         return JSON.stringify(element)
     }
   } else {
     switch (element.name) {
       case 'StackPanel':
-        return h(
-          'section',
-          { style: { display: "flex", flexDirection: 'column' } },
-          element.elements?.map((el) => parseXamlElement(el)),
+        return (
+          <section style={{ display: 'flex', flexDirection: 'column' }}>
+            {element.elements?.map((el) => parseXamlElement(el))}
+          </section>
         )
       case 'TextBlock':
-        return h(
-          'p',
-          {
-            style: {
+        return (
+          <p
+            style={{
               fontSize: element.attributes?.FontSize + 'px',
-              color: element.attributes?.Foreground,
-            },
-          },
-          element.attributes?.Text || element.text,
+              color: element.attributes?.Foreground as string,
+            }}
+          >
+            {element.attributes?.Text || element.text}
+          </p>
         )
       default:
         return JSON.stringify(element)

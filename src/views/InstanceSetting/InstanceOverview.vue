@@ -3,7 +3,7 @@ import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import SetupItem from '@/components/widget/SetupItem.vue'
 import { ref } from 'vue'
-import { OverviewCard } from './InstanceSetting'
+import OverviewCard from './OverviewCard'
 
 const icon = ref<string>('auto')
 const category = ref<string>('auto')

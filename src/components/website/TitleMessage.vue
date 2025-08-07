@@ -1,10 +1,11 @@
 <script lang="ts" setup>
 import { apiUrlInput } from '@/api/apiUrl'
+import picPCLProto from '/PCL.Proto.svg?url'
 </script>
 
 <template lang="pug">
 .wrapper
-  img.logo(alt="PCL.Proto logo", src="/PCL.Proto.svg", width="125", height="125")
+  img.logo(alt="PCL.Proto logo", :src="picPCLProto", width="125", height="125")
   .greetings
     h1.blue
       a(href="https://github.com/PCL-Community/PCL.Proto.git") PCL.Proto

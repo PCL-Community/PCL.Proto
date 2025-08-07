@@ -7,25 +7,8 @@ import IconPicture from '@/components/icons/side/IconPicture.vue'
 import IconSchematic from '@/components/icons/side/IconSchematic.vue'
 import IconSun from '@/components/icons/side/IconSun.vue'
 import IconWrench from '@/components/icons/side/IconWrench.vue'
-import CardInfoItem from '@/components/widget/CardInfoItem.vue'
-import PCard from '@/components/widget/PCard.vue'
 import SideNavLayout from '@/layout/SideNavLayout.vue'
-import { pluginShowText, showIconPath, type showIconType } from '@/util/gameInfo'
-import { selectedInstance } from '@/util/gameLaunch'
-import { computed, h } from 'vue'
-
-// 实例信息展示
-export const cardInfo = computed(() => {
-  let plugin = selectedInstance.plugins[0]
-  return {
-    title: selectedInstance.name,
-    subtitle: `${selectedInstance.version}, ${pluginShowText[plugin]} ${selectedInstance.pluginsVersion[plugin]}`,
-    icon: showIconPath[plugin],
-    hoverEffect: false,
-  }
-})
-
-export const OverviewCard = h(PCard, { hideTitle: true }, { content: () => h(CardInfoItem, cardInfo.value) })
+import { h } from 'vue'
 
 export default {
   setup() {
