@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import IconClose from '@/assets/icons/TitleClose.svg'
 
 export type Severity = 'info' | 'warning' | 'error'
 withDefaults(defineProps<{ severity: Severity; closable?: boolean }>(), {
@@ -13,16 +14,23 @@ const visibility = ref(true)
 <template>
   <div class="hint-container" :class="severity" v-if="visibility">
     <slot></slot>
-    <img
+    <i class="button-animated" v-if="closable" @click="visibility = false"> <icon-close /></i>
+    <!-- <img
       class="button-animated"
       v-if="closable"
       src="@/assets/icons/TitleClose.svg"
       @click="visibility = false"
-    />
+    /> -->
   </div>
 </template>
 
 <style lang="css" scoped>
+i.button-animated {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .hint-container {
   border-radius: 3px;
   border-left: 3px solid;

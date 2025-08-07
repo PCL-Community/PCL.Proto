@@ -2,6 +2,11 @@
 import navItems from '@/util/navItems'
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import TitleLogo from '@/assets/icons/TitleLogo.svg'
+import TitleMinimize from '@/assets/icons/TitleMinimize.svg'
+import TitleClose from '@/assets/icons/TitleClose.svg'
+import ArrowLeft from '@/assets/icons/ArrowLeft.svg'
+
 const isSubPage = ref(false)
 const route = useRoute()
 const router = useRouter()
@@ -41,12 +46,12 @@ const backClicked = () => {
   header
     Transition(name="nav")
       .left(v-if="!isSubPage")
-        img(src="@/assets/icons/TitleLogo.svg")
+        title-logo
         .title-tag Proto
         .title-tag.dev(@click="isSubPage = !isSubPage") dev
       .left(v-else)
         i.button-animated(@click="backClicked")
-          img(src="@/assets/icons/ArrowLeft.svg")
+          arrow-left
         span.title-text {{ title }}
 
 
@@ -58,8 +63,8 @@ const backClicked = () => {
             | {{ item.label }}
 
     .right
-      each icon in ['TitleMinimize', 'TitleClose']
-        i.button-animated: img(src=`@/assets/icons/${icon}.svg`)
+      i.button-animated: title-minimize
+      i.button-animated: title-close
 
 </template>
 
@@ -90,6 +95,7 @@ header {
   flex-shrink: 0;
   z-index: 4;
   position: relative;
+  color: white;
 }
 
 header .left {

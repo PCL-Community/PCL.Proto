@@ -94,7 +94,7 @@ function parseXamlElement(element: Element): VNode | string | (VNode | string)[]
         return h(CardInfoItem, {
           title: element.attributes?.Title as string,
           subtitle: element.attributes?.Info as string,
-          infoType: 'about',
+          isGameInfo: false,
           icon: element.attributes?.Logo as string
         })
       default:
