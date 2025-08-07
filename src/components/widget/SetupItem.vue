@@ -3,11 +3,17 @@ import Dropdown from './Dropdown.vue'
 import { type ISetupOption, type SetupItemType } from '@/util/setup'
 import PInput from './PInput.vue'
 
-defineProps<{
-  label: string
-  options?: ISetupOption[]
-  type: SetupItemType
-}>()
+withDefaults(
+  defineProps<{
+    label: string
+    options?: ISetupOption[]
+    type: SetupItemType
+    ratio?: number
+  }>(),
+  {
+    ratio: 4,
+  },
+)
 
 const model = defineModel<string>()
 </script>
@@ -41,6 +47,6 @@ const model = defineModel<string>()
 }
 
 .input {
-  flex: 4;
+  flex: v-bind(ratio);
 }
 </style>

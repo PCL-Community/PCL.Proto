@@ -10,16 +10,17 @@ import IconWrench from '@/components/icons/side/IconWrench.vue'
 import CardInfoItem from '@/components/widget/CardInfoItem.vue'
 import PCard from '@/components/widget/PCard.vue'
 import SideNavLayout from '@/layout/SideNavLayout.vue'
-import { showIconPath, type showIconType } from '@/util/gameInfo'
+import { pluginShowText, showIconPath, type showIconType } from '@/util/gameInfo'
 import { selectedInstance } from '@/util/gameLaunch'
 import { computed, h } from 'vue'
 
 // 实例信息展示
 export const cardInfo = computed(() => {
+  let plugin = selectedInstance.plugins[0]
   return {
     title: selectedInstance.name,
-    subtitle: `${selectedInstance.version}, ${selectedInstance.modLoaderInfo}`,
-    icon: showIconPath[selectedInstance.modLoader as showIconType],
+    subtitle: `${selectedInstance.version}, ${pluginShowText[plugin]} ${selectedInstance.pluginsVersion[plugin]}`,
+    icon: showIconPath[plugin],
     hoverEffect: false,
   }
 })

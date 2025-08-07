@@ -70,12 +70,3 @@ const category = ref<string>('auto')
     </template>
   </PCard>
 </template>
-
-<style lang="css" scoped>
-.button-grid {
-  margin-block: 12px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 20px;
-}
-</style>

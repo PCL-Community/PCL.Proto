@@ -15,12 +15,6 @@ const visibility = ref(true)
   <div class="hint-container" :class="severity" v-if="visibility">
     <slot></slot>
     <i class="button-animated" v-if="closable" @click="visibility = false"> <icon-close /></i>
-    <!-- <img
-      class="button-animated"
-      v-if="closable"
-      src="@/assets/icons/TitleClose.svg"
-      @click="visibility = false"
-    /> -->
   </div>
 </template>
 
@@ -39,6 +33,8 @@ i.button-animated {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-top: 2px;
+  margin-bottom: 4px;
 }
 
 .hint-container.error {
@@ -57,5 +53,15 @@ i.button-animated {
   background-color: var(--lighter-blue);
   border-left-color: var(--tint-blue);
   color: var(--tint-blue);
+}
+
+i.button-animated {
+  scale: 0.8;
+  color: var(--light-blue);
+  transition: 0.4s;
+}
+
+i.button-animated:hover {
+  color: var(--color-titlebar);
 }
 </style>

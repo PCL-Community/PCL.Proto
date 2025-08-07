@@ -4,10 +4,14 @@ import IconUnfold from '../icons/control/IconUnfold.vue'
 
 export type FoldStatus = 'unfold' | 'fold' | 'unfoldable'
 
-const props = withDefaults(defineProps<{ hideTitle?: boolean; defaultFoldStatus?: FoldStatus }>(), {
-  hideTitle: false,
-  defaultFoldStatus: 'unfoldable',
-})
+const props = withDefaults(
+  defineProps<{ hideTitle?: boolean; defaultFoldStatus?: FoldStatus; swapLogoRight?: boolean }>(),
+  {
+    hideTitle: false,
+    defaultFoldStatus: 'unfoldable',
+    swapLogoRight: false,
+  },
+)
 
 const foldState = ref<FoldStatus>(props.defaultFoldStatus)
 
@@ -48,11 +52,12 @@ onUnmounted(() => observer?.disconnect())
 .mycard-container(:class="foldState")
     .mycard(ref="mycardInner" :class="{'hide-title': hideTitle }")
         .mycard-title(v-if="!hideTitle" @click="SwitchFoldState")
-            p: slot(name="title") 标题
+            p: slot(name="title")
+            .description(v-if="$slots.description"): slot(name="description")
             i: IconUnfold()
         Transition(name="card-content")
-            .mycard-content(v-show="foldState == 'unfold' || foldState == 'unfoldable'")
-                slot(name="content") 正文
+            .mycard-content(v-if="$slots.content" v-show="foldState == 'unfold' || foldState == 'unfoldable'")
+                slot(name="content")
 
 </template>
 
@@ -111,6 +116,7 @@ onUnmounted(() => observer?.disconnect())
 .mycard > .mycard-title > i {
   color: var(--color-text);
   transition: transform 0.4s ease;
+  flex: 0;
 }
 
 .mycard-container.unfold .mycard-title > i {
@@ -126,6 +132,7 @@ onUnmounted(() => observer?.disconnect())
   text-align: left;
   vertical-align: top;
   transition: color 0.4s;
+  flex: 1;
 }
 
 .mycard-container:hover > .mycard > .mycard-title {
@@ -138,5 +145,9 @@ onUnmounted(() => observer?.disconnect())
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.description {
+  flex: 3;
 }
 </style>

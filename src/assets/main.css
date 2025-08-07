@@ -49,3 +49,10 @@ body {
 .checkable:active {
   transform: scale(0.8);
 }
+
+.button-grid {
+  margin-block: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 20px;
+}

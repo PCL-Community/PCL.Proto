@@ -5,8 +5,9 @@ import picGold from '@/assets/icons/Block_of_Gold_JE6_BE3.png?url'
 import picFabric from '@/assets/icons/Fabric.png?url'
 import type { gameVersionType } from '@/api/gameVersions';
 
-export type showIconType = 'command' | 'grass' | 'stone' | 'gold' | 'neoforge' | 'fabric';
-type showGameType = gameVersionType | 'fool';
+export type showIconType = 'command' | 'grass' | 'stone' | 'gold' | pluginType;
+type showGameType = gameVersionType | 'fool'
+export type pluginType = 'vanilla' | 'forge' | 'neoforge' | 'fabric' | 'fabric-api' | 'quilt' | 'laby-mod' | 'optifine'
 
 export const gameInfoIcon: Record<showGameType, showIconType> = {
     'snapshot': 'command',
@@ -22,5 +23,22 @@ export const showIconPath: Record<showIconType, string> = {
     stone: picCubblestone,
     gold: picGold,
     neoforge: '',
-    fabric: picFabric
+    fabric: picFabric,
+    'fabric-api': picFabric,
+    quilt: '',
+    'laby-mod': '',
+    optifine: '',
+    vanilla: picGrass,
+    forge: '',
+}
+
+export const pluginShowText: Record<pluginType, string> = {
+    'vanilla': 'Minecraft',
+    'forge': 'Forge',
+    'neoforge': 'NeoForge',
+    'fabric': 'Fabric',
+    'fabric-api': 'Fabric API',
+    'quilt': 'Quilt',
+    'laby-mod': 'LabyMod',
+    'optifine': 'OptiFine',
 }
