@@ -6,17 +6,21 @@ import { computed } from 'vue'
 
 const plugin = computed(() => selectedInstance.plugins[0])
 
-export default () => (
-  <PCard hideTitle={true}>
-    {{
-      content: () => (
-        <CardInfoItem
-          title={selectedInstance.name}
-          subtitle={`${selectedInstance.version}, ${pluginShowText[plugin.value]} ${selectedInstance.pluginsVersion[plugin.value]}`}
-          icon={showIconPath[plugin.value]}
-          hoverEffect={false}
-        ></CardInfoItem>
-      ),
-    }}
-  </PCard>
-)
+function OverviewCard() {
+  return (
+    <PCard hideTitle={true}>
+      {{
+        content: () => (
+          <CardInfoItem
+            title={selectedInstance.name}
+            subtitle={`${selectedInstance.version}, ${pluginShowText[plugin.value]} ${selectedInstance.pluginsVersion[plugin.value]}`}
+            icon={showIconPath[plugin.value]}
+            hoverEffect={false}
+          ></CardInfoItem>
+        ),
+      }}
+    </PCard>
+  )
+}
+
+export default OverviewCard

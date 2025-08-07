@@ -5,7 +5,12 @@ import IconUnfold from '../icons/control/IconUnfold.vue'
 export type FoldStatus = 'unfold' | 'fold' | 'unfoldable'
 
 const props = withDefaults(
-  defineProps<{ hideTitle?: boolean; defaultFoldStatus?: FoldStatus; swapLogoRight?: boolean }>(),
+  defineProps<{
+    hideTitle?: boolean
+    defaultFoldStatus?: FoldStatus
+    swapLogoRight?: boolean
+    title?: string
+  }>(),
   {
     hideTitle: false,
     defaultFoldStatus: 'unfoldable',
@@ -52,12 +57,14 @@ onUnmounted(() => observer?.disconnect())
 .mycard-container(:class="foldState")
     .mycard(ref="mycardInner" :class="{'hide-title': hideTitle }")
         .mycard-title(v-if="!hideTitle" @click="SwitchFoldState")
-            p: slot(name="title")
+            //- 此处为兼容性设计：title插槽被设置时显示插槽内容，否则默认显示props中的title属性
+            p: slot(name="title") {{title}}
             .description(v-if="$slots.description"): slot(name="description")
             i: IconUnfold()
         Transition(name="card-content")
-            .mycard-content(v-if="$slots.content" v-show="foldState == 'unfold' || foldState == 'unfoldable'")
-                slot(name="content")
+            .mycard-content(v-if="$slots.content || $slots.default" v-show="foldState == 'unfold' || foldState == 'unfoldable'")
+                //- 此处为兼容性设计：content被设置时显示content内容，否则显示默认插槽内容
+                slot(name="content"): slot
 
 </template>
 

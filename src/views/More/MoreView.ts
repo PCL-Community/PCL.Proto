@@ -12,7 +12,7 @@ export default {
                 content: [
                     { text: '帮助', icon: IconLaunch },
                     { text: '关于与鸣谢', icon: IconInfo, linkto: 'about_and_thanks' },
-                    { text: '百宝箱', icon: IconPack },
+                    { text: '百宝箱', icon: IconPack, linkto: 'wonder_box' },
                     { text: '反馈' }
                 ]
             }

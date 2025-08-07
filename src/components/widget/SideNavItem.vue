@@ -9,7 +9,7 @@ defineProps<INavItem>()
         svg.indicator(width="4" height="23" viewBox="0 0 4 23")
             line(x1="2" y1="2" x2="2" y2="21" stroke="currentColor" stroke-width="4" stroke-linecap="round")
 
-        i.side-nav-icon
+        i.side-nav-icon(v-if="icon")
             component(:is="icon")
 
         p {{ text }}

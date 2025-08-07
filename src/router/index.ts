@@ -10,7 +10,7 @@ import DownloadView from '@/views/Download/DownloadView'
 import JavaManage from '@/views/Setup/JavaSetup.vue'
 import LaunchSetup from '@/views/Setup/LaunchSetup.vue'
 import AboutAndThanks from '@/views/More/AboutAndThanks.vue'
-import InstanceSelect from '@/views/InstanceSelect/InstanceSelect'
+import InstanceSelect from '@/views/InstanceSelect/InstanceSelect.tsx'
 import InstanceSelectSubView from '@/views/InstanceSelect/InstanceSelectSubView.vue'
 import InstanceSetting from '@/views/InstanceSetting/InstanceSetting'
 import InstanceOverview from '@/views/InstanceSetting/InstanceOverview.vue'
@@ -82,6 +82,10 @@ const router = createRouter({
           path: 'about_and_thanks',
           component: AboutAndThanks,
         },
+        {
+          path: 'wonder_box',
+          component: () => import('@/views/More/WonderBox.tsx'),
+        }
       ],
     },
     {
@@ -119,6 +123,10 @@ const router = createRouter({
         {
           path: 'export',
           component: () => import('@/views/InstanceSetting/InstanceExport.vue'),
+        },
+        {
+          path: 'save',
+          component: () => import('@/views/InstanceSetting/Saves.vue'),
         },
       ],
     },

@@ -50,11 +50,8 @@ function parseXamlElement(element: Element): VNode | string | (VNode | string)[]
           foldStatus = attributes.IsSwaped == 'True' ? 'fold' : 'unfold'
         }
         return (
-          <PCard defaultFoldStatus={foldStatus}>
-            {{
-              title: () => attributes.Title,
-              content: () => element.elements?.map((el) => parseXamlElement(el)),
-            }}
+          <PCard defaultFoldStatus={foldStatus} title={attributes.Title}>
+            {element.elements?.map((el) => parseXamlElement(el))}
           </PCard>
         )
       case 'MyHint':

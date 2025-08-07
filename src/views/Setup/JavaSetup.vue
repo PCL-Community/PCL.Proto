@@ -5,7 +5,8 @@ import JavaReq from '@/api/javaReq'
 import { onMounted, ref } from 'vue'
 import PButton from '@/components/widget/PButton.vue'
 import sideTip from '@/composables/sideTip'
-import PlainTextInfoItem from '@/components/widget/PlainTextInfoItem.vue'
+// import PlainTextInfoItem from '@/components/widget/PlainTextInfoItem.vue'
+import CardInfoItem from '@/components/widget/CardInfoItem.vue'
 
 const loading = ref(false)
 const error = ref(null)
@@ -56,15 +57,11 @@ function manualAdd() {
     <template #content>
       <p v-if="error">未能获取 Java 信息，请检查本地服务是否已经运行。</p>
       <p v-if="javaList?.length == 0">当前 Java 列表为空。</p>
-      <PlainTextInfoItem v-for="runtime in javaList">
-        <template #title
-          >{{ runtime.isJre ? 'JRE' : 'JDK' }} {{ runtime.slugVersion }}({{ runtime.version }})
-          {{ archMap[runtime.architecture] }} {{ runtime.implementor }}
-        </template>
-        <template #content>
-          {{ runtime.directoryPath }}
-        </template>
-      </PlainTextInfoItem>
+      <CardInfoItem
+        v-for="runtime in javaList"
+        :title="`${runtime.isJre ? 'JRE' : 'JDK'} ${runtime.slugVersion}(${runtime.version}) ${archMap[runtime.architecture]} ${runtime.implementor}`"
+        :subtitle="runtime.directoryPath"
+      />
       <div class="refrsh-button-wrapper">
         <PButton :click="manualAdd">手动添加</PButton>
         <PButton :click="refresh">刷新</PButton>

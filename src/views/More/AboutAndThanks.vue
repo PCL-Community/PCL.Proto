@@ -3,7 +3,6 @@ import CardInfoItem from '@/components/widget/CardInfoItem.vue'
 import PCard from '@/components/widget/PCard.vue'
 import picLongTengMaoYue from '@/assets/pictures/龙腾猫跃头像.jpg'
 import picPCLProto from '/PCL.Proto.svg?url'
-import PlainTextInfoItem from '@/components/widget/PlainTextInfoItem.vue'
 declare const __APP_VERSION__: string
 const version = __APP_VERSION__
 </script>
@@ -51,23 +50,10 @@ const version = __APP_VERSION__
  
     PCard(defaultFoldStatus='fold')
         template(#title) 许可与版权声明
-        template(#content)
-            PlainTextInfoItem
-                template(#title) Vue.js - 渐进式 JavaScript 框架
-                template(#content) MIT | https://github.com/vuejs/core
-            PlainTextInfoItem
-                template(#title) TypeScript - 类型！类型！我要类型！
-                template(#content) Apache License 2.0 | https://github.com/microsoft/TypeScript
-            PlainTextInfoItem
-                template(#title) Pug - 排版特别好看的模板引擎
-                template(#content) MIT | https://github.com/pugjs/pug
-            PlainTextInfoItem
-                template(#title) Vite - 快速、轻量级的开发工具
-                template(#content) MIT | https://github.com/vitejs/vite
-            PlainTextInfoItem
-                template(#title) Vue Router
-                template(#content) MIT | https://github.com/vuejs/vue-router-next
-            PlainTextInfoItem
-                template(#title) PCL.Neo.Core
-                template(#content) MIT | https://github.com/PCL-Community/PCL.Neo/
+        CardInfoItem(title="Vue.js - 渐进式 JavaScript 框架" subtitle="MIT | https://github.com/vuejs/core")
+        CardInfoItem(title="TypeScript - 类型！类型！我要类型！" subtitle="Apache License 2.0 | https://github.com/microsoft/TypeScript")
+        CardInfoItem(title="Pug - 排版特别好看的模板引擎" subtitle="MIT | https://github.com/pugjs/pug")
+        CardInfoItem(title="Vite - 快速、轻量级的开发工具" subtitle="MIT | https://github.com/vitejs/vite")
+        CardInfoItem(title="Vue Router" subtitle="MIT | https://github.com/vuejs/vue-router-next")
+        CardInfoItem(title="PCL.Neo.Core" subtitle="MIT | https://github.com/PCL-Community/PCL.Neo/")
 </template>
