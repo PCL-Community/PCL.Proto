@@ -87,8 +87,13 @@ export function getMinecraftVersions() {
 
     function formatReleaseTime(iso: string) {
         const date = new Date(iso)
-        const pad = (n: number) => n.toString().padStart(2, '0')
-        return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+        return `${date.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+        })}`
     }
 
     function mapVersionToShow(v: { id: string; releaseTime: string; type: gameVersionType }) {
