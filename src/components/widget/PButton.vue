@@ -25,6 +25,7 @@ button.mybutton {
 
 button.inline {
   padding-block: 5px;
+  padding-inline: 10px;
 }
 
 button.tint {

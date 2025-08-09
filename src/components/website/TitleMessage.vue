@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { apiUrlInput } from '@/api/apiUrl'
+import { localApiInput } from '@/api/localApi'
 import picPCLProto from '/PCL.Proto.svg?url'
 </script>
 
@@ -19,7 +19,7 @@ import picPCLProto from '/PCL.Proto.svg?url'
       | .
       br
       p.webapi PCL.Neo.WebApi Service base URL：
-        input(type="text" v-model="apiUrlInput")
+        input(type="text" v-model="localApiInput")
 </template>
 
 <style scoped>

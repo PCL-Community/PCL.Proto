@@ -56,3 +56,10 @@ body {
   grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   gap: 20px;
 }
+
+.loading-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}

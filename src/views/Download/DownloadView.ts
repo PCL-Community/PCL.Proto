@@ -19,7 +19,7 @@ export default h(SideNavLayout, {
   }, {
     title: '社区资源',
     content: [
-      { text: 'Mod', icon: IconMod },
+      { text: 'Mod', icon: IconMod, linkto: 'mod' },
       { text: '整合包', icon: IconPack },
       { text: '数据包', icon: IconFourLeaves },
       { text: '资源包', icon: IconPicture },

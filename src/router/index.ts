@@ -48,6 +48,10 @@ const router = createRouter({
           path: 'manual',
           component: ManualDownload,
         },
+        {
+          path: 'mod',
+          component: () => import('@/views/Download/ModDownload.vue'),
+        }
       ],
     },
     {
