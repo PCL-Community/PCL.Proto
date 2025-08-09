@@ -6,7 +6,7 @@ defineProps<{ type?: ButtonType; inline?: boolean; tooltip?: string; click?: () 
 </script>
 
 <template lang="pug">
-    button.mybutton(:class="[type ?? 'default', inline ? 'inline' : '']" :title="tooltip" @click="click")
+    button.mybutton(:class="[type ?? 'default', inline ? 'inline' : '']" :title="tooltip" @click="click?.()")
         slot 我的按钮
 </template>
 

@@ -31,10 +31,57 @@ export default function renderFromXaml(xaml: string): VNodeTypes {
   return page.elements?.map((el: any) => parseXamlElement(el))
 }
 
+function handleEvent(eventType: string, eventData: string) {
+  let onClick: (() => void) | undefined = undefined
+  switch (eventType) {
+    case '打开网页':
+      onClick = () => {
+        window.open(eventData as string)
+      }
+      break
+    case '弹出窗口':
+      onClick = () => {
+        modal.open({
+          title: eventData.split('|')[0],
+          content: eventData.split('|')[1],
+        })
+      }
+      break
+    case '切换页面':
+      onClick = () => {
+        let pageType = Number(eventData.split('|')[0])
+        let pageSubType = Number(eventData.split('|')[1])
+        router.push({ name: pageTypes[pageType] })
+      }
+      break
+    case '启动游戏':
+    case '执行命令':
+    case '今日人品':
+      // TODO))
+      break
+    case '复制文本':
+      onClick = () => {
+        navigator.clipboard.writeText(eventData).then(() => {
+          sideTip.show('已成功复制！', 'success')
+        })
+      }
+      break
+  }
+  return onClick
+}
+
 function parseXamlElement(element: Element): VNode | string | (VNode | string)[] | null {
   if (!element || element.type != 'element') return null
   if (element.name?.startsWith('local:')) {
     const localType = element.name.split(':')[1]
+    // 处理事件
+    let onClick: (() => void) | undefined = undefined
+    if (element.attributes?.EventType) {
+      onClick = handleEvent(
+        element.attributes?.EventType as string,
+        element.attributes?.EventData as string,
+      )
+    }
     // console.log('[xaml] got local-element:', localType)
     switch (localType) {
       case 'MyCard':
@@ -63,59 +110,24 @@ function parseXamlElement(element: Element): VNode | string | (VNode | string)[]
         let type: ButtonType = 'default'
         if (element.attributes?.ColorType == 'Highlight') type = 'tint'
         if (element.attributes?.ColorType == 'Red') type = 'warn'
-        // console.log('[xaml] got button:', element)
-        let onClick: () => void
-        let eventData = element.attributes?.EventData as string
-        switch (element.attributes?.EventType) {
-          case '打开网页':
-            onClick = () => {
-              window.open(eventData as string)
-            }
-            break
-          case '弹出窗口':
-            onClick = () => {
-              modal.open({
-                title: eventData.split('|')[0],
-                content: eventData.split('|')[1],
-              })
-            }
-            break
-          case '切换页面':
-            onClick = () => {
-              let pageType = Number(eventData.split('|')[0])
-              let pageSubType = Number(eventData.split('|')[1])
-              router.push({ name: pageTypes[pageType] })
-            }
-            break
-          case '启动游戏':
-          case '执行命令':
-          case '今日人品':
-            // TODO))
-            break
-          case '复制文本':
-            onClick = () => {
-              navigator.clipboard.writeText(eventData).then(() => {
-                sideTip.show('已成功复制！', 'success')
-              })
-            }
-            break
-        }
         return (
           <PButton
             type={type}
             tooltip={element.attributes?.ToolTip as string | undefined}
-            click={() => onClick()}
+            click={onClick}
           >
             {element.attributes?.Text}
           </PButton>
         )
       case 'MyListItem':
+        console.log('[xaml] got MyListItem:', element)
         return (
           <CardInfoItem
             title={element.attributes?.Title as string}
             subtitle={element.attributes?.Info as string}
             isGameInfo={false}
             icon={element.attributes?.Logo as string}
+            click={onClick}
           />
         )
       default:

@@ -16,6 +16,7 @@ withDefaults(
       text: string
       link: string
     }
+    click?: () => void
   }>(),
   {
     isGameVersion: false,
@@ -26,7 +27,7 @@ withDefaults(
 </script>
 
 <template lang="pug">
-    .gameinfo-container(:class="{'game-info': isGameInfo, 'hover-effect': hoverEffect, 'round-img': roundImg }")
+    .gameinfo-container(@click="click?.()" :class="{'game-info': isGameInfo, 'hover-effect': hoverEffect, 'round-img': roundImg, 'clickable': click }")
         .left
             img(:src="icon" v-if="icon")
             .text
@@ -85,6 +86,10 @@ withDefaults(
   border-radius: 4px;
   gap: 6px;
   transition: background-color 0.4s ease;
+}
+
+.gameinfo-container.clickable {
+  cursor: pointer;
 }
 
 .gameinfo-container.hover-effect:hover {
