@@ -34,9 +34,9 @@ withDefaults(
                 .title {{ title }}
                 .subtitle {{ subtitle }}
         .right
-            IconButtonSave(v-if="isGameInfo")
-            IconInfo(v-if="isGameInfo")
-            IconServer(v-if="isGameInfo")
+            a: i(title="另存为" v-if="isGameInfo"): IconButtonSave
+            a(:href="'https://zh.minecraft.wiki/w/Special:Search?search=' + title" target="_blank"): i(title="更新日志" v-if="isGameInfo"): IconInfo
+            a: i(title="下载服务端" v-if="isGameInfo"): IconServer
             a(v-if="btn" :href="btn.link"): PButton(:inline="true") {{btn.text}}
             
 </template>
@@ -61,7 +61,6 @@ withDefaults(
 
 .gameinfo-container.game-info > .right {
   margin-right: 6px;
-  color: var(--color-tint-light);
   opacity: 0;
   transition: opacity 0.4s ease;
   display: flex;
@@ -69,8 +68,17 @@ withDefaults(
   gap: 9.5px;
 }
 
-.right > svg {
-  width: 14px;
+.right > a > i {
+  transition: color 0.4s;
+  color: var(--color-tint-light);
+}
+
+.right > a svg {
+  width: 15px;
+}
+
+.right > a > i:hover {
+  color: var(--color-tint);
 }
 
 .hover-effect:hover > .right {
@@ -89,11 +97,18 @@ withDefaults(
 }
 
 .gameinfo-container.clickable {
-  cursor: pointer;
+  transition:
+    scale 0.2s,
+    background-color 0.4s ease;
 }
 
 .gameinfo-container.hover-effect:hover {
   background-color: var(--color-tint-lighter);
+}
+
+.gameinfo-container.clickable:active {
+  scale: 0.98;
+  background-color: var(--half-transparent-blue);
 }
 
 .title {

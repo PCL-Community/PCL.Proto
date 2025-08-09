@@ -48,7 +48,7 @@ const backClicked = () => {
       .left(v-if="!isSubPage")
         title-logo
         .title-tag Proto
-        .title-tag.dev(@click="isSubPage = !isSubPage") dev
+        .title-tag.dev dev
       .left(v-else)
         i.button-animated(@click="backClicked")
           arrow-left

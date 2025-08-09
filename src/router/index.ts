@@ -3,7 +3,6 @@ import HomeView from '@/views/Home/HomeView.vue'
 import LinkView from '@/views/Link/LinkView'
 import SetupView from '@/views/Setup/SetupView'
 import MoreView from '@/views/More/MoreView'
-import GameDownload from '@/views/Download/GameDownload.vue'
 import ManualDownload from '@/views/Download/ManualDownload.vue'
 import HomeSubView from '@/views/Home/HomeSubView.vue'
 import DownloadView from '@/views/Download/DownloadView'
@@ -43,7 +42,7 @@ const router = createRouter({
       children: [
         {
           path: 'game',
-          component: GameDownload,
+          component: () => import('@/views/Download/GameDownload.tsx'),
         },
         {
           path: 'manual',
