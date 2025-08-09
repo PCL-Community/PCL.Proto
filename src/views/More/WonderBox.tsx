@@ -14,7 +14,7 @@ const stringToRandom = (input: string) => {
   return (hash % 101) + 1
 }
 
-export const LuckToday = () => (
+export const LuckTodayButton = () => (
   <PButton
     click={() => {
       const date = new Date()
@@ -39,44 +39,15 @@ export const LuckToday = () => (
 export default defineComponent({
   name: 'WonderBox',
   setup() {
-    const serverInput = ref<string>()
-    const minecraftServerCardVisible = ref<boolean>(false)
     return () => (
       <>
         <PCard title="百宝箱">
           <div class="button-grid">
-            <LuckToday />
+            <LuckTodayButton />
           </div>
         </PCard>
         <PCard title="下载正版玩家的皮肤"></PCard>
-        <PCard title="瞅眼服务器">
-          <div
-            style={{
-              display: 'flex',
-              gap: '16px',
-              alignItems: 'center',
-              justifyContent: 'space-around',
-              marginBottom: '8px',
-            }}
-          >
-            <PInput
-              v-model={serverInput.value}
-              placeholder="输入服务器地址"
-              style={{ flex: '1' }}
-            />
-            <PButton
-              inline
-              click={() => {
-                minecraftServerCardVisible.value = true
-              }}
-            >
-              查询
-            </PButton>
-          </div>
-          {minecraftServerCardVisible.value && serverInput.value && (
-            <MinecraftServerCard url={serverInput.value} />
-          )}
-        </PCard>
+        <MinecraftServerCard />
       </>
     )
   },
