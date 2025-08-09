@@ -19,6 +19,7 @@ async function modrinthFetch<T>(endpoint: string, options: RequestInit = {}): Pr
     return response.json();
 }
 
+export type ProjectType = 'mod' | 'modpack' | 'resourcepack' | 'shader'
 interface SearchOptions {
     query?: string;
     facets?: string[][]; // 二维数组，支持 AND/OR 逻辑

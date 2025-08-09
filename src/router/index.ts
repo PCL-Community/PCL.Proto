@@ -15,6 +15,7 @@ import InstanceSetting from '@/views/InstanceSetting/InstanceSetting'
 import InstanceOverview from '@/views/InstanceSetting/InstanceOverview.vue'
 import { selectedInstance } from '@/util/gameLaunch'
 import HomeNew from '@/views/Home/HomeNew'
+import PageComp from '@/layout/PageComp.vue'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -50,8 +51,24 @@ const router = createRouter({
         },
         {
           path: 'mod',
-          component: () => import('@/views/Download/ModDownload.vue'),
-        }
+          component: PageComp,
+          meta: { project_type: 'mod' }
+        },
+        {
+          path: 'modpack',
+          component: PageComp,
+          meta: { project_type: 'modpack' }
+        },
+        {
+          path: 'resourcepack',
+          component: PageComp,
+          meta: { project_type: 'resourcepack' }
+        },
+        {
+          path: 'shader',
+          component: PageComp,
+          meta: { project_type: 'shader' }
+        },
       ],
     },
     {

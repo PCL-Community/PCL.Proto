@@ -20,10 +20,10 @@ export default h(SideNavLayout, {
     title: '社区资源',
     content: [
       { text: 'Mod', icon: IconMod, linkto: 'mod' },
-      { text: '整合包', icon: IconPack },
+      { text: '整合包', icon: IconPack, linkto: 'modpack' },
       { text: '数据包', icon: IconFourLeaves },
-      { text: '资源包', icon: IconPicture },
-      { text: '光影包', icon: IconSun },
+      { text: '资源包', icon: IconPicture, linkto: 'resourcepack' },
+      { text: '光影包', icon: IconSun, linkto: 'shader' },
       { text: '收藏夹', icon: IconFavorites }
     ]
   }

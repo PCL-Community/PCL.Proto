@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import IconDownload from '../icons/header/IconDownload.vue'
 import IconSetup from '../icons/header/IconSetup.vue'
 import IconWeb from '@/assets/icons/IconWeb.svg'
+import IconTimeUp from '@/assets/icons/IconTimeUp.svg'
 
 const props = defineProps<{
   title: string
@@ -33,10 +34,13 @@ const dateText = computed(() => {
       <span class="lab-title">{{ title }}</span
       >&nbsp;&nbsp;|&nbsp;&nbsp;<span>{{ title }}</span>
     </div>
-    <div class="lab-desc">{{ description }}</div>
+    <div class="lab-desc">
+      <span class="desc-tag" v-for="category in categories">{{ category }}</span
+      >{{ description }}
+    </div>
     <p class="inline-icon"><IconSetup />{{ categories[0] }}</p>
     <p class="inline-icon icon-download"><IconDownload />{{ downloadsText }}</p>
-    <p class="inline-icon"><IconSetup />{{ dateText }}</p>
+    <p class="inline-icon"><IconTimeUp />{{ dateText }}</p>
     <p class="inline-icon"><IconWeb />Modrinth</p>
   </li>
 </template>
@@ -102,5 +106,14 @@ const dateText = computed(() => {
 
 .icon-download > svg {
   width: 11px;
+}
+
+.desc-tag {
+  display: inline-block;
+  border-radius: 4px;
+  font-size: 11px;
+  background-color: gainsboro;
+  padding: 0 3px;
+  margin-inline-end: 4px;
 }
 </style>
