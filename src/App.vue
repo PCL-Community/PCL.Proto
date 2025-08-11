@@ -33,8 +33,11 @@ import SvgDrawer from './components/website/SVGDrawer.vue'
 #page {
   position: relative;
   height: 100%;
-  width: 100%;
   z-index: 2;
+  position: relative;
+  flex: 1 1 0;
+  width: 100%;
+  overflow: hidden;
 }
 
 #page > div.side-nav-background {
@@ -59,13 +62,6 @@ import SvgDrawer from './components/website/SVGDrawer.vue'
   display: flex;
   flex-direction: column;
   position: relative;
-}
-
-#page {
-  position: relative;
-  flex: 1 1 0;
-  width: 100%;
-  overflow: hidden;
 }
 </style>
 

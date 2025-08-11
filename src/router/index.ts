@@ -16,7 +16,7 @@ import InstanceOverview from '@/views/InstanceSetting/InstanceOverview.vue'
 import { selectedInstance } from '@/util/gameLaunch'
 import HomeNew from '@/views/Home/HomeNew'
 import PageComp from '@/views/Download/PageComp.vue'
-import ResouceVersions from '@/views/Download/ResouceVersions.vue'
+import ResouceVersions from '@/views/Download/ResourceVersions.vue'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),

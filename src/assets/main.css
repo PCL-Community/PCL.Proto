@@ -28,6 +28,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  overflow-y: auto;
 }
 
 /* animate.css的属性 */

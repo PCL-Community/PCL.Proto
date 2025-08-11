@@ -3,6 +3,7 @@ import modrinthApi, { type IProject } from '@/api/modrinthApi'
 import PCard from '@/components/widget/PCard.vue'
 import PCompItem from '@/components/widget/PCompItem.vue'
 import PLoading from '@/components/widget/PLoading.vue'
+import { marked } from 'marked'
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -11,7 +12,6 @@ const projectData = ref<IProject>()
 
 onMounted(async () => {
   projectData.value = await modrinthApi.getProject(route.query.id as string)
-  console.log(projectData)
 })
 </script>
 
@@ -28,6 +28,9 @@ onMounted(async () => {
         :project_id="projectData.id"
         :project_type="projectData.project_type"
       />
+    </PCard>
+    <PCard title="资源简介" default-fold-status="fold">
+      <div class="markdown" v-html="marked.parse(projectData.body)" />
     </PCard>
     <PCard hide-title>
       <menu>
@@ -46,12 +49,18 @@ onMounted(async () => {
 </template>
 
 <style lang="css" scoped>
+.subview {
+  height: 100%;
+  overflow-y: scroll;
+}
+
 menu {
   display: flex;
   list-style-type: none;
   padding: 0;
   justify-content: flex-start;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 menu > li {
@@ -69,5 +78,34 @@ menu > li:hover {
 menu > li.active {
   background-color: var(--color-tint);
   color: white;
+}
+
+.markdown {
+  font-family:
+    'HarmonyOS Sans SC',
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Fira Sans',
+    'Droid Sans',
+    'Helvetica Neue',
+    sans-serif;
+}
+
+:deep(.markdown *) {
+  max-width: 100%;
+}
+
+:deep(.markdown strong) {
+  font-weight: bold;
+}
+
+:deep(.markdown img) {
+  height: auto;
 }
 </style>
