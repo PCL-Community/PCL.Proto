@@ -35,7 +35,37 @@ export interface ISearchHit {
     categories: string[]
     downloads: number
     date_modified: string
+    project_id: string
+    project_type: ProjectType
 }
+
+export interface IProject {
+    slug: string
+    id: string
+    title: string
+    description: string
+    categories: string[]
+    client_side: 'required' | 'optional' | 'unsupported' | 'unknown'
+    server_side: 'required' | 'optional' | 'unsupported' | 'unknown'
+    body: string
+    status: 'approved' | 'archived' | 'rejected' | 'draft' | 'unlisted' | 'processing' | 'withheld' | 'scheduled' | 'private' | 'unknown'
+    requested_status: 'approved' | 'archived' | 'unlisted' | 'private' | 'draft' | null
+    additional_categories: string[]
+    issues_url: string | null
+    source_url: string | null
+    wiki_url: string | null
+    donation_urls: string[]
+    project_type: ProjectType
+    downloads: number
+    published: string
+    updated: string
+    versions: string[]
+    loaders: string[]
+    team: string
+    organization: string | null
+    icon_url: string
+}
+
 // 搜索项目
 async function searchProjects(options?: SearchOptions) {
     if (!options) return modrinthFetch<{ hits: ISearchHit[], offset: number, limit: number, total_hits: number }>(`search`);
@@ -49,8 +79,8 @@ async function searchProjects(options?: SearchOptions) {
 }
 
 // 获取项目详情
-async function getProject(id: string) {
-    return modrinthFetch(`project/${id}`);
+async function getProject(id: string): Promise<IProject> {
+    return modrinthFetch<IProject>(`project/${id}`);
 }
 
 // 获取项目版本

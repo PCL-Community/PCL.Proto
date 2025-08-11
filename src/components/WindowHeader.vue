@@ -6,6 +6,7 @@ import TitleLogo from '@/assets/icons/TitleLogo.svg'
 import TitleMinimize from '@/assets/icons/TitleMinimize.svg'
 import TitleClose from '@/assets/icons/TitleClose.svg'
 import ArrowLeft from '@/assets/icons/ArrowLeft.svg'
+import { sideNavState } from '@/util/windowState'
 
 const isSubPage = ref(false)
 const route = useRoute()
@@ -28,6 +29,9 @@ watch(
     } else {
       isSubPage.value = false
       fromPage.value = undefined
+    }
+    if (route.meta.fullPage) {
+      sideNavState.width = 0
     }
   },
   { immediate: true },

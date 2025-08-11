@@ -15,7 +15,8 @@ import InstanceSetting from '@/views/InstanceSetting/InstanceSetting'
 import InstanceOverview from '@/views/InstanceSetting/InstanceOverview.vue'
 import { selectedInstance } from '@/util/gameLaunch'
 import HomeNew from '@/views/Home/HomeNew'
-import PageComp from '@/layout/PageComp.vue'
+import PageComp from '@/views/Download/PageComp.vue'
+import ResouceVersions from '@/views/Download/ResouceVersions.vue'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -68,7 +69,7 @@ const router = createRouter({
           path: 'shader',
           component: PageComp,
           meta: { project_type: 'shader' }
-        },
+        }
       ],
     },
     {
@@ -150,6 +151,12 @@ const router = createRouter({
         },
       ],
     },
+    {
+      path: '/resouce',
+      name: 'resouce',
+      component: ResouceVersions,
+      meta: { isSubPage: true, title: '资源下载', fullPage: true },
+    }
   ],
 })
 

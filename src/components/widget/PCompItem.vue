@@ -4,15 +4,11 @@ import IconDownload from '../icons/header/IconDownload.vue'
 import IconSetup from '../icons/header/IconSetup.vue'
 import IconWeb from '@/assets/icons/IconWeb.svg'
 import IconTimeUp from '@/assets/icons/IconTimeUp.svg'
+import type { ISearchHit } from '@/api/modrinthApi'
+import { useRouter } from 'vue-router'
+const router = useRouter()
 
-const props = defineProps<{
-  title: string
-  description: string
-  icon_url: string
-  categories: string[]
-  downloads: number
-  date_modified: string
-}>()
+const props = defineProps<ISearchHit>()
 
 const downloadsText = computed(() => {
   if (props.downloads >= 10000) {
@@ -25,16 +21,20 @@ const dateText = computed(() => {
   let date = new Date(props.date_modified)
   return date.toLocaleDateString()
 })
+
+const navigateToProject = () => {
+  router.push({ name: 'resouce', query: { id: props.project_id } })
+}
 </script>
 
 <template>
-  <li class="comp-item">
+  <li class="comp-item" @click="navigateToProject">
     <i class="comp-icon"><img :src="icon_url" /></i>
     <div class="lab-title-row">
       <span class="lab-title">{{ title }}</span
       >&nbsp;&nbsp;|&nbsp;&nbsp;<span>{{ title }}</span>
     </div>
-    <div class="lab-desc">
+    <div class="lab-desc" :title="description">
       <span class="desc-tag" v-for="category in categories">{{ category }}</span
       >{{ description }}
     </div>

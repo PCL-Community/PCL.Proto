@@ -83,19 +83,10 @@ export default defineComponent({
             :content="group.content"
 )
     article.subview(ref="subviewRef")
-        //- .subview-loading-container(): PLoading(state='loading')
         RouterView()
 </template>
 
 <style scoped>
-.subview-loading-container {
-  height: 100%;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .view-content {
   display: flex;
   width: 100%;

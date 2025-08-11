@@ -69,7 +69,9 @@ export default defineComponent({
           <PCard defaultFoldStatus="unfoldable" title="愚人节版 (尚未分类)" />
         </>
       ) : (
-        <PLoading state="loading" />
+        <div class="loading-page">
+          <PLoading state="loading" />
+        </div>
       )
   },
 })
