@@ -44,7 +44,7 @@ onMounted(async () => {
     </PCard>
   </article>
   <div v-else class="loading-page">
-    <PLoading state="loading" />
+    <PLoading state="loading" loading-text="正在加载资源信息……" />
   </div>
 </template>
 

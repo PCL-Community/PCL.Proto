@@ -66,6 +66,11 @@ export interface IProject {
     icon_url: string
 }
 
+export interface IVersion {
+    game_versions: string[]
+
+}
+
 // 搜索项目
 async function searchProjects(options?: SearchOptions) {
     if (!options) return modrinthFetch<{ hits: ISearchHit[], offset: number, limit: number, total_hits: number }>(`search`);

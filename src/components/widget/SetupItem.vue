@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Dropdown from './Dropdown.vue'
-import { type ISetupOption, type SetupItemType } from '@/util/setup'
+import { type ISetupOption, type SetupItemType } from '@/stores/setup'
 import PInput from './PInput.vue'
 
 withDefaults(

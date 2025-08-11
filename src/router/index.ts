@@ -13,11 +13,12 @@ import InstanceSelect from '@/views/InstanceSelect/InstanceSelect.tsx'
 import InstanceSelectSubView from '@/views/InstanceSelect/InstanceSelectSubView.vue'
 import InstanceSetting from '@/views/InstanceSetting/InstanceSetting'
 import InstanceOverview from '@/views/InstanceSetting/InstanceOverview.vue'
-import { selectedInstance } from '@/util/gameLaunch'
+// import { useSelectedInstance } from '@/stores/gameLaunch'
 import HomeNew from '@/views/Home/HomeNew'
 import PageComp from '@/views/Download/PageComp.vue'
 import ResouceVersions from '@/views/Download/ResourceVersions.vue'
 
+// const selectedInstance = useSelectedInstance()
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
@@ -127,7 +128,7 @@ const router = createRouter({
       name: 'instance_setting',
       component: InstanceSetting,
       redirect: '/instance_setting/overview',
-      meta: { isSubPage: true, title: '实例设置 - ' + selectedInstance.name }, // 用于标识当前处于特殊子页面
+      meta: { isSubPage: true, title: '实例设置' /* + selectedInstance.name */ }, // 用于标识当前处于特殊子页面
       children: [
         {
           path: 'overview',

@@ -1,5 +1,5 @@
 import sideTip from "@/composables/sideTip"
-import { LocalStorageKeys } from "@/util/localStorage"
+import { PStorageKeys } from "@/stores/localStorage"
 import { ref } from "vue"
 
 const versionManifestUrl = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
@@ -38,7 +38,7 @@ export interface IVersionShow {
 // 获取Minecraft版本信息
 export function getMinecraftVersions() {
     // 1. 先尝试读取缓存
-    const cacheStr = localStorage.getItem(LocalStorageKeys.MinecraftVersionManifest);
+    const cacheStr = localStorage.getItem(PStorageKeys.MinecraftVersionManifest);
     let cacheVersionData: IVersionShow | undefined = undefined;
     const versionData = ref<IVersionShow>()
     if (cacheStr) {
@@ -72,7 +72,7 @@ export function getMinecraftVersions() {
                 old: oldVersions.map(mapVersionToShow)
             };
             // 更新缓存和响应式数据
-            localStorage.setItem(LocalStorageKeys.MinecraftVersionManifest, JSON.stringify({
+            localStorage.setItem(PStorageKeys.MinecraftVersionManifest, JSON.stringify({
                 time: Date.now(),
                 data: result
             }));

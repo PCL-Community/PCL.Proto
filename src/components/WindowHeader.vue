@@ -1,12 +1,14 @@
 <script lang="ts" setup>
-import navItems from '@/util/navItems'
+import navItems from '@/layout/navItems'
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TitleLogo from '@/assets/icons/TitleLogo.svg'
 import TitleMinimize from '@/assets/icons/TitleMinimize.svg'
 import TitleClose from '@/assets/icons/TitleClose.svg'
 import ArrowLeft from '@/assets/icons/ArrowLeft.svg'
-import { sideNavState } from '@/util/windowState'
+import useSideNavState from '@/stores/windowState'
+
+const sideNavState = useSideNavState()
 
 const isSubPage = ref(false)
 const route = useRoute()
@@ -31,7 +33,7 @@ watch(
       fromPage.value = undefined
     }
     if (route.meta.fullPage) {
-      sideNavState.width = 0
+      sideNavState.setWidth(0)
     }
   },
   { immediate: true },

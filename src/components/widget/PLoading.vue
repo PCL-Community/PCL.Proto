@@ -3,7 +3,7 @@ import { useTemplateRef, watchEffect } from 'vue'
 import PCard from './PCard.vue'
 
 export type LoadingState = 'loading' | 'error'
-const props = withDefaults(defineProps<{ state: LoadingState; loadingText?: string }>(), {
+const props = withDefaults(defineProps<{ state?: LoadingState; loadingText?: string }>(), {
   state: 'loading',
   loadingText: '正在加载中...',
 })

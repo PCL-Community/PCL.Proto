@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import PCard from '@/components/widget/PCard.vue'
 import { pluginShowText, showIconPath, type pluginType } from '@/util/gameInfo'
-import { selectedInstance } from '@/util/gameLaunch'
+import { useSelectedInstance } from '@/stores/gameLaunch'
 import { computed } from 'vue'
 
 const props = defineProps<{ type: pluginType }>()
+const selectedInstance = useSelectedInstance()
 
 const description = computed(() => {
   return {

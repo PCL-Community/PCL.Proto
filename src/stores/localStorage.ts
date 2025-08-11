@@ -1,3 +1,4 @@
-export enum LocalStorageKeys {
+export enum PStorageKeys {
     MinecraftVersionManifest = "minecraft-version-manifest",
+    Setup = "setup",
 }

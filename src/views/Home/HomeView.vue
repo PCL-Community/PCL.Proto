@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import PButton from '@/components/widget/PButton.vue'
-import { sideNavState, defaultWidths, sideNavWidthStr } from '@/util/windowState'
+import useSideNavState from '@/stores/windowState'
 import { animateCssFor } from '@/util/animateCSS'
-import { nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import MinecraftAvatar from '@/components/widget/MinecraftAvatar.vue'
-import { accontInfo } from '@/util/account'
-import { selectedInstance } from '@/util/gameLaunch'
+import { useAccountInfo } from '@/stores/account'
+import { useSelectedInstance } from '@/stores/gameLaunch'
 import router from '@/router'
 
 const subviewRef = ref<HTMLElement>()
+const sideNavState = useSideNavState()
+const accontInfo = useAccountInfo()
 
 onMounted(() => {
-  sideNavState.width = defaultWidths.home
+  sideNavState.setWidthOfPageDefault('home')
   nextTick(() => {
     animateSubview()
   })
@@ -29,6 +31,10 @@ const versionSelectClicked = () => {
 const InstanceSettingClicked = () => {
   router.push({ name: 'instance_setting' })
 }
+
+const gameName = computed(() => {
+  return useSelectedInstance().name
+})
 </script>
 
 <template lang="pug">
@@ -43,7 +49,7 @@ const InstanceSettingClicked = () => {
       #button-grid
         PButton#launch(type="tint")
           p 启动游戏
-          p.gray {{ selectedInstance.name }}
+          p.gray {{ gameName }}
         PButton(:click="versionSelectClicked") 实例选择
         PButton(:click="InstanceSettingClicked") 实例设置
 
@@ -95,7 +101,7 @@ aside.left {
   height: 100%;
   flex: 0 0 auto;
   padding: 20px;
-  width: v-bind('sideNavWidthStr');
+  width: v-bind('sideNavState.sideNavWidthStr');
 
   display: flex;
   flex-direction: column;

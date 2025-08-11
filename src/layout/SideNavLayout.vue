@@ -1,6 +1,6 @@
 <script lang="ts">
 import { defineComponent, onMounted, onUnmounted, useTemplateRef } from 'vue'
-import { sideNavState } from '@/util/windowState'
+import useSideNavState from '@/stores/windowState'
 import { nextTick } from 'vue'
 import SideGroup from '@/components/widget/SideGroup.vue'
 import { type INavItemGroup } from '@/types/naviOptions'
@@ -25,11 +25,13 @@ export default defineComponent({
     const asideRef = useTemplateRef<HTMLElement>('asideRef')
     const subviewRef = useTemplateRef<HTMLElement>('subviewRef')
     const router = useRouter()
+    const sideNavState = useSideNavState()
+
     let removeRouteGuard: (() => void) | null = null
 
     function updateAsideBackgroundWidth() {
       if (asideRef.value) {
-        sideNavState.width = asideRef.value.offsetWidth
+        sideNavState.setWidth(asideRef.value.offsetWidth)
       }
     }
 

@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
 import TitleMessage from './components/website/TitleMessage.vue'
-import { sideNavWidthStr } from '@/util/windowState'
+import useSideNavState from '@/stores/windowState'
+
+const sideNavState = useSideNavState()
+
 import WindowHeader from './components/WindowHeader.vue'
 import Modal from './components/Modal.vue'
 import SideTip from './components/SideTip.vue'
@@ -44,7 +47,7 @@ import SvgDrawer from './components/website/SVGDrawer.vue'
   position: absolute;
   left: 0;
   top: 0;
-  width: v-bind('sideNavWidthStr');
+  width: v-bind('sideNavState.sideNavWidthStr');
   height: 100%;
   background: var(--color-background-soft);
   box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.15);

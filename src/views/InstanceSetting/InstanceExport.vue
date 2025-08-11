@@ -4,7 +4,8 @@ import PCard from '@/components/widget/PCard.vue'
 import PCheckbox from '@/components/widget/PCheckbox.vue'
 import PHint from '@/components/widget/PHint.vue'
 import SetupItem from '@/components/widget/SetupItem.vue'
-import { selectedInstance } from '@/util/gameLaunch'
+import { useSelectedInstance } from '@/stores/gameLaunch'
+const selectedInstance = useSelectedInstance()
 </script>
 
 <template>
