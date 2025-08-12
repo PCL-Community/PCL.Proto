@@ -46,15 +46,24 @@ export default defineComponent({
       if (asideRef.value) {
         const sidenavLines = asideRef.value.querySelectorAll('.sidenav-line')
         animateCssFor(sidenavLines, 'fadeInLeft', 20)
+      } else {
+        console.warn('[nav] asideRef is null')
       }
     }
 
     onMounted(async () => {
+      console.log('[nav] SideNavLayout mounted')
       observer = new ResizeObserver(updateAsideBackgroundWidth)
       observer.observe(asideRef.value!)
-      removeRouteGuard = router.afterEach(() => {
+      removeRouteGuard = router.afterEach((to, from) => {
+        console.log('[nav] afterEach', to, from)
         nextTick(() => {
           animateSubview()
+          // 均使用本组件的页面切换时本组件会复用，因此需要重新应用侧边动画
+          // 但是在同样一级页面内跳转二级页面时无需再次动画
+          if (from.matched[0].name !== to.matched[0].name) {
+            animateSidenavLines()
+          }
         })
       })
       nextTick(() => {
