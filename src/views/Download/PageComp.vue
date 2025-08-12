@@ -43,7 +43,7 @@ watch(
     :placeholder="placeholders[route.meta.project_type as ProjectType]"
   />
   <PCard hide-title v-if="hits && hits.length > 0">
-    <PCompItem v-for="project in hits" v-bind="project" />
+    <PCompItem v-for="project in hits" :data="project" clickable />
   </PCard>
   <div class="loading-page" v-else>
     <PLoading state="loading" />

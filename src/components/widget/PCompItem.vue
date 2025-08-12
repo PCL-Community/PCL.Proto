@@ -8,37 +8,39 @@ import type { ISearchHit } from '@/api/modrinthApi'
 import { useRouter } from 'vue-router'
 const router = useRouter()
 
-const props = defineProps<ISearchHit>()
+const props = withDefaults(defineProps<{ clickable?: boolean; data: ISearchHit }>(), {
+  clickable: false,
+})
 
 const downloadsText = computed(() => {
-  if (props.downloads >= 10000) {
-    return `${Math.floor(props.downloads / 10000)}万`
+  if (props.data.downloads >= 10000) {
+    return `${Math.floor(props.data.downloads / 10000)}万`
   }
-  return props.downloads.toString()
+  return props.data.downloads.toString()
 })
 
 const dateText = computed(() => {
-  let date = new Date(props.date_modified)
+  let date = new Date(props.data.date_modified)
   return date.toLocaleDateString()
 })
 
 const navigateToProject = () => {
-  router.push({ name: 'resouce', query: { id: props.project_id } })
+  router.push({ name: 'resouce', query: { id: props.data.project_id } })
 }
 </script>
 
 <template>
-  <li class="comp-item" @click="navigateToProject">
-    <i class="comp-icon"><img :src="icon_url" /></i>
+  <li class="comp-item" @click="navigateToProject" :class="{ clickable }">
+    <i class="comp-icon"><img :src="data.icon_url" /></i>
     <div class="lab-title-row">
-      <span class="lab-title">{{ title }}</span
-      >&nbsp;&nbsp;|&nbsp;&nbsp;<span>{{ title }}</span>
+      <span class="lab-title">{{ data.title }}</span
+      >&nbsp;&nbsp;|&nbsp;&nbsp;<span>{{ data.title }}</span>
     </div>
-    <div class="lab-desc" :title="description">
-      <span class="desc-tag" v-for="category in categories">{{ category }}</span
-      >{{ description }}
+    <div class="lab-desc" :title="data.description">
+      <span class="desc-tag" v-for="category in data.categories">{{ category }}</span
+      >{{ data.description }}
     </div>
-    <p class="inline-icon"><IconSetup />{{ categories[0] }}</p>
+    <p class="inline-icon"><IconSetup />{{ data.categories[0] }}</p>
     <p class="inline-icon icon-download"><IconDownload />{{ downloadsText }}</p>
     <p class="inline-icon"><IconTimeUp />{{ dateText }}</p>
     <p class="inline-icon"><IconWeb />Modrinth</p>
@@ -53,15 +55,22 @@ const navigateToProject = () => {
   gap: 0 10px;
   border-radius: 4px;
   padding: 6px;
-  transition: background-color 0.4s;
+  transition:
+    background-color 0.4s,
+    scale 0.2s;
   align-items: center;
   line-height: 1rem;
   color: var(--color-text-grey);
   overflow: hidden;
 }
 
-.comp-item:hover {
+.comp-item.clickable:hover {
   background-color: var(--color-tint-lighter);
+}
+
+.comp-item.clickable:active {
+  scale: 0.98;
+  background-color: var(--half-transparent-blue);
 }
 
 .comp-icon {

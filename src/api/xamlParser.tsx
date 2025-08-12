@@ -8,8 +8,12 @@ import PHint from '@/components/widget/PHint.vue'
 import sideTip from '@/composables/sideTip'
 import { useModal } from '@/composables/useModal'
 import router from '@/router'
+import { showIconPath, type showIconType } from '@/util/gameInfo'
 import { type VNode, type VNodeTypes } from 'vue'
 import { xml2js, type Element } from 'xml-js'
+// import Grass from '@/assets/icons/Grass_Block_JE7_BE6.png'
+
+// console.log(Grass)
 const modal = useModal()
 
 const pageTypes = [
@@ -70,6 +74,23 @@ function handleEvent(eventType: string, eventData: string) {
   return onClick
 }
 
+function handleIcon(sourceRaw: string) {
+  const iconMap: Record<string, showIconType> = {
+    'Blocks/CommandBlock.png': 'command',
+    'Blocks/Cobblestone.png': 'stone',
+    'Blocks/Grass.png': 'grass',
+    'Blocks/Fabric.png': 'fabric',
+    'Blocks/Neoforge.png': 'neoforge',
+  }
+  if (sourceRaw.startsWith('pack://application:,,,/images/')) {
+    let iconPath = sourceRaw.split('/images/')[1]
+    console.log('[xaml] ', iconPath)
+    return showIconPath[iconMap[iconPath]]
+  } else {
+    return sourceRaw
+  }
+}
+
 function parseXamlElement(element: Element): VNode | string | (VNode | string)[] | null {
   if (!element || element.type != 'element') return null
   if (element.name?.startsWith('local:')) {
@@ -120,16 +141,17 @@ function parseXamlElement(element: Element): VNode | string | (VNode | string)[]
           </PButton>
         )
       case 'MyListItem':
-        console.log('[xaml] got MyListItem:', element)
         return (
           <CardInfoItem
             title={element.attributes?.Title as string}
             subtitle={element.attributes?.Info as string}
             isGameInfo={false}
-            icon={element.attributes?.Logo as string}
+            icon={handleIcon(element.attributes?.Logo as string)}
             click={onClick}
           />
         )
+      case 'MyImage':
+        handleIcon(element.attributes?.Source as string)
       default:
         return JSON.stringify(element)
     }

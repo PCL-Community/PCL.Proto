@@ -4,11 +4,20 @@ import PCard from '@/components/widget/PCard.vue'
 import PCompItem from '@/components/widget/PCompItem.vue'
 import PLoading from '@/components/widget/PLoading.vue'
 import { marked } from 'marked'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const projectData = ref<IProject>()
+const data = computed(() => {
+  if (!projectData.value) return undefined
+  return {
+    ...projectData.value,
+    date_modified: projectData.value.updated,
+    project_id: projectData.value.id,
+    body: marked.parse(projectData.value.body),
+  }
+})
 
 onMounted(async () => {
   projectData.value = await modrinthApi.getProject(route.query.id as string)
@@ -16,21 +25,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <article class="subview" v-if="projectData">
+  <article class="subview" v-if="data">
     <PCard hide-title>
-      <PCompItem
-        :title="projectData.title"
-        :categories="projectData.categories"
-        :downloads="projectData.downloads"
-        :icon_url="projectData.icon_url"
-        :description="projectData.description"
-        :date_modified="projectData.updated"
-        :project_id="projectData.id"
-        :project_type="projectData.project_type"
-      />
+      <PCompItem :data="data" :clickable="false" />
     </PCard>
     <PCard title="资源简介" default-fold-status="fold">
-      <div class="markdown" v-html="marked.parse(projectData.body)" />
+      <div class="markdown" v-html="data.body" />
     </PCard>
     <PCard hide-title>
       <menu>

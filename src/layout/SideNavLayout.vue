@@ -57,7 +57,7 @@ export default defineComponent({
       observer = new ResizeObserver(updateAsideBackgroundWidth)
       observer.observe(asideRef.value!)
       removeRouteGuard = router.afterEach((to, from) => {
-        console.log('[nav] afterEach', to, from)
+        // console.log('[nav] afterEach', to, from)
         nextTick(() => {
           animateSubview()
           // 均使用本组件的页面切换时本组件会复用，因此需要重新应用侧边动画
