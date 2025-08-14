@@ -3,6 +3,7 @@ import CardInfoItem from '@/components/widget/CardInfoItem.vue'
 import PCard from '@/components/widget/PCard.vue'
 import picLongTengMaoYue from '@/assets/pictures/龙腾猫跃头像.jpg'
 import picPCLProto from '/PCL.Proto.svg?url'
+import tsLogo from '@/assets/icons/ts-logo-256.svg?url'
 declare const __APP_VERSION__: string
 const version = __APP_VERSION__
 </script>
@@ -50,10 +51,12 @@ const version = __APP_VERSION__
  
     PCard(defaultFoldStatus='fold')
         template(#title) 许可与版权声明
-        CardInfoItem(title="Vue.js - 渐进式 JavaScript 框架" subtitle="MIT | https://github.com/vuejs/core")
-        CardInfoItem(title="TypeScript - 类型！类型！我要类型！" subtitle="Apache License 2.0 | https://github.com/microsoft/TypeScript")
-        CardInfoItem(title="Pug - 排版特别好看的模板引擎" subtitle="MIT | https://github.com/pugjs/pug")
-        CardInfoItem(title="Vite - 快速、轻量级的开发工具" subtitle="MIT | https://github.com/vitejs/vite")
-        CardInfoItem(title="Vue Router" subtitle="MIT | https://github.com/vuejs/vue-router-next")
-        CardInfoItem(title="PCL.Neo.Core" subtitle="MIT | https://github.com/PCL-Community/PCL.Neo/")
+        CardInfoItem(title="Vue.js - 渐进式 JavaScript 框架" subtitle="MIT | https://github.com/vuejs/core" icon="https://vuejs.org/logo.svg")
+        CardInfoItem(title="TypeScript - 类型！类型！我要类型！" subtitle="Apache License 2.0 | https://github.com/microsoft/TypeScript" :icon="tsLogo")
+        CardInfoItem(title="Pug - 排版特别好看的模板引擎" subtitle="MIT | https://github.com/pugjs/pug" icon="https://www.pugjs.cn/img/logo.png")
+        CardInfoItem(title="Vite - 快速、轻量级的开发工具" subtitle="MIT | https://github.com/vitejs/vite" icon="https://vitejs.dev/logo.svg")
+        CardInfoItem(title="Vue Router" subtitle="MIT | https://github.com/vuejs/vue-router-next" icon="https://router.vuejs.org/logo.svg")
+        //- CardInfoItem(title="PCL.Neo.Core" subtitle="MIT | https://github.com/PCL-Community/PCL.Neo/")
+        CardInfoItem(title="xml-js - XML解析 用于展示PCL原版格式自定义主页" subtitle="MIT | https://www.npmjs.com/package/xml-js" icon="http://nashwaan.github.io/xml-js/images/logo.svg")
+        CardInfoItem(title="Pinia - 状态管理" subtitle="MIT |https://pinia.vuejs.org/" icon="https://pinia.vuejs.org/logo.svg")
 </template>

@@ -30,7 +30,7 @@ onMounted(async () => {
       <PCompItem :data="data" :clickable="false" />
     </PCard>
     <PCard title="资源简介" default-fold-status="fold">
-      <div class="markdown" v-html="data.body" />
+      <article class="markdown" v-html="data.body" />
     </PCard>
     <PCard hide-title>
       <menu>
