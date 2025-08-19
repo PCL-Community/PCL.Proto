@@ -1,23 +1,5 @@
 <script lang="ts" setup>
-import { computed } from 'vue'
-
-type AvatarInputType = 'url' | 'username' | 'uuid'
-const props = withDefaults(defineProps<{ type?: AvatarInputType; src: string }>(), {
-  type: 'username',
-  src: 'AMagicPear',
-})
-
-const skinUrl = computed(() => {
-  switch (props.type) {
-    case 'username':
-      return `https://minotar.net/skin/${props.src}`
-    case 'uuid':
-      return `https://crafatar.com/skins/${props.src}`
-    case 'url':
-    default:
-      return props.src
-  }
-})
+defineProps<{ skinUrl: string }>()
 </script>
 
 <template>

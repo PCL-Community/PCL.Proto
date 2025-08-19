@@ -1,6 +1,6 @@
 {
   "name": "pcl-proto",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,15 +14,16 @@
   },
   "dependencies": {
     "animate.css": "^4.1.1",
-    "marked": "^16.1.2",
+    "marked": "^16.2.0",
     "pinia": "^3.0.3",
+    "skinview3d": "^3.4.1",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1",
     "xml-js": "^1.6.11"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.2",
-    "@types/node": "^22.17.0",
+    "@types/node": "^22.17.2",
     "@vitejs/plugin-vue": "^5.2.4",
     "@vitejs/plugin-vue-jsx": "^5.0.1",
     "@vue/language-plugin-pug": "^2.2.12",

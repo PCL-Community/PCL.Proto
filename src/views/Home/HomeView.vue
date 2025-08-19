@@ -43,7 +43,7 @@ const gameName = computed(() => {
       #center
         //- MinecraftAvatar(type="url", src='default-skin/Steve_(classic_texture)_JE6.png')
         //- MinecraftAvatar(type='uuid', src='31bbe537-9fea-4e68-aa4a-d7aacca23d13')
-        MinecraftAvatar(type='username' :src='accontInfo.username')
+        MinecraftAvatar(:skinUrl="accontInfo.skinUrl")
         input(v-model="accontInfo.username")
         p.gray 点击上方用户名可输入
       #button-grid

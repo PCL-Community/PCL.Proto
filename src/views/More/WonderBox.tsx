@@ -1,9 +1,11 @@
+import SkinViewer from '@/components/widget/SkinViewer.vue'
 import MinecraftServerCard from '@/components/widget/MinecraftServerCard.vue'
 import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PInput from '@/components/widget/PInput.vue'
 import { useModal } from '@/composables/useModal'
 import { defineComponent, ref } from 'vue'
+import { useAccountInfo } from '@/stores/account'
 const modal = useModal()
 
 const stringToRandom = (input: string) => {
@@ -39,6 +41,7 @@ export const LuckTodayButton = () => (
 export default defineComponent({
   name: 'WonderBox',
   setup() {
+    const accountInfo = useAccountInfo()
     return () => (
       <>
         <PCard title="百宝箱">
@@ -46,7 +49,9 @@ export default defineComponent({
             <LuckTodayButton />
           </div>
         </PCard>
-        <PCard title="下载正版玩家的皮肤"></PCard>
+        <PCard title="下载正版玩家的皮肤">
+          <SkinViewer skinUrl={accountInfo.skinUrl} />
+        </PCard>
         <MinecraftServerCard />
       </>
     )
