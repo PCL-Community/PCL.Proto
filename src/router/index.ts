@@ -17,6 +17,7 @@ import InstanceOverview from '@/views/InstanceSetting/InstanceOverview.vue'
 import HomeNew from '@/views/Home/HomeNew'
 import PageComp from '@/views/Download/PageComp.vue'
 import ResouceVersions from '@/views/Download/ResourceVersions.vue'
+import WonderBox from '@/views/More/WonderBox'
 
 // const selectedInstance = useSelectedInstance()
 const router = createRouter({
@@ -106,7 +107,7 @@ const router = createRouter({
         },
         {
           path: 'wonder_box',
-          component: () => import('@/views/More/WonderBox.tsx'),
+          component: WonderBox,
         }
       ],
     },

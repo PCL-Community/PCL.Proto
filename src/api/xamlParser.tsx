@@ -83,9 +83,9 @@ function handleIcon(sourceRaw: string) {
     'Blocks/Neoforge.png': 'neoforge',
   }
   if (sourceRaw.startsWith('pack://application:,,,/images/')) {
-    let iconPath = sourceRaw.split('/images/')[1]
+    let iconPath = sourceRaw.split('/images/')[1] as string
     console.log('[xaml] ', iconPath)
-    return showIconPath[iconMap[iconPath]]
+    return showIconPath[iconMap[iconPath] as showIconType]
   } else {
     return sourceRaw
   }

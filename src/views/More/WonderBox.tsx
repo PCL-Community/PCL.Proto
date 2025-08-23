@@ -1,11 +1,11 @@
-import SkinViewer from '@/components/widget/SkinViewer.vue'
 import MinecraftServerCard from '@/components/widget/MinecraftServerCard.vue'
 import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PInput from '@/components/widget/PInput.vue'
 import { useModal } from '@/composables/useModal'
-import { defineComponent, ref } from 'vue'
+import { defineAsyncComponent, defineComponent, ref } from 'vue'
 import { useAccountInfo } from '@/stores/account'
+import PLoading from '@/components/widget/PLoading.vue'
 const modal = useModal()
 
 const stringToRandom = (input: string) => {
@@ -42,6 +42,10 @@ export default defineComponent({
   name: 'WonderBox',
   setup() {
     const accountInfo = useAccountInfo()
+    const SkinViewer = defineAsyncComponent({
+      loader: () => import('@/components/widget/SkinViewer.vue'),
+      loadingComponent: PLoading,
+    })
     return () => (
       <>
         <PCard title="百宝箱">
