@@ -59,4 +59,6 @@ const version = __APP_VERSION__
         //- CardInfoItem(title="PCL.Neo.Core" subtitle="MIT | https://github.com/PCL-Community/PCL.Neo/")
         CardInfoItem(title="xml-js - XML解析 用于展示PCL原版格式自定义主页" subtitle="MIT | https://www.npmjs.com/package/xml-js" icon="http://nashwaan.github.io/xml-js/images/logo.svg")
         CardInfoItem(title="Pinia - 状态管理" subtitle="MIT |https://pinia.vuejs.org/" icon="https://pinia.vuejs.org/logo.svg")
+        CardInfoItem(title="skinview3d - 3D 皮肤查看器" subtitle="MIT | https://github.com/bs-community/skinview3d" icon="https://avatars.githubusercontent.com/u/37259779?s=200&v=4")
+        CardInfoItem(title="Bun" subtitle="MIT | https://bun.com/" icon="https://bun.com/logo.svg")
 </template>

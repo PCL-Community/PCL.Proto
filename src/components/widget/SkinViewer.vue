@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useAccountInfo } from '@/stores/account'
 import { SkinViewer, WalkingAnimation } from 'skinview3d'
 import { onMounted, useTemplateRef } from 'vue'
 const container = useTemplateRef<HTMLCanvasElement>('skin_container')
