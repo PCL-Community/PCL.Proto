@@ -42,3 +42,14 @@ export const pluginShowText: Record<pluginType, string> = {
     'laby-mod': 'LabyMod',
     'optifine': 'OptiFine',
 }
+
+export const isIconPixelated: Record<pluginType, boolean> = {
+    'vanilla': false,
+    'forge': false,
+    'neoforge': false,
+    'fabric': true,
+    'fabric-api': true,
+    'quilt': true,
+    'laby-mod': true,
+    'optifine': true,
+}

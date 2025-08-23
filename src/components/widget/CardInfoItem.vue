@@ -17,11 +17,13 @@ withDefaults(
       link: string
     }
     click?: () => void
+    pixelatedIcon?: boolean
   }>(),
   {
     isGameVersion: false,
     hoverEffect: true,
     roundImg: false,
+    pixelatedIcon: false,
   },
 )
 </script>
@@ -29,7 +31,7 @@ withDefaults(
 <template lang="pug">
     .gameinfo-container(@click="click?.()" :class="{'game-info': isGameInfo, 'hover-effect': hoverEffect, 'round-img': roundImg, 'clickable': click }")
         .left
-            img(:src="icon" v-if="icon")
+            img(:src="icon" v-if="icon" :style="{ 'image-rendering': pixelatedIcon ? 'pixelated' : 'auto' }")
             .text
                 .title {{ title }}
                 .subtitle {{ subtitle }}
@@ -52,7 +54,8 @@ withDefaults(
 .left > img {
   width: 30px;
   height: 30px;
-  image-rendering: pixelated;
+  /* fix #3 图标模糊 */
+  /* image-rendering: pixelated; */
 }
 
 .round-img > .left > img {
