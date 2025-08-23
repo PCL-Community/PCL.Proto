@@ -23,18 +23,18 @@
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.2",
-    "@types/node": "^22.17.2",
-    "@vitejs/plugin-vue": "^5.2.4",
+    "@types/node": "^24.3.0",
+    "@vitejs/plugin-vue": "^6.0.1",
     "@vitejs/plugin-vue-jsx": "^5.0.1",
-    "@vue/language-plugin-pug": "^2.2.12",
-    "@vue/tsconfig": "^0.7.0",
+    "@vue/language-plugin-pug": "^3.0.6",
+    "@vue/tsconfig": "^0.8.1",
     "gh-pages": "^6.3.0",
-    "npm-run-all2": "^7.0.2",
-    "prettier": "3.5.3",
+    "npm-run-all2": "^8.0.4",
+    "prettier": "3.6.2",
     "pug": "^3.0.3",
-    "typescript": "~5.8.3",
-    "vite": "^6.3.5",
+    "typescript": "~5.9.2",
+    "vite": "^7.1.3",
     "vite-svg-loader": "^5.1.0",
-    "vue-tsc": "^2.2.12"
+    "vue-tsc": "^3.0.6"
   }
 }
