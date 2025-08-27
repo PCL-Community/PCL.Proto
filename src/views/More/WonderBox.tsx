@@ -6,6 +6,7 @@ import { useModal } from '@/composables/useModal'
 import { defineAsyncComponent, defineComponent, ref } from 'vue'
 import { useAccountInfo } from '@/stores/account'
 import PLoading from '@/components/widget/PLoading.vue'
+import { RouterLink } from 'vue-router'
 const modal = useModal()
 
 const stringToRandom = (input: string) => {
@@ -51,6 +52,9 @@ export default defineComponent({
         <PCard title="百宝箱">
           <div class="button-grid">
             <LuckTodayButton />
+            <RouterLink to="/homepageeditor">
+              <PButton style={{ width: '100%' }}>首页设计工具</PButton>
+            </RouterLink>
           </div>
         </PCard>
         <PCard title="下载正版玩家的皮肤">

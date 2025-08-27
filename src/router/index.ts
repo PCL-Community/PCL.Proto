@@ -158,6 +158,12 @@ const router = createRouter({
       name: 'resouce',
       component: ResouceVersions,
       meta: { isSubPage: true, title: '资源下载', fullPage: true },
+    },
+    {
+      path: '/homepageeditor',
+      name: 'homepageeditor',
+      component: () => import('@/views/HomepageEditor.vue'),
+      meta: { isSubPage: true, title: ' PCL 主页制作器', fullPage: true },
     }
   ],
 })
