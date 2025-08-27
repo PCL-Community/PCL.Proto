@@ -59,6 +59,12 @@ a.router-link-active:hover i.refresh-icon {
   justify-content: center;
 }
 
+/* 修复Safari图标不显示的问题 */
+:deep(.side-nav-icon > svg) {
+  max-width: 100%;
+  max-height: 100%;
+}
+
 a {
   width: 100%;
   display: flex;
