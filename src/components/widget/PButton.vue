@@ -2,11 +2,17 @@
 
 <script setup lang="ts">
 export type ButtonType = 'default' | 'tint' | 'warn'
-defineProps<{ type?: ButtonType; inline?: boolean; tooltip?: string; click?: () => void }>()
+defineProps<{
+  type?: ButtonType
+  inline?: boolean
+  tooltip?: string
+  click?: () => void
+  disabled?: boolean
+}>()
 </script>
 
 <template lang="pug">
-    button.mybutton(:class="[type ?? 'default', inline ? 'inline' : '']" :title="tooltip" @click="click?.()")
+    button.mybutton(:class="[type ?? 'default', inline ? 'inline' : '']" :title="tooltip" @click="disabled? null :click?.()" :disabled="disabled")
         slot 我的按钮
 </template>
 
@@ -38,19 +44,24 @@ button.warn {
   border-color: var(--color-warn);
 }
 
-button.mybutton:hover {
+button.mybutton:not(:disabled):hover {
   background-color: var(--color-tint-lighter);
   color: var(--color-tint);
   border-color: var(--color-tint);
 }
 
-button.warn:hover {
+button.warn:not(:disabled):hover {
   background-color: var(--color-warn-lighter);
   color: var(--color-warn);
   border-color: var(--color-warn);
 }
 
-button.mybutton:active {
+button.mybutton:not(:disabled):active {
   transform: scale(0.95);
+}
+
+button.mybutton:disabled {
+  color: var(--color-text-grey);
+  border-color: var(--color-text-grey);
 }
 </style>

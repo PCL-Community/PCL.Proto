@@ -78,6 +78,13 @@ const router = createRouter({
       path: '/link',
       name: 'link',
       component: LinkView,
+      redirect: '/link/hall',
+      children: [
+        {
+          path: 'hall',
+          component: () => import('@/views/Link/LinkHall.vue'),
+        },
+      ],
     },
     {
       path: '/setup',
@@ -162,7 +169,7 @@ const router = createRouter({
     {
       path: '/homepageeditor',
       name: 'homepageeditor',
-      component: () => import('@/views/HomepageEditor.vue'),
+      component: () => import('@/views/More/HomepageEditor.vue'),
       meta: { isSubPage: true, title: ' PCL 主页制作器', fullPage: true },
     }
   ],

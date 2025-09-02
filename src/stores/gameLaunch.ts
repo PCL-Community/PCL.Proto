@@ -1,3 +1,4 @@
+import type GameInstance from "@/types/gameInstance";
 import type { pluginType } from "../util/gameInfo";
 import { defineStore } from "pinia";
 
@@ -10,5 +11,9 @@ export const useSelectedInstance = defineStore('selected-instance', {
             'fabric': '0.15.3',
             'fabric-api': '0.15.3',
         } as Record<pluginType, string>,
-    })
+    } as GameInstance)
+})
+
+export const useActiveInstance = defineStore('active-instance', {
+    state: () => ([] as GameInstance[])
 })
