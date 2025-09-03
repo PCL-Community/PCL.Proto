@@ -9,14 +9,14 @@ export default h(SideNavLayout, {
   sideNavGroups: [{
     title: '开始联机',
     content: [
-      { text: '大厅', icon: IconLobby },
+      { text: '大厅', icon: IconLobby, linkto: 'lobby' },
     ]
   }, {
     title: "更多选项",
     content: [
-      { text: '设置', icon: IconSetup },
-      { text: '常见问题', icon: IconHelp },
-      { text: '关于和反馈', icon: IconFeedback }
+      { text: '设置', icon: IconSetup, linkto: 'setup' },
+      { text: '常见问题', icon: IconHelp, linkto: 'help' },
+      { text: '关于和反馈', icon: IconFeedback, linkto: 'feedback' }
     ]
   }
   ]

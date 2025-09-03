@@ -151,7 +151,7 @@ function parseXamlElement(element: Element): VNode | string | (VNode | string)[]
           />
         )
       case 'MyImage':
-        handleIcon(element.attributes?.Source as string)
+        return handleIcon(element.attributes?.Source as string) // TODO
       default:
         return JSON.stringify(element)
     }
@@ -173,6 +173,17 @@ function parseXamlElement(element: Element): VNode | string | (VNode | string)[]
           >
             {element.attributes?.Text || element.text}
           </p>
+        )
+      case 'Path':
+        console.log(element)
+        return (
+          <svg
+            width={element.attributes!.Width}
+            height={element.attributes!.Height}
+            viewBox="0 0 1024 1024"
+          >
+            <path d={element.attributes!.Data as string}></path>
+          </svg>
         )
       default:
         return JSON.stringify(element)

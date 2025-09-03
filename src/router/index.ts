@@ -78,12 +78,16 @@ const router = createRouter({
       path: '/link',
       name: 'link',
       component: LinkView,
-      redirect: '/link/hall',
+      redirect: '/link/lobby',
       children: [
         {
-          path: 'hall',
-          component: () => import('@/views/Link/LinkHall.vue'),
+          path: 'lobby',
+          component: () => import('@/views/Link/LinkLobby.vue'),
         },
+        {
+          path: 'help',
+          component: () => import('@/views/Link/LinkHelp.vue')
+        }
       ],
     },
     {
