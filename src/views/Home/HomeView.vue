@@ -7,6 +7,7 @@ import MinecraftAvatar from '@/components/widget/MinecraftAvatar.vue'
 import { useAccountInfo } from '@/stores/account'
 import { useSelectedInstance } from '@/stores/gameLaunch'
 import router from '@/router'
+import { invoke } from '@tauri-apps/api/core'
 
 const subviewRef = ref<HTMLElement>()
 const sideNavState = useSideNavState()
@@ -31,6 +32,10 @@ const versionSelectClicked = () => {
 const InstanceSettingClicked = () => {
   router.push({ name: 'instance_setting' })
 }
+const launchGame = () => {
+  invoke('launch_game')
+  console.log('[game] lanuch invoked')
+}
 
 const gameName = computed(() => {
   return useSelectedInstance().name
@@ -47,7 +52,7 @@ const gameName = computed(() => {
         input(v-model="accontInfo.username")
         p.gray 点击上方用户名可输入
       #button-grid
-        PButton#launch(type="tint")
+        PButton#launch(type="tint" :click="launchGame")
           p 启动游戏
           p.gray {{ gameName }}
         PButton(:click="versionSelectClicked") 实例选择

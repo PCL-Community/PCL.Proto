@@ -2,14 +2,23 @@
 import { RouterView } from 'vue-router'
 // import TitleMessage from './components/website/TitleMessage.vue'
 import useSideNavState from '@/stores/windowState'
-
-const sideNavState = useSideNavState()
-
 import WindowHeader from './components/WindowHeader.vue'
 import Modal from './components/Modal.vue'
 import SideTip from './components/SideTip.vue'
+import { listen } from '@tauri-apps/api/event'
+import { useModal } from './composables/useModal'
 // 引入 SvgDrawer 组件
 // import SvgDrawer from './components/website/SVGDrawer.vue'
+const sideNavState = useSideNavState()
+const modal = useModal()
+
+listen<string>('modal-open', (event) => {
+  modal.open({
+    title: '❌后端错误',
+    content: event.payload,
+    buttons: [{ type: 'tint', content: '确认' }],
+  })
+})
 </script>
 
 <template lang="pug">
@@ -37,8 +46,6 @@ import SideTip from './components/SideTip.vue'
   position: relative;
   height: 100%;
   z-index: 2;
-  position: relative;
-  flex: 1 1 0;
   width: 100%;
   overflow: hidden;
 }
