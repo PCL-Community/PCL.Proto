@@ -19,6 +19,7 @@
         "minWidth": 814,
         "resizable": true,
         "fullscreen": false,
+        "decorations": false,
         "titleBarStyle": "Overlay",
         "trafficLightPosition": {
           "x": 14.0,

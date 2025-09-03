@@ -8,8 +8,10 @@ import ArrowLeft from '@/assets/icons/ArrowLeft.svg'
 import useSideNavState from '@/stores/windowState'
 import navItems from '@/layout/navItems'
 import currentPlatform from '@/util/platform'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 
 const sideNavState = useSideNavState()
+const appWindow = getCurrentWindow();
 
 const isSubPage = ref(false)
 const route = useRoute()
@@ -70,8 +72,8 @@ const backClicked = () => {
             | {{ item.label }}
 
     .right(v-if="currentPlatform != 'macos'")
-      i.button-animated: title-minimize
-      i.button-animated: title-close
+      i.button-animated(@click="appWindow.minimize"): title-minimize
+      i.button-animated(@click="appWindow.close"): title-close
 
 </template>
 
