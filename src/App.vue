@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
-import TitleMessage from './components/website/TitleMessage.vue'
+// import TitleMessage from './components/website/TitleMessage.vue'
 import useSideNavState from '@/stores/windowState'
 
 const sideNavState = useSideNavState()
@@ -9,7 +9,7 @@ import WindowHeader from './components/WindowHeader.vue'
 import Modal from './components/Modal.vue'
 import SideTip from './components/SideTip.vue'
 // 引入 SvgDrawer 组件
-import SvgDrawer from './components/website/SVGDrawer.vue'
+// import SvgDrawer from './components/website/SVGDrawer.vue'
 </script>
 
 <template lang="pug">
@@ -56,8 +56,10 @@ import SvgDrawer from './components/website/SVGDrawer.vue'
 }
 
 #main-window {
-  width: 814px;
-  height: 464px;
+  width: 100vi;
+  height: 100vh;
+  /* width: 814px; */
+  /* height: 464px; */
   /* border-radius: 8px; */
   background: linear-gradient(137.92deg, rgba(192, 196, 221, 1) 0%, rgba(182, 211, 220, 1) 100%);
   /* box-shadow: var(--box-shadow); */
