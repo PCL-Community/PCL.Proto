@@ -1,4 +1,4 @@
-import { apiUrl } from "./apiUrl";
+import { localApiEndpoint } from "./localApi";
 
 export const archMap: Record<number, string> = {
     0: 'x86',
@@ -23,13 +23,13 @@ export interface IJavaRuntimeInfo {
 }
 export default () => {
     async function getJavaList(): Promise<IJavaRuntimeInfo[]> {
-        const res = await fetch(new URL('java/list', apiUrl.value));
+        const res = await fetch(new URL('java/list', localApiEndpoint.value));
         const data = await res.json();
         return data;
     }
 
     async function refreshJavaList() {
-        const res = await fetch(new URL('java/refresh', apiUrl.value), { method: 'POST' })
+        const res = await fetch(new URL('java/refresh', localApiEndpoint.value), { method: 'POST' })
         const data = await res.json();
         return data
     }

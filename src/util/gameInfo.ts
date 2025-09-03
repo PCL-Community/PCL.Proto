@@ -1,9 +1,13 @@
-import picCommand from '@/assets/icons/Impulse_Command_Block.gif'
-import picGrass from '@/assets/icons/Grass_Block_JE7_BE6.png'
+import picCommand from '@/assets/icons/Impulse_Command_Block.gif?url'
+import picGrass from '@/assets/icons/Grass_Block_JE7_BE6.png?url'
+import picCubblestone from '@/assets/icons/Cobblestone_JE5_BE3.png?url'
+import picGold from '@/assets/icons/Block_of_Gold_JE6_BE3.png?url'
+import picFabric from '@/assets/icons/Fabric.png?url'
 import type { gameVersionType } from '@/api/gameVersions';
 
-type showIconType = 'command' | 'grass' | 'stone' | 'gold' | 'neoforge';
-type showGameType = gameVersionType | 'fool';
+export type showIconType = 'command' | 'grass' | 'stone' | 'gold' | pluginType;
+type showGameType = gameVersionType | 'fool'
+export type pluginType = 'vanilla' | 'forge' | 'neoforge' | 'fabric' | 'fabric-api' | 'quilt' | 'laby-mod' | 'optifine'
 
 export const gameInfoIcon: Record<showGameType, showIconType> = {
     'snapshot': 'command',
@@ -16,7 +20,36 @@ export const gameInfoIcon: Record<showGameType, showIconType> = {
 export const showIconPath: Record<showIconType, string> = {
     command: picCommand,
     grass: picGrass,
-    stone: '',
-    gold: '',
+    stone: picCubblestone,
+    gold: picGold,
     neoforge: '',
+    fabric: picFabric,
+    'fabric-api': picFabric,
+    quilt: '',
+    'laby-mod': '',
+    optifine: '',
+    vanilla: picGrass,
+    forge: '',
+}
+
+export const pluginShowText: Record<pluginType, string> = {
+    'vanilla': 'Minecraft',
+    'forge': 'Forge',
+    'neoforge': 'NeoForge',
+    'fabric': 'Fabric',
+    'fabric-api': 'Fabric API',
+    'quilt': 'Quilt',
+    'laby-mod': 'LabyMod',
+    'optifine': 'OptiFine',
+}
+
+export const isIconPixelated: Record<pluginType, boolean> = {
+    'vanilla': false,
+    'forge': false,
+    'neoforge': false,
+    'fabric': true,
+    'fabric-api': true,
+    'quilt': true,
+    'laby-mod': true,
+    'optifine': true,
 }

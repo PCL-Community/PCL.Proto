@@ -1,3 +1,5 @@
+import sideTip from "@/composables/sideTip"
+import { PStorageKeys } from "@/stores/localStorage"
 import { ref } from "vue"
 
 const versionManifestUrl = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
@@ -33,43 +35,74 @@ export interface IVersionShow {
     old: SingleVersionShowInfo[],
 }
 
-export async function getMinecraftVersions(): Promise<IVersionShow> {
-    const res = await fetch(versionManifestUrl)
-    const data: IVersionManifest = await res.json()
+// 获取Minecraft版本信息
+export function getMinecraftVersions() {
+    // 1. 先尝试读取缓存
+    const cacheStr = localStorage.getItem(PStorageKeys.MinecraftVersionManifest);
+    let cacheVersionData: IVersionShow | undefined = undefined;
+    const versionData = ref<IVersionShow>()
+    if (cacheStr) {
+        try {
+            const cache = JSON.parse(cacheStr);
+            cacheVersionData = cache.data as IVersionShow;
+            versionData.value = cacheVersionData;
+        } catch (e) {
+            // 缓存解析失败，忽略
+        }
+    }
 
-    // 查找最新release和snapshot的完整信息
-    const latestRelease = data.versions.find(v => v.id === data.latest.release)!;
-    const latestSnapshot = data.versions.find(v => v.id === data.latest.snapshot)!;
+    // 2. 异步请求远程数据，获取后自动更新缓存和versionData
+    fetch(versionManifestUrl)
+        .then(res => res.json())
+        .then((data: IVersionManifest) => {
+            const latestRelease = data.versions.find(v => v.id === data.latest.release)!;
+            const latestSnapshot = data.versions.find(v => v.id === data.latest.snapshot)!;
+            const releaseVersions = data.versions.filter(v => v.type === 'release');
+            const snapshotVersions = data.versions.filter(v => v.type === 'snapshot');
+            const oldVersions = data.versions.filter(v =>
+                v.type === 'old_beta' || v.type === 'old_alpha'
+            );
+            const result: IVersionShow = {
+                latest: {
+                    release: mapVersionToShow(latestRelease),
+                    snapshot: mapVersionToShow(latestSnapshot)
+                },
+                release: releaseVersions.map(mapVersionToShow),
+                snapshot: snapshotVersions.map(mapVersionToShow),
+                old: oldVersions.map(mapVersionToShow)
+            };
+            // 更新缓存和响应式数据
+            localStorage.setItem(PStorageKeys.MinecraftVersionManifest, JSON.stringify({
+                time: Date.now(),
+                data: result
+            }));
 
-    // 按照类型分类版本
-    const releaseVersions = data.versions.filter(v => v.type === 'release');
-    const snapshotVersions = data.versions.filter(v => v.type === 'snapshot');
-    const oldVersions = data.versions.filter(v =>
-        v.type === 'old_beta' || v.type === 'old_alpha'
-    );
+            // 内容比较而非引用比较
+            if (JSON.stringify(cacheVersionData) !== JSON.stringify(result)) {
+                versionData.value = result;
+                console.log(versionData.value.latest.release, result.latest.release)
+                sideTip.show('游戏版本信息已刷新')
+            }
+        });
 
-    return {
-        latest: {
-            release: mapVersionToShow(latestRelease),
-            snapshot: mapVersionToShow(latestSnapshot)
-        },
-        release: releaseVersions.map(mapVersionToShow),
-        snapshot: snapshotVersions.map(mapVersionToShow),
-        old: oldVersions.map(mapVersionToShow)
-    };
+    function formatReleaseTime(iso: string) {
+        const date = new Date(iso)
+        return `${date.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+        })}`
+    }
 
     function mapVersionToShow(v: { id: string; releaseTime: string; type: gameVersionType }) {
         return {
             id: v.id,
-            releaseTime: v.releaseTime,
+            releaseTime: formatReleaseTime(v.releaseTime),
         };
     }
+
+    // 3. 返回缓存内容（同步）和响应式数据（异步）
+    return { cacheVersionData, versionDataRef: versionData };
 }
-
-export const versionData = ref<IVersionShow>();
-
-// getMinecraftVersions().then((data) => {
-//     versionData.value = data;
-//     let latestIcon = showIconPath[gameInfoIcon[data.latest.release.type]]
-//     console.log(latestIcon)
-// })

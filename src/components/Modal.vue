@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { useModal } from '@/composables/useModal'
-import { ref } from 'vue';
-import MyButton from './widget/MyButton.vue';
+import PButton from './widget/PButton.vue'
 
 const { isOpen, options, close } = useModal()
 const handleButtonClick = async (btn: any) => {
   if (btn.operation) await btn.operation()
   close(true)
 }
-
 </script>
 
 <template lang="pug">
@@ -24,15 +22,15 @@ const handleButtonClick = async (btn: any) => {
 
         .modal-footer
           template(v-if="options.buttons && options.buttons.length")
-            MyButton(
+            PButton(
               v-for="(btn, idx) in options.buttons"
               :key="idx"
               :type="btn.type"
-              @click="handleButtonClick(btn)"
+              :click="() => handleButtonClick(btn)"
             ) {{ btn.content }}
           template(v-else)
-            MyButton(@click="close(true)" type="tint") 确认
-            MyButton(@click="close(false)") 取消
+            PButton(:click="() => close(true)" type="tint") 确认
+            PButton(:click="() => close(false)" type="warn") 取消
 
 </template>
 
@@ -56,7 +54,7 @@ const handleButtonClick = async (btn: any) => {
   background-color: var(--color-background);
   border-radius: 6px;
   box-shadow: var(--box-shadow);
-  transition: transform 0.6s cubic-bezier(.4, 2, .6, 1);
+  transition: transform 0.6s cubic-bezier(0.4, 2, 0.6, 1);
 }
 
 .modal-header h2 {

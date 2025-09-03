@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
-import TitleMessage from './components/TitleMessage.vue'
-import { sideNavState, sideNavWidthStr } from '@/util/windowState';
-import WindowHeader from './components/WindowHeader.vue';
-import Modal from './components/Modal.vue';
-import SideTip from './components/SideTip.vue';
+import TitleMessage from './components/website/TitleMessage.vue'
+import useSideNavState from '@/stores/windowState'
+
+const sideNavState = useSideNavState()
+
+import WindowHeader from './components/WindowHeader.vue'
+import Modal from './components/Modal.vue'
+import SideTip from './components/SideTip.vue'
+// 引入 SvgDrawer 组件
+import SvgDrawer from './components/website/SVGDrawer.vue'
 </script>
 
 <template lang="pug">
@@ -23,25 +28,30 @@ import SideTip from './components/SideTip.vue';
     //- 一些浮动内容
     Modal()
     SideTip()
+  //- 添加 SvgDrawer 组件
+  //- SvgDrawer()
 </template>
 
 <style scoped>
 #page {
   position: relative;
   height: 100%;
-  width: 100%;
   z-index: 2;
+  position: relative;
+  flex: 1 1 0;
+  width: 100%;
+  overflow: hidden;
 }
 
-#page>div.side-nav-background {
+#page > div.side-nav-background {
   position: absolute;
   left: 0;
   top: 0;
-  width: v-bind('sideNavWidthStr');
+  width: v-bind('sideNavState.sideNavWidthStr');
   height: 100%;
   background: var(--color-background-soft);
   box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.15);
-  transition: width 0.4s cubic-bezier(.4, 1.8, .6, 1);
+  transition: width 0.4s cubic-bezier(0.4, 1.8, 0.6, 1);
   z-index: -1;
 }
 
@@ -55,13 +65,6 @@ import SideTip from './components/SideTip.vue';
   display: flex;
   flex-direction: column;
   position: relative;
-}
-
-#page {
-  position: relative;
-  flex: 1 1 0;
-  width: 100%;
-  overflow: hidden;
 }
 </style>
 

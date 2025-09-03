@@ -1,4 +1,4 @@
-import type { ButtonType } from "@/components/widget/MyButton.vue";
+import type { ButtonType } from "@/components/widget/PButton.vue";
 import { type Ref } from "vue";
 
 export interface ModalButtonOption {

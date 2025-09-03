@@ -28,9 +28,39 @@ a,
   display: flex;
   flex-direction: column;
   gap: 20px;
+  overflow-y: auto;
 }
 
 /* animate.css的属性 */
 :root {
   --animate-duration: 0.5s;
+}
+
+.option {
+  margin-bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.checkable {
+  transition: transform 0.2s ease;
+}
+
+.checkable:active {
+  transform: scale(0.8);
+}
+
+.button-grid {
+  margin-block: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 20px;
+}
+
+.loading-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
 }

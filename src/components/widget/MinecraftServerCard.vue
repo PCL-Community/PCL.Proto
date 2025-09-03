@@ -1,0 +1,106 @@
+<script lang="ts" setup>
+import { ref } from 'vue'
+import PCard from './PCard.vue'
+import PInput from './PInput.vue'
+import PButton from './PButton.vue'
+import type { McPingResult } from '@/util/mcPing'
+const address = ref<string>()
+const port = ref<number>(25565)
+
+const serverInput = ref<string>('127.0.0.1:31415')
+const cardVisible = ref<boolean>(false)
+const mcPingResult = ref<McPingResult>()
+
+async function queryServer(ip: string, port: number) {
+  console.log(`Querying server at ${ip}:${port}`)
+  // 暂时没有后端连接，前端模拟结果
+  mcPingResult.value = {
+    version: {
+      name: '1.19.4',
+      protocol: 756,
+    },
+    players: {
+      max: 100,
+      online: 10,
+      samples: [],
+    },
+    description: 'A Minecraft server',
+    favicon:
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg==',
+    latency: 100,
+    modInfo: {
+      type: 'vanilla',
+      modList: [],
+    },
+  }
+  cardVisible.value = true
+}
+
+async function performQuery() {
+  address.value = serverInput.value?.split(':')[0]
+  port.value = Number(serverInput.value?.split(':')[1]) || 25565
+  if (address.value && port.value) {
+    await queryServer(address.value, port.value)
+  }
+}
+</script>
+
+<template>
+  <PCard title="瞅眼服务器">
+    <div
+      style="
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        justify-content: space-around;
+        margin-bottom: 8px;
+      "
+    >
+      <PInput v-model="serverInput" placeholder="输入服务器地址" style="flex: 1" />
+      <PButton inline :click="performQuery">查询</PButton>
+    </div>
+    <div class="server-card" v-if="cardVisible">
+      <img class="server-favicon" :src="mcPingResult?.favicon" />
+      <div class="server-title">
+        <p style="font-size: 15px; font-weight: bold">Minecraft 服务器</p>
+        <p style="font-size: 12px">{{ mcPingResult?.description }}</p>
+      </div>
+      <div class="server-info">
+        <p>{{ mcPingResult?.players.online }}/{{ mcPingResult?.players.max }}</p>
+        <p class="latency-text">{{ mcPingResult?.latency }}ms</p>
+      </div>
+    </div>
+  </PCard>
+</template>
+
+<style scoped>
+.server-card {
+  background-image: url('@/assets/pictures/server_bg.png');
+  background-size: auto;
+  background-repeat: repeat-x;
+  image-rendering: pixelated;
+  height: 60px;
+  border-radius: 4px;
+  padding: 6px;
+  color: white;
+}
+
+.server-favicon {
+  image-rendering: pixelated;
+  height: 100%;
+  float: left;
+}
+
+.server-title {
+  float: left;
+  margin-left: 10px;
+}
+
+.server-info {
+  float: right;
+}
+
+.latency-text {
+  color: rgba(155, 240, 11, 1);
+}
+</style>
