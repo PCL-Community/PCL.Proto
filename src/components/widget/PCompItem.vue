@@ -108,12 +108,14 @@ const navigateToProject = () => {
   white-space: nowrap;
 }
 
-.inline-icon > svg {
+:deep(.inline-icon > svg) {
+  width: 13px;
+  height: 13px;
   max-width: 13px !important;
   max-height: 13px !important;
 }
 
-.icon-download > svg {
+:deep(.icon-download > svg) {
   width: 11px;
 }
 

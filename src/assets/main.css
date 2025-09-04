@@ -64,3 +64,9 @@ a,
   align-items: center;
   height: 100%;
 }
+
+/* 禁止大页面滚动 */
+body,
+html {
+  overflow: clip;
+}

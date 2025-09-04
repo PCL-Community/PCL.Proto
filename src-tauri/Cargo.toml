@@ -3,10 +3,9 @@ name = "pcl-proto"
 version = "0.5.0"
 description = "PCL.Proto"
 authors = ["AMagicPear"]
-license = ""
+license = "PCL-License"
 repository = "https://github.com/PCL-Community/PCL.Proto"
-edition = "2021"
-rust-version = "1.77.2"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -18,9 +17,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.2.0", features = [] }
 
 [dependencies]
-serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-log = "0.4"
-tauri = { version = "2.5.0", features = [] }
-tauri-plugin-log = "2.0.0-rc"
+serde_json = "1"
+serde = { version = "1", features = ["derive"] }
+log = "0"
+tauri = { version = "2", features = [] }
+tauri-plugin-log = "2"
 tauri-plugin-os = "2"
