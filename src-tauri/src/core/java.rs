@@ -1,7 +1,12 @@
 //! 本模块参考自 PCL-Community/PCL.Neo/PCL.Neo.Core 中的 JavaData.cs
 //! [PLC.Neo.Core](https://github.com/PCL-Community/PCL.Neo) | MIT license
 
-use std::{collections::HashSet, env, fs, path::Path, process::Command};
+use std::{
+    collections::HashSet,
+    env, fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 #[derive(Debug, PartialEq, serde::Serialize, Clone)]
 enum Architecture {
@@ -24,7 +29,7 @@ enum Compability {
 #[derive(Debug, serde::Serialize, Clone)]
 pub struct JavaRuntime {
     directory_path: String,
-    is_user_imported: bool,
+    pub(crate) is_user_imported: bool,
     version: String,
     slug_version: i32,
     is_64_bit: bool,
@@ -121,6 +126,7 @@ impl JavaRuntime {
         let mut collect_paths: HashSet<String> = HashSet::new();
         let home_dir = env::home_dir().unwrap();
         // TODO: 检查JAVA_HOME
+        // 搜索macOS特有目录
         #[cfg(target_os = "macos")]
         {
             pub fn search_macos(base_dir: &Path) -> HashSet<String> {
@@ -146,10 +152,37 @@ impl JavaRuntime {
             collect_paths.extend(search_macos(Path::new(
                 &home_dir.join("Library/Java/JavaVirtualMachines"),
             )));
-            if Path::new("/usr/bin/java").exists() {
-                collect_paths.insert("/usr/bin/java".to_string());
+        }
+        // 搜索PATH
+        {
+            if let Ok(path_var) = env::var("PATH") {
+                for path in env::split_paths(&path_var) {
+                    let exe_path = path.join(if cfg!(target_os = "windows") {
+                        "java.exe"
+                    } else {
+                        "java"
+                    });
+                    if exe_path.exists() {
+                        collect_paths.insert(exe_path.to_string_lossy().into_owned());
+                    }
+                }
             }
         }
+        // 搜索Windows目录
+        // #[cfg(target_os = "windows")]
+        // {
+        //     for dirve in (b'A'..=b'Z')
+        //         .map(|c| format!("{}:", c as char))
+        //         .map(PathBuf::from)
+        //         .collect::<Vec<PathBuf>>()
+        //     {
+        //         if let Ok(metadata) = fs::metadata(&dirve){
+        //             if metadata.is_dir(){
+
+        //             }
+        //         }
+        //     }
+        // }
         // 使用try_from映射valid_paths到结果
         collect_paths
             .iter()

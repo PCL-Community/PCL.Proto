@@ -17,7 +17,8 @@ pub async fn add_java(
 ) -> Result<JavaRuntime, ()> {
     if let Some(file_path) = app.dialog().file().blocking_pick_file() {
         let file_path_str = file_path.to_string();
-        if let Ok(java_runtime) = JavaRuntime::try_from(file_path_str.as_str()) {
+        if let Ok(mut java_runtime) = JavaRuntime::try_from(file_path_str.as_str()) {
+            java_runtime.is_user_imported = true;
             let mut state = state.lock().unwrap();
             if state.java_runtimes.contains(&java_runtime) {
                 return Err(());
