@@ -1,0 +1,23 @@
+{
+  "app": {
+    "windows": [
+      {
+        "title": "",
+        "width": 814,
+        "height": 464,
+        "minHeight": 464,
+        "minWidth": 814,
+        "resizable": true,
+        "fullscreen": false,
+        "titleBarStyle": "Overlay",
+        "trafficLightPosition": {
+          "x": 14.0,
+          "y": 26.0
+        }
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}

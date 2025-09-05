@@ -23,13 +23,6 @@ pub fn run() {
                         .build(),
                 )?;
             }
-            #[cfg(target_os = "windows")]
-            {
-                // Windows 特供窗口设置
-                let main_window = app.get_webview_window("main").unwrap();
-                main_window.set_decorations(true)?;
-                main_window.set_title("PCL.Proto")?;
-            }
             app.manage(Mutex::new(AppState::default()));
             Ok(())
         })
