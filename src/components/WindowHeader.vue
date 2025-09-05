@@ -11,7 +11,7 @@ import currentPlatform from '@/util/platform'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 
 const sideNavState = useSideNavState()
-const appWindow = getCurrentWindow();
+const appWindow = getCurrentWindow()
 
 const isSubPage = ref(false)
 const route = useRoute()
@@ -19,6 +19,7 @@ const router = useRouter()
 
 const fromPage = ref<string>() // 在进入特殊页面时记录的来源页面
 const title = ref<string>() // 页面标题
+const isFullscreen = ref(false)
 
 // 监听路由变化，判断是否为特殊页面，并记录来源页面
 watch(
@@ -49,6 +50,10 @@ const backClicked = () => {
     router.back()
   }
 }
+
+appWindow.onResized(async () => {
+  isFullscreen.value = await appWindow.isFullscreen()
+})
 </script>
 
 <template lang="pug">
@@ -138,7 +143,11 @@ header .center {
 }
 
 .mac-margin-title {
-  margin-left: 64px;
+  margin-left: v-bind("isFullscreen ? '0px' : '64px'");
+}
+
+.mac-margin-nav {
+  margin-left: v-bind("isFullscreen ? '0px' : '40px'");
 }
 
 header .right {
@@ -179,10 +188,6 @@ header #main-nav {
   /* justify-self: center; */
   display: inline-flex;
   gap: 5px;
-}
-
-.mac-margin-nav {
-  margin-left: 40px;
 }
 
 /* 导航栏元素 */
