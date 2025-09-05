@@ -1,0 +1,200 @@
+//! 本模块参考自 PCL-Community/PCL.Neo/PCL.Neo.Core 中的 JavaData.cs
+//! [PLC.Neo.Core](https://github.com/PCL-Community/PCL.Neo) | MIT license
+
+use std::{path::Path, process::Command};
+
+#[derive(Debug, PartialEq, serde::Serialize, Clone)]
+enum Architecture {
+    X86,
+    X64,
+    Arm64,
+    FatFile,
+    Unknown,
+}
+
+#[derive(Debug, serde::Serialize, Clone)]
+enum Compability {
+    Perfect,
+    Translation,
+    No,
+    Unknown,
+}
+
+/// 表示Java运行时的结构体
+#[derive(Debug, serde::Serialize, Clone)]
+pub struct JavaRuntime {
+    directory_path: String,
+    is_user_imported: bool,
+    version: String,
+    slug_version: i32,
+    is_64_bit: bool,
+    architecture: Architecture,
+    compability: Compability,
+    is_jdk: bool,
+    java_exe: String,
+    implementor: Option<String>,
+}
+
+#[derive(Debug)]
+pub enum JavaRuntimeConstructorError {
+    MissingFile,
+    InvalidRuntime,
+}
+
+impl JavaRuntime {
+    /// 从release文件中读取Java运行时的信息
+    fn read_release_file(release_file: &Path) -> (Option<String>, Option<String>, Architecture) {
+        let release_content = std::fs::read_to_string(release_file).unwrap();
+
+        let mut implementor = None;
+        let mut version = None;
+        let mut architecture = Architecture::Unknown;
+
+        for line in release_content.lines() {
+            if line.starts_with("IMPLEMENTOR=") {
+                implementor = Some(
+                    line.split('=')
+                        .nth(1)
+                        .unwrap_or("")
+                        .trim_matches('"')
+                        .to_string(),
+                );
+            } else if line.starts_with("JAVA_VERSION=") {
+                version = Some(
+                    line.split('=')
+                        .nth(1)
+                        .unwrap_or("")
+                        .trim_matches('"')
+                        .to_string(),
+                );
+            } else if line.starts_with("OS_ARCH=") {
+                let arch = line.split('=').nth(1).unwrap_or("").trim_matches('"');
+                architecture = match arch {
+                    "x86_64" => Architecture::X64,
+                    "aarch64" => Architecture::Arm64,
+                    "i386" | "i686" => Architecture::X86,
+                    // 可以根据需要添加更多架构映射
+                    _ => Architecture::Unknown,
+                };
+            }
+
+            // 如果已经获取了所有需要的信息，可以提前结束循环
+            if !implementor.is_none() && !version.is_none() && architecture != Architecture::Unknown
+            {
+                break;
+            }
+        }
+
+        (implementor, version, architecture)
+    }
+
+    /// 解析Java版本字符串为Slug版本号
+    fn parse_to_slug_version(version: &str) -> Option<i32> {
+        let mut version_split: std::str::Split<'_, char> = version.split('.');
+        // 如果第一个不是1 则返回第一个的数字
+        // 如果第一个是1 则返回第二个的数字
+        let first = version_split.next();
+        if let Some(first) = first {
+            if first == "1" {
+                if let Some(second) = version_split.next() {
+                    return second.parse().ok();
+                }
+            } else {
+                return first.parse().ok();
+            }
+        }
+        None
+    }
+
+    /// 搜索系统中安装的Java运行时
+    fn search() -> Vec<Self> {
+        Vec::new()
+    }
+}
+
+impl TryFrom<&str> for JavaRuntime {
+    type Error = JavaRuntimeConstructorError;
+    fn try_from(java_path: &str) -> Result<Self, Self::Error> {
+        println!("[java] 创建JavaRuntime: {java_path}");
+        let java_path = Path::new(java_path);
+        if !java_path.exists() {
+            return Err(JavaRuntimeConstructorError::MissingFile);
+        }
+        let directory = java_path.parent().unwrap();
+        // 检查是否有javac来判断是否是JDK
+        let is_jdk = directory
+            .join(if cfg!(target_os = "windows") {
+                "javac.exe"
+            } else {
+                "javac"
+            })
+            .exists();
+
+        // 尝试读取RELEASE文件的信息
+        let mut version: Option<String> = None;
+        let mut implementor: Option<String> = None;
+        let mut architecture: Architecture = Architecture::Unknown;
+        if let Some(parent_dir) = directory.parent() {
+            let release_file = parent_dir.join("release");
+            if release_file.exists() {
+                let (imp, ver, arch) = Self::read_release_file(&release_file);
+                implementor = imp;
+                version = ver;
+                architecture = arch;
+            }
+        }
+
+        // 若版本未被设置，运行 java -version 获取版本
+        if version.is_none() {
+            // 如果Error返回InvalidRuntime
+            let output = Command::new(java_path)
+                .arg("-version")
+                .output()
+                .map_err(|_| JavaRuntimeConstructorError::InvalidRuntime)?;
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let version_regex = regex::Regex::new(r#"version\s+"([\d._]+)"#).unwrap();
+            if let Some(captures) = version_regex.captures(&stderr) {
+                version = Some(captures[1].to_string());
+            }
+        }
+
+        // 设置slug Version
+        let slug_version = Self::parse_to_slug_version(version.as_deref().unwrap_or_default());
+
+        Ok(JavaRuntime {
+            directory_path: directory.to_string_lossy().to_string(),
+            is_user_imported: false,
+            version: version.unwrap_or_default(),
+            slug_version: slug_version.unwrap_or(0),
+            is_64_bit: architecture != Architecture::X86 && architecture != Architecture::Unknown,
+            architecture,
+            compability: Compability::Unknown,
+            is_jdk,
+            java_exe: java_path.to_string_lossy().to_string(),
+            implementor,
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn java_test1() {
+        println!(
+            "{:?}",
+            JavaRuntime::try_from(
+                "/Library/Java/JavaVirtualMachines/zulu-21.jdk/Contents/Home/bin/java",
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn java_test_2() {
+        let java_runtime = JavaRuntime::try_from("/usr/bin/java").unwrap();
+        println!("{:?}", java_runtime);
+        assert_eq!(java_runtime.version, "24.0.2");
+    }
+}

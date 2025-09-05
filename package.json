@@ -1,6 +1,6 @@
 {
   "name": "@amagicpear/pcl-proto",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/plugin-dialog": "~2",
     "@tauri-apps/plugin-os": "~2.3.1",
     "animate.css": "^4.1.1",
     "marked": "^16.2.1",

@@ -1,41 +1,36 @@
-import { localApiEndpoint } from "./localApi";
+// import { localApiEndpoint } from "./localApi";
 
-export const archMap: Record<number, string> = {
-    0: 'x86',
-    1: 'x64',
-    2: 'arm64',
-    3: 'FatFile',
-    4: 'Unknown'
-};
+import { invoke } from "@tauri-apps/api/core";
 
 export interface IJavaRuntimeInfo {
-    directoryPath: string,
-    isUserImport: boolean,
+    directory_path: string,
+    is_user_imported: boolean,
     version: string,
-    slugVersion: number,
-    is64Bit: boolean,
-    architecture: number,
+    slug_version: number,
+    is_64_bit: boolean,
+    architecture: 'X86' | 'X64' | 'Arm64' | 'FatFile' | 'Unknown',
     compability: number,
-    isJre: boolean,
-    javaExe: string,
-    javaWExe: string,
+    is_jdk: boolean,
+    java_exe: string,
     implementor: string,
 }
-export default () => {
-    async function getJavaList(): Promise<IJavaRuntimeInfo[]> {
-        const res = await fetch(new URL('java/list', localApiEndpoint.value));
-        const data = await res.json();
-        return data;
-    }
 
-    async function refreshJavaList() {
-        const res = await fetch(new URL('java/refresh', localApiEndpoint.value), { method: 'POST' })
-        const data = await res.json();
-        return data
-    }
+async function getJavaList(): Promise<IJavaRuntimeInfo[]> {
+    const javaList = await invoke<IJavaRuntimeInfo[]>('get_java_list')
+    return javaList;
+    // const res = await fetch(new URL('java/list', localApiEndpoint.value));
+    // const data = await res.json();
+    // return data;
+}
 
-    return {
-        getJavaList,
-        refreshJavaList
-    }
+async function refreshJavaList() {
+    return { success: true }
+    // const res = await fetch(new URL('java/refresh', localApiEndpoint.value), { method: 'POST' })
+    // const data = await res.json();
+    // return data
+}
+
+export {
+    getJavaList,
+    refreshJavaList
 }
