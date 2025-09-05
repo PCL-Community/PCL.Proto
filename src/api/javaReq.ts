@@ -24,7 +24,7 @@ async function getJavaList(): Promise<IJavaRuntimeInfo[]> {
 }
 
 async function refreshJavaList() {
-    return { success: true }
+    return await invoke<IJavaRuntimeInfo[]>('refresh_java_list')
     // const res = await fetch(new URL('java/refresh', localApiEndpoint.value), { method: 'POST' })
     // const data = await res.json();
     // return data

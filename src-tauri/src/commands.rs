@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use crate::{AppState, core::java::JavaRuntime};
 use tauri::{AppHandle, Emitter, State};
@@ -13,12 +13,15 @@ pub fn launch_game(app: AppHandle) {
 #[tauri::command]
 pub async fn add_java(
     app: AppHandle,
-    state: State<'_, Mutex<AppState>>,
+    state: State<'_, Arc<Mutex<AppState>>>,
 ) -> Result<JavaRuntime, ()> {
     if let Some(file_path) = app.dialog().file().blocking_pick_file() {
         let file_path_str = file_path.to_string();
         if let Ok(java_runtime) = JavaRuntime::try_from(file_path_str.as_str()) {
             let mut state = state.lock().unwrap();
+            if state.java_runtimes.contains(&java_runtime) {
+                return Err(());
+            }
             state.java_runtimes.push(java_runtime.clone());
             return Ok(java_runtime);
         } else {
@@ -30,7 +33,17 @@ pub async fn add_java(
 }
 
 #[tauri::command]
-pub fn get_java_list(state: State<'_, Mutex<AppState>>) -> Vec<JavaRuntime> {
+pub fn get_java_list(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<JavaRuntime> {
     let state = state.lock().unwrap();
     state.java_runtimes.clone()
+}
+
+#[tauri::command]
+pub async fn refresh_java_list(
+    state: State<'_, Arc<Mutex<AppState>>>,
+) -> Result<Vec<JavaRuntime>, ()> {
+    let java_runtimes = JavaRuntime::search().await;
+    let mut state = state.lock().unwrap();
+    state.java_runtimes = java_runtimes.clone();
+    return Ok(java_runtimes);
 }

@@ -32,9 +32,7 @@ const refresh = async () => {
   error.value = null
   loading.value = true
   try {
-    let status = await refreshJavaList()
-    if (status.success != true) throw new Error('刷新 Java 列表失败')
-    javaList.value = await getJavaList()
+    javaList.value = await refreshJavaList()
     sideTip.show('Java 列表已成功刷新', 'default')
   } catch (err: any) {
     error.value = err.toString()
@@ -62,7 +60,7 @@ async function manualAdd() {
       <CardInfoItem
         v-for="runtime in javaList"
         :key="runtime.directory_path"
-        :title="`${runtime.is_jdk ? 'JDK' : 'JRE'} ${runtime.slug_version}(${runtime.version}) ${runtime.architecture} ${runtime.implementor}`"
+        :title="`${runtime.is_jdk ? 'JDK' : 'JRE'} ${runtime.slug_version}(${runtime.version}) ${runtime.architecture} ${runtime.implementor ?? ''}`"
         :subtitle="runtime.directory_path"
       />
       <div class="refrsh-button-wrapper">

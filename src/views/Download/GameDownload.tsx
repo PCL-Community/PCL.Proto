@@ -4,42 +4,49 @@ import { showIconPath, type showIconType } from '@/util/gameInfo'
 import { getMinecraftVersions } from '@/api/gameVersions'
 import { defineComponent, onMounted } from 'vue'
 import PLoading from '@/components/widget/PLoading.vue'
+import { useRouter } from 'vue-router'
 let { cacheVersionData, versionDataRef } = getMinecraftVersions()
-
-function clickOnVersion(version: string) {
-  console.log('点击了版本', version)
-}
-
-const renderVersionSection = (
-  title: string,
-  dataKey: 'release' | 'snapshot' | 'old',
-  icon: showIconType,
-) => (
-  <PCard defaultFoldStatus="fold">
-    {{
-      title: () => `${title} (${versionDataRef.value?.[dataKey]?.length || 0})`,
-      content: () =>
-        versionDataRef.value?.[dataKey]?.map((item) => (
-          <CardInfoItem
-            key={item.id}
-            icon={showIconPath[icon]}
-            title={item.id}
-            subtitle={`发布于 ${item.releaseTime}`}
-            isGameInfo
-            click={() => clickOnVersion(item.id)}
-          />
-        )),
-    }}
-  </PCard>
-)
 
 export default defineComponent({
   setup() {
+    const router = useRouter()
     onMounted(() => {
       if (!cacheVersionData) {
         console.warn('缓存不存在')
       }
     })
+
+    const renderVersionSection = (
+      title: string,
+      dataKey: 'release' | 'snapshot' | 'old',
+      icon: showIconType,
+    ) => (
+      <PCard defaultFoldStatus="fold">
+        {{
+          title: () => `${title} (${versionDataRef.value?.[dataKey]?.length || 0})`,
+          content: () =>
+            versionDataRef.value?.[dataKey]?.map((item) => (
+              <CardInfoItem
+                key={item.id}
+                icon={showIconPath[icon]}
+                title={item.id}
+                subtitle={`发布于 ${item.releaseTime}`}
+                isGameInfo
+                click={() => clickOnVersion(item.id)}
+              />
+            )),
+        }}
+      </PCard>
+    )
+    function clickOnVersion(version: string) {
+      console.log('点击了版本', version, router)
+      router.push({
+        path: '/downloading',
+        // query: {
+        //   version,
+        // },
+      })
+    }
     return () =>
       versionDataRef.value ? (
         <>

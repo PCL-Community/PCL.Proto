@@ -62,7 +62,7 @@ export default defineComponent({
           animateSubview()
           // 均使用本组件的页面切换时本组件会复用，因此需要重新应用侧边动画
           // 但是在同样一级页面内跳转二级页面时无需再次动画
-          if (from.matched[0].name !== to.matched[0].name) {
+          if (from.matched[0]!.name !== to.matched[0]!.name) {
             animateSidenavLines()
           }
         })
@@ -99,13 +99,6 @@ export default defineComponent({
 </template>
 
 <style scoped>
-.view-content {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-}
-
 article {
   flex: 1 1 auto;
   overflow-y: auto;

@@ -1,13 +1,14 @@
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tauri::Manager;
 mod commands;
-
 mod core;
+mod setup;
 mod util;
 
 #[derive(Default)]
 struct AppState {
     java_runtimes: Vec<core::java::JavaRuntime>,
+    pcl_setup_info: setup::PCLSetupInfo,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -23,7 +24,14 @@ pub fn run() {
                         .build(),
                 )?;
             }
-            app.manage(Mutex::new(AppState::default()));
+            let state = Arc::new(Mutex::new(AppState::default()));
+            app.manage(state.clone());
+            // 初始化时搜索Java
+            tauri::async_runtime::spawn(async move {
+                let java_runtimes = core::java::JavaRuntime::search().await;
+                let mut guard = state.lock().unwrap();
+                guard.java_runtimes = java_runtimes;
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -31,6 +39,7 @@ pub fn run() {
             util::toys::get_lucky_today,
             commands::add_java,
             commands::get_java_list,
+            commands::refresh_java_list,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

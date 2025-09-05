@@ -18,6 +18,7 @@ import HomeNew from '@/views/Home/HomeNew'
 import PageComp from '@/views/Download/PageComp.vue'
 import ResouceVersions from '@/views/Download/ResourceVersions.vue'
 import WonderBox from '@/views/More/WonderBox'
+import Dowloading from '@/views/Download/Dowloading.vue'
 
 // const selectedInstance = useSelectedInstance()
 const router = createRouter({
@@ -175,6 +176,12 @@ const router = createRouter({
       name: 'homepageeditor',
       component: () => import('@/views/More/HomepageEditor.vue'),
       meta: { isSubPage: true, title: ' PCL 主页制作器', fullPage: true },
+    },
+    {
+      path: '/downloading',
+      name: 'downloading',
+      component: Dowloading,
+      meta: { fullPage: false },
     }
   ],
 })

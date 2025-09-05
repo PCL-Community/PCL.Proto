@@ -128,11 +128,4 @@ article {
   flex: 1 1 0;
   overflow-y: auto;
 }
-
-.view-content {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-}
 </style>

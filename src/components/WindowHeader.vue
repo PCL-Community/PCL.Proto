@@ -39,6 +39,9 @@ watch(
     if (route.meta.fullPage) {
       sideNavState.setWidth(0)
     }
+    if (newPath == '/downloading') {
+      fromPage.value = oldPath
+    }
   },
   { immediate: true },
 )

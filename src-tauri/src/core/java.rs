@@ -1,7 +1,7 @@
 //! 本模块参考自 PCL-Community/PCL.Neo/PCL.Neo.Core 中的 JavaData.cs
 //! [PLC.Neo.Core](https://github.com/PCL-Community/PCL.Neo) | MIT license
 
-use std::{path::Path, process::Command};
+use std::{collections::HashSet, env, fs, path::Path, process::Command};
 
 #[derive(Debug, PartialEq, serde::Serialize, Clone)]
 enum Architecture {
@@ -33,6 +33,12 @@ pub struct JavaRuntime {
     is_jdk: bool,
     java_exe: String,
     implementor: Option<String>,
+}
+
+impl PartialEq for JavaRuntime {
+    fn eq(&self, other: &Self) -> bool {
+        self.directory_path == other.directory_path
+    }
 }
 
 #[derive(Debug)]
@@ -106,16 +112,56 @@ impl JavaRuntime {
         None
     }
 
+    /// 读取文件头确定Java可执行文件的架构
+    fn read_architecture(java_path: &str) -> Architecture {
+        Architecture::Unknown
+    }
     /// 搜索系统中安装的Java运行时
-    fn search() -> Vec<Self> {
-        Vec::new()
+    pub async fn search() -> Vec<Self> {
+        let mut collect_paths: HashSet<String> = HashSet::new();
+        let home_dir = env::home_dir().unwrap();
+        // TODO: 检查JAVA_HOME
+        #[cfg(target_os = "macos")]
+        {
+            pub fn search_macos(base_dir: &Path) -> HashSet<String> {
+                let mut result = HashSet::new();
+                if !base_dir.exists() || !base_dir.is_dir() {
+                    println!("搜索路径不存在: {:?}", base_dir);
+                    return result;
+                }
+                if let Ok(entries) = fs::read_dir(base_dir) {
+                    for entry in entries.flatten() {
+                        let entry_path = entry.path();
+                        if entry_path.is_dir() {
+                            let java_path = entry_path.join("Contents/Home/bin/java");
+                            if java_path.exists() {
+                                result.insert(java_path.to_string_lossy().into_owned());
+                            }
+                        }
+                    }
+                }
+                result
+            }
+            collect_paths.extend(search_macos(Path::new("/Library/Java/JavaVirtualMachines")));
+            collect_paths.extend(search_macos(Path::new(
+                &home_dir.join("Library/Java/JavaVirtualMachines"),
+            )));
+            if Path::new("/usr/bin/java").exists() {
+                collect_paths.insert("/usr/bin/java".to_string());
+            }
+        }
+        // 使用try_from映射valid_paths到结果
+        collect_paths
+            .iter()
+            .filter_map(|path| Self::try_from(path.as_str()).ok())
+            .collect()
     }
 }
 
 impl TryFrom<&str> for JavaRuntime {
     type Error = JavaRuntimeConstructorError;
     fn try_from(java_path: &str) -> Result<Self, Self::Error> {
-        println!("[java] 创建JavaRuntime: {java_path}");
+        // println!("[java] 创建JavaRuntime: {java_path}");
         let java_path = Path::new(java_path);
         if !java_path.exists() {
             return Err(JavaRuntimeConstructorError::MissingFile);
@@ -196,5 +242,11 @@ mod tests {
         let java_runtime = JavaRuntime::try_from("/usr/bin/java").unwrap();
         println!("{:?}", java_runtime);
         assert_eq!(java_runtime.version, "24.0.2");
+    }
+
+    #[tokio::test]
+    async fn java_search() {
+        let java_runtimes = JavaRuntime::search().await;
+        println!("{:?}", java_runtimes);
     }
 }

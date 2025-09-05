@@ -70,3 +70,10 @@ body,
 html {
   overflow: clip;
 }
+
+.view-content {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
