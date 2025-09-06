@@ -9,7 +9,7 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/PCL.Proto/',
+  base: process.env.TAURI_ENV_PLATFORM ? '/' : '/PCL.Proto/',
   clearScreen: false,
   server: {
     port: 5173,

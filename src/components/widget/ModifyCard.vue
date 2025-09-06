@@ -30,7 +30,7 @@ const description = computed(() => {
         <span>{{ description.version }} </span>
       </div>
       <div v-else class="incompatible">
-        <span>与 {{ pluginShowText[selectedInstance.plugins[0]] }} 不兼容</span>
+        <span>与 {{ pluginShowText[selectedInstance.plugins[0] as pluginType] }} 不兼容</span>
       </div>
     </template>
   </PCard>

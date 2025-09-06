@@ -5,7 +5,7 @@
   "identifier": "pcl-community.pcl.proto",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:5173/PCL.Proto/",
+    "devUrl": "http://localhost:5173/",
     "beforeDevCommand": "bun dev",
     "beforeBuildCommand": "bun run build"
   },
