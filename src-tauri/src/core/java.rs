@@ -1,4 +1,4 @@
-//! 本模块参考自 PCL-Community/PCL.Neo/PCL.Neo.Core 中的 JavaData.cs
+//! Referenced from JavaData.cs of PCL-Community/PCL.Neo/PCL.Neo.Core
 //! [PLC.Neo.Core](https://github.com/PCL-Community/PCL.Neo) | MIT license
 
 use std::{
@@ -25,7 +25,7 @@ enum Compability {
     Unknown,
 }
 
-/// 表示Java运行时的结构体
+/// struct of java runtime
 #[derive(Debug, serde::Serialize, Clone)]
 pub struct JavaRuntime {
     directory_path: String,
@@ -53,7 +53,7 @@ pub enum JavaRuntimeConstructorError {
 }
 
 impl JavaRuntime {
-    /// 从release文件中读取Java运行时的信息
+    /// read release file of java runtime
     fn read_release_file(release_file: &Path) -> (Option<String>, Option<String>, Architecture) {
         let release_content = std::fs::read_to_string(release_file).unwrap();
 
@@ -99,11 +99,13 @@ impl JavaRuntime {
         (implementor, version, architecture)
     }
 
-    /// 解析Java版本字符串为Slug版本号
+    /// parse java version string to slug version number
     fn parse_to_slug_version(version: &str) -> Option<i32> {
         let mut version_split: std::str::Split<'_, char> = version.split('.');
-        // 如果第一个不是1 则返回第一个的数字
-        // 如果第一个是1 则返回第二个的数字
+        // for purpose of distinguish java 8 or 11 and later
+        // example:
+        // java 8: 1.8.0_362
+        // java 11: 11.0.19
         let first = version_split.next();
         if let Some(first) = first {
             if first == "1" {
@@ -117,22 +119,22 @@ impl JavaRuntime {
         None
     }
 
-    /// 读取文件头确定Java可执行文件的架构
+    /// read architecture of java runtime from the elf/pe head
     fn read_architecture(java_path: &str) -> Architecture {
         Architecture::Unknown
     }
-    /// 搜索系统中安装的Java运行时
+    /// search java runtime in system
     pub async fn search() -> Vec<Self> {
         let mut collect_paths: HashSet<String> = HashSet::new();
         let home_dir = env::home_dir().unwrap();
-        // TODO: 检查JAVA_HOME
-        // 搜索macOS特有目录
+        // TODO: check java home
+        // search macOS specific directory
         #[cfg(target_os = "macos")]
         {
             pub fn search_macos(base_dir: &Path) -> HashSet<String> {
                 let mut result = HashSet::new();
                 if !base_dir.exists() || !base_dir.is_dir() {
-                    println!("搜索路径不存在: {:?}", base_dir);
+                    println!("macOS search path not exists: {:?}", base_dir);
                     return result;
                 }
                 if let Ok(entries) = fs::read_dir(base_dir) {
@@ -153,7 +155,7 @@ impl JavaRuntime {
                 &home_dir.join("Library/Java/JavaVirtualMachines"),
             )));
         }
-        // 搜索PATH
+        // search PATH
         {
             if let Ok(path_var) = env::var("PATH") {
                 for path in env::split_paths(&path_var) {
@@ -168,7 +170,7 @@ impl JavaRuntime {
                 }
             }
         }
-        // 搜索Windows目录
+        // walk windows directory
         // #[cfg(target_os = "windows")]
         // {
         //     for dirve in (b'A'..=b'Z')
@@ -178,7 +180,6 @@ impl JavaRuntime {
         //     {
         //         if let Ok(metadata) = fs::metadata(&dirve){
         //             if metadata.is_dir(){
-
         //             }
         //         }
         //     }

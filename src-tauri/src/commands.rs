@@ -7,7 +7,11 @@ use tauri_plugin_dialog::DialogExt;
 #[tauri::command]
 pub fn launch_game(app: AppHandle) {
     println!("[game] launch_game invoked from js.");
-    app.emit("modal-open", "启动游戏功能尚未实现！").unwrap();
+    app.emit(
+        "modal-open",
+        "Game launching feature is not implemented yet!",
+    )
+    .unwrap();
 }
 
 #[tauri::command]

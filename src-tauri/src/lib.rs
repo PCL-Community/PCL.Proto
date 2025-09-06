@@ -26,7 +26,7 @@ pub fn run() {
             }
             let state = Arc::new(Mutex::new(AppState::default()));
             app.manage(state.clone());
-            // 初始化时搜索Java
+            // search for Java during init
             tauri::async_runtime::spawn(async move {
                 let java_runtimes = core::java::JavaRuntime::search().await;
                 let mut guard = state.lock().unwrap();
