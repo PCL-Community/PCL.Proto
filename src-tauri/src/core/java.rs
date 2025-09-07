@@ -1,12 +1,7 @@
 //! Referenced from JavaData.cs of PCL-Community/PCL.Neo/PCL.Neo.Core
 //! [PLC.Neo.Core](https://github.com/PCL-Community/PCL.Neo) | MIT license
 
-use std::{
-    collections::HashSet,
-    env, fs,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{collections::HashSet, env, fs, path::Path, process::Command};
 
 #[derive(Debug, PartialEq, serde::Serialize, Clone)]
 enum Architecture {

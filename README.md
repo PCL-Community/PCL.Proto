@@ -10,7 +10,7 @@ With the rapid launch of PCL branch versions, UI restoration has become a major 
 
 ![screenshot](./screenshot.png)
 
-This project is based on [PCL2](https://github.com/Hex-Dragon/PCL2) and [PCL2-CE](https://github.com/PCL-Community/PCL2-CE), with a goal of providing a standardized prototype sample for each PCL branch version. The repository is built using Vue3, and if your project uses Webview as the frontend, you can directly reference this project.
+This project is modeled after [PCL2](https://github.com/Hex-Dragon/PCL2) and [PCL2-CE](https://github.com/PCL-Community/PCL2-CE), with a goal of providing a standardized prototype sample for each PCL branch version. The repository is built using Vue3, and if your project uses Webview as the frontend, you can directly reference this project.
 
 The project is also ready for preview at [PCL.Proto](https://www.amagicpear.sbs/PCL.Proto/).
 
@@ -22,9 +22,15 @@ In case you would like to modify the prototype design file, you are welcome to [
 
 ## Project Configuration
 
+### Prerequisites
+
+- First, please ensure that `nodejs` or `bun` is installed on your device. If you use `npm` as the package manager, you can replace all `bun` commands below with `npm`.
+- The device should have a usable rust toolchain installed. For Windows, the MSVC version of the toolchain is required. Additionally, ensure that you have installed the MSVC suite from the C++ development tools and the Windows SDK in the Visual Studio Installer. For macOS, make sure that Xcode is installed.
+
 > [!NOTE]
-> First, please ensure that `nodejs` or `bun` is installed on your device. If you use `npm` as the package manager, you can replace all `bun` commands below with `npm`.
-> Additionally, you need to ensure that the `rust` toolchain is installed on your device. If you have any questions, please refer to [Prerequisites | Tauri](https://tauri.app/zh-cn/start/prerequisites/).
+> If you have any questions, please refer to [Prerequisites | Tauri](https://tauri.app/zh-cn/start/prerequisites/).
+
+### Project Dependencies
 
 Currently, the project is a Tauri + Vue3 + Vite project. Before running the project for the first time, please run the following command to install the front-end dependencies:
 
@@ -45,6 +51,37 @@ Then, use `bun run tauri icon` to automatically generate icons. You can then sta
 bun run tauri dev
 ```
 
+### Build Tauri App
+
+If only `bun` is installed on your device but `nodejs` is not installed, please change the`build/foreBuildCommand` content in `src-auri/tauri.conf.json `from `bun run build` to `bun run build-only`, which also needs to be modified when using npm.
+
 ## HELP WANTED!!
 
 I want to make this project into a Vue component npm package, but I don't know how to do it. If there are any experts who can do component libraries, please contact me! Thank you!
+
+## Credits
+
+> If I have seen further it is by standing on ye shoulder of Giants.  
+> —— Sir Isaac Newton
+
+### Directed referenced projects
+
+[Vue.js](https://github.com/vuejs/core)
+[TypeScript](https://github.com/microsoft/TypeScript)
+[Pug](https://github.com/pugjs/pug)
+[Vite](https://github.com/vitejs/vite)
+[Vue Router](https://github.com/vuejs/vue-router-next)
+[xml-js](https://www.npmjs.com/package/xml-js)
+[Pinia](https://pinia.vuejs.org/)
+[skinview3d](https://github.com/bs-community/skinview3d)
+[Bun](https://bun.com/)
+[Rust Programming Language](https://www.rust-lang.org/)
+[Tauri](https://tauri.app/)
+
+### Implementation or design reference
+
+[Plain Craft Launcher](https://github.com/Meloong-Git/PCL)
+[PCL2-CE](https://github.com/PCL-Community/PCL2-CE)
+[PCL.Neo](https://github.com/PCL-Community/PCL.Neo)
+[xphost008/MMCLL](https://github.com/xphost008/MMCLL)
+[Steve-xmh/scl](https://github.com/Steve-xmh/scl)
