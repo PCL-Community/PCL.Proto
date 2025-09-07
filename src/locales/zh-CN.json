@@ -1,0 +1,23 @@
+{
+  "main_nav": {
+    "home": "启动",
+    "download": "下载",
+    "link": "联机",
+    "setup": "设置",
+    "more": "更多"
+  },
+  "home": {
+    "launch_game": "启动游戏",
+    "instance_select": "实例选择",
+    "instance_setting": "实例设置"
+  },
+  "download": {
+    "nav": {
+      "minecraft": "Minecraft",
+      "game_download": "游戏下载",
+      "manual_install": "手动安装",
+      "community_resource": "社区资源",
+      "mod": "Mod"
+    }
+  }
+}

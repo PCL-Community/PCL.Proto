@@ -91,8 +91,8 @@ export default defineComponent({
     aside(ref="asideRef")
         SideGroup(
             v-for="group in sideNavGroups"
-            :title="group.title"
-            :content="group.content"
+            :title="group.title ? $t(group.title) : undefined"
+            :content="group.content.map(item => ({ ...item, text: $t(item.text) }))"
 )
     article.subview(ref="subviewRef")
         RouterView()

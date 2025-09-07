@@ -1,8 +1,7 @@
 <script lang="ts" setup>
-
 defineProps<INavItemGroup>()
-import SideNavItem from './SideNavItem.vue';
-import { type INavItemGroup } from '@/types/naviOptions';
+import SideNavItem from './SideNavItem.vue'
+import { type INavItemGroup } from '@/types/naviOptions'
 </script>
 
 <template lang="pug">
@@ -17,16 +16,15 @@ import { type INavItemGroup } from '@/types/naviOptions';
                 :linkto="item.linkto")
 </template>
 
-
 <style lang="css" scoped>
 .side-group-content {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .side-group-title {
-    margin-left: 12px;
-    font-size: 11px;
-    color: var(--color-text-grey);
+  margin-left: 12px;
+  font-size: 11px;
+  color: var(--color-text-grey);
 }
 </style>

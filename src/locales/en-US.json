@@ -1,0 +1,23 @@
+{
+  "main_nav": {
+    "home": "Launch",
+    "download": "Download",
+    "link": "Link",
+    "setup": "Setup",
+    "more": "More"
+  },
+  "home": {
+    "launch_game": "Launch Game",
+    "instance_select": "Instance Select",
+    "instance_setting": "Instance Setting"
+  },
+  "download": {
+    "nav": {
+      "minecraft": "Minecraft",
+      "game_download": "Game Download",
+      "manual_install": "Manual Install",
+      "community_resource": "Community Resource",
+      "mod": "Mod"
+    }
+  }
+}

@@ -53,10 +53,10 @@ const gameName = computed(() => {
         p.gray 点击上方用户名可输入
       #button-grid
         PButton#launch(type="tint" :click="launchGame")
-          p 启动游戏
+          p {{ $t('home.launch_game') }}
           p.gray {{ gameName }}
-        PButton(:click="versionSelectClicked") 实例选择
-        PButton(:click="InstanceSettingClicked") 实例设置
+        PButton(:click="versionSelectClicked") {{ $t('home.instance_select') }}
+        PButton(:click="InstanceSettingClicked") {{ $t('home.instance_setting') }}
 
     article.subview(ref="subviewRef")
       RouterView()

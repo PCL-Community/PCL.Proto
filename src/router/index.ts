@@ -128,7 +128,7 @@ const router = createRouter({
       name: 'instance_select',
       component: InstanceSelect,
       redirect: '/instance_select/instance_select_sub',
-      meta: { isSubPage: true, title: '实例选择' }, // 用于标识当前处于特殊子页面
+      meta: { isSubPage: true, title: 'home.instance_select' }, // 用于标识当前处于特殊子页面
       children: [
         {
           path: 'instance_select_sub',
@@ -141,7 +141,7 @@ const router = createRouter({
       name: 'instance_setting',
       component: InstanceSetting,
       redirect: '/instance_setting/overview',
-      meta: { isSubPage: true, title: '实例设置' /* + selectedInstance.name */ }, // 用于标识当前处于特殊子页面
+      meta: { isSubPage: true, title: 'home.instance_setting' /* + selectedInstance.name */ }, // 用于标识当前处于特殊子页面
       children: [
         {
           path: 'overview',

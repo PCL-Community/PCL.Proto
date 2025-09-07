@@ -69,7 +69,7 @@ appWindow.onResized(async () => {
       .left(v-else :class="{ 'mac-margin-title': currentPlatform == 'macos' }")
         i.button-animated(@click="backClicked")
           arrow-left
-        span.title-text {{ title }}
+        span.title-text(v-if="title") {{ $t(title) }}
 
 
     Transition(name="nav")
@@ -77,7 +77,7 @@ appWindow.onResized(async () => {
         nav#main-nav(:class="{ 'mac-margin-nav': currentPlatform == 'macos' }")
           RouterLink(v-for="item in navItems" :key="item.to" :to="item.to")
             component(:is="item.icon")
-            | {{ item.label }}
+            | {{ $t(item.label) }}
 
     .right(v-if="currentPlatform != 'macos'")
       i.button-animated(@click="appWindow.minimize"): title-minimize

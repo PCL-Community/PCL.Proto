@@ -11,15 +11,15 @@ import { h } from 'vue';
 
 export default h(SideNavLayout, {
   sideNavGroups: [{
-    title: 'Minecraft',
+    title: 'download.nav.minecraft',
     content: [
-      { text: '游戏下载', icon: IconOverview, linkto: 'game' },
-      { text: '手动安装包', icon: IconWrench, linkto: "manual" }
+      { text: 'download.nav.game_download', icon: IconOverview, linkto: 'game' },
+      { text: 'download.nav.manual_install', icon: IconWrench, linkto: "manual" }
     ]
   }, {
-    title: '社区资源',
+    title: 'download.nav.community_resource',
     content: [
-      { text: 'Mod', icon: IconMod, linkto: 'mod' },
+      { text: 'download.nav.mod', icon: IconMod, linkto: 'mod' },
       { text: '整合包', icon: IconPack, linkto: 'modpack' },
       { text: '数据包', icon: IconFourLeaves },
       { text: '资源包', icon: IconPicture, linkto: 'resourcepack' },
