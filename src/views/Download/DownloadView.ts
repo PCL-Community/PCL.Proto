@@ -20,11 +20,11 @@ export default h(SideNavLayout, {
     title: 'download.nav.community_resource',
     content: [
       { text: 'download.nav.mod', icon: IconMod, linkto: 'mod' },
-      { text: '整合包', icon: IconPack, linkto: 'modpack' },
-      { text: '数据包', icon: IconFourLeaves },
-      { text: '资源包', icon: IconPicture, linkto: 'resourcepack' },
-      { text: '光影包', icon: IconSun, linkto: 'shader' },
-      { text: '收藏夹', icon: IconFavorites }
+      { text: 'download.nav.mod_pack', icon: IconPack, linkto: 'modpack' },
+      { text: 'download.nav.data_pack', icon: IconFourLeaves },
+      { text: 'download.nav.resource_pack', icon: IconPicture, linkto: 'resourcepack' },
+      { text: 'download.nav.shader_pack', icon: IconSun, linkto: 'shader' },
+      { text: 'download.nav.favorites', icon: IconFavorites }
     ]
   }
   ]

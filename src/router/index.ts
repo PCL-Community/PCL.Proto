@@ -169,7 +169,7 @@ const router = createRouter({
       path: '/resouce',
       name: 'resouce',
       component: ResouceVersions,
-      meta: { isSubPage: true, title: '资源下载', fullPage: true },
+      meta: { isSubPage: true, title: 'download.resource_download', fullPage: true },
     },
     {
       path: '/homepageeditor',

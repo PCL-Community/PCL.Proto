@@ -12,12 +12,27 @@
     "instance_setting": "Instance Setting"
   },
   "download": {
+    "resource_download": "Resource Download",
     "nav": {
       "minecraft": "Minecraft",
       "game_download": "Game Download",
       "manual_install": "Manual Install",
       "community_resource": "Community Resource",
-      "mod": "Mod"
-    }
+      "mod": "Mod",
+      "mod_pack": "Mod Pack",
+      "data_pack": "Data Pack",
+      "resource_pack": "Resource Pack",
+      "shader_pack": "Shader Pack",
+      "favorites": "Favorites"
+    },
+    "latest": "Latest",
+    "stable": "Stable",
+    "snapshot": "Snapshot",
+    "latest_stable": "Latest Stable",
+    "latest_snapshot": "Latest Snapshot",
+    "published_at": "Published at",
+    "old": "Old Versions",
+    "april": "April Fools (not classified yet)",
+    "search_for": "Search for"
   }
 }

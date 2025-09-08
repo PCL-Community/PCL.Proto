@@ -5,10 +5,12 @@ import PCompItem from '@/components/widget/PCompItem.vue'
 import PLoading from '@/components/widget/PLoading.vue'
 import PSearchBox from '@/components/widget/PSearchBox.vue'
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 
 const hits = ref<ISearchHit[]>([])
 const route = useRoute()
+const { t } = useI18n()
 
 const handleSearch = async (query?: string) => {
   hits.value.length = 0
@@ -20,10 +22,10 @@ const handleSearch = async (query?: string) => {
 }
 
 const placeholders: Record<ProjectType, string> = {
-  mod: '搜索 Mod',
-  modpack: '搜索整合包',
-  resourcepack: '搜索资源包',
-  shader: '搜索光影包',
+  mod: t('download.search_for') + ' ' + t('download.nav.mod'),
+  modpack: t('download.search_for') + ' ' + t('download.nav.mod_pack'),
+  resourcepack: t('download.search_for') + ' ' + t('download.nav.resource_pack'),
+  shader: t('download.search_for') + ' ' + t('download.nav.shader_pack'),
 }
 
 watch(
