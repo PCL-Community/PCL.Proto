@@ -1,0 +1,20 @@
+{
+  "identifier": "pcl-community.pcl.proto",
+  "app": {
+    "windows": [
+      {
+        "title": "PCL.Proto",
+        "width": 814,
+        "height": 464,
+        "minHeight": 464,
+        "minWidth": 814,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}

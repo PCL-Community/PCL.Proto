@@ -1,5 +1,4 @@
 use std::fs;
-#[cfg(target_os = "macos")]
 use std::path::Path;
 
 use goblin::Object;
