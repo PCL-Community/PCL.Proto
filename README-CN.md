@@ -30,6 +30,12 @@
 
 ### 项目依赖
 
+在克隆本项目后，你需要运行以下命令初始化子模块：
+
+```sh
+git submodule update --init --recursive
+```
+
 目前，项目已成为 Tauri + Vue3 + Vite 结合项目。在首次运行本项目之前，请先运行下面的命令安装前端依赖：
 
 ```sh
@@ -68,22 +74,22 @@ bun run tauri build
 > 如果我看得更远，那是因为我站在巨人的肩膀上。  
 > —— Sir Isaac Newton
 
-[Vue.js](https://github.com/vuejs/core)
-[TypeScript](https://github.com/microsoft/TypeScript)
-[Pug](https://github.com/pugjs/pug)
-[Vite](https://github.com/vitejs/vite)
-[Vue Router](https://github.com/vuejs/vue-router-next)
-[xml-js](https://www.npmjs.com/package/xml-js)
-[Pinia](https://pinia.vuejs.org/)
-[skinview3d](https://github.com/bs-community/skinview3d)
-[Bun](https://bun.com/)
-[Rust Programming Language](https://www.rust-lang.org/)
+[Vue.js](https://github.com/vuejs/core)  
+[TypeScript](https://github.com/microsoft/TypeScript)  
+[Pug](https://github.com/pugjs/pug)  
+[Vite](https://github.com/vitejs/vite)  
+[Vue Router](https://github.com/vuejs/vue-router-next)  
+[xml-js](https://www.npmjs.com/package/xml-js)  
+[Pinia](https://pinia.vuejs.org/)  
+[skinview3d](https://github.com/bs-community/skinview3d)  
+[Bun](https://bun.com/)  
+[Rust Programming Language](https://www.rust-lang.org/)  
 [Tauri](https://tauri.app/)
 
 ### 参考项目实现
 
-[Plain Craft Launcher](https://github.com/Meloong-Git/PCL)
-[PCL2-CE](https://github.com/PCL-Community/PCL2-CE)
-[PCL.Neo](https://github.com/PCL-Community/PCL.Neo)
-[xphost008/MMCLL](https://github.com/xphost008/MMCLL)
+[Plain Craft Launcher](https://github.com/Meloong-Git/PCL)  
+[PCL2-CE](https://github.com/PCL-Community/PCL2-CE)  
+[PCL.Neo](https://github.com/PCL-Community/PCL.Neo)  
+[xphost008/MMCLL](https://github.com/xphost008/MMCLL)  
 [Steve-xmh/scl](https://github.com/Steve-xmh/scl)

@@ -32,6 +32,12 @@ In case you would like to modify the prototype design file, you are welcome to [
 
 ### Project Dependencies
 
+After cloning this project, you need to run the following command to initialize the submodule:
+
+```sh
+git submodule update --init --recursive
+```
+
 Currently, the project is a Tauri + Vue3 + Vite project. Before running the project for the first time, please run the following command to install the front-end dependencies:
 
 ```sh
@@ -66,22 +72,22 @@ I want to make this project into a Vue component npm package, but I don't know h
 
 ### Directed referenced projects
 
-[Vue.js](https://github.com/vuejs/core)
-[TypeScript](https://github.com/microsoft/TypeScript)
-[Pug](https://github.com/pugjs/pug)
-[Vite](https://github.com/vitejs/vite)
-[Vue Router](https://github.com/vuejs/vue-router-next)
-[xml-js](https://www.npmjs.com/package/xml-js)
-[Pinia](https://pinia.vuejs.org/)
-[skinview3d](https://github.com/bs-community/skinview3d)
-[Bun](https://bun.com/)
-[Rust Programming Language](https://www.rust-lang.org/)
+[Vue.js](https://github.com/vuejs/core)  
+[TypeScript](https://github.com/microsoft/TypeScript)  
+[Pug](https://github.com/pugjs/pug)  
+[Vite](https://github.com/vitejs/vite)  
+[Vue Router](https://github.com/vuejs/vue-router-next)  
+[xml-js](https://www.npmjs.com/package/xml-js)  
+[Pinia](https://pinia.vuejs.org/)  
+[skinview3d](https://github.com/bs-community/skinview3d)  
+[Bun](https://bun.com/)  
+[Rust Programming Language](https://www.rust-lang.org/)  
 [Tauri](https://tauri.app/)
 
 ### Implementation or design reference
 
-[Plain Craft Launcher](https://github.com/Meloong-Git/PCL)
-[PCL2-CE](https://github.com/PCL-Community/PCL2-CE)
-[PCL.Neo](https://github.com/PCL-Community/PCL.Neo)
-[xphost008/MMCLL](https://github.com/xphost008/MMCLL)
+[Plain Craft Launcher](https://github.com/Meloong-Git/PCL)  
+[PCL2-CE](https://github.com/PCL-Community/PCL2-CE)  
+[PCL.Neo](https://github.com/PCL-Community/PCL.Neo)  
+[xphost008/MMCLL](https://github.com/xphost008/MMCLL)  
 [Steve-xmh/scl](https://github.com/Steve-xmh/scl)
