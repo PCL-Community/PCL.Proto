@@ -3,22 +3,7 @@
 
 use std::{collections::HashSet, env, fs, path::Path, process::Command};
 
-#[derive(Debug, PartialEq, serde::Serialize, Clone)]
-enum Architecture {
-    X86,
-    X64,
-    Arm64,
-    FatFile,
-    Unknown,
-}
-
-#[derive(Debug, serde::Serialize, Clone)]
-enum Compability {
-    Perfect,
-    Translation,
-    No,
-    Unknown,
-}
+use super::platform::Compability;
 
 /// struct of java runtime
 #[derive(Debug, serde::Serialize, Clone)]
@@ -28,7 +13,7 @@ pub struct JavaRuntime {
     version: String,
     slug_version: i32,
     is_64_bit: bool,
-    architecture: Architecture,
+    architecture: super::platform::Architecture,
     compability: Compability,
     is_jdk: bool,
     java_exe: String,
@@ -49,12 +34,18 @@ pub enum JavaRuntimeConstructorError {
 
 impl JavaRuntime {
     /// read release file of java runtime
-    fn read_release_file(release_file: &Path) -> (Option<String>, Option<String>, Architecture) {
+    fn read_release_file(
+        release_file: &Path,
+    ) -> (
+        Option<String>,
+        Option<String>,
+        super::platform::Architecture,
+    ) {
         let release_content = std::fs::read_to_string(release_file).unwrap();
 
         let mut implementor = None;
         let mut version = None;
-        let mut architecture = Architecture::Unknown;
+        let mut architecture = super::platform::Architecture::Unknown;
 
         for line in release_content.lines() {
             if line.starts_with("IMPLEMENTOR=") {
@@ -76,16 +67,18 @@ impl JavaRuntime {
             } else if line.starts_with("OS_ARCH=") {
                 let arch = line.split('=').nth(1).unwrap_or("").trim_matches('"');
                 architecture = match arch {
-                    "x86_64" => Architecture::X64,
-                    "aarch64" => Architecture::Arm64,
-                    "i386" | "i686" => Architecture::X86,
+                    "x86_64" => super::platform::Architecture::X64,
+                    "aarch64" => super::platform::Architecture::Arm64,
+                    "i386" | "i686" => super::platform::Architecture::X86,
                     // 可以根据需要添加更多架构映射
-                    _ => Architecture::Unknown,
+                    _ => super::platform::Architecture::Unknown,
                 };
             }
 
             // 如果已经获取了所有需要的信息，可以提前结束循环
-            if !implementor.is_none() && !version.is_none() && architecture != Architecture::Unknown
+            if !implementor.is_none()
+                && !version.is_none()
+                && architecture != super::platform::Architecture::Unknown
             {
                 break;
             }
@@ -114,10 +107,6 @@ impl JavaRuntime {
         None
     }
 
-    /// read architecture of java runtime from the elf/pe head
-    fn read_architecture(java_path: &str) -> Architecture {
-        Architecture::Unknown
-    }
     /// search java runtime in system
     pub async fn search() -> Vec<Self> {
         let mut collect_paths: HashSet<String> = HashSet::new();
@@ -190,6 +179,7 @@ impl JavaRuntime {
 impl TryFrom<&str> for JavaRuntime {
     type Error = JavaRuntimeConstructorError;
     fn try_from(java_path: &str) -> Result<Self, Self::Error> {
+        use super::platform::Architecture;
         // println!("[java] 创建JavaRuntime: {java_path}");
         let java_path = Path::new(java_path);
         if !java_path.exists() {
@@ -236,14 +226,23 @@ impl TryFrom<&str> for JavaRuntime {
         // 设置slug Version
         let slug_version = Self::parse_to_slug_version(version.as_deref().unwrap_or_default());
 
+        // 如果架构未知，尝试从文件头读取
+        if architecture == super::platform::Architecture::Unknown {
+            if let Ok(arch) = Architecture::read_header(java_path) {
+                architecture = arch;
+            }
+        }
+
+        let compability = super::platform::assert_compability(&architecture);
+
         Ok(JavaRuntime {
             directory_path: directory.to_string_lossy().to_string(),
             is_user_imported: false,
             version: version.unwrap_or_default(),
             slug_version: slug_version.unwrap_or(0),
-            is_64_bit: architecture != Architecture::X86 && architecture != Architecture::Unknown,
+            is_64_bit: architecture == Architecture::X64 || architecture == Architecture::Arm64,
             architecture,
-            compability: Compability::Unknown,
+            compability: compability,
             is_jdk,
             java_exe: java_path.to_string_lossy().to_string(),
             implementor,
@@ -253,6 +252,9 @@ impl TryFrom<&str> for JavaRuntime {
 
 #[cfg(test)]
 mod tests {
+
+    use std::time::Instant;
+
     use super::*;
 
     #[test]
@@ -275,7 +277,10 @@ mod tests {
 
     #[tokio::test]
     async fn java_search() {
+        let start = Instant::now();
         let java_runtimes = JavaRuntime::search().await;
+        let duration = start.elapsed();
         println!("{:?}", java_runtimes);
+        println!("耗时: {:?}", duration);
     }
 }
