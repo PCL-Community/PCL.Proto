@@ -1,3 +1,6 @@
 [submodule "public/pcl-home-zx"]
 	path = public/pcl-home-zx
 	url = https://github.com/MC13veterangamerprogrammingking/pcl-home-zx.git
+[submodule "src/locales"]
+	path = src/locales
+	url = git@github.com:PCL-Community/PCL-i18n-locales.git
