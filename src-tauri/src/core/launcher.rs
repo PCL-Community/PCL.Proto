@@ -7,9 +7,13 @@
 //! GPL-3.0 License | https://github.com/HMCL-dev/HMCL
 // use crate::setup::constants::LAUNCHER_NAME;
 
-use std::{thread::sleep, time::Duration};
+use std::sync::Arc;
 
-use crate::core::{auth::Account, game::GameInstance, java::JavaRuntime};
+use crate::core::{
+    auth::Account,
+    game::{GameInstance, GameJava},
+    java::JavaRuntime,
+};
 
 const GAME_DIR: &str = "/Users/amagicpear/HMCL/.minecraft";
 // const LIBRARY_PATH: &str = "/Users/amagicpear/HMCL/.minecraft/libraries";
@@ -17,15 +21,38 @@ const GAME_DIR: &str = "/Users/amagicpear/HMCL/.minecraft";
 
 /// Essential options for launching a Minecraft game
 pub struct LaunchOption {
-    account: Account,
-    java_runtime: JavaRuntime,
-    game_instance: GameInstance,
+    account: Arc<Account>,
+    java_runtime: Arc<JavaRuntime>,
+    game_instance: Arc<GameInstance>,
     max_memory: usize,
     width: Option<usize>,
     height: Option<usize>,
 }
 
 impl LaunchOption {
+    pub fn new(account: Arc<Account>, game_instance: Arc<GameInstance>, max_memory: usize) -> Self {
+        let java_runtime = match &game_instance.game_java {
+            // TODO: Default JavaRuntime
+            // GameJava::Default => JavaRuntime::default(),
+            GameJava::Default => Arc::new(JavaRuntime::try_from("/usr/bin/java").unwrap()),
+            GameJava::Custom(java_runtime) => Arc::clone(java_runtime),
+        };
+        Self {
+            account,
+            java_runtime,
+            game_instance,
+            max_memory,
+            width: None,
+            height: None,
+        }
+    }
+
+    pub fn set_window_size(&mut self, width: usize, height: usize) -> &Self {
+        self.width = Some(width);
+        self.height = Some(height);
+        self
+    }
+
     /// Launch a Minecraft game with the given options
     pub fn launch(&self) -> Result<std::process::Child, std::io::Error> {
         let mut command = std::process::Command::new(&self.java_runtime.java_exe);
@@ -144,24 +171,23 @@ impl LaunchOption {
 #[test]
 fn read_json_test() {
     use std::path::PathBuf;
+    use std::{sync::Arc, thread::sleep, time::Duration};
 
-    let account = Account::new(
-        "PCLTest".to_string(),
+    let account = Arc::new(Account::new(
+        "PCL.Proto-Test".to_string(),
         "12345678-1234-1234-1234-123456789012".to_string(),
-    );
-    let launch_option = LaunchOption {
+    ));
+
+    let mut launch_option = LaunchOption::new(
         account,
-        java_runtime: JavaRuntime::try_from("/usr/bin/java").unwrap(),
-        game_instance: GameInstance::new(
+        Arc::new(GameInstance::new(
             "1.21.8".to_string(),
             PathBuf::from("/Users/amagicpear/HMCL/.minecraft/versions/1.21.8"),
             "1.21.8".to_string(),
-        ),
-        max_memory: 4096,
-        width: None,
-        height: None,
-    };
-
+        )),
+        4096,
+    );
+    launch_option.set_window_size(1280, 720);
     launch_option.launch();
     sleep(Duration::from_secs(20));
 }

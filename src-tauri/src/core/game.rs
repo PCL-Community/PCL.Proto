@@ -1,5 +1,14 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
+use crate::core::java::JavaRuntime;
+
+#[derive(Debug, Clone)]
+pub enum GameJava {
+    Default,
+    Custom(Arc<JavaRuntime>),
+}
+
+#[derive(Debug, Clone)]
 pub struct GameInstance {
     id: String,
     name: String,
@@ -8,6 +17,7 @@ pub struct GameInstance {
     pub version: String,
     pub json_path: PathBuf,
     pub natives_path: PathBuf,
+    pub game_java: GameJava,
 }
 
 impl GameInstance {
@@ -21,6 +31,7 @@ impl GameInstance {
             jar_path: directory.join(format!("{}.jar", name)),
             json_path: directory.join(format!("{}.json", name)),
             natives_path: directory.join("natives"),
+            game_java: GameJava::Default,
         }
     }
 }
