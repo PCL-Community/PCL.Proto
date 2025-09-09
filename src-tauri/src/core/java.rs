@@ -8,6 +8,8 @@ use std::{
     process::Command,
 };
 
+use crate::setup::{self, AppState};
+
 use super::platform::Compability;
 
 /// struct of java runtime
@@ -178,6 +180,16 @@ impl JavaRuntime {
             .iter()
             .filter_map(|path| Self::try_from(path.as_str()).ok())
             .collect()
+    }
+
+    pub fn patch(state: &mut AppState, to_patch: Vec<Self>) {
+        // TODO: 根据是否为用户导入写一个更复杂的合并逻辑
+        state.java_runtimes = to_patch;
+        setup::ConfigManager::instance()
+            .lock()
+            .unwrap()
+            .save(state)
+            .unwrap();
     }
 }
 

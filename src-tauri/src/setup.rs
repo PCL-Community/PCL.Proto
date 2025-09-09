@@ -1,4 +1,8 @@
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::PathBuf,
+    sync::{LazyLock, Mutex, OnceLock},
+};
 
 use crate::core::auth::Account;
 
@@ -61,13 +65,16 @@ impl Default for AppState {
             java_runtimes: Vec::new(),
             pcl_setup_info: crate::setup::PCLSetupInfo::default(),
             account: Account::Offline {
-                username: "PCL.Proto-Test".to_string(),
+                username: "AMagicPear".to_string(),
                 uuid: "12345678-1234-1234-1234-123456789012".to_string(),
             },
             game_directories: Vec::new(),
         }
     }
 }
+
+static CONFIG_MANAGER: LazyLock<Mutex<ConfigManager>> =
+    LazyLock::new(|| Mutex::new(ConfigManager::new().unwrap()));
 
 /// config manager, for loading and saving config file
 /// should be Singleton
@@ -92,6 +99,9 @@ impl ConfigManager {
         })
     }
 
+    pub fn instance() -> &'static Mutex<ConfigManager> {
+        &CONFIG_MANAGER
+    }
     /// initialize the config file, for those who never use this launcher
     fn init(&self, state: &mut AppState) -> Result<(), ()> {
         let game_dir = self.config_dir.join(".minecraft");
@@ -123,7 +133,7 @@ impl ConfigManager {
     pub fn save(&self, state: &AppState) -> Result<(), ()> {
         let file = std::fs::File::create(&self.config_path).map_err(|_| ())?;
         let mut writer = std::io::BufWriter::new(file);
-        serde_json::to_writer(&mut writer, state).map_err(|_| ())?;
+        serde_json::to_writer_pretty(&mut writer, state).map_err(|_| ())?;
         Ok(())
     }
 }
@@ -131,6 +141,6 @@ impl ConfigManager {
 #[test]
 fn test_config_manager() {
     let config_manager = ConfigManager::new().unwrap();
-    let state = config_manager.load();
-    // config_manager.save(&state).unwrap();
+    let state = config_manager.load().unwrap();
+    config_manager.save(&state).unwrap();
 }

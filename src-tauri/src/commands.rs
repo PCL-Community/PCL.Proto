@@ -1,6 +1,10 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{AppState, core::java::JavaRuntime, setup::GameDir};
+use crate::{
+    AppState,
+    core::{auth::Account, java::JavaRuntime},
+    setup::GameDir,
+};
 use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_dialog::DialogExt;
 
@@ -57,4 +61,10 @@ pub async fn refresh_java_list(
 pub fn get_game_directories(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<GameDir> {
     let state = state.lock().unwrap();
     state.game_directories.clone()
+}
+
+#[tauri::command]
+pub fn get_account(state: State<'_, Arc<Mutex<AppState>>>) -> Account {
+    let state = state.lock().unwrap();
+    state.account.clone()
 }

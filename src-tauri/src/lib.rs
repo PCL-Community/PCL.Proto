@@ -2,6 +2,8 @@ use setup::AppState;
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
 
+use crate::core::java::JavaRuntime;
+
 mod commands;
 mod core;
 mod setup;
@@ -20,14 +22,15 @@ pub fn run() {
                         .build(),
                 )?;
             }
-            let config_manager = setup::ConfigManager::new().unwrap();
+            let config_manager = setup::ConfigManager::instance().lock().unwrap();
             let state = Arc::new(Mutex::new(config_manager.load().unwrap()));
             app.manage(state.clone());
             // search for Java during init
             tauri::async_runtime::spawn(async move {
                 let java_runtimes = core::java::JavaRuntime::search().await;
                 let mut guard = state.lock().unwrap();
-                guard.java_runtimes = java_runtimes;
+                JavaRuntime::patch(&mut guard, java_runtimes);
+                // guard.java_runtimes = java_runtimes;
             });
             Ok(())
         })
@@ -37,7 +40,8 @@ pub fn run() {
             commands::add_java,
             commands::get_java_list,
             commands::refresh_java_list,
-            commands::get_game_directories
+            commands::get_game_directories,
+            commands::get_account
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
