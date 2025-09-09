@@ -10,8 +10,8 @@ pub enum GameJava {
 
 #[derive(Debug, Clone)]
 pub struct GameInstance {
-    id: String,
-    name: String,
+    pub id: String,
+    pub name: String,
     pub directory: PathBuf,
     pub jar_path: PathBuf,
     pub version: String,

@@ -1,15 +1,11 @@
+use setup::AppState;
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
+
 mod commands;
 mod core;
 mod setup;
 mod util;
-
-#[derive(Default)]
-struct AppState {
-    java_runtimes: Vec<core::java::JavaRuntime>,
-    pcl_setup_info: setup::PCLSetupInfo,
-}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -24,7 +20,8 @@ pub fn run() {
                         .build(),
                 )?;
             }
-            let state = Arc::new(Mutex::new(AppState::default()));
+            let config_manager = setup::ConfigManager::new().unwrap();
+            let state = Arc::new(Mutex::new(config_manager.load().unwrap()));
             app.manage(state.clone());
             // search for Java during init
             tauri::async_runtime::spawn(async move {
@@ -40,6 +37,7 @@ pub fn run() {
             commands::add_java,
             commands::get_java_list,
             commands::refresh_java_list,
+            commands::get_game_directories
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

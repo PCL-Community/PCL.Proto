@@ -11,7 +11,7 @@ use std::{
 use super::platform::Compability;
 
 /// struct of java runtime
-#[derive(Debug, serde::Serialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct JavaRuntime {
     directory_path: PathBuf,
     pub(crate) is_user_imported: bool,

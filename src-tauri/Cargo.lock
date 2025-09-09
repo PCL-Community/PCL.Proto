@@ -840,6 +840,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "directories"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16f5094c54661b38d03bd7e50df373292118db60b585c08a411c6d840017fe7d"
+dependencies = [
+ "dirs-sys",
+]
+
+[[package]]
 name = "dirs"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2699,6 +2708,7 @@ name = "pcl-proto"
 version = "0.5.1"
 dependencies = [
  "chrono",
+ "directories",
  "goblin",
  "log",
  "regex",

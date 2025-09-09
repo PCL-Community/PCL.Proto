@@ -63,7 +63,6 @@ impl LaunchOption {
             .arg("net.minecraft.client.main.Main")
             .args(self.build_game_arguments())
             .current_dir(GAME_DIR);
-        println!("command:\n{:?}", command);
         command.spawn()
     }
 
@@ -152,12 +151,12 @@ impl LaunchOption {
 
     fn build_game_arguments(&self) -> Vec<String> {
         vec![
-            format!("--username={}", self.account.username),
+            format!("--username={}", (self.account.username())),
             format!("--version={}", self.game_instance.version),
             format!("--gameDir={}", self.game_instance.directory.display()),
             format!("--assetsDir={}/assets", GAME_DIR),
             "--assetIndex=26".to_string(), // TODO: read from version json
-            format!("--uuid={}", self.account.uuid),
+            format!("--uuid={}", self.account.uuid()),
             // TODO: get the below from account
             format!("--accessToken={}", "0"),
             format!("--userType={}", "msa"),
@@ -171,12 +170,12 @@ impl LaunchOption {
 #[test]
 fn read_json_test() {
     use std::path::PathBuf;
-    use std::{sync::Arc, thread::sleep, time::Duration};
+    use std::sync::Arc;
 
-    let account = Arc::new(Account::new(
-        "PCL.Proto-Test".to_string(),
-        "12345678-1234-1234-1234-123456789012".to_string(),
-    ));
+    let account = Arc::new(Account::Offline {
+        username: "PCL.Proto-Test".to_string(),
+        uuid: "12345678-1234-1234-1234-123456789012".to_string(),
+    });
 
     let mut launch_option = LaunchOption::new(
         account,
@@ -188,6 +187,12 @@ fn read_json_test() {
         4096,
     );
     launch_option.set_window_size(1280, 720);
-    launch_option.launch();
-    sleep(Duration::from_secs(20));
+    if let Ok(mut child) = launch_option.launch() {
+        child.wait().unwrap();
+    } else {
+        eprintln!(
+            "launch failed, instance id:{:?}",
+            launch_option.game_instance.id
+        );
+    }
 }
