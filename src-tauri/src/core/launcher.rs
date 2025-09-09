@@ -1,0 +1,167 @@
+//! Mod for launching a Minecraft game
+//! Code referenced from xphost/MMCLL/src/launcher.rs
+//! MIT License | https://github.com/xphost008/MMCLL
+//! Code referenced from scl-core/src/client.rs
+//! LGPL-3.0 License & scl License | https://github.com/Steve-xmh/scl
+//! Start script referenced from HMCL
+//! GPL-3.0 License | https://github.com/HMCL-dev/HMCL
+// use crate::setup::constants::LAUNCHER_NAME;
+
+use std::{thread::sleep, time::Duration};
+
+use crate::core::{auth::Account, game::GameInstance, java::JavaRuntime};
+
+const GAME_DIR: &str = "/Users/amagicpear/HMCL/.minecraft";
+// const LIBRARY_PATH: &str = "/Users/amagicpear/HMCL/.minecraft/libraries";
+// const ASSESTS_DIR: &str = "/Users/amagicpear/HMCL/.minecraft/assets";
+
+/// Essential options for launching a Minecraft game
+pub struct LaunchOption {
+    account: Account,
+    java_runtime: JavaRuntime,
+    game_instance: GameInstance,
+    max_memory: usize,
+    width: Option<usize>,
+    height: Option<usize>,
+}
+
+impl LaunchOption {
+    /// Launch a Minecraft game with the given options
+    pub fn launch(&self) -> Result<std::process::Child, std::io::Error> {
+        let mut command = std::process::Command::new(&self.java_runtime.java_exe);
+        command
+            .args(self.build_jvm_arguments()) // build jvm arguments
+            .arg("-cp")
+            .arg(self.build_classpath().unwrap())
+            .arg("net.minecraft.client.main.Main")
+            .args(self.build_game_arguments())
+            .current_dir(GAME_DIR);
+        println!("command:\n{:?}", command);
+        command.spawn()
+    }
+
+    fn build_jvm_arguments(&self) -> Vec<String> {
+        let mut args = Vec::new();
+        // memory setting
+        args.push(format!("-Xmx{}m", self.max_memory));
+        // encoding settings
+        args.push("-Dfile.encoding=UTF-8".to_string());
+        args.push("-Dstdout.encoding=UTF-8".to_string());
+        args.push("-Dstderr.encoding=UTF-8".to_string());
+        // safety settings
+        args.push("-Djava.rmi.server.useCodebaseOnly=true".to_string());
+        args.push("-Dcom.sun.jndi.rmi.object.trustURLCodebase=false".to_string());
+        args.push("-Dcom.sun.jndi.cosnaming.object.trustURLCodebase=false".to_string());
+        args.push("-Dlog4j2.formatMsgNoLookups=true".to_string());
+        // dlog4j2 setup
+        let log4j2_config = self.game_instance.directory.join("log4j2.xml");
+        args.push(format!(
+            "-Dlog4j.configurationFile={}",
+            log4j2_config.display()
+        ));
+        // jar file
+        args.push(format!(
+            "-Dminecraft.client.jar={}",
+            self.game_instance.jar_path.display()
+        ));
+        // macOS specific settings
+        #[cfg(target_os = "macos")]
+        {
+            args.push("-XstartOnFirstThread".to_string());
+            args.push("-Xdock:name=Minecraft".to_string());
+            // TODO: 图标路径需要从 assets 中获取
+        }
+        // native libraries path
+        let natives_path = &self.game_instance.natives_path.display();
+        args.push(format!("-Djava.library.path={}", natives_path));
+        args.push(format!("-Djna.tmpdir={}", natives_path));
+        args.push(format!(
+            "-Dorg.lwjgl.system.SharedLibraryExtractPath={}",
+            natives_path
+        ));
+        args.push(format!("-Dio.netty.native.workdir={}", natives_path));
+        // launcher info
+        args.push("-Dminecraft.launcher.brand=CustomLauncher".to_string());
+        args.push("-Dminecraft.launcher.version=1.0.0".to_string());
+        // gc optimize
+        args.push("-XX:+UnlockExperimentalVMOptions".to_string());
+        args.push("-XX:+UnlockDiagnosticVMOptions".to_string());
+        args.push("-XX:+UseG1GC".to_string());
+        args.push("-XX:G1MixedGCCountTarget=5".to_string());
+        args.push("-XX:G1NewSizePercent=20".to_string());
+        args.push("-XX:G1ReservePercent=20".to_string());
+        args.push("-XX:MaxGCPauseMillis=50".to_string());
+        args.push("-XX:G1HeapRegionSize=32m".to_string());
+        args
+    }
+
+    fn build_classpath(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let json_reader = std::fs::File::open(&self.game_instance.json_path)?;
+        let version_json: serde_json::Value = serde_json::from_reader(json_reader)?;
+        let mut classpath = Vec::new();
+
+        if let Some(libraries) = version_json["libraries"].as_array() {
+            for lib in libraries {
+                let downloads = lib["downloads"]
+                    .as_object()
+                    .ok_or("Missing downloads object in library")?;
+                let lib_artifact = downloads["artifact"]
+                    .as_object()
+                    .ok_or("Missing artifact object in downloads")?;
+                let lib_path = lib_artifact["path"]
+                    .as_str()
+                    .ok_or("Missing path in artifact")?;
+                let lib_full_path = format!("{}/libraries/{}", GAME_DIR, lib_path);
+                classpath.push(lib_full_path);
+            }
+        }
+        if self.game_instance.jar_path.exists() {
+            classpath.push(self.game_instance.jar_path.display().to_string());
+        } else {
+            return Err("Main jar file does not exist".into());
+        }
+        Ok(classpath.join(":"))
+    }
+
+    fn build_game_arguments(&self) -> Vec<String> {
+        vec![
+            format!("--username={}", self.account.username),
+            format!("--version={}", self.game_instance.version),
+            format!("--gameDir={}", self.game_instance.directory.display()),
+            format!("--assetsDir={}/assets", GAME_DIR),
+            "--assetIndex=26".to_string(), // TODO: read from version json
+            format!("--uuid={}", self.account.uuid),
+            // TODO: get the below from account
+            format!("--accessToken={}", "0"),
+            format!("--userType={}", "msa"),
+            format!("--versionType={}", crate::setup::constants::LAUNCHER_NAME),
+            format!("--width={}", self.width.unwrap_or(854)),
+            format!("--height={}", self.height.unwrap_or(480)),
+        ]
+    }
+}
+
+#[test]
+fn read_json_test() {
+    use std::path::PathBuf;
+
+    let account = Account::new(
+        "PCLTest".to_string(),
+        "12345678-1234-1234-1234-123456789012".to_string(),
+    );
+    let launch_option = LaunchOption {
+        account,
+        java_runtime: JavaRuntime::try_from("/usr/bin/java").unwrap(),
+        game_instance: GameInstance::new(
+            "1.21.8".to_string(),
+            PathBuf::from("/Users/amagicpear/HMCL/.minecraft/versions/1.21.8"),
+            "1.21.8".to_string(),
+        ),
+        max_memory: 4096,
+        width: None,
+        height: None,
+    };
+
+    launch_option.launch();
+    sleep(Duration::from_secs(20));
+}

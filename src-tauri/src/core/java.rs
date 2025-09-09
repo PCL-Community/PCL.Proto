@@ -1,14 +1,19 @@
 //! Referenced from JavaData.cs of PCL-Community/PCL.Neo/PCL.Neo.Core
 //! [PLC.Neo.Core](https://github.com/PCL-Community/PCL.Neo) | MIT license
 
-use std::{collections::HashSet, env, fs, path::Path, process::Command};
+use std::{
+    collections::HashSet,
+    env, fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use super::platform::Compability;
 
 /// struct of java runtime
 #[derive(Debug, serde::Serialize, Clone)]
 pub struct JavaRuntime {
-    directory_path: String,
+    directory_path: PathBuf,
     pub(crate) is_user_imported: bool,
     version: String,
     slug_version: i32,
@@ -16,7 +21,7 @@ pub struct JavaRuntime {
     architecture: super::platform::Architecture,
     compability: Compability,
     is_jdk: bool,
-    java_exe: String,
+    pub java_exe: PathBuf,
     implementor: Option<String>,
 }
 
@@ -185,7 +190,7 @@ impl TryFrom<&str> for JavaRuntime {
         if !java_path.exists() {
             return Err(JavaRuntimeConstructorError::MissingFile);
         }
-        let directory = java_path.parent().unwrap();
+        let directory = java_path.parent().unwrap().to_path_buf();
         // 检查是否有javac来判断是否是JDK
         let is_jdk = directory
             .join(if cfg!(target_os = "windows") {
@@ -236,7 +241,7 @@ impl TryFrom<&str> for JavaRuntime {
         let compability = super::platform::assert_compability(&architecture);
 
         Ok(JavaRuntime {
-            directory_path: directory.to_string_lossy().to_string(),
+            directory_path: directory,
             is_user_imported: false,
             version: version.unwrap_or_default(),
             slug_version: slug_version.unwrap_or(0),
@@ -244,7 +249,7 @@ impl TryFrom<&str> for JavaRuntime {
             architecture,
             compability: compability,
             is_jdk,
-            java_exe: java_path.to_string_lossy().to_string(),
+            java_exe: java_path.to_path_buf(),
             implementor,
         })
     }
