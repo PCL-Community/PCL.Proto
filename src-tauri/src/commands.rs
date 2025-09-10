@@ -66,5 +66,5 @@ pub fn get_game_directories(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<GameD
 #[tauri::command]
 pub fn get_account(state: State<'_, Arc<Mutex<AppState>>>) -> Account {
     let state = state.lock().unwrap();
-    state.account.clone()
+    state.account.as_ref().clone()
 }

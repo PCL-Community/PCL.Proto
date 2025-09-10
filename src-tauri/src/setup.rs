@@ -58,9 +58,9 @@ pub struct GameDir {
 pub struct AppState {
     pub java_runtimes: Vec<crate::core::java::JavaRuntime>,
     pub pcl_setup_info: crate::setup::PCLSetupInfo,
-    pub account: crate::core::auth::Account,
+    pub account: Arc<crate::core::auth::Account>,
     pub game_directories: Vec<GameDir>,
-    pub active_game_instance: Option<GameInstance>,
+    pub active_game_instance: Option<Arc<GameInstance>>,
 }
 
 impl Default for AppState {
@@ -68,10 +68,10 @@ impl Default for AppState {
         Self {
             java_runtimes: Vec::new(),
             pcl_setup_info: crate::setup::PCLSetupInfo::default(),
-            account: Account::Offline {
+            account: Arc::new(Account::Offline {
                 username: "AMagicPear".to_string(),
                 uuid: "12345678-1234-1234-1234-123456789012".to_string(),
-            },
+            }),
             game_directories: Vec::new(),
             active_game_instance: None,
         }

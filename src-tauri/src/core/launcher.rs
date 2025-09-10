@@ -7,8 +7,7 @@
 //! GPL-3.0 License | https://github.com/HMCL-dev/HMCL
 // use crate::setup::constants::LAUNCHER_NAME;
 
-use std::sync::Arc;
-
+use crate::setup::constants::LAUNCHER_NAME;
 use crate::{
     core::{
         auth::Account,
@@ -17,6 +16,7 @@ use crate::{
     },
     setup::AppState,
 };
+use std::sync::Arc;
 
 const GAME_DIR: &str = "/Users/amagicpear/HMCL/.minecraft";
 // const LIBRARY_PATH: &str = "/Users/amagicpear/HMCL/.minecraft/libraries";
@@ -110,17 +110,24 @@ impl LaunchOption {
         ));
         args.push(format!("-Dio.netty.native.workdir={}", natives_path));
         // launcher info
-        args.push("-Dminecraft.launcher.brand=CustomLauncher".to_string());
+        args.push(format!("-Dminecraft.launcher.brand={}", LAUNCHER_NAME));
         args.push("-Dminecraft.launcher.version=1.0.0".to_string());
         // gc optimize
-        args.push("-XX:+UnlockExperimentalVMOptions".to_string());
-        args.push("-XX:+UnlockDiagnosticVMOptions".to_string());
-        args.push("-XX:+UseG1GC".to_string());
-        args.push("-XX:G1MixedGCCountTarget=5".to_string());
-        args.push("-XX:G1NewSizePercent=20".to_string());
-        args.push("-XX:G1ReservePercent=20".to_string());
-        args.push("-XX:MaxGCPauseMillis=50".to_string());
-        args.push("-XX:G1HeapRegionSize=32m".to_string());
+        args.append(
+            &mut [
+                "-XX:+UnlockExperimentalVMOptions",
+                "-XX:+UnlockDiagnosticVMOptions",
+                "-XX:+UseG1GC",
+                "-XX:G1MixedGCCountTarget=5",
+                "-XX:G1NewSizePercent=20",
+                "-XX:G1ReservePercent=20",
+                "-XX:MaxGCPauseMillis=50",
+                "-XX:G1HeapRegionSize=32m",
+            ]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+        );
         args
     }
 
@@ -163,17 +170,16 @@ impl LaunchOption {
             // TODO: get the below from account
             format!("--accessToken={}", "0"),
             format!("--userType={}", "msa"),
-            format!("--versionType={}", crate::setup::constants::LAUNCHER_NAME),
+            format!("--versionType={}", LAUNCHER_NAME),
             format!("--width={}", self.width.unwrap_or(854)),
             format!("--height={}", self.height.unwrap_or(480)),
         ]
     }
 
     pub fn from_state(state: &AppState) -> Option<Self> {
-        let game_instance = state.active_game_instance.as_ref()?;
         Some(Self::new(
-            state.account.clone().into(),
-            game_instance.clone().into(),
+            Arc::clone(&state.account),
+            Arc::clone(state.active_game_instance.as_ref()?),
             state.pcl_setup_info.max_memory,
         ))
     }
