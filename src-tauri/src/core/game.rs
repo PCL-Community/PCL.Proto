@@ -18,11 +18,12 @@ pub struct GameInstance {
     pub json_path: PathBuf,
     pub natives_path: PathBuf,
     pub game_java: GameJava,
+    pub base_dir: PathBuf,
 }
 
 impl GameInstance {
     // for test
-    pub fn new(name: String, directory: PathBuf, version: String) -> Self {
+    pub fn new(name: String, directory: PathBuf, version: String, base_dir: PathBuf) -> Self {
         Self {
             id: name.clone(),
             name: name.clone(),
@@ -32,6 +33,7 @@ impl GameInstance {
             json_path: directory.join(format!("{}.json", name)),
             natives_path: directory.join("natives"),
             game_java: GameJava::Default,
+            base_dir,
         }
     }
 }

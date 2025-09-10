@@ -18,7 +18,7 @@ use crate::{
 };
 use std::sync::Arc;
 
-const GAME_DIR: &str = "/Users/amagicpear/HMCL/.minecraft";
+// const GAME_DIR: &str = "/Users/amagicpear/HMCL/.minecraft";
 // const LIBRARY_PATH: &str = "/Users/amagicpear/HMCL/.minecraft/libraries";
 // const ASSESTS_DIR: &str = "/Users/amagicpear/HMCL/.minecraft/assets";
 
@@ -65,7 +65,7 @@ impl LaunchOption {
             .arg(self.build_classpath().unwrap())
             .arg("net.minecraft.client.main.Main")
             .args(self.build_game_arguments())
-            .current_dir(GAME_DIR);
+            .current_dir(&self.game_instance.base_dir);
         command.spawn()
     }
 
@@ -147,7 +147,11 @@ impl LaunchOption {
                 let lib_path = lib_artifact["path"]
                     .as_str()
                     .ok_or("Missing path in artifact")?;
-                let lib_full_path = format!("{}/libraries/{}", GAME_DIR, lib_path);
+                let lib_full_path = format!(
+                    "{}/libraries/{}",
+                    self.game_instance.base_dir.display(),
+                    lib_path
+                );
                 classpath.push(lib_full_path);
             }
         }
@@ -164,7 +168,10 @@ impl LaunchOption {
             format!("--username={}", (self.account.username())),
             format!("--version={}", self.game_instance.version),
             format!("--gameDir={}", self.game_instance.directory.display()),
-            format!("--assetsDir={}/assets", GAME_DIR),
+            format!(
+                "--assetsDir={}/assets",
+                self.game_instance.base_dir.display()
+            ),
             "--assetIndex=26".to_string(), // TODO: read from version json
             format!("--uuid={}", self.account.uuid()),
             // TODO: get the below from account
@@ -201,6 +208,7 @@ pub fn game_launch_test() {
             "1.21.8".to_string(),
             PathBuf::from("/Users/amagicpear/HMCL/.minecraft/versions/1.21.8"),
             "1.21.8".to_string(),
+            PathBuf::from("/Users/amagicpear/HMCL/.minecraft"),
         )),
         4096,
     );
