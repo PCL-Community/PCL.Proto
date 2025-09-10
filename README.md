@@ -28,7 +28,7 @@ In case you would like to modify the prototype design file, you are welcome to [
 - The device should have a usable rust toolchain installed. For Windows, the MSVC version of the toolchain is required. Additionally, ensure that you have installed the MSVC suite from the C++ development tools and the Windows SDK in the Visual Studio Installer. For macOS, make sure that Xcode is installed.
 
 > [!NOTE]
-> If you have any questions, please refer to [Prerequisites | Tauri](https://tauri.app/zh-cn/start/prerequisites/).
+> If you have any questions, please refer to [Prerequisites | Tauri](https://tauri.app/start/prerequisites/).
 
 ### Project Dependencies
 
