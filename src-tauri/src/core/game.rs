@@ -2,13 +2,13 @@ use std::{path::PathBuf, sync::Arc};
 
 use crate::core::java::JavaRuntime;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum GameJava {
     Default,
     Custom(Arc<JavaRuntime>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct GameInstance {
     pub id: String,
     pub name: String,

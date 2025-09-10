@@ -9,10 +9,13 @@
 
 use std::sync::Arc;
 
-use crate::core::{
-    auth::Account,
-    game::{GameInstance, GameJava},
-    java::JavaRuntime,
+use crate::{
+    core::{
+        auth::Account,
+        game::{GameInstance, GameJava},
+        java::JavaRuntime,
+    },
+    setup::AppState,
 };
 
 const GAME_DIR: &str = "/Users/amagicpear/HMCL/.minecraft";
@@ -30,7 +33,7 @@ pub struct LaunchOption {
 }
 
 impl LaunchOption {
-    pub fn new(account: Arc<Account>, game_instance: Arc<GameInstance>, max_memory: usize) -> Self {
+    fn new(account: Arc<Account>, game_instance: Arc<GameInstance>, max_memory: usize) -> Self {
         let java_runtime = match &game_instance.game_java {
             // TODO: Default JavaRuntime
             // GameJava::Default => JavaRuntime::default(),
@@ -165,15 +168,24 @@ impl LaunchOption {
             format!("--height={}", self.height.unwrap_or(480)),
         ]
     }
+
+    pub fn from_state(state: &AppState) -> Option<Self> {
+        let game_instance = state.active_game_instance.as_ref()?;
+        Some(Self::new(
+            state.account.clone().into(),
+            game_instance.clone().into(),
+            state.pcl_setup_info.max_memory,
+        ))
+    }
 }
 
 #[test]
-fn read_json_test() {
+pub fn game_launch_test() {
     use std::path::PathBuf;
     use std::sync::Arc;
 
     let account = Arc::new(Account::Offline {
-        username: "PCL.Proto-Test".to_string(),
+        username: "AMagicPear".to_string(),
         uuid: "12345678-1234-1234-1234-123456789012".to_string(),
     });
 

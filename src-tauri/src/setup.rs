@@ -5,9 +5,7 @@ use std::{
     sync::{Arc, LazyLock, Mutex},
 };
 
-use serde::Serialize;
-
-use crate::core::auth::Account;
+use crate::core::{auth::Account, game::GameInstance};
 
 pub mod constants {
     pub const DEFAULT_JAVA_LIST_CACHE_VERSION: i32 = 0;
@@ -21,6 +19,7 @@ pub struct PCLSetupInfo {
     java_list_cache_version: i32,
     theme: Theme,
     download_sourse: DownloadSource,
+    pub max_memory: usize,
 }
 
 /// PCL theme
@@ -44,6 +43,7 @@ impl Default for PCLSetupInfo {
             java_list_cache_version: constants::DEFAULT_JAVA_LIST_CACHE_VERSION,
             theme: Theme::BlueLight,
             download_sourse: DownloadSource::Official,
+            max_memory: 2048,
         }
     }
 }
@@ -60,6 +60,7 @@ pub struct AppState {
     pub pcl_setup_info: crate::setup::PCLSetupInfo,
     pub account: crate::core::auth::Account,
     pub game_directories: Vec<GameDir>,
+    pub active_game_instance: Option<GameInstance>,
 }
 
 impl Default for AppState {
@@ -72,6 +73,7 @@ impl Default for AppState {
                 uuid: "12345678-1234-1234-1234-123456789012".to_string(),
             },
             game_directories: Vec::new(),
+            active_game_instance: None,
         }
     }
 }
@@ -93,12 +95,19 @@ pub enum ConfigManagerError {
     ConfigFileCorrupted,
 }
 
-static CONFIG_MANAGER: LazyLock<ConfigManager> = LazyLock::new(|| ConfigManager::new().unwrap());
+pub static CONFIG_MANAGER: LazyLock<Option<ConfigManager>> = LazyLock::new(|| {
+    let config_manager = ConfigManager::new();
+    if config_manager.is_ok() {
+        Some(config_manager.unwrap())
+    } else {
+        None
+    }
+});
 
 impl ConfigManager {
     /// create a new config manager every time it launches
     /// and initialize the config file, for those who never use this launcher
-    pub fn new() -> Result<Self, ConfigManagerError> {
+    fn new() -> Result<Self, ConfigManagerError> {
         let config_dirs = directories::ProjectDirs::from("cc", "PCL Community", "PCL.Proto")
             .ok_or(ConfigManagerError::ConfigDirNotFound)?;
         let config_dir = config_dirs.config_dir();
@@ -121,7 +130,7 @@ impl ConfigManager {
     }
 
     pub fn instance() -> &'static ConfigManager {
-        &CONFIG_MANAGER
+        CONFIG_MANAGER.as_ref().unwrap()
     }
 
     /// initialize the config file, for those who never use this launcher

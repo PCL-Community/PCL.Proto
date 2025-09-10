@@ -1,7 +1,7 @@
 use crate::core::java::JavaRuntimeVecExt;
 use setup::AppState;
 use std::sync::Arc;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 mod commands;
 mod core;
@@ -21,7 +21,12 @@ pub fn run() {
                         .build(),
                 )?;
             }
-            app.manage(Arc::clone(&setup::ConfigManager::instance().app_state));
+            if let Some(config_manager) = setup::CONFIG_MANAGER.as_ref() {
+                app.manage(Arc::clone(&config_manager.app_state));
+            } else {
+                log::error!("CONFIG_MANAGER is None");
+                app.emit("modal-open", "CONFIG_MANAGER failed to initialize!")?;
+            }
             // search for Java during init
             tauri::async_runtime::spawn(async move {
                 let java_runtimes = core::java::JavaRuntime::search().await;
