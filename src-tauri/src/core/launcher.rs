@@ -7,7 +7,7 @@
 //! GPL-3.0 License | https://github.com/HMCL-dev/HMCL
 // use crate::setup::constants::LAUNCHER_NAME;
 
-use crate::setup::constants::LAUNCHER_NAME;
+use crate::setup::constants::{APP_VERSION, LAUNCHER_NAME};
 use crate::{
     core::{
         auth::Account,
@@ -62,7 +62,7 @@ impl LaunchOption {
         command
             .args(self.build_jvm_arguments()) // build jvm arguments
             .arg("-cp")
-            .arg(self.build_classpath().unwrap())
+            .arg(self.build_classpath().unwrap_or_default())
             .arg("net.minecraft.client.main.Main")
             .args(self.build_game_arguments())
             .current_dir(&self.game_instance.base_dir);
@@ -111,7 +111,7 @@ impl LaunchOption {
         args.push(format!("-Dio.netty.native.workdir={}", natives_path));
         // launcher info
         args.push(format!("-Dminecraft.launcher.brand={}", LAUNCHER_NAME));
-        args.push("-Dminecraft.launcher.version=1.0.0".to_string());
+        args.push(format!("-Dminecraft.launcher.version={}", APP_VERSION));
         // gc optimize
         args.append(
             &mut [

@@ -11,6 +11,7 @@ pub mod constants {
     pub const DEFAULT_JAVA_LIST_CACHE_VERSION: i32 = 0;
     pub const LAUNCHER_NAME: &str = "PCL.Proto";
     pub const USER_AGENT: &str = "PCL-Community/PCL.Proto/0.5.0";
+    pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 }
 
 /// PCL global setup info, which user can modify

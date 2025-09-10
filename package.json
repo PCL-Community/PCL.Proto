@@ -44,7 +44,7 @@
     "prettier": "3.6.2",
     "pug": "^3.0.3",
     "typescript": "~5.9.2",
-    "vite": "^7.1.4",
+    "vite": "^7.1.5",
     "vite-svg-loader": "^5.1.0",
     "vue-tsc": "^3.0.6"
   }
