@@ -2,7 +2,10 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     AppState,
-    core::{auth::Account, java::JavaRuntime},
+    core::{
+        auth::Account,
+        java::{JavaRuntime, JavaRuntimeVecExt},
+    },
     setup::GameDir,
 };
 use tauri::{AppHandle, Emitter, State};
@@ -48,12 +51,9 @@ pub fn get_java_list(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<JavaRuntime>
 }
 
 #[tauri::command]
-pub async fn refresh_java_list(
-    state: State<'_, Arc<Mutex<AppState>>>,
-) -> Result<Vec<JavaRuntime>, ()> {
+pub async fn refresh_java_list() -> Result<Vec<JavaRuntime>, ()> {
     let java_runtimes = JavaRuntime::search().await;
-    let mut state = state.lock().unwrap();
-    state.java_runtimes = java_runtimes.clone();
+    java_runtimes.clone().patch_state();
     return Ok(java_runtimes);
 }
 

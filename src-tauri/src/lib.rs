@@ -1,8 +1,7 @@
+use crate::core::java::JavaRuntimeVecExt;
 use setup::AppState;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use tauri::Manager;
-
-use crate::core::java::JavaRuntime;
 
 mod commands;
 mod core;
@@ -22,15 +21,11 @@ pub fn run() {
                         .build(),
                 )?;
             }
-            let config_manager = setup::ConfigManager::instance().lock().unwrap();
-            let state = Arc::new(Mutex::new(config_manager.load().unwrap()));
-            app.manage(state.clone());
+            app.manage(Arc::clone(&setup::ConfigManager::instance().app_state));
             // search for Java during init
             tauri::async_runtime::spawn(async move {
                 let java_runtimes = core::java::JavaRuntime::search().await;
-                let mut guard = state.lock().unwrap();
-                JavaRuntime::patch(&mut guard, java_runtimes);
-                // guard.java_runtimes = java_runtimes;
+                java_runtimes.patch_state();
             });
             Ok(())
         })

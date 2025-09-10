@@ -8,7 +8,7 @@ use std::{
     process::Command,
 };
 
-use crate::setup::{self, AppState};
+use crate::setup::ConfigManager;
 
 use super::platform::Compability;
 
@@ -181,15 +181,17 @@ impl JavaRuntime {
             .filter_map(|path| Self::try_from(path.as_str()).ok())
             .collect()
     }
+}
 
-    pub fn patch(state: &mut AppState, to_patch: Vec<Self>) {
+pub trait JavaRuntimeVecExt {
+    fn patch_state(self);
+}
+impl JavaRuntimeVecExt for Vec<JavaRuntime> {
+    fn patch_state(self) {
         // TODO: 根据是否为用户导入写一个更复杂的合并逻辑
-        state.java_runtimes = to_patch;
-        setup::ConfigManager::instance()
-            .lock()
-            .unwrap()
-            .save(state)
-            .unwrap();
+        let config_manager = ConfigManager::instance();
+        config_manager.app_state.lock().unwrap().java_runtimes = self;
+        config_manager.save().unwrap();
     }
 }
 
