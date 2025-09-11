@@ -49,10 +49,11 @@ impl Default for PCLSetupInfo {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
-pub struct GameDir {
-    name: String,
-    path: PathBuf,
+/// a .minecraft folder, not a single version folder
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct GameRepository {
+    pub name: String,
+    pub path: PathBuf,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -61,7 +62,7 @@ pub struct AppState {
     pub accounts: Vec<Account>,
     pub pcl_setup_info: crate::setup::PCLSetupInfo,
     pub active_account: Arc<Account>,
-    pub game_directories: Vec<GameDir>,
+    pub game_directories: Vec<GameRepository>,
     pub active_game_instance: Option<Arc<GameInstance>>,
 }
 
@@ -145,7 +146,7 @@ impl ConfigManager {
             fs::create_dir_all(&game_dir).map_err(|_| ConfigManagerError::ConfigDirNotFound)?;
         }
         let mut state = self.app_state.lock().unwrap();
-        state.game_directories.push(GameDir {
+        state.game_directories.push(GameRepository {
             name: "current".to_string(),
             path: game_dir,
         });

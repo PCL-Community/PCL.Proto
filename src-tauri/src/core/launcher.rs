@@ -65,7 +65,7 @@ impl LaunchOption {
             .arg(self.build_classpath().unwrap_or_default())
             .arg("net.minecraft.client.main.Main")
             .args(self.build_game_arguments())
-            .current_dir(&self.game_instance.base_dir);
+            .current_dir(&self.game_instance.global_dir.path);
         command.spawn()
     }
 
@@ -149,7 +149,7 @@ impl LaunchOption {
                     .ok_or("Missing path in artifact")?;
                 let lib_full_path = format!(
                     "{}/libraries/{}",
-                    self.game_instance.base_dir.display(),
+                    self.game_instance.global_dir.path.display(),
                     lib_path
                 );
                 classpath.push(lib_full_path);
@@ -170,7 +170,7 @@ impl LaunchOption {
             format!("--gameDir={}", self.game_instance.directory.display()),
             format!(
                 "--assetsDir={}/assets",
-                self.game_instance.base_dir.display()
+                self.game_instance.global_dir.path.display()
             ),
             "--assetIndex=26".to_string(), // TODO: read from version json
             format!("--uuid={}", self.account.uuid()),
@@ -194,6 +194,7 @@ impl LaunchOption {
 
 #[test]
 pub fn game_launch_test() {
+    use crate::setup::GameRepository;
     use std::path::PathBuf;
     use std::sync::Arc;
 
@@ -202,14 +203,16 @@ pub fn game_launch_test() {
         uuid: "12345678-1234-1234-1234-123456789012".to_string(),
     });
 
+    let game_repo = GameRepository {
+        name: "HMCL".to_string(),
+        path: PathBuf::from("/Users/amagicpear/HMCL/.minecraft"),
+    };
+    let game_repo = Arc::new(game_repo);
+    let version_folder = PathBuf::from("/Users/amagicpear/HMCL/.minecraft/versions/1.21.8");
+
     let mut launch_option = LaunchOption::new(
         account,
-        Arc::new(GameInstance::new(
-            "1.21.8".to_string(),
-            PathBuf::from("/Users/amagicpear/HMCL/.minecraft/versions/1.21.8"),
-            "1.21.8".to_string(),
-            PathBuf::from("/Users/amagicpear/HMCL/.minecraft"),
-        )),
+        Arc::new(GameInstance::from_version_folder(&version_folder, &game_repo).unwrap()),
         4096,
     );
     launch_option.set_window_size(1280, 720);

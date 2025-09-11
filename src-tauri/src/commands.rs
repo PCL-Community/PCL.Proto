@@ -6,7 +6,7 @@ use crate::{
         auth::Account,
         java::{JavaRuntime, JavaRuntimeVecExt},
     },
-    setup::GameDir,
+    setup::GameRepository,
 };
 use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_dialog::DialogExt;
@@ -59,7 +59,7 @@ pub async fn refresh_java_list() -> Result<Vec<JavaRuntime>, ()> {
 }
 
 #[tauri::command]
-pub fn get_game_directories(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<GameDir> {
+pub fn get_game_directories(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<GameRepository> {
     let state = state.lock().unwrap();
     state.game_directories.clone()
 }
