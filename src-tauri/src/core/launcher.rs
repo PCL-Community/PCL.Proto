@@ -33,23 +33,6 @@ pub struct LaunchOption {
 }
 
 impl LaunchOption {
-    fn new(account: Arc<Account>, game_instance: Arc<GameInstance>, max_memory: usize) -> Self {
-        let java_runtime = match &game_instance.game_java {
-            // TODO: Default JavaRuntime
-            // GameJava::Default => JavaRuntime::default(),
-            GameJava::Default => Arc::new(JavaRuntime::try_from("/usr/bin/java").unwrap()),
-            GameJava::Custom(java_runtime) => Arc::clone(java_runtime),
-        };
-        Self {
-            account,
-            java_runtime,
-            game_instance,
-            max_memory,
-            width: None,
-            height: None,
-        }
-    }
-
     pub fn set_window_size(&mut self, width: usize, height: usize) -> &Self {
         self.width = Some(width);
         self.height = Some(height);
@@ -183,12 +166,29 @@ impl LaunchOption {
         ]
     }
 
-    pub fn from_state(state: &AppState) -> Option<Self> {
-        Some(Self::new(
-            Arc::clone(&state.active_account),
-            Arc::clone(state.active_game_instance.as_ref()?),
-            state.pcl_setup_info.max_memory,
-        ))
+    /// build a launch option from app state if it is possible
+    pub fn from_state(state: &AppState) -> Result<Self, Box<dyn std::error::Error>> {
+        if let Some(game_instance) = state.active_game_instance.as_ref() {
+            let java_selected: &Arc<JavaRuntime> = match game_instance.game_java {
+                GameJava::Default => {
+                    if let Some(java_runtime) = state.pcl_setup_info.default_java.as_ref() {
+                        java_runtime
+                    } else {
+                        return Err("No default java runtime found".into());
+                    }
+                }
+                GameJava::Custom(ref java_runtime) => java_runtime,
+            };
+            return Ok(Self {
+                account: state.active_account.clone(),
+                java_runtime: java_selected.clone(),
+                game_instance: game_instance.clone(),
+                max_memory: state.pcl_setup_info.max_memory,
+                width: None,
+                height: None,
+            });
+        }
+        Err("No active game instance found".into())
     }
 }
 
@@ -210,11 +210,16 @@ pub fn game_launch_test() {
     let game_repo = Arc::new(game_repo);
     let version_folder = PathBuf::from("/Users/amagicpear/HMCL/.minecraft/versions/1.21.8");
 
-    let mut launch_option = LaunchOption::new(
+    let mut launch_option = LaunchOption {
         account,
-        Arc::new(GameInstance::from_version_folder(&version_folder, &game_repo).unwrap()),
-        4096,
-    );
+        java_runtime: Arc::new(JavaRuntime::try_from("/usr/bin/java").unwrap()),
+        game_instance: Arc::new(
+            GameInstance::from_version_folder(&version_folder, &game_repo).unwrap(),
+        ),
+        max_memory: 4096,
+        width: None,
+        height: None,
+    };
     launch_option.set_window_size(1280, 720);
     if let Ok(mut child) = launch_option.launch() {
         child.wait().unwrap();

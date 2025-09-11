@@ -1,10 +1,14 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    ops::Deref,
+    sync::{Arc, Mutex},
+};
 
 use crate::{
     AppState,
     core::{
         auth::Account,
         java::{JavaRuntime, JavaRuntimeVecExt},
+        launcher::LaunchOption,
     },
     setup::GameRepository,
 };
@@ -12,13 +16,21 @@ use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command]
-pub fn launch_game(app: AppHandle) {
+pub fn launch_game(app: AppHandle, state: State<'_, Arc<Mutex<AppState>>>) -> Result<(), String> {
     log::info!("launch_game invoked from js.");
-    app.emit(
-        "modal-open",
-        "Game launching feature is not implemented yet!",
-    )
-    .unwrap();
+    let guard = state.lock().unwrap();
+    let launch_option = LaunchOption::from_state(&guard);
+    drop(guard);
+    if let Err(e) = launch_option {
+        log::error!("launch_game: {:?}", e);
+        return Err(e.to_string());
+    } else {
+        if let Err(e) = launch_option.unwrap().launch() {
+            log::error!("launch_game: {:?}", e);
+            return Err(e.to_string());
+        }
+    }
+    Ok(())
 }
 
 #[tauri::command]

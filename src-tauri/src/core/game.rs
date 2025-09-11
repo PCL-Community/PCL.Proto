@@ -1,9 +1,6 @@
 use std::{fs, path::PathBuf, sync::Arc};
 
-use crate::{
-    core::{game, java::JavaRuntime},
-    setup::GameRepository,
-};
+use crate::{core::java::JavaRuntime, setup::GameRepository};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum GameJava {
@@ -68,7 +65,7 @@ impl GameInstance {
                 name: folder_name.to_string(),
                 directory: version_folder.clone(),
                 jar_path,
-                version: folder_name.to_string(), // TODO: 从json中读取version
+                version: id.to_string(), // TODO: 从json中读取version
                 json_path,
                 natives_path: version_folder.join("natives"),
                 game_java: GameJava::Default,
