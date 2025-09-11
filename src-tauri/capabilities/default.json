@@ -12,6 +12,8 @@
     "os:default",
     "core:window:allow-minimize",
     "core:window:allow-close",
-    "dialog:default"
+    "dialog:default",
+    "log:allow-log",
+    "log:default"
   ]
 }

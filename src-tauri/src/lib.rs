@@ -1,7 +1,8 @@
 use crate::core::java::JavaRuntimeVecExt;
 use setup::AppState;
 use std::sync::Arc;
-use tauri::{Emitter, Manager};
+use tauri::Manager;
+use tauri_plugin_dialog::DialogExt;
 
 mod commands;
 mod core;
@@ -25,8 +26,16 @@ pub fn run() {
                 app.manage(Arc::clone(&config_manager.app_state));
             } else {
                 log::error!("CONFIG_MANAGER is None");
-                app.emit("modal-open", "CONFIG_MANAGER failed to initialize!")?;
+                app.dialog()
+                    .message("Config manager failed to initialize!")
+                    .title("Fatal Error! 完🥚辣！")
+                    .buttons(tauri_plugin_dialog::MessageDialogButtons::Ok)
+                    .show(|_result| {
+                        std::process::exit(1);
+                    });
             }
+            // let window = app.get_webview_window("main").unwrap();
+            // window.on_navigation(move |url| {});
             // search for Java during init
             tauri::async_runtime::spawn(async move {
                 let java_runtimes = core::java::JavaRuntime::search().await;

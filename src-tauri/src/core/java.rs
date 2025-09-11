@@ -125,7 +125,7 @@ impl JavaRuntime {
             pub fn search_macos(base_dir: &Path) -> HashSet<String> {
                 let mut result = HashSet::new();
                 if !base_dir.exists() || !base_dir.is_dir() {
-                    println!("macOS search path not exists: {:?}", base_dir);
+                    log::warn!("macOS search path not exists: {:?}", base_dir);
                     return result;
                 }
                 if let Ok(entries) = fs::read_dir(base_dir) {
@@ -175,6 +175,7 @@ impl JavaRuntime {
         //         }
         //     }
         // }
+        log::info!("found {} java runtimes", collect_paths.len());
         // 使用try_from映射valid_paths到结果
         collect_paths
             .iter()
@@ -192,6 +193,7 @@ impl JavaRuntimeVecExt for Vec<JavaRuntime> {
         let config_manager = ConfigManager::instance();
         config_manager.app_state.lock().unwrap().java_runtimes = self;
         config_manager.save().unwrap();
+        log::info!("patched java runtimes to config");
     }
 }
 
@@ -199,7 +201,7 @@ impl TryFrom<&str> for JavaRuntime {
     type Error = JavaRuntimeConstructorError;
     fn try_from(java_path: &str) -> Result<Self, Self::Error> {
         use super::platform::Architecture;
-        // println!("[java] 创建JavaRuntime: {java_path}");
+        log::debug!("[java] 创建JavaRuntime: {java_path}");
         let java_path = Path::new(java_path);
         if !java_path.exists() {
             return Err(JavaRuntimeConstructorError::MissingFile);

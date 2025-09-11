@@ -58,8 +58,9 @@ pub struct GameDir {
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct AppState {
     pub java_runtimes: Vec<crate::core::java::JavaRuntime>,
+    pub accounts: Vec<Account>,
     pub pcl_setup_info: crate::setup::PCLSetupInfo,
-    pub account: Arc<crate::core::auth::Account>,
+    pub active_account: Arc<Account>,
     pub game_directories: Vec<GameDir>,
     pub active_game_instance: Option<Arc<GameInstance>>,
 }
@@ -69,12 +70,13 @@ impl Default for AppState {
         Self {
             java_runtimes: Vec::new(),
             pcl_setup_info: crate::setup::PCLSetupInfo::default(),
-            account: Arc::new(Account::Offline {
+            active_account: Arc::new(Account::Offline {
                 username: "AMagicPear".to_string(),
                 uuid: "12345678-1234-1234-1234-123456789012".to_string(),
             }),
             game_directories: Vec::new(),
             active_game_instance: None,
+            accounts: Vec::new(),
         }
     }
 }
@@ -121,9 +123,11 @@ impl ConfigManager {
             config_dir: config_dir.to_path_buf(),
             app_state: Arc::new(Mutex::new(AppState::default())),
         };
-        if instance.config_path.exists() {
-            instance.load()?;
-        } else {
+        if !instance.config_path.exists()
+            || !instance.config_path.is_file()
+            || instance.load().is_err()
+        {
+            log::warn!("Unabled to load config file, try to init");
             instance.init()?;
             instance.save()?;
         }
@@ -149,6 +153,7 @@ impl ConfigManager {
     }
 
     /// load the config file
+    /// TODO: Partial config support
     fn load(&self) -> Result<(), ConfigManagerError> {
         let file = std::fs::File::open(&self.config_path)
             .map_err(|_| ConfigManagerError::ConfigFileNotFound)?;

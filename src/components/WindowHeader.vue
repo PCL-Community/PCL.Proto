@@ -9,6 +9,7 @@ import useSideNavState from '@/stores/windowState'
 import navItems from '@/layout/navItems'
 import currentPlatform from '@/util/platform'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { debug } from '@tauri-apps/plugin-log'
 
 const sideNavState = useSideNavState()
 const appWindow = getCurrentWindow()
@@ -25,6 +26,7 @@ const isFullscreen = ref(false)
 watch(
   () => route.fullPath,
   (newPath, oldPath) => {
+    debug(`route change: ${oldPath} -> ${newPath}`)
     if (route.meta.isSubPage) {
       // 进入特殊页面时记录来源
       if (!isSubPage.value) {

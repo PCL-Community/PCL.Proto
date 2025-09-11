@@ -185,7 +185,7 @@ impl LaunchOption {
 
     pub fn from_state(state: &AppState) -> Option<Self> {
         Some(Self::new(
-            Arc::clone(&state.account),
+            Arc::clone(&state.active_account),
             Arc::clone(state.active_game_instance.as_ref()?),
             state.pcl_setup_info.max_memory,
         ))

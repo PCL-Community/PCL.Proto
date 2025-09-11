@@ -13,7 +13,7 @@ use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command]
 pub fn launch_game(app: AppHandle) {
-    println!("[game] launch_game invoked from js.");
+    log::info!("launch_game invoked from js.");
     app.emit(
         "modal-open",
         "Game launching feature is not implemented yet!",
@@ -35,6 +35,7 @@ pub async fn add_java(
                 return Err(());
             }
             state.java_runtimes.push(java_runtime.clone());
+            log::info!("add_java: {:?}", java_runtime.java_exe);
             return Ok(java_runtime);
         } else {
             return Err(());
@@ -66,5 +67,5 @@ pub fn get_game_directories(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<GameD
 #[tauri::command]
 pub fn get_account(state: State<'_, Arc<Mutex<AppState>>>) -> Account {
     let state = state.lock().unwrap();
-    state.account.as_ref().clone()
+    state.active_account.as_ref().clone()
 }
