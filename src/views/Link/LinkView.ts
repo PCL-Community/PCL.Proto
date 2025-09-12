@@ -7,16 +7,16 @@ import { h } from 'vue';
 
 export default h(SideNavLayout, {
   sideNavGroups: [{
-    title: '开始联机',
+    title: 'link.nav.start',
     content: [
-      { text: '大厅', icon: IconLobby, linkto: 'lobby' },
+      { text: 'link.nav.lobby', icon: IconLobby, linkto: 'lobby' },
     ]
   }, {
-    title: "更多选项",
+    title: 'link.nav.more_options',
     content: [
-      { text: '设置', icon: IconSetup, linkto: 'setup' },
-      { text: '常见问题', icon: IconHelp, linkto: 'help' },
-      { text: '关于和反馈', icon: IconFeedback, linkto: 'feedback' }
+      { text: 'link.nav.setting', icon: IconSetup, linkto: 'setup' },
+      { text: 'link.nav.common_question', icon: IconHelp, linkto: 'help' },
+      { text: 'link.nav.about_and_feedback', icon: IconFeedback, linkto: 'feedback' }
     ]
   }
   ]

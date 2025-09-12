@@ -8,17 +8,16 @@ import PInput from '@/components/widget/PInput.vue'
 
 <template>
   <PHint severity="info">此大厅仅为UI，无联机功能</PHint>
-  <PCard title="加入大厅">
-    <p>1. 在下方输入朋友发送给你的大厅编号，单击「加入」</p>
-    <p>2. 启动游戏，选择「多人游戏」，在局域网游戏中加入大厅</p>
+  <PCard :title="$t('link.lobby.join_lobby')">
+    <p v-for="line in $t('link.lobby.join_lobby_description').split('\n')">{{ line }}</p>
     <div class="hall-input">
-      <PInput placeholder="输入大厅编号" style="flex: 1" />
+      <PInput :placeholder="$t('link.lobby.enter_lobby_code')" style="flex: 1" />
       <PButton inline>清除</PButton>
       <PButton inline>粘贴</PButton>
-      <PButton inline type="tint">加入</PButton>
+      <PButton inline type="tint">{{ $t('link.lobby.join_lobby') }}</PButton>
     </div>
   </PCard>
-  <PCard title="创建大厅">
+  <PCard :title="$t('link.lobby.create_lobby')">
     <p>1. 进入世界后，在游戏菜单中选择「对局域网开放」</p>
     <p>2. 在下方选择此游戏实例，单击「创建」</p>
     <p>3. 成功创建大厅后，复制大厅编号并发送给你的朋友</p>

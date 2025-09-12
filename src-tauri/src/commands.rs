@@ -1,17 +1,34 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{AppState, core::java::JavaRuntime};
-use tauri::{AppHandle, Emitter, State};
+use crate::{
+    AppState,
+    core::repository::GameRepository,
+    core::{
+        auth::Account,
+        game::GameInstance,
+        java::{JavaRuntime, JavaRuntimeVecExt},
+        launcher::LaunchOption,
+    },
+};
+use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command]
-pub fn launch_game(app: AppHandle) {
-    println!("[game] launch_game invoked from js.");
-    app.emit(
-        "modal-open",
-        "Game launching feature is not implemented yet!",
-    )
-    .unwrap();
+pub fn launch_game(app: AppHandle, state: State<'_, Arc<Mutex<AppState>>>) -> Result<(), String> {
+    log::info!("launch_game invoked from js.");
+    let guard = state.lock().unwrap();
+    let launch_option = LaunchOption::from_state(&guard);
+    drop(guard);
+    if let Err(e) = launch_option {
+        log::error!("launch_game: {:?}", e);
+        return Err(e.to_string());
+    } else {
+        if let Err(e) = launch_option.unwrap().launch() {
+            log::error!("launch_game: {:?}", e);
+            return Err(e.to_string());
+        }
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -28,6 +45,7 @@ pub async fn add_java(
                 return Err(());
             }
             state.java_runtimes.push(java_runtime.clone());
+            log::info!("add_java: {:?}", java_runtime.java_exe);
             return Ok(java_runtime);
         } else {
             return Err(());
@@ -44,11 +62,39 @@ pub fn get_java_list(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<JavaRuntime>
 }
 
 #[tauri::command]
-pub async fn refresh_java_list(
-    state: State<'_, Arc<Mutex<AppState>>>,
-) -> Result<Vec<JavaRuntime>, ()> {
+pub async fn refresh_java_list() -> Result<Vec<JavaRuntime>, ()> {
     let java_runtimes = JavaRuntime::search().await;
-    let mut state = state.lock().unwrap();
-    state.java_runtimes = java_runtimes.clone();
+    java_runtimes.clone().patch_state();
     return Ok(java_runtimes);
+}
+
+#[tauri::command]
+pub fn get_repositories(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<GameRepository> {
+    let state = state.lock().unwrap();
+    state.repositories.clone()
+}
+
+#[tauri::command]
+pub fn get_account(state: State<'_, Arc<Mutex<AppState>>>) -> Option<Account> {
+    let state = state.lock().unwrap();
+    state.active_account.as_deref().cloned()
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn get_instances_in_repository(
+    state: State<'_, Arc<Mutex<AppState>>>,
+    repository_name: &str,
+) -> Result<Vec<GameInstance>, ()> {
+    let all_repos = {
+        let state = state.lock().unwrap();
+        state.repositories.clone()
+    };
+    let repo = all_repos
+        .into_iter()
+        .find(|repo| repo.name == repository_name);
+    if let Some(repo) = repo {
+        Ok(repo.game_instances())
+    } else {
+        Err(())
+    }
 }

@@ -1,3 +1,4 @@
+pub mod file;
 pub mod toys;
 
 fn get_hash(str: &str) -> u64 {

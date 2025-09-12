@@ -4,7 +4,7 @@ use std::path::Path;
 use goblin::Object;
 
 /// The architecture of java runtime
-#[derive(Debug, PartialEq, serde::Serialize, Clone)]
+#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize, Clone)]
 pub enum Architecture {
     X86,
     X64,
@@ -13,7 +13,7 @@ pub enum Architecture {
     Unknown,
 }
 
-#[derive(Debug, serde::Serialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub enum Compability {
     Perfect,
     Translation,

@@ -7,36 +7,48 @@
 //! GPL-3.0 License | https://github.com/HMCL-dev/HMCL
 // use crate::setup::constants::LAUNCHER_NAME;
 
-use std::{thread::sleep, time::Duration};
+use crate::setup::constants::{APP_VERSION, LAUNCHER_NAME};
+use crate::{
+    core::{
+        auth::Account,
+        game::{GameInstance, GameJava},
+        java::JavaRuntime,
+    },
+    setup::AppState,
+};
+use std::sync::Arc;
 
-use crate::core::{auth::Account, game::GameInstance, java::JavaRuntime};
-
-const GAME_DIR: &str = "/Users/amagicpear/HMCL/.minecraft";
+// const GAME_DIR: &str = "/Users/amagicpear/HMCL/.minecraft";
 // const LIBRARY_PATH: &str = "/Users/amagicpear/HMCL/.minecraft/libraries";
 // const ASSESTS_DIR: &str = "/Users/amagicpear/HMCL/.minecraft/assets";
 
 /// Essential options for launching a Minecraft game
 pub struct LaunchOption {
-    account: Account,
-    java_runtime: JavaRuntime,
-    game_instance: GameInstance,
+    account: Arc<Account>,
+    java_runtime: Arc<JavaRuntime>,
+    game_instance: Arc<GameInstance>,
     max_memory: usize,
     width: Option<usize>,
     height: Option<usize>,
 }
 
 impl LaunchOption {
+    pub fn set_window_size(&mut self, width: usize, height: usize) -> &Self {
+        self.width = Some(width);
+        self.height = Some(height);
+        self
+    }
+
     /// Launch a Minecraft game with the given options
     pub fn launch(&self) -> Result<std::process::Child, std::io::Error> {
         let mut command = std::process::Command::new(&self.java_runtime.java_exe);
         command
             .args(self.build_jvm_arguments()) // build jvm arguments
             .arg("-cp")
-            .arg(self.build_classpath().unwrap())
+            .arg(self.build_classpath().unwrap_or_default())
             .arg("net.minecraft.client.main.Main")
             .args(self.build_game_arguments())
-            .current_dir(GAME_DIR);
-        println!("command:\n{:?}", command);
+            .current_dir(&self.game_instance.global_dir.path);
         command.spawn()
     }
 
@@ -81,17 +93,24 @@ impl LaunchOption {
         ));
         args.push(format!("-Dio.netty.native.workdir={}", natives_path));
         // launcher info
-        args.push("-Dminecraft.launcher.brand=CustomLauncher".to_string());
-        args.push("-Dminecraft.launcher.version=1.0.0".to_string());
+        args.push(format!("-Dminecraft.launcher.brand={}", LAUNCHER_NAME));
+        args.push(format!("-Dminecraft.launcher.version={}", APP_VERSION));
         // gc optimize
-        args.push("-XX:+UnlockExperimentalVMOptions".to_string());
-        args.push("-XX:+UnlockDiagnosticVMOptions".to_string());
-        args.push("-XX:+UseG1GC".to_string());
-        args.push("-XX:G1MixedGCCountTarget=5".to_string());
-        args.push("-XX:G1NewSizePercent=20".to_string());
-        args.push("-XX:G1ReservePercent=20".to_string());
-        args.push("-XX:MaxGCPauseMillis=50".to_string());
-        args.push("-XX:G1HeapRegionSize=32m".to_string());
+        args.append(
+            &mut [
+                "-XX:+UnlockExperimentalVMOptions",
+                "-XX:+UnlockDiagnosticVMOptions",
+                "-XX:+UseG1GC",
+                "-XX:G1MixedGCCountTarget=5",
+                "-XX:G1NewSizePercent=20",
+                "-XX:G1ReservePercent=20",
+                "-XX:MaxGCPauseMillis=50",
+                "-XX:G1HeapRegionSize=32m",
+            ]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+        );
         args
     }
 
@@ -111,7 +130,11 @@ impl LaunchOption {
                 let lib_path = lib_artifact["path"]
                     .as_str()
                     .ok_or("Missing path in artifact")?;
-                let lib_full_path = format!("{}/libraries/{}", GAME_DIR, lib_path);
+                let lib_full_path = format!(
+                    "{}/libraries/{}",
+                    self.game_instance.global_dir.path.display(),
+                    lib_path
+                );
                 classpath.push(lib_full_path);
             }
         }
@@ -125,43 +148,89 @@ impl LaunchOption {
 
     fn build_game_arguments(&self) -> Vec<String> {
         vec![
-            format!("--username={}", self.account.username),
+            format!("--username={}", (self.account.username())),
             format!("--version={}", self.game_instance.version),
             format!("--gameDir={}", self.game_instance.directory.display()),
-            format!("--assetsDir={}/assets", GAME_DIR),
+            format!(
+                "--assetsDir={}/assets",
+                self.game_instance.global_dir.path.display()
+            ),
             "--assetIndex=26".to_string(), // TODO: read from version json
-            format!("--uuid={}", self.account.uuid),
+            format!("--uuid={}", self.account.uuid()),
             // TODO: get the below from account
             format!("--accessToken={}", "0"),
             format!("--userType={}", "msa"),
-            format!("--versionType={}", crate::setup::constants::LAUNCHER_NAME),
+            format!("--versionType={}", LAUNCHER_NAME),
             format!("--width={}", self.width.unwrap_or(854)),
             format!("--height={}", self.height.unwrap_or(480)),
         ]
     }
+
+    /// build a launch option from app state if it is possible
+    pub fn from_state(state: &AppState) -> Result<Self, Box<dyn std::error::Error>> {
+        if let Some(game_instance) = state.active_game_instance.as_ref() {
+            let java_selected: &Arc<JavaRuntime> = match game_instance.game_java {
+                GameJava::Default => {
+                    if let Some(java_runtime) = state.pcl_setup_info.default_java.as_ref() {
+                        java_runtime
+                    } else {
+                        return Err("No default java runtime found".into());
+                    }
+                }
+                GameJava::Custom(ref java_runtime) => java_runtime,
+            };
+            let active_account = state.active_account.as_ref();
+            if active_account.is_none() {
+                return Err("No active account found".into());
+            }
+            return Ok(Self {
+                account: active_account.unwrap().clone(),
+                java_runtime: java_selected.clone(),
+                game_instance: game_instance.clone(),
+                max_memory: state.pcl_setup_info.max_memory,
+                width: None,
+                height: None,
+            });
+        }
+        Err("No active game instance found".into())
+    }
 }
 
 #[test]
-fn read_json_test() {
+pub fn game_launch_test() {
+    use crate::core::repository::GameRepository;
     use std::path::PathBuf;
+    use std::sync::Arc;
 
-    let account = Account::new(
-        "PCLTest".to_string(),
-        "12345678-1234-1234-1234-123456789012".to_string(),
-    );
-    let launch_option = LaunchOption {
+    let account = Arc::new(Account::Offline {
+        username: "AMagicPear".to_string(),
+        uuid: "12345678-1234-1234-1234-123456789012".to_string(),
+    });
+
+    let game_repo = GameRepository {
+        name: "HMCL".to_string(),
+        path: PathBuf::from("/Users/amagicpear/HMCL/.minecraft"),
+    };
+    let game_repo = Arc::new(game_repo);
+    let version_folder = PathBuf::from("/Users/amagicpear/HMCL/.minecraft/versions/1.21.8");
+
+    let mut launch_option = LaunchOption {
         account,
-        java_runtime: JavaRuntime::try_from("/usr/bin/java").unwrap(),
-        game_instance: GameInstance::new(
-            "1.21.8".to_string(),
-            PathBuf::from("/Users/amagicpear/HMCL/.minecraft/versions/1.21.8"),
-            "1.21.8".to_string(),
+        java_runtime: Arc::new(JavaRuntime::try_from("/usr/bin/java").unwrap()),
+        game_instance: Arc::new(
+            GameInstance::from_version_folder(&version_folder, &game_repo).unwrap(),
         ),
         max_memory: 4096,
         width: None,
         height: None,
     };
-
-    launch_option.launch();
-    sleep(Duration::from_secs(20));
+    launch_option.set_window_size(1280, 720);
+    if let Ok(mut child) = launch_option.launch() {
+        child.wait().unwrap();
+    } else {
+        eprintln!(
+            "launch failed, instance id:{:?}",
+            launch_option.game_instance.id
+        );
+    }
 }

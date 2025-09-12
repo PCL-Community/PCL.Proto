@@ -21,6 +21,7 @@
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",
     "@tauri-apps/plugin-dialog": "~2.4.0",
+    "@tauri-apps/plugin-log": "^2.7.0",
     "@tauri-apps/plugin-os": "~2.3.1",
     "animate.css": "^4.1.1",
     "marked": "^16.2.1",
@@ -44,7 +45,7 @@
     "prettier": "3.6.2",
     "pug": "^3.0.3",
     "typescript": "~5.9.2",
-    "vite": "^7.1.4",
+    "vite": "^7.1.5",
     "vite-svg-loader": "^5.1.0",
     "vue-tsc": "^3.0.6"
   }
