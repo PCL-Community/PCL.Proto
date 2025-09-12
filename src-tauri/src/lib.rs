@@ -49,8 +49,9 @@ pub fn run() {
             commands::add_java,
             commands::get_java_list,
             commands::refresh_java_list,
-            commands::get_game_directories,
-            commands::get_account
+            commands::get_repositories,
+            commands::get_account,
+            commands::get_instances_in_repository,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

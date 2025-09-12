@@ -1,18 +1,16 @@
-use std::{
-    ops::Deref,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use crate::{
     AppState,
+    core::repository::GameRepository,
     core::{
         auth::Account,
+        game::GameInstance,
         java::{JavaRuntime, JavaRuntimeVecExt},
         launcher::LaunchOption,
     },
-    setup::GameRepository,
 };
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command]
@@ -71,13 +69,32 @@ pub async fn refresh_java_list() -> Result<Vec<JavaRuntime>, ()> {
 }
 
 #[tauri::command]
-pub fn get_game_directories(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<GameRepository> {
+pub fn get_repositories(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<GameRepository> {
     let state = state.lock().unwrap();
-    state.game_directories.clone()
+    state.repositories.clone()
 }
 
 #[tauri::command]
-pub fn get_account(state: State<'_, Arc<Mutex<AppState>>>) -> Account {
+pub fn get_account(state: State<'_, Arc<Mutex<AppState>>>) -> Option<Account> {
     let state = state.lock().unwrap();
-    state.active_account.as_ref().clone()
+    state.active_account.as_deref().cloned()
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn get_instances_in_repository(
+    state: State<'_, Arc<Mutex<AppState>>>,
+    repository_name: &str,
+) -> Result<Vec<GameInstance>, ()> {
+    let all_repos = {
+        let state = state.lock().unwrap();
+        state.repositories.clone()
+    };
+    let repo = all_repos
+        .into_iter()
+        .find(|repo| repo.name == repository_name);
+    if let Some(repo) = repo {
+        Ok(repo.game_instances())
+    } else {
+        Err(())
+    }
 }

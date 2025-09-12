@@ -179,8 +179,12 @@ impl LaunchOption {
                 }
                 GameJava::Custom(ref java_runtime) => java_runtime,
             };
+            let active_account = state.active_account.as_ref();
+            if active_account.is_none() {
+                return Err("No active account found".into());
+            }
             return Ok(Self {
-                account: state.active_account.clone(),
+                account: active_account.unwrap().clone(),
                 java_runtime: java_selected.clone(),
                 game_instance: game_instance.clone(),
                 max_memory: state.pcl_setup_info.max_memory,
@@ -194,7 +198,7 @@ impl LaunchOption {
 
 #[test]
 pub fn game_launch_test() {
-    use crate::setup::GameRepository;
+    use crate::core::repository::GameRepository;
     use std::path::PathBuf;
     use std::sync::Arc;
 

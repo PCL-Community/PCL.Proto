@@ -5,7 +5,9 @@ use std::{
     sync::{Arc, LazyLock, Mutex},
 };
 
-use crate::core::{auth::Account, game::GameInstance, java::JavaRuntime};
+use crate::core::{
+    auth::Account, game::GameInstance, java::JavaRuntime, repository::GameRepository,
+};
 
 pub mod constants {
     pub const DEFAULT_JAVA_LIST_CACHE_VERSION: i32 = 0;
@@ -51,73 +53,14 @@ impl Default for PCLSetupInfo {
     }
 }
 
-/// a .minecraft folder, not a single version folder
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub struct GameRepository {
-    pub name: String,
-    pub path: PathBuf,
-}
-
-impl GameRepository {
-    pub fn game_instances(&self) -> Vec<GameInstance> {
-        let versions_folder = self.path.join("versions");
-        let mut game_instances = Vec::new();
-        for entry in fs::read_dir(versions_folder).unwrap() {
-            let entry = entry.unwrap();
-            let path = entry.path();
-            if path.is_dir() {
-                let game_instance_result =
-                    GameInstance::from_version_folder(&path, &Arc::new(self.clone()));
-                if let Ok(game_instance) = game_instance_result {
-                    println!("loaded game instance: {:?}", &game_instance.id);
-                    game_instances.push(game_instance);
-                } else {
-                    eprintln!(
-                        "failed to load game instance with error: {:?} at {:?}",
-                        game_instance_result.unwrap_err(),
-                        path
-                    );
-                }
-            }
-        }
-        game_instances
-    }
-}
-
-#[test]
-fn test_game_instances() {
-    let game_repository = GameRepository {
-        name: "test".to_string(),
-        path: PathBuf::from("/Users/amagicpear/HMCL/.minecraft"),
-    };
-    let game_instances = game_repository.game_instances();
-    println!("{:?}", game_instances.len());
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Default)]
 pub struct AppState {
     pub java_runtimes: Vec<crate::core::java::JavaRuntime>,
     pub accounts: Vec<Account>,
     pub pcl_setup_info: crate::setup::PCLSetupInfo,
-    pub active_account: Arc<Account>,
-    pub game_directories: Vec<GameRepository>,
+    pub active_account: Option<Arc<Account>>,
+    pub repositories: Vec<GameRepository>,
     pub active_game_instance: Option<Arc<GameInstance>>,
-}
-
-impl Default for AppState {
-    fn default() -> Self {
-        Self {
-            java_runtimes: Vec::new(),
-            pcl_setup_info: crate::setup::PCLSetupInfo::default(),
-            active_account: Arc::new(Account::Offline {
-                username: "AMagicPear".to_string(),
-                uuid: "12345678-1234-1234-1234-123456789012".to_string(),
-            }),
-            game_directories: Vec::new(),
-            active_game_instance: None,
-            accounts: Vec::new(),
-        }
-    }
 }
 
 /// config manager, for loading and saving config file
@@ -184,10 +127,18 @@ impl ConfigManager {
             fs::create_dir_all(&game_dir).map_err(|_| ConfigManagerError::ConfigDirNotFound)?;
         }
         let mut state = self.app_state.lock().unwrap();
-        state.game_directories.push(GameRepository {
-            name: "current".to_string(),
+        state.repositories.push(GameRepository {
+            name: "Default".to_string(),
             path: game_dir,
         });
+        // state.repositories.push(GameRepository {
+        //     name: "HMCL".to_string(),
+        //     path: PathBuf::from("/Users/amagicpear/HMCL/.minecraft"),
+        // });
+        // state.active_account = Some(Arc::new(Account::Offline {
+        //     username: "AMagicPear".to_string(),
+        //     uuid: "12345678-1234-1234-1234-123456789012".to_string(),
+        // }));
         Ok(())
     }
 
