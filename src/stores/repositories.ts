@@ -10,8 +10,8 @@ export const useRepositoriesStore = defineStore('repositories', {
         async fetchFromBackend() {
             this.repositires = await invoke('get_repositories')
         },
-        async getInstancesInRepository(repository_name: string): Promise<GameInstance[]> {
-            return await invoke('get_instances_in_repository', { repository_name })
+        async getInstancesInRepository(index: number): Promise<GameInstance[]> {
+            return await invoke('get_instances_in_repository', { repository_name: this.repositires[index]?.name })
         }
     }
 })

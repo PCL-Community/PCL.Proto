@@ -19,6 +19,7 @@ import PageComp from '@/views/Download/PageComp.vue'
 import ResouceVersions from '@/views/Download/ResourceVersions.vue'
 import WonderBox from '@/views/More/WonderBox'
 import Dowloading from '@/views/Download/Dowloading.vue'
+import InstanceNotFound from '@/views/InstanceSelect/InstanceNotFound.vue'
 
 // const selectedInstance = useSelectedInstance()
 const router = createRouter({
@@ -125,15 +126,17 @@ const router = createRouter({
     },
     {
       path: '/instance_select',
-      name: 'instance_select',
       component: InstanceSelect,
-      redirect: '/instance_select/instance_select_sub',
       meta: { isSubPage: true, title: 'home.instance_select' }, // 用于标识当前处于特殊子页面
       children: [
         {
-          path: 'instance_select_sub',
+          path: 'instance_select_sub/:repository',
           component: InstanceSelectSubView,
         },
+        {
+          path: '',
+          component: InstanceNotFound,
+        }
       ],
     },
     {

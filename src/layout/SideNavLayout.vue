@@ -37,9 +37,11 @@ export default defineComponent({
 
     function animateSubview() {
       if (subviewRef.value) {
-        // TODO)) 排除loading组件
         const allChildren = subviewRef.value.children
-        animateCssFor(allChildren, 'fadeInDown', 30)
+        const childrenWithoutLoading = Array.from(allChildren).filter(
+          (item) => !item.classList.contains('loading-page'),
+        ) as HTMLElement[]
+        animateCssFor(childrenWithoutLoading, 'fadeInDown', 30)
       }
     }
 

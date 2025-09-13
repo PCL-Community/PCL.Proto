@@ -15,7 +15,11 @@ impl GameRepository {
         let mut game_instances = Vec::new();
         let entries = fs::read_dir(versions_folder);
         if entries.is_err() {
-            log::warn!("failed to read versions folder: {:?}", entries.unwrap_err());
+            log::warn!(
+                "failed to read versions folder: {:?} at {:?}",
+                entries.unwrap_err(),
+                self.path
+            );
             return game_instances;
         }
         for entry in entries.unwrap() {

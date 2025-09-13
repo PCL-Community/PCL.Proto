@@ -8,6 +8,7 @@ import { useAccountInfo } from '@/stores/account'
 import { useSelectedInstance } from '@/stores/gameLaunch'
 import router from '@/router'
 import { invoke } from '@tauri-apps/api/core'
+import { useRepositoriesStore } from '@/stores/repositories'
 
 const subviewRef = ref<HTMLElement>()
 const sideNavState = useSideNavState()
@@ -26,8 +27,9 @@ onMounted(() => {
   }
 })
 
-const versionSelectClicked = () => {
-  router.push({ name: 'instance_select' })
+const versionSelectClicked = async () => {
+  await useRepositoriesStore().fetchFromBackend()
+  router.push({ path: '/instance_select' })
 }
 const InstanceSettingClicked = () => {
   router.push({ name: 'instance_setting' })
