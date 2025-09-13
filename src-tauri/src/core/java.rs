@@ -6,6 +6,7 @@ use std::{
     env, fs,
     path::{Path, PathBuf},
     process::Command,
+    sync::Arc,
 };
 
 use crate::setup::ConfigManager;
@@ -191,8 +192,11 @@ impl JavaRuntimeVecExt for Vec<JavaRuntime> {
     fn patch_state(self) {
         // TODO: 根据是否为用户导入写一个更复杂的合并逻辑
         let config_manager = ConfigManager::instance();
-        config_manager.app_state.lock().unwrap().java_runtimes = self;
+        let mut guard = config_manager.app_state.lock().unwrap();
+        guard.java_runtimes = self;
+        drop(guard);
         config_manager.save().unwrap();
+        // TODO: 应该根据配置文件选择默认的java runtime
         log::info!("patched java runtimes to config");
     }
 }

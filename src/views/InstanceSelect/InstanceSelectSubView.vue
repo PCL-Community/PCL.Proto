@@ -2,16 +2,20 @@
 import CardInfoItem from '@/components/widget/CardInfoItem.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PLoading from '@/components/widget/PLoading.vue'
+import sideTip from '@/composables/sideTip'
+import { useSelectedInstance } from '@/stores/gameLaunch'
 import { useRepositoriesStore } from '@/stores/repositories'
 import type GameInstance from '@/types/gameInstance'
 import { showIconPath } from '@/util/gameInfo'
 import { invoke } from '@tauri-apps/api/core'
 import { error, info } from '@tauri-apps/plugin-log'
 import { ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
+const router = useRouter()
 const repos = useRepositoriesStore()
+const selectedInstance = useSelectedInstance()
 const instances = ref<GameInstance[]>([])
 const isLoading = ref(false)
 
@@ -27,13 +31,16 @@ watch(
   { immediate: true },
 )
 
-function select_instance(repository_name: string, instance_id: string) {
+function select_instance(instance: GameInstance) {
   invoke('select_instance', {
-    repository_name,
-    instance_id,
+    repository_name: instance.global_dir.name,
+    instance_id: instance.id,
   })
     .then(() => {
-      info(`select_instance success: ${instance_id}`)
+      Object.assign(selectedInstance, instance)
+      info(`select_instance success: ${instance.id}`)
+      sideTip.show(`Successfully selected ${instance.id}`, 'success')
+      router.push('/home')
     })
     .catch((err) => {
       error(`select_instance error: ${err}`)
@@ -52,7 +59,7 @@ function select_instance(repository_name: string, instance_id: string) {
       :title="item.name"
       :subtitle="item.version"
       :icon="showIconPath['grass']"
-      :click="() => select_instance(item.global_dir.name, item.id)"
+      :click="() => select_instance(item)"
     ></CardInfoItem>
   </PCard>
   <PCard>

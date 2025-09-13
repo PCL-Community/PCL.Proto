@@ -17,7 +17,3 @@ export const useSelectedInstance = defineStore('selected-instance', {
         plugins: (state) => Object.keys(state.pluginsVersion) as pluginType[],
     }
 })
-
-export const useActiveInstance = defineStore('active-instance', {
-    state: () => ([] as GameInstance[])
-})

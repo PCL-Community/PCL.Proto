@@ -127,17 +127,21 @@ impl ConfigManager {
             fs::create_dir_all(&game_dir).map_err(|_| ConfigManagerError::ConfigDirNotFound)?;
         }
         let mut state = self.app_state.lock().unwrap();
+        // [WARN] Only for Debug!!
+        // TODO: 后面去除下面的代码
         state
             .repositories
             .push(GameRepository::new("Default", game_dir));
-        // state.repositories.push(GameRepository {
-        //     name: "HMCL".to_string(),
-        //     path: PathBuf::from("/Users/amagicpear/HMCL/.minecraft"),
-        // });
-        // state.active_account = Some(Arc::new(Account::Offline {
-        //     username: "AMagicPear".to_string(),
-        //     uuid: "12345678-1234-1234-1234-123456789012".to_string(),
-        // }));
+        state.repositories.push(GameRepository::new(
+            "HMCL",
+            PathBuf::from("/Users/amagicpear/HMCL/.minecraft"),
+        ));
+        state.active_account = Some(Arc::new(Account::Offline {
+            username: "AMagicPear".to_string(),
+            uuid: "12345678-1234-1234-1234-123456789012".to_string(),
+        }));
+        state.pcl_setup_info.default_java =
+            Some(Arc::new(JavaRuntime::try_from("/usr/bin/java").unwrap()));
         Ok(())
     }
 
