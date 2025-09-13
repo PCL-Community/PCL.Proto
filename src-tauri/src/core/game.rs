@@ -62,12 +62,26 @@ impl GameInstance {
                 log::error!("jar file not found in folder: {:?}", jar_path);
                 return Err(GameInstanceError::InvalidVersionJar);
             }
+            let version = {
+                let patches = json_content["patches"].as_array();
+                if let Some(patches) = patches {
+                    let game_patch = patches.iter().find(|patch| patch["id"] == "game");
+                    if let Some(game_patch) = game_patch {
+                        game_patch["version"].as_str()
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            };
+            let version = version.unwrap_or(id).to_string();
             return Ok(GameInstance {
                 id: id.to_string(),
                 name: folder_name.to_string(),
                 directory: version_folder.clone(),
                 jar_path,
-                version: id.to_string(), // TODO: 从json中读取version
+                version,
                 json_path,
                 natives_path: version_folder.join("natives"),
                 game_java: GameJava::Default,
