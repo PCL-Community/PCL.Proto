@@ -85,16 +85,32 @@ pub async fn get_instances_in_repository(
     state: State<'_, Arc<Mutex<AppState>>>,
     repository_name: &str,
 ) -> Result<Vec<GameInstance>, ()> {
-    let all_repos = {
-        let state = state.lock().unwrap();
-        state.repositories.clone()
-    };
-    let repo = all_repos
-        .into_iter()
-        .find(|repo| repo.name == repository_name);
-    if let Some(repo) = repo {
-        Ok(repo.game_instances())
-    } else {
-        Err(())
+    let state = state.lock().unwrap();
+    let all_repos = &state.repositories;
+    let repo = all_repos.iter().find(|repo| repo.name == repository_name);
+    match repo {
+        Some(repo) => Ok(repo.game_instances().to_vec()),
+        None => Err(()),
     }
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn select_instance(
+    state: State<'_, Arc<Mutex<AppState>>>,
+    repository_name: &str,
+    instance_id: &str,
+) -> Result<(), ()> {
+    let mut state = state.lock().unwrap();
+    let instances = state
+        .repositories
+        .iter()
+        .find(|repo| repo.name == repository_name)
+        .ok_or(())?
+        .game_instances();
+    let instance = instances
+        .iter()
+        .find(|instance| instance.id == instance_id)
+        .ok_or(())?;
+    state.active_game_instance = Some(Arc::new(instance.clone()));
+    Ok(())
 }

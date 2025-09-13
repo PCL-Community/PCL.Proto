@@ -207,10 +207,7 @@ pub fn game_launch_test() {
         uuid: "12345678-1234-1234-1234-123456789012".to_string(),
     });
 
-    let game_repo = GameRepository {
-        name: "HMCL".to_string(),
-        path: PathBuf::from("/Users/amagicpear/HMCL/.minecraft"),
-    };
+    let game_repo = GameRepository::new("HMCL", PathBuf::from("/Users/amagicpear/HMCL/.minecraft"));
     let game_repo = Arc::new(game_repo);
     let version_folder = PathBuf::from("/Users/amagicpear/HMCL/.minecraft/versions/1.21.8");
 

@@ -127,10 +127,9 @@ impl ConfigManager {
             fs::create_dir_all(&game_dir).map_err(|_| ConfigManagerError::ConfigDirNotFound)?;
         }
         let mut state = self.app_state.lock().unwrap();
-        state.repositories.push(GameRepository {
-            name: "Default".to_string(),
-            path: game_dir,
-        });
+        state
+            .repositories
+            .push(GameRepository::new("Default", game_dir));
         // state.repositories.push(GameRepository {
         //     name: "HMCL".to_string(),
         //     path: PathBuf::from("/Users/amagicpear/HMCL/.minecraft"),

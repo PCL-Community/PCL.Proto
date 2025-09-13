@@ -5,6 +5,8 @@ import PLoading from '@/components/widget/PLoading.vue'
 import { useRepositoriesStore } from '@/stores/repositories'
 import type GameInstance from '@/types/gameInstance'
 import { showIconPath } from '@/util/gameInfo'
+import { invoke } from '@tauri-apps/api/core'
+import { error, info } from '@tauri-apps/plugin-log'
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -24,6 +26,19 @@ watch(
   },
   { immediate: true },
 )
+
+function select_instance(repository_name: string, instance_id: string) {
+  invoke('select_instance', {
+    repository_name,
+    instance_id,
+  })
+    .then(() => {
+      info(`select_instance success: ${instance_id}`)
+    })
+    .catch((err) => {
+      error(`select_instance error: ${err}`)
+    })
+}
 </script>
 
 <template>
@@ -37,6 +52,7 @@ watch(
       :title="item.name"
       :subtitle="item.version"
       :icon="showIconPath['grass']"
+      :click="() => select_instance(item.global_dir.name, item.id)"
     ></CardInfoItem>
   </PCard>
   <PCard>

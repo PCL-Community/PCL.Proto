@@ -84,10 +84,7 @@ impl GameInstance {
 fn from_version_folder() {
     let version_folder =
         PathBuf::from("/Users/amagicpear/HMCL/.minecraft/versions/Fabulously Optimized 1.21.5");
-    let game_repo = GameRepository {
-        name: "HMCL".to_string(),
-        path: PathBuf::from("/Users/amagicpear/HMCL/.minecraft"),
-    };
+    let game_repo = GameRepository::new("HMCL", PathBuf::from("/Users/amagicpear/HMCL/.minecraft"));
     let game_repo = Arc::new(game_repo);
     let instance = GameInstance::from_version_folder(&version_folder, &game_repo);
     println!("{:?}", instance);
