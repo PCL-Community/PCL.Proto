@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::core::{
-    auth::Account, downloader::DownloadSource, game::GameInstance, java::JavaRuntime,
+    api_client::ApiSource, auth::Account, game::GameInstance, java::JavaRuntime,
     repository::GameRepository,
 };
 
@@ -22,7 +22,7 @@ pub mod constants {
 pub struct PCLSetupInfo {
     java_list_cache_version: i32,
     theme: Theme,
-    download_source: DownloadSource,
+    download_source: ApiSource,
     pub max_memory: usize,
     pub default_java: Option<Arc<JavaRuntime>>,
 }
@@ -41,7 +41,7 @@ impl Default for PCLSetupInfo {
         PCLSetupInfo {
             java_list_cache_version: constants::DEFAULT_JAVA_LIST_CACHE_VERSION,
             theme: Theme::BlueLight,
-            download_source: DownloadSource::Official,
+            download_source: ApiSource::Official,
             max_memory: 2048,
             default_java: None,
         }

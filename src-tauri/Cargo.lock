@@ -2861,6 +2861,7 @@ version = "0.5.2"
 dependencies = [
  "chrono",
  "directories",
+ "futures-util",
  "goblin",
  "log",
  "regex",
@@ -2872,6 +2873,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-log",
  "tauri-plugin-os",
+ "thiserror 2.0.16",
  "tokio",
 ]
 
