@@ -29,6 +29,6 @@ regex = "1.11.2"
 tokio = { version = "1", features = ["rt", "macros"] }
 goblin = "0.10"
 directories = "6.0.0"
-reqwest = {version = "0.12.23", features = ["json", "stream"]}
+reqwest = {version = "0.12.23", features = ["json", "stream"] }
 thiserror = "2.0.16"
 futures-util = "0.3.31"
