@@ -30,8 +30,40 @@ fn get_board_serial() -> Result<String, Box<dyn std::error::Error>> {
 
 #[cfg(target_os = "linux")]
 fn get_board_serial() -> Result<String, Box<dyn std::error::Error>> {
-    let serial = std::fs::read_to_string("/sys/class/dmi/id/product_serial")?;
-    Ok(serial.trim().to_string())
+    // 首先尝试 DMI 路径
+    let dmi_paths = [
+        "/sys/class/dmi/id/board_serial",
+        "/sys/devices/virtual/dmi/id/board_serial",
+    ];
+
+    for path in &dmi_paths {
+        if let Ok(serial) = std::fs::read_to_string(path) {
+            let trimmed = serial.trim();
+            if !trimmed.is_empty() && trimmed != "None" && trimmed != "To be filled by O.E.M." {
+                return Ok(trimmed.to_string());
+            }
+        }
+    }
+
+    // 尝试设备树（适用于嵌入式设备）
+    if let Ok(serial) = std::fs::read_to_string("/proc/device-tree/serial-number") {
+        return Ok(serial.trim().to_string());
+    }
+
+    // 最后尝试 dmidecode（可能需要 sudo）
+    if let Ok(output) = Command::new("dmidecode")
+        .args(["-s", "baseboard-serial-number"])
+        .output()
+    {
+        if output.status.success() {
+            let serial = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !serial.is_empty() && serial != "None" {
+                return Ok(serial);
+            }
+        }
+    }
+
+    Err("Could not retrieve board serial number".into())
 }
 
 #[test]
