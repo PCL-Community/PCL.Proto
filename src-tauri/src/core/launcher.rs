@@ -158,7 +158,10 @@ impl LaunchOption {
             "--assetIndex=26".to_string(), // TODO: read from version json
             format!("--uuid={}", self.account.uuid()),
             // TODO: get the below from account
-            format!("--accessToken={}", "0"),
+            format!(
+                "--accessToken={}",
+                self.account.access_token().unwrap_or("0")
+            ),
             format!("--userType={}", "msa"),
             format!("--versionType={}", LAUNCHER_NAME),
             format!("--width={}", self.width.unwrap_or(854)),

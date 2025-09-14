@@ -6,7 +6,8 @@ use std::{
 };
 
 use crate::core::{
-    auth::Account, game::GameInstance, java::JavaRuntime, repository::GameRepository,
+    auth::Account, downloader::DownloadSource, game::GameInstance, java::JavaRuntime,
+    repository::GameRepository,
 };
 
 pub mod constants {
@@ -21,7 +22,7 @@ pub mod constants {
 pub struct PCLSetupInfo {
     java_list_cache_version: i32,
     theme: Theme,
-    download_sourse: DownloadSource,
+    download_source: DownloadSource,
     pub max_memory: usize,
     pub default_java: Option<Arc<JavaRuntime>>,
 }
@@ -33,12 +34,6 @@ enum Theme {
     BlueDark,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
-enum DownloadSource {
-    Official,
-    BMCLApi,
-}
-
 /// PCL setup info default impl
 impl Default for PCLSetupInfo {
     /// PCL setup info default impl
@@ -46,7 +41,7 @@ impl Default for PCLSetupInfo {
         PCLSetupInfo {
             java_list_cache_version: constants::DEFAULT_JAVA_LIST_CACHE_VERSION,
             theme: Theme::BlueLight,
-            download_sourse: DownloadSource::Official,
+            download_source: DownloadSource::Official,
             max_memory: 2048,
             default_java: None,
         }

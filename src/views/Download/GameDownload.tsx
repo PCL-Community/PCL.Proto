@@ -6,6 +6,7 @@ import { defineComponent, onMounted } from 'vue'
 import PLoading from '@/components/widget/PLoading.vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { info } from '@tauri-apps/plugin-log'
 let { cacheVersionData, versionDataRef } = getMinecraftVersions()
 
 export default defineComponent({
@@ -41,7 +42,7 @@ export default defineComponent({
       </PCard>
     )
     function clickOnVersion(version: string) {
-      console.log('点击了版本', version, router)
+      info(`点击了版本: ${version}`)
       router.push({
         path: '/downloading',
         // query: {

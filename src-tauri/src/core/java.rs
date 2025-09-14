@@ -6,7 +6,6 @@ use std::{
     env, fs,
     path::{Path, PathBuf},
     process::Command,
-    sync::Arc,
 };
 
 use crate::setup::ConfigManager;

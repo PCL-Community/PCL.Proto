@@ -1,4 +1,5 @@
 pub(crate) mod auth;
+pub(crate) mod downloader;
 pub(crate) mod game;
 pub(crate) mod java;
 pub(crate) mod launcher;
