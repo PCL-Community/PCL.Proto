@@ -3,7 +3,7 @@ use std::process::Command;
 pub mod file;
 pub mod toys;
 
-fn get_hash(str: &str) -> u64 {
+pub fn get_hash(str: &str) -> u64 {
     let mut result = 5381 as u64;
     for c in str.chars() {
         result = (result << 5) ^ result ^ c as u64;
@@ -12,7 +12,7 @@ fn get_hash(str: &str) -> u64 {
 }
 
 #[cfg(target_os = "macos")]
-fn get_board_serial() -> Result<String, Box<dyn std::error::Error>> {
+pub fn get_board_serial() -> Result<String, Box<dyn std::error::Error>> {
     let output = Command::new("system_profiler")
         .arg("SPHardwareDataType")
         .output()?;

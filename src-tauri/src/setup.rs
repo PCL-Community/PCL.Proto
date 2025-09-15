@@ -5,13 +5,16 @@ use std::{
     sync::{Arc, LazyLock, Mutex},
 };
 
-use crate::core::{
-    api_client::{ApiSource, MinecraftApiClient},
-    auth::Account,
-    downloader::DOWNLOADER,
-    game::GameInstance,
-    java::JavaRuntime,
-    repository::GameRepository,
+use crate::{
+    core::{
+        api_client::{ApiSource, MinecraftApiClient},
+        auth::Account,
+        downloader::DOWNLOADER,
+        game::GameInstance,
+        java::JavaRuntime,
+        repository::GameRepository,
+    },
+    util::{self, get_board_serial},
 };
 
 pub mod constants {
@@ -24,7 +27,7 @@ pub mod constants {
 /// PCL global setup info, which user can modify
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct PCLSetupInfo {
-    java_list_cache_version: i32,
+    setup_version: i32,
     theme: Theme,
     download_source: ApiSource,
     pub max_memory: usize,
@@ -43,7 +46,7 @@ impl Default for PCLSetupInfo {
     /// PCL setup info default impl
     fn default() -> Self {
         PCLSetupInfo {
-            java_list_cache_version: constants::DEFAULT_JAVA_LIST_CACHE_VERSION,
+            setup_version: constants::DEFAULT_JAVA_LIST_CACHE_VERSION,
             theme: Theme::BlueLight,
             download_source: ApiSource::Official,
             max_memory: 2048,
@@ -71,6 +74,7 @@ pub struct ConfigManager {
     config_dir: PathBuf,
     pub app_state: Arc<Mutex<AppState>>,
     pub api_client: MinecraftApiClient,
+    pub pcl_identifier: String,
 }
 
 #[derive(Debug)]
@@ -78,6 +82,7 @@ pub enum ConfigManagerError {
     ConfigDirNotFound,
     ConfigFileNotFound,
     ConfigFileCorrupted,
+    IdentifierFailure,
 }
 
 pub static CONFIG_MANAGER: LazyLock<Option<ConfigManager>> = LazyLock::new(|| {
@@ -100,6 +105,18 @@ impl ConfigManager {
             fs::create_dir_all(config_dir).map_err(|_| ConfigManagerError::ConfigDirNotFound)?;
         }
         let config_path = config_dir.join("config.json");
+        let identifier_path = config_dir.join("pcl_identifier.txt");
+        let pcl_identifier = if identifier_path.exists() {
+            fs::read_to_string(identifier_path)
+                .map_err(|_| ConfigManagerError::IdentifierFailure)?
+        } else {
+            let board_serial =
+                util::get_board_serial().map_err(|_| ConfigManagerError::IdentifierFailure)?;
+            let pcl_identifier = format!("{:x}", util::get_hash(&board_serial));
+            fs::write(identifier_path, pcl_identifier.clone())
+                .map_err(|_| ConfigManagerError::IdentifierFailure)?;
+            pcl_identifier
+        };
         let instance = Self {
             config_path,
             config_dir: config_dir.to_path_buf(),
@@ -108,6 +125,7 @@ impl ConfigManager {
                 DOWNLOADER.client.clone(),
                 "https://launchermeta.mojang.com",
             ),
+            pcl_identifier,
         };
         if !instance.config_path.exists()
             || !instance.config_path.is_file()

@@ -1,3 +1,4 @@
+import sideTip from "@/composables/sideTip"
 import { invoke } from "@tauri-apps/api/core"
 import { ref } from "vue"
 
@@ -54,7 +55,10 @@ export function useMinecraftVersions() {
                 snapshot: snapshotVersions.map(mapVersionToShow),
                 old: oldVersions.map(mapVersionToShow)
             };
-            versionDataRef.value = result;
+            if (versionDataRef.value?.latest != result.latest) {
+                versionDataRef.value = result;
+                sideTip.show("Minecraft version manifest updated.", 'success');
+            }
         });
 
     function formatReleaseTime(iso: string) {

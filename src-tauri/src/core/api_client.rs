@@ -115,6 +115,7 @@ impl MinecraftApiClient {
             .send()
             .await?;
         let data: T = response.json().await?;
+        log::info!("got data from {}", url);
         Ok(data)
     }
 
@@ -129,6 +130,7 @@ impl MinecraftApiClient {
             let cache = self.cache.read().await;
             if let Some((cached_at, value)) = cache.get(url) {
                 if now.duration_since(*cached_at) < self.ttl {
+                    log::info!("cache hit for {}", url);
                     return Ok(serde_json::from_value(value.clone())?);
                 }
             }
