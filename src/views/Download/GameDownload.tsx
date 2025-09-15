@@ -7,6 +7,7 @@ import PLoading from '@/components/widget/PLoading.vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { info } from '@tauri-apps/plugin-log'
+import { invoke } from '@tauri-apps/api/core'
 const versionDataRef = useMinecraftVersions()
 
 export default defineComponent({
@@ -38,11 +39,13 @@ export default defineComponent({
     )
     function clickOnVersion(version: string) {
       info(`clicked on version: ${version}`)
-      router.push({
-        path: '/downloading',
-        // query: {
-        //   version,
-        // },
+      invoke('handle_clicked_on_version', {
+        id: version,
+      }).then(() => {
+        router.push({
+          path: `/download/game/inner`,
+          query: { version },
+        })
       })
     }
     return () =>

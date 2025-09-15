@@ -20,6 +20,8 @@ import ResouceVersions from '@/views/Download/ResourceVersions.vue'
 import WonderBox from '@/views/More/WonderBox'
 import Dowloading from '@/views/Download/Dowloading.vue'
 import InstanceNotFound from '@/views/InstanceSelect/InstanceNotFound.vue'
+import GameDownloadInner from '@/views/Download/GameDownloadInner.vue'
+import GameDownload from '@/views/Download/GameDownload'
 
 // const selectedInstance = useSelectedInstance()
 const router = createRouter({
@@ -48,7 +50,16 @@ const router = createRouter({
       children: [
         {
           path: 'game',
-          component: () => import('@/views/Download/GameDownload.tsx'),
+          children: [
+            {
+              path: '',
+              component: GameDownload
+            },
+            {
+              path: 'inner',
+              component: GameDownloadInner
+            }
+          ]
         },
         {
           path: 'manual',

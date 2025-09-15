@@ -13,7 +13,7 @@ export default h(SideNavLayout, {
   sideNavGroups: [{
     title: 'download.nav.minecraft',
     content: [
-      { text: 'download.nav.game_download', icon: IconOverview, linkto: 'game' },
+      { text: 'download.nav.game_download', icon: IconOverview, linkto: '/download/game' },
       { text: 'download.nav.manual_install', icon: IconWrench, linkto: "manual" }
     ]
   }, {

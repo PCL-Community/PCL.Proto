@@ -131,3 +131,8 @@ pub async fn get_version_manifest() -> Result<api_client::game::VersionManifest,
         Err(e) => return Err(format!("get_version_manifest: {:?}", e)),
     }
 }
+
+#[tauri::command]
+pub async fn handle_clicked_on_version(id: &str) -> Result<(), ()> {
+    Ok(())
+}

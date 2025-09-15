@@ -9,11 +9,9 @@ import sideTip from '@/composables/sideTip'
 import { useModal } from '@/composables/useModal'
 import router from '@/router'
 import { showIconPath, type showIconType } from '@/util/gameInfo'
-import { type VNode, type VNodeTypes } from 'vue'
+import { type Component } from 'vue'
 import { xml2js, type Element } from 'xml-js'
-// import Grass from '@/assets/icons/Grass_Block_JE7_BE6.png'
 
-// console.log(Grass)
 const modal = useModal()
 
 const pageTypes = [
@@ -30,7 +28,7 @@ const pageTypes = [
 ]
 // const pageSubType = []
 
-export default function renderFromXaml(xaml: string): VNodeTypes {
+export default function renderFromXaml(xaml: string): Component {
   const page = xml2js(xaml, { compact: false })
   return page.elements?.map((el: any) => parseXamlElement(el))
 }
@@ -91,7 +89,7 @@ function handleIcon(sourceRaw: string) {
   }
 }
 
-function parseXamlElement(element: Element): VNode | string | (VNode | string)[] | null {
+function parseXamlElement(element: Element): Component | string | null {
   if (!element || element.type != 'element') return null
   if (element.name?.startsWith('local:')) {
     const localType = element.name.split(':')[1]

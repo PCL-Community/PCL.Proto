@@ -9,6 +9,22 @@ pub enum GameJava {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum PluginType {
+    Vanilla,
+    Forge,
+    NeoForge,
+    Fabric,
+    Quilt,
+    Optifine,
+}
+
+impl Default for PluginType {
+    fn default() -> Self {
+        PluginType::Vanilla
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct GameInstance {
     pub id: String,
     pub name: String,
@@ -19,6 +35,7 @@ pub struct GameInstance {
     pub natives_path: PathBuf,
     pub game_java: GameJava,
     pub global_dir: GameRepository,
+    pub plugin_type: PluginType,
 }
 
 #[derive(Debug)]
@@ -86,6 +103,7 @@ impl GameInstance {
                 natives_path: version_folder.join("natives"),
                 game_java: GameJava::Default,
                 global_dir: repo.clone(),
+                plugin_type: PluginType::default(),
             });
         } else {
             log::error!("version json not found in folder: {:?}", version_folder);
