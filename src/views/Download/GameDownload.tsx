@@ -1,23 +1,18 @@
 import CardInfoItem from '@/components/widget/CardInfoItem.vue'
 import PCard from '@/components/widget/PCard.vue'
 import { showIconPath, type showIconType } from '@/util/gameInfo'
-import { getMinecraftVersions } from '@/api/gameVersions'
-import { defineComponent, onMounted } from 'vue'
+import { useMinecraftVersions } from '@/api/gameVersions'
+import { defineComponent } from 'vue'
 import PLoading from '@/components/widget/PLoading.vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { info } from '@tauri-apps/plugin-log'
-let { cacheVersionData, versionDataRef } = getMinecraftVersions()
+const versionDataRef = useMinecraftVersions()
 
 export default defineComponent({
   setup() {
     const router = useRouter()
     const { t } = useI18n()
-    onMounted(() => {
-      if (!cacheVersionData) {
-        console.warn('缓存不存在')
-      }
-    })
 
     const renderVersionSection = (
       title: string,
@@ -42,7 +37,7 @@ export default defineComponent({
       </PCard>
     )
     function clickOnVersion(version: string) {
-      info(`点击了版本: ${version}`)
+      info(`clicked on version: ${version}`)
       router.push({
         path: '/downloading',
         // query: {

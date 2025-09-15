@@ -4,10 +4,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::{
-    core::downloader::{DOWNLOADER, Downloader},
-    setup::constants::USER_AGENT,
-};
+use crate::setup::constants::USER_AGENT;
 use reqwest::Client;
 use serde::{Serialize, de::DeserializeOwned};
 use thiserror::Error;
@@ -40,7 +37,7 @@ pub enum McApiError {
     InvalidUrl(String),
 }
 
-mod game {
+pub mod game {
     use serde::{Deserialize, Serialize};
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -157,6 +154,7 @@ impl MinecraftApiClient {
 
 #[tokio::test]
 async fn mc_manifest() {
+    use crate::core::downloader::DOWNLOADER;
     let mc_api_client =
         MinecraftApiClient::new(DOWNLOADER.client.clone(), "https://launchermeta.mojang.com");
     let manifest: game::VersionManifest = mc_api_client

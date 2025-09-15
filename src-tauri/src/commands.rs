@@ -2,13 +2,15 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     AppState,
-    core::repository::GameRepository,
     core::{
+        api_client,
         auth::Account,
         game::GameInstance,
         java::{JavaRuntime, JavaRuntimeVecExt},
         launcher::LaunchOption,
+        repository::GameRepository,
     },
+    setup::ConfigManager,
 };
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
@@ -113,4 +115,19 @@ pub async fn select_instance(
         .ok_or(())?;
     state.active_game_instance = Some(Arc::new(instance.clone()));
     Ok(())
+}
+
+#[tauri::command]
+pub async fn get_version_manifest() -> Result<api_client::game::VersionManifest, String> {
+    let client = &ConfigManager::instance().api_client;
+    match client
+        .get_with_endpoint::<api_client::game::VersionManifest>(
+            api_client::game::VERSION_MANIFEST_ENDPOINT,
+            true,
+        )
+        .await
+    {
+        Ok(manifest) => Ok(manifest),
+        Err(e) => return Err(format!("get_version_manifest: {:?}", e)),
+    }
 }
