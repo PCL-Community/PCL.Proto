@@ -19,6 +19,7 @@ var unlistenButton: any
 
 const downloadGame = async () => {
   info(`download game: ${version_id}`)
+  // TODO: 向后端发送下载请求，将下载任务添加到下载队列中
 }
 
 const arrowLeftClicked = () => {

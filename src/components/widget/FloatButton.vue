@@ -1,30 +1,27 @@
 <script setup lang="ts">
 import { FloatButtonType, type FloatButtonState } from '@/composables/useFloatButton'
 import { emit, listen } from '@tauri-apps/api/event'
-import { info } from '@tauri-apps/plugin-log'
-import { ref, watch } from 'vue'
+import { ref, watchEffect } from 'vue'
+import { useRouter } from 'vue-router'
 
 const props = defineProps<FloatButtonState>()
 const backVisible = ref(false)
 const buttonWidth = ref(36)
+const router = useRouter()
 
-watch(
-  () => props.type,
-  (newType) => {
-    if (newType === FloatButtonType.TaskManage) {
-      backVisible.value = true
-      setTimeout(() => {
-        backVisible.value = false
-      }, 1000)
-    }
-    buttonWidth.value = newType === FloatButtonType.DownloadGame ? 120 : 36
-  },
-  { immediate: true },
-)
+watchEffect(() => {
+  if (props.type === FloatButtonType.TaskManage) {
+    backVisible.value = true
+    setTimeout(() => {
+      backVisible.value = false
+    }, 1000)
+  }
+  buttonWidth.value = props.type === FloatButtonType.DownloadGame ? 120 : 36
+})
 
 listen('float-button-click', (event) => {
   if (event.payload === FloatButtonType.TaskManage) {
-    info('task manage clicked')
+    router.push({ name: 'downloading' })
   }
 })
 </script>

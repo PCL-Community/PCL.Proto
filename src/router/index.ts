@@ -195,7 +195,7 @@ const router = createRouter({
       path: '/downloading',
       name: 'downloading',
       component: Dowloading,
-      meta: { fullPage: false },
+      meta: { fullPage: false, isSubPage: true, title: 'Task Manage' },
     }
   ],
 })
