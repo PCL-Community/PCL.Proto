@@ -67,8 +67,8 @@ listen<string>('modal-open', (event) => {
 }
 
 #main-window {
-  width: 100vi;
-  height: 100vh;
+  width: 100lvw;
+  height: 100lvh;
   /* width: 814px; */
   /* height: 464px; */
   /* border-radius: 8px; */

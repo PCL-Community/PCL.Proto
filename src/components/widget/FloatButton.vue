@@ -2,10 +2,25 @@
 import { FloatButtonType, type FloatButtonState } from '@/composables/useFloatButton'
 import { emit, listen } from '@tauri-apps/api/event'
 import { info } from '@tauri-apps/plugin-log'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
-defineProps<FloatButtonState>()
+const props = defineProps<FloatButtonState>()
+const backVisible = ref(false)
 const buttonWidth = ref(36)
+
+watch(
+  () => props.type,
+  (newType) => {
+    if (newType === FloatButtonType.TaskManage) {
+      backVisible.value = true
+      setTimeout(() => {
+        backVisible.value = false
+      }, 1000)
+    }
+    buttonWidth.value = newType === FloatButtonType.DownloadGame ? 120 : 36
+  },
+  { immediate: true },
+)
 
 listen('float-button-click', (event) => {
   if (event.payload === FloatButtonType.TaskManage) {
@@ -23,7 +38,8 @@ listen('float-button-click', (event) => {
       v-if="visible"
     >
       <component :is="icon" />
-      {{ text }}
+      <span v-if="text">{{ text }}</span>
+      <div :class="{ back: backVisible }" v-if="backVisible" />
     </button>
   </Transition>
 </template>
@@ -37,7 +53,7 @@ listen('float-button-click', (event) => {
 
 .v-enter-active,
 .v-leave-active {
-  transition: all 0.4s;
+  transition: all 1s;
 }
 
 .float-button {
@@ -59,8 +75,35 @@ listen('float-button-click', (event) => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  width: fit-content;
-  min-width: 36px;
+  justify-content: space-around;
+}
+
+.float-button > .back {
+  position: absolute;
+  height: 40vi;
+  width: 40vw;
+  z-index: -1;
+  border-radius: 50%;
+  animation: back-scale 0.8s;
+}
+
+@keyframes back-scale {
+  0% {
+    background-color: transparent;
+    transform: scale(0);
+  }
+  50% {
+    background-color: var(--half-transparent-blue);
+  }
+  100% {
+    background-color: transparent;
+    transform: scale(1.1);
+  }
+}
+
+.float-button > span {
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .float-button:hover {
