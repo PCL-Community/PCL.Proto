@@ -7,10 +7,13 @@ import Modal from './components/Modal.vue'
 import SideTip from './components/SideTip.vue'
 import { listen } from '@tauri-apps/api/event'
 import { useModal } from './composables/useModal'
+import FloatButton from './components/widget/FloatButton.vue'
+import { useFloatButton } from './composables/useFloatButton'
 // 引入 SvgDrawer 组件
 // import SvgDrawer from './components/website/SVGDrawer.vue'
 const sideNavState = useSideNavState()
 const modal = useModal()
+const { floatButtonState } = useFloatButton()
 
 listen<string>('modal-open', (event) => {
   modal.open({
@@ -34,9 +37,10 @@ listen<string>('modal-open', (event) => {
       RouterView()
       //- 用作动画
       .side-nav-background
-    //- 一些浮动内容
-    Modal()
-    SideTip()
+  //- 一些浮动内容
+  Modal()
+  SideTip()
+  FloatButton(v-bind="floatButtonState")
   //- 添加 SvgDrawer 组件
   //- SvgDrawer()
 </template>

@@ -14,16 +14,16 @@ export default h(SideNavLayout, {
     title: 'download.nav.minecraft',
     content: [
       { text: 'download.nav.game_download', icon: IconOverview, linkto: '/download/game' },
-      { text: 'download.nav.manual_install', icon: IconWrench, linkto: "manual" }
+      { text: 'download.nav.manual_install', icon: IconWrench, linkto: "/download/manual" }
     ]
   }, {
     title: 'download.nav.community_resource',
     content: [
-      { text: 'download.nav.mod', icon: IconMod, linkto: 'mod' },
-      { text: 'download.nav.mod_pack', icon: IconPack, linkto: 'modpack' },
+      { text: 'download.nav.mod', icon: IconMod, linkto: '/download/mod' },
+      { text: 'download.nav.mod_pack', icon: IconPack, linkto: '/download/modpack' },
       { text: 'download.nav.data_pack', icon: IconFourLeaves },
-      { text: 'download.nav.resource_pack', icon: IconPicture, linkto: 'resourcepack' },
-      { text: 'download.nav.shader_pack', icon: IconSun, linkto: 'shader' },
+      { text: 'download.nav.resource_pack', icon: IconPicture, linkto: '/download/resourcepack' },
+      { text: 'download.nav.shader_pack', icon: IconSun, linkto: '/download/shader' },
       { text: 'download.nav.favorites', icon: IconFavorites }
     ]
   }
