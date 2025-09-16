@@ -68,7 +68,7 @@ appWindow.onResized(async () => {
       .left(v-else :class="{ 'mac-margin-title': currentPlatform == 'macos' }")
         i.button-animated(@click="backClicked")
           arrow-left
-        span.title-text(v-if="title") {{ $t(title) }}
+        span.title-text(v-if="title" data-tauri-drag-region) {{ $t(title) }}
 
 
     Transition(name="nav")

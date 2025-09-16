@@ -5,7 +5,8 @@ export const defaultWidths = {
     download: 139,
     link: 120,
     setup: 120,
-    more: 120
+    more: 120,
+    task_manage: 200
 }
 
 const useSideNavState = defineStore('side-nav-state', {
