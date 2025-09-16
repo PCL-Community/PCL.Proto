@@ -37,7 +37,10 @@ onUnmounted(() => {
     </aside>
     <article class="subview">
       <PCard title="1.21.8 安装">
-        <div>下载原版 Json 文件</div>
+        <div>
+          <div class="sub-indicator"></div>
+          <p>下载原版 Json 文件</p>
+        </div>
       </PCard>
     </article>
   </div>
