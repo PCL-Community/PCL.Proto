@@ -14,7 +14,7 @@ use crate::{
         java::JavaRuntime,
         repository::GameRepository,
     },
-    util::{self, get_board_serial},
+    util,
 };
 
 pub mod constants {
@@ -55,6 +55,7 @@ impl Default for PCLSetupInfo {
     }
 }
 
+/// Something that would be shared all over the app and may be displayed
 #[derive(serde::Serialize, serde::Deserialize, Default)]
 pub struct AppState {
     pub java_runtimes: Vec<crate::core::java::JavaRuntime>,

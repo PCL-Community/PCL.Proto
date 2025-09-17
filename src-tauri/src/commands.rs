@@ -135,6 +135,7 @@ pub async fn get_version_manifest() -> Result<api_client::game::VersionManifest,
 
 #[tauri::command]
 pub async fn handle_clicked_on_version(id: &str) -> Result<bool, String> {
+    // TODO: should be managed by task manager
     // STEP1: get the version json
     let client = &ConfigManager::instance().api_client;
     let temp_dir = std::env::temp_dir().join(format!("pcl-proto-{}", id));

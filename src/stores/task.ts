@@ -1,6 +1,11 @@
 import { defineStore } from "pinia";
 
-type TaskStatus = 'pending' | 'running' | 'success' | 'failed';
+enum TaskStatus {
+    Pending,
+    Running,
+    Completed,
+    Failed,
+}
 
 export interface ITask {
     id: string;
@@ -8,6 +13,7 @@ export interface ITask {
     status: TaskStatus;
     speed: number;
     items: ITaskItem[];
+    progress: number;
 }
 
 export interface ITaskItem {
