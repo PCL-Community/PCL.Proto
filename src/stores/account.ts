@@ -12,6 +12,8 @@ interface Account {
 
 let element: AccountInner | undefined = undefined;
 
+// [WARN] 这里构建时会报错不能在顶级作用域使用await
+// TODO: 最好改一下
 const account = await invoke<Account>('get_account');
 for (const key in account) {
     if (Object.prototype.hasOwnProperty.call(account, key)) {

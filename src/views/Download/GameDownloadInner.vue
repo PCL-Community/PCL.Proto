@@ -9,6 +9,7 @@ import ArrowLeft from '@/assets/icons/ArrowLeft.svg'
 import ModifyCard from '@/components/widget/ModifyCard.vue'
 import { FloatButtonType, useFloatButton } from '@/composables/useFloatButton'
 import { listen } from '@tauri-apps/api/event'
+import { invoke } from '@tauri-apps/api/core'
 
 const router = useRouter()
 const version_id = useRoute().query.version as string
@@ -37,6 +38,11 @@ onMounted(async () => {
       })
     }
   })
+  // get version info from backend
+  let res = await invoke('handle_clicked_on_version', {
+    id: version_id,
+  })
+  console.log(res)
 })
 
 onUnmounted(() => {

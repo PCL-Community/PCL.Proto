@@ -34,9 +34,10 @@ export interface IVersionShow {
     old: SingleVersionShowInfo[],
 }
 
+const versionDataRef = ref<IVersionShow>()  // put it outside to avoid the chunk
+
 // 获取Minecraft版本信息
 export function useMinecraftVersions() {
-    const versionDataRef = ref<IVersionShow>()
     invoke<IVersionManifest>('get_version_manifest')
         .then((data: IVersionManifest) => {
             const latestRelease = data.versions.find(v => v.id === data.latest.release)!;
@@ -55,10 +56,7 @@ export function useMinecraftVersions() {
                 snapshot: snapshotVersions.map(mapVersionToShow),
                 old: oldVersions.map(mapVersionToShow)
             };
-            if (versionDataRef.value?.latest != result.latest) {
-                versionDataRef.value = result;
-                sideTip.show("Minecraft version manifest updated.", 'success');
-            }
+            versionDataRef.value = result;
         });
 
     function formatReleaseTime(iso: string) {

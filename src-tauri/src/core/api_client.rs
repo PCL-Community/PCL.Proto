@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    path::Path,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -69,6 +70,7 @@ pub mod game {
         #[serde(rename = "type")]
         pub version_type: String,
         pub downloads: VersionDownloads,
+        pub libraries: Vec<LibraryItem>,
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,6 +84,18 @@ pub mod game {
         pub sha1: String,
         pub size: u64,
         pub url: String,
+        pub path: Option<String>,
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct LibraryItem {
+        pub name: String,
+        pub downloads: LibraryDownloads,
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct LibraryDownloads {
+        pub artifact: DownloadInfo,
     }
 
     pub const VERSION_MANIFEST_ENDPOINT: &str = "mc/game/version_manifest.json";
@@ -151,6 +165,30 @@ impl MinecraftApiClient {
         let url = format!("{}/{}", self.base_url, endpoint);
         let data = self.get(&url, allow_from_cache).await?;
         Ok(data)
+    }
+
+    /// Get version details from version id and save the temp
+    pub async fn get_version_details(
+        &self,
+        version_id: &str,
+        temp_dir: &Path,
+    ) -> Result<game::VersionDetails, McApiError> {
+        // STEP1: get the version json
+        let endpoint = game::VERSION_MANIFEST_ENDPOINT;
+        let manifest: game::VersionManifest = self.get_with_endpoint(&endpoint, true).await?;
+        let version = manifest
+            .versions
+            .iter()
+            .find(|v| v.id == version_id)
+            .ok_or(McApiError::VersionNotFound(version_id.to_string()))?;
+        let version_json = self.get::<serde_json::Value>(&version.url, false).await?;
+        // save version detail json to temp_dir
+        tokio::fs::create_dir_all(temp_dir).await?;
+        let version_json_path = temp_dir.join(format!("{}.json", version_id));
+        let version_json_str = serde_json::to_string(&version_json)?;
+        tokio::fs::write(&version_json_path, version_json_str).await?;
+        let version_detail: game::VersionDetails = serde_json::from_value(version_json)?;
+        Ok(version_detail)
     }
 }
 

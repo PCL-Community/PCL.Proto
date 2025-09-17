@@ -31,7 +31,7 @@ impl DownloadOptions {
         self
     }
 
-    pub fn with_file_name(mut self, file_name: impl Into<String>) -> Self {
+    pub fn set_file_name(&mut self, file_name: impl Into<String>) -> &mut Self {
         self.file_name = Some(file_name.into());
         self
     }
@@ -58,12 +58,13 @@ impl Downloader {
     pub async fn download_file(
         &self,
         url: &str,
-        options: DownloadOptions,
+        options: &DownloadOptions,
     ) -> Result<PathBuf, McApiError> {
         tokio::fs::create_dir_all(&options.output_dir).await?;
         let file_name = options
             .file_name
-            .unwrap_or(url.split('/').last().unwrap_or("download").to_string());
+            .as_deref()
+            .unwrap_or(url.split('/').last().unwrap_or("download"));
         let output_path = options.output_dir.join(file_name);
         if output_path.exists() && !options.overwrite {
             return Ok(output_path);
@@ -107,6 +108,6 @@ async fn jar_download_test() {
         })),
     };
     let downloader = &DOWNLOADER;
-    let output_path = downloader.download_file(url, options).await.unwrap();
+    let output_path = downloader.download_file(url, &options).await.unwrap();
     assert!(output_path.exists());
 }

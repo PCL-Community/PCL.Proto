@@ -5,6 +5,7 @@ use crate::{
     core::{
         api_client,
         auth::Account,
+        downloader::{DOWNLOADER, DownloadOptions},
         game::GameInstance,
         java::{JavaRuntime, JavaRuntimeVecExt},
         launcher::LaunchOption,
@@ -16,7 +17,7 @@ use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command]
-pub fn launch_game(app: AppHandle, state: State<'_, Arc<Mutex<AppState>>>) -> Result<(), String> {
+pub fn launch_game(_app: AppHandle, state: State<'_, Arc<Mutex<AppState>>>) -> Result<(), String> {
     log::info!("launch_game invoked from js.");
     let guard = state.lock().unwrap();
     let launch_option = LaunchOption::from_state(&guard);
@@ -133,6 +134,16 @@ pub async fn get_version_manifest() -> Result<api_client::game::VersionManifest,
 }
 
 #[tauri::command]
-pub async fn handle_clicked_on_version(id: &str) -> Result<(), ()> {
-    Ok(())
+pub async fn handle_clicked_on_version(id: &str) -> Result<bool, String> {
+    // STEP1: get the version json
+    let client = &ConfigManager::instance().api_client;
+    let temp_dir = std::env::temp_dir().join(format!("pcl-proto-{}", id));
+    let version_detail = client
+        .get_version_details(id, &temp_dir)
+        .await
+        .map_err(|err| err.to_string())?;
+    // STEP2: start a task of downloading the version jar
+    // it should be managed by a task manager instead launch directly here
+    // STEP3: download libraries
+    Ok(true)
 }
