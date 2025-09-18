@@ -7,4 +7,3 @@ pub(crate) mod launcher;
 pub(crate) mod mcmod;
 pub(crate) mod platform;
 pub(crate) mod repository;
-pub(crate) mod task_manager;

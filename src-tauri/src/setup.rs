@@ -9,7 +9,6 @@ use crate::{
     core::{
         api_client::{ApiSource, MinecraftApiClient},
         auth::Account,
-        downloader::DOWNLOADER,
         game::GameInstance,
         java::JavaRuntime,
         repository::GameRepository,
@@ -123,7 +122,7 @@ impl ConfigManager {
             config_dir: config_dir.to_path_buf(),
             app_state: Arc::new(Mutex::new(AppState::default())),
             api_client: MinecraftApiClient::new(
-                DOWNLOADER.client.clone(),
+                reqwest::Client::new(),
                 "https://launchermeta.mojang.com",
             ),
             pcl_identifier,

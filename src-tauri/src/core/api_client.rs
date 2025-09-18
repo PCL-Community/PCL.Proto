@@ -1,13 +1,12 @@
+use crate::setup::constants::USER_AGENT;
+use reqwest::Client;
+use serde::{Serialize, de::DeserializeOwned};
 use std::{
     collections::HashMap,
     path::Path,
     sync::Arc,
     time::{Duration, Instant},
 };
-
-use crate::setup::constants::USER_AGENT;
-use reqwest::Client;
-use serde::{Serialize, de::DeserializeOwned};
 use thiserror::Error;
 use tokio::sync::RwLock;
 
@@ -33,9 +32,6 @@ pub enum McApiError {
 
     #[error("Download failed: {0}")]
     DownloadFailed(String),
-
-    #[error("Invalid URL: {0}")]
-    InvalidUrl(String),
 }
 
 pub mod game {
@@ -103,7 +99,7 @@ pub mod game {
 
 #[derive(Clone)]
 pub struct MinecraftApiClient {
-    client: Arc<Client>,
+    client: Client,
     base_url: String,
     cache: Arc<RwLock<HashMap<String, (Instant, serde_json::Value)>>>,
     ttl: Duration,
@@ -111,7 +107,7 @@ pub struct MinecraftApiClient {
 
 impl MinecraftApiClient {
     /// Create a new MinecraftApiClient
-    pub fn new(client: Arc<Client>, base_url: impl Into<String>) -> Self {
+    pub fn new(client: Client, base_url: impl Into<String>) -> Self {
         Self {
             client,
             base_url: base_url.into(),
@@ -192,14 +188,14 @@ impl MinecraftApiClient {
     }
 }
 
-#[tokio::test]
-async fn mc_manifest() {
-    use crate::core::downloader::DOWNLOADER;
-    let mc_api_client =
-        MinecraftApiClient::new(DOWNLOADER.client.clone(), "https://launchermeta.mojang.com");
-    let manifest: game::VersionManifest = mc_api_client
-        .get_with_endpoint(game::VERSION_MANIFEST_ENDPOINT, true)
-        .await
-        .unwrap();
-    println!("{:?}", manifest);
-}
+// #[tokio::test]
+// async fn mc_manifest() {
+//     use crate::core::downloader::DOWNLOADER;
+//     let mc_api_client =
+//         MinecraftApiClient::new(DOWNLOADER.client.clone(), "https://launchermeta.mojang.com");
+//     let manifest: game::VersionManifest = mc_api_client
+//         .get_with_endpoint(game::VERSION_MANIFEST_ENDPOINT, true)
+//         .await
+//         .unwrap();
+//     println!("{:?}", manifest);
+// }

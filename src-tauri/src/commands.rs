@@ -5,7 +5,6 @@ use crate::{
     core::{
         api_client,
         auth::Account,
-        downloader::{DOWNLOADER, DownloadOptions},
         game::GameInstance,
         java::{JavaRuntime, JavaRuntimeVecExt},
         launcher::LaunchOption,
