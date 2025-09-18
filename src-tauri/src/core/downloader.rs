@@ -36,6 +36,7 @@ pub enum DownloadStatus {
     Failed(String),
 }
 
+/// options to perform a download action
 pub struct DownloadOptions {
     pub url: String,
     pub file_index: usize,
@@ -43,29 +44,36 @@ pub struct DownloadOptions {
 }
 
 pub struct TaskItem {
-    pub id: String,
+    pub id: i32,
     pub name: String,
     pub overall_progress: f64,
     pub files: Vec<DownloadFile>,
     pub out_dir: PathBuf,
 }
 
+/// one file to be downloaded in the TaskItem files
 pub struct DownloadFile {
-    // url: String,
     progress: FileProgress,
-    // path: String,
     info: DownloadInfo,
 }
 
+/// inner progress update structure
 pub struct ProgressUpdate {
     pub file_index: usize,
     pub progress: FileProgress,
 }
 
+/// report to frontend
+pub struct TaskItemReport {
+    pub id: i32,
+    pub overall_progress: f64,
+    pub files_remaining: usize,
+}
+
 impl TaskItem {
     /// create a new TaskItem with several urls to download
-    pub fn build(
-        id: impl Into<String>,
+    pub fn build_with_infos(
+        id: i32,
         name: impl Into<String>,
         download_infos: Vec<DownloadInfo>,
         out_dir: impl Into<PathBuf>,
@@ -77,37 +85,43 @@ impl TaskItem {
                 info: download_item,
             })
             .collect();
-
         let new_item = Self {
-            id: id.into(),
             name: name.into(),
             overall_progress: 0.0,
             files,
             out_dir: out_dir.into(),
+            id,
         };
         let download_options = new_item.create_download_options();
         (Mutex::new(new_item).into(), download_options)
     }
 
     /// update the file progress at specific index
-    pub fn update_file_progress(&mut self, index: usize, progress: FileProgress) {
+    pub fn update_file_progress(&mut self, index: usize, progress: FileProgress) -> TaskItemReport {
         self.files[index].progress = progress;
-        self.calculate_overall_progress();
+        let remaining: usize;
+        (self.overall_progress, remaining) = self.calculate_overall_progress();
+        TaskItemReport {
+            id: self.id,
+            overall_progress: self.overall_progress,
+            files_remaining: remaining,
+        }
     }
 
-    fn calculate_overall_progress(&mut self) {
+    fn calculate_overall_progress(&self) -> (f64, usize) {
         let total_files = self.files.len();
         if total_files == 0 {
-            self.overall_progress = 0.0;
-            return;
+            return (1.0, 0);
         }
 
         let mut weighted_progress = 0.0;
+        let mut remaining = total_files;
 
         for file in &self.files {
             match &file.progress.status {
                 DownloadStatus::Completed => {
                     weighted_progress += 1.0;
+                    remaining -= 1;
                 }
                 DownloadStatus::Downloading => {
                     let file_progress = if let Some(total) = file.progress.total_bytes {
@@ -125,7 +139,7 @@ impl TaskItem {
             }
         }
 
-        self.overall_progress = weighted_progress / total_files as f64 * 100.0;
+        (weighted_progress / total_files as f64, remaining)
     }
 
     /// generate download options
@@ -255,10 +269,10 @@ impl ProgressMonitor {
     pub async fn start_monitoring(&self, mut progress_rx: mpsc::Receiver<ProgressUpdate>) {
         while let Some(update) = progress_rx.recv().await {
             let mut task_guard = self.task.lock().await;
-            task_guard.update_file_progress(update.file_index, update.progress);
+            let report = task_guard.update_file_progress(update.file_index, update.progress);
             println!(
-                "任务 {} - 文件 {} - 总进度: {:.1}%",
-                task_guard.name, update.file_index, task_guard.overall_progress
+                "id: {}, progress: {}, remaining: {}",
+                report.id, report.overall_progress, report.files_remaining
             );
         }
     }
@@ -283,7 +297,7 @@ async fn download_jars() -> Result<(), Box<dyn Error>> {
         },
     ];
     let (task, download_options) =
-        TaskItem::build("1", "多文件下载", downloads, "/Users/amagicpear/Downloads");
+        TaskItem::build_with_infos(0, "多文件下载", downloads, "/Users/amagicpear/Downloads");
     let (progress_tx, progress_rx) = mpsc::channel(100);
     let monitor = ProgressMonitor::new(Arc::clone(&task));
     let monitor_handle = tokio::task::spawn(async move {

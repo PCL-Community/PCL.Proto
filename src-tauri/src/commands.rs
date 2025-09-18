@@ -143,7 +143,7 @@ pub async fn handle_clicked_on_version(id: &str) -> Result<bool, String> {
         .await
         .map_err(|err| err.to_string())?;
     // STEP2: start a task of downloading the version jar
-    // it should be managed by a task manager instead launch directly here
+
     // STEP3: download libraries
     Ok(true)
 }

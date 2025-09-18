@@ -188,14 +188,12 @@ impl MinecraftApiClient {
     }
 }
 
-// #[tokio::test]
-// async fn mc_manifest() {
-//     use crate::core::downloader::DOWNLOADER;
-//     let mc_api_client =
-//         MinecraftApiClient::new(DOWNLOADER.client.clone(), "https://launchermeta.mojang.com");
-//     let manifest: game::VersionManifest = mc_api_client
-//         .get_with_endpoint(game::VERSION_MANIFEST_ENDPOINT, true)
-//         .await
-//         .unwrap();
-//     println!("{:?}", manifest);
-// }
+#[tokio::test]
+async fn mc_manifest() {
+    let mc_api_client = MinecraftApiClient::new(Client::new(), "https://launchermeta.mojang.com");
+    let manifest: game::VersionManifest = mc_api_client
+        .get_with_endpoint(game::VERSION_MANIFEST_ENDPOINT, true)
+        .await
+        .unwrap();
+    println!("{:?}", manifest);
+}
