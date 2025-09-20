@@ -2868,6 +2868,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "serde_repr",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",

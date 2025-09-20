@@ -137,6 +137,7 @@ pub async fn get_version_manifest() -> Result<api_client::game::VersionManifest,
 pub async fn handle_clicked_on_version(id: &str) -> Result<VersionDetails, String> {
     let client = &ConfigManager::instance().api_client;
     let temp_dir = std::env::temp_dir().join(format!("pcl-proto-{}", id));
+    log::debug!("selected tmp: {:?}", &temp_dir);
     let version_detail = client
         .get_version_details(id, &temp_dir)
         .await

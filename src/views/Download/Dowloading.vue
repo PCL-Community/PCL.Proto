@@ -11,7 +11,6 @@ const taskManager = useTaskManager()
 onMounted(() => {
   floatButtonState.visible = false
   sideNavState.setWidth(defaultWidths.task_manage)
-  taskManager.StartDownloadMCVersion('')
 })
 
 onUnmounted(() => {

@@ -14,3 +14,5 @@ pub fn find_file_of_name(
     }
     None
 }
+
+pub fn check_sha() {}

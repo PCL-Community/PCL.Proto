@@ -63,6 +63,7 @@ pub struct AppState {
     pub active_account: Option<Arc<Account>>,
     pub repositories: Vec<GameRepository>,
     pub active_game_instance: Option<Arc<GameInstance>>,
+    pub active_repo_path: PathBuf,
 }
 
 /// config manager, for loading and saving config file
@@ -151,6 +152,7 @@ impl ConfigManager {
         let mut state = self.app_state.lock().unwrap();
         // [WARN] Only for Debug!!
         // TODO: 后面去除下面的代码
+        state.active_repo_path = game_dir.clone();
         state
             .repositories
             .push(GameRepository::new("Default", game_dir));

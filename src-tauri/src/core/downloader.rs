@@ -2,6 +2,7 @@ use futures_util::StreamExt;
 use reqwest::Client;
 use std::{
     error::Error,
+    fs,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -10,7 +11,10 @@ use tokio::{
     sync::{Mutex, mpsc},
 };
 
-use crate::core::api_client::game::DownloadInfo;
+use crate::{
+    core::api_client::game::{DownloadInfo, VersionDetails},
+    setup::ConfigManager,
+};
 
 #[derive(serde::Serialize)]
 pub struct FileProgress {
@@ -29,12 +33,13 @@ impl Default for FileProgress {
     }
 }
 
-#[derive(PartialEq, Debug, serde::Serialize)]
+#[derive(PartialEq, Debug, serde_repr::Serialize_repr)]
+#[repr(u8)]
 pub enum TaskStatus {
-    Pending,
-    Downloading,
-    Completed,
-    Failed(String),
+    Pending = 0,
+    Running = 1,
+    Completed = 2,
+    Failed = 3,
 }
 
 /// options to perform a download action
@@ -96,19 +101,20 @@ impl TaskItem {
     }
 
     /// update the file progress at specific index
-    pub fn update_file_progress(
-        &mut self,
-        index: usize,
-        progress: FileProgress,
-    ) -> TaskEvent<'static> {
+    pub fn update_file_progress(&mut self, index: usize, progress: FileProgress) -> TaskEvent {
         self.files[index].progress = progress;
         let remaining: usize;
         (self.progress, remaining) = self.calculate_overall_progress();
-        TaskEvent::UpdateItem {
+        TaskEvent {
             task_id: self.task_id,
             item_id: self.id,
             overall_progress: self.progress,
             files_remaining: remaining,
+            status: if remaining > 0 {
+                TaskStatus::Running
+            } else {
+                TaskStatus::Completed
+            },
         }
     }
 
@@ -127,7 +133,7 @@ impl TaskItem {
                     weighted_progress += 1.0;
                     remaining -= 1;
                 }
-                TaskStatus::Downloading => {
+                TaskStatus::Running => {
                     let file_progress = if let Some(total) = file.progress.total_bytes {
                         if total > 0 {
                             file.progress.downloaded_bytes as f64 / total as f64
@@ -189,7 +195,7 @@ impl DownloadManager {
                 progress: FileProgress {
                     downloaded_bytes: 0,
                     total_bytes: None,
-                    status: TaskStatus::Downloading,
+                    status: TaskStatus::Running,
                 },
             })
             .await?;
@@ -214,8 +220,12 @@ impl DownloadManager {
                     },
                 })
                 .await?;
-            println!("file exists! {:?}", option.out_path);
+            log::warn!("file exists! {:?}", option.out_path);
             return Ok(());
+        }
+        let parent_path = option.out_path.parent().unwrap();
+        if !option.out_path.parent().unwrap().is_dir() {
+            fs::create_dir_all(parent_path)?;
         }
         let mut file = tokio::fs::File::create(&option.out_path).await?;
         if let Some(total_size) = response.content_length() {
@@ -225,7 +235,7 @@ impl DownloadManager {
                     progress: FileProgress {
                         downloaded_bytes: 0,
                         total_bytes: Some(total_size),
-                        status: TaskStatus::Downloading,
+                        status: TaskStatus::Running,
                     },
                 })
                 .await?;
@@ -241,7 +251,7 @@ impl DownloadManager {
                         progress: FileProgress {
                             downloaded_bytes: downloaded,
                             total_bytes: Some(total_size),
-                            status: TaskStatus::Downloading,
+                            status: TaskStatus::Running,
                         },
                     })
                     .await?;
@@ -270,10 +280,10 @@ impl ProgressMonitor {
         Self { task }
     }
 
-    pub async fn start_monitoring<'a>(
+    pub async fn start_monitoring(
         &self,
         mut progress_rx: mpsc::Receiver<ProgressUpdate>,
-        on_event: tauri::ipc::Channel<TaskEvent<'a>>,
+        on_event: tauri::ipc::Channel<TaskEvent>,
     ) {
         while let Some(update) = progress_rx.recv().await {
             let mut task_guard = self.task.lock().await;
@@ -283,47 +293,86 @@ impl ProgressMonitor {
     }
 }
 
-#[derive(Clone, serde::Serialize)]
-#[serde(
-    rename_all = "snake_case",
-    rename_all_fields = "snake_case",
-    tag = "event",
-    content = "data"
-)]
-pub enum TaskEvent<'a> {
-    Created {
-        id: i32,
-        task_items: Vec<&'a TaskItem>,
-    },
-    UpdateItem {
-        task_id: i32,
-        item_id: i32,
-        overall_progress: f64,
-        files_remaining: usize,
-    },
+#[derive(serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub struct TaskEvent {
+    pub task_id: i32,
+    pub item_id: i32,
+    pub files_remaining: usize,
+    pub overall_progress: f64,
+    pub status: TaskStatus,
+}
+
+fn try_get_temp_json(
+    version_id: &str,
+    version_folder: &Path,
+) -> Result<VersionDetails, Box<dyn Error>> {
+    let temp_json = std::env::temp_dir().join(format!("pcl-proto-{0}/{0}.json", &version_id));
+    let reader = fs::File::open(&temp_json)?;
+    let details: VersionDetails = serde_json::from_reader(reader)?;
+    fs::copy(
+        temp_json,
+        version_folder.join(format!("{}.json", version_id)),
+    )?;
+    Ok(details)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn download_minecraft_version(
-    on_event: tauri::ipc::Channel<TaskEvent<'static>>,
-) -> Result<(), ()> {
-    println!("启动异步下载测试...");
-    let downloads = vec![
-        DownloadInfo {
-            url: "https://piston-data.mojang.com/v1/objects/a19d9badbea944a4369fd0059e53bf7286597576/client.jar".to_string(),
-            path: None,
-            sha1: "".to_string(),
-            size: 0,
-        },
-        DownloadInfo {
-            url: "https://libraries.minecraft.net/ca/weblite/java-objc-bridge/1.1/java-objc-bridge-1.1.jar".to_string(),
-            path: None,
-            sha1: "".to_string(),
-            size: 0,
-        },
-    ];
+    state: tauri::State<'_, Arc<std::sync::Mutex<crate::setup::AppState>>>,
+    on_event: tauri::ipc::Channel<TaskEvent>,
+    version_id: &str,
+) -> Result<(), String> {
+    log::info!("start a task of downloading mc: {}", version_id);
+    // get the folder of this version
+    let (repo, version_folder) = {
+        let guard = state.lock().map_err(|err| err.to_string())?;
+        (
+            guard.active_repo_path.clone(),
+            guard.active_repo_path.join(version_id),
+        )
+    };
+    if !version_folder.exists() {
+        fs::create_dir(&version_folder).map_err(|err| err.to_string())?;
+    } else {
+        log::warn!("downloading mc in an exsiting directory!")
+    }
+    // compose the task items
+    // get the download info
+    let (jar_download, libraries_download) = {
+        let version_details: VersionDetails;
+        if let Ok(version_details_tmp) = try_get_temp_json(&version_id, &version_folder) {
+            version_details = version_details_tmp;
+        } else {
+            version_details = ConfigManager::instance()
+                .api_client
+                .get_version_details(&version_id, &version_folder)
+                .await
+                .map_err(|err| err.to_string())?;
+        }
+        let libraries = version_details.libraries;
+        (
+            version_details.downloads.client,
+            libraries
+                .iter()
+                .map(|lib| lib.downloads.artifact.to_owned())
+                .collect::<Vec<DownloadInfo>>(),
+        )
+    };
     let (task, download_options) =
-        TaskItem::build_with_infos(0, 0, "多文件下载", downloads, "/Users/amagicpear/Downloads");
+        TaskItem::build_with_infos(0, 0, "多文件下载", libraries_download, version_folder);
+    // {
+    //     let task_ref = &task.lock().await;
+    //     on_event
+    //         .send(TaskEvent {
+    //             task_id: 0,
+    //             item_id: 0,
+    //             files_remaining: 0,
+    //             overall_progress: 0.0,
+    //             status: TaskStatus::Failed,
+    //         })
+    //         .unwrap();
+    // }
     let (progress_tx, progress_rx) = mpsc::channel(100);
     let monitor = ProgressMonitor::new(Arc::clone(&task));
     let monitor_handle = tokio::task::spawn(async move {
@@ -342,10 +391,10 @@ pub async fn download_minecraft_version(
         download_handles.push(handle);
     }
     for handle in download_handles {
-        handle.await.unwrap();
+        handle.await.map_err(|err| err.to_string())?;
     }
     drop(progress_tx);
-    monitor_handle.await.unwrap();
+    monitor_handle.await.map_err(|err| err.to_string())?;
     let final_task = task.lock().await;
     println!("\n下载完成！");
     for (i, file) in final_task.files.iter().enumerate() {
