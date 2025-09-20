@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::{
     AppState,
     core::{
-        api_client,
+        api_client::{self, game::VersionDetails},
         auth::Account,
         game::GameInstance,
         java::{JavaRuntime, JavaRuntimeVecExt},
@@ -132,18 +132,14 @@ pub async fn get_version_manifest() -> Result<api_client::game::VersionManifest,
     }
 }
 
+/// return the version json
 #[tauri::command]
-pub async fn handle_clicked_on_version(id: &str) -> Result<bool, String> {
-    // TODO: should be managed by task manager
-    // STEP1: get the version json
+pub async fn handle_clicked_on_version(id: &str) -> Result<VersionDetails, String> {
     let client = &ConfigManager::instance().api_client;
     let temp_dir = std::env::temp_dir().join(format!("pcl-proto-{}", id));
     let version_detail = client
         .get_version_details(id, &temp_dir)
         .await
         .map_err(|err| err.to_string())?;
-    // STEP2: start a task of downloading the version jar
-
-    // STEP3: download libraries
-    Ok(true)
+    Ok(version_detail)
 }

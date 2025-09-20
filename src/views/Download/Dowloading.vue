@@ -1,24 +1,17 @@
 <script setup lang="ts">
 import PCard from '@/components/widget/PCard.vue'
 import { useFloatButton } from '@/composables/useFloatButton'
+import { useTaskManager } from '@/stores/task'
 import useSideNavState, { defaultWidths } from '@/stores/windowState'
-import { Channel, invoke } from '@tauri-apps/api/core'
 import { onMounted, onUnmounted } from 'vue'
 const { floatButtonState } = useFloatButton()
 let sideNavState = useSideNavState()
-const onEvent = new Channel()
-let count = 0
-onEvent.onmessage = (message) => {
-  count += 1
-  if (count <= 3) {
-    console.log('got task event', message)
-  }
-}
+const taskManager = useTaskManager()
 
 onMounted(() => {
   floatButtonState.visible = false
   sideNavState.setWidth(defaultWidths.task_manage)
-  invoke('download_jars', { on_event: onEvent })
+  taskManager.StartDownloadMCVersion('')
 })
 
 onUnmounted(() => {
@@ -32,24 +25,24 @@ onUnmounted(() => {
       <div class="task-left-item">
         <span class="header">总进度</span>
         <div class="divider" />
-        <span class="indicator">19.69 %</span>
+        <span class="indicator">{{ taskManager.totalProgress }} %</span>
       </div>
       <div class="task-left-item">
         <span class="header">下载速度</span>
         <div class="divider" />
-        <span class="indicator">0 B/s</span>
+        <span class="indicator">{{ taskManager.totalSpeed }} B/s</span>
       </div>
       <div class="task-left-item">
         <span class="header">剩余文件</span>
         <div class="divider" />
-        <span class="indicator">0</span>
+        <span class="indicator">{{ taskManager.totalRemaining }}</span>
       </div>
     </aside>
     <article class="subview">
-      <PCard title="1.21.8 安装">
-        <div>
+      <PCard v-for="task in taskManager.tasks" :key="task.id" :title="task.name">
+        <div v-for="item in task.items" :key="item.id">
           <div class="sub-indicator"></div>
-          <p>下载原版 Json 文件</p>
+          <p>{{ item.name }}</p>
         </div>
       </PCard>
     </article>

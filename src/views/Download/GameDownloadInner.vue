@@ -42,7 +42,7 @@ onMounted(async () => {
   let res = await invoke('handle_clicked_on_version', {
     id: version_id,
   })
-  console.log(res)
+  console.log('got version info:', res)
 })
 
 onUnmounted(() => {

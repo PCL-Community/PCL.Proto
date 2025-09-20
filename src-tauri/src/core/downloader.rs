@@ -49,7 +49,7 @@ pub struct TaskItem {
     pub id: i32,
     pub task_id: i32,
     pub name: String,
-    pub overall_progress: f64,
+    pub progress: f64,
     pub files: Vec<DownloadFile>,
     pub out_dir: PathBuf,
 }
@@ -85,7 +85,7 @@ impl TaskItem {
             .collect();
         let new_item = Self {
             name: name.into(),
-            overall_progress: 0.0,
+            progress: 0.0,
             files,
             out_dir: out_dir.into(),
             id,
@@ -103,11 +103,11 @@ impl TaskItem {
     ) -> TaskEvent<'static> {
         self.files[index].progress = progress;
         let remaining: usize;
-        (self.overall_progress, remaining) = self.calculate_overall_progress();
+        (self.progress, remaining) = self.calculate_overall_progress();
         TaskEvent::UpdateItem {
             task_id: self.task_id,
             item_id: self.id,
-            overall_progress: self.overall_progress,
+            overall_progress: self.progress,
             files_remaining: remaining,
         }
     }
@@ -285,8 +285,8 @@ impl ProgressMonitor {
 
 #[derive(Clone, serde::Serialize)]
 #[serde(
-    rename_all = "camelCase",
-    rename_all_fields = "camelCase",
+    rename_all = "snake_case",
+    rename_all_fields = "snake_case",
     tag = "event",
     content = "data"
 )]
@@ -304,7 +304,9 @@ pub enum TaskEvent<'a> {
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn download_jars(on_event: tauri::ipc::Channel<TaskEvent<'static>>) -> Result<(), ()> {
+pub async fn download_minecraft_version(
+    on_event: tauri::ipc::Channel<TaskEvent<'static>>,
+) -> Result<(), ()> {
     println!("启动异步下载测试...");
     let downloads = vec![
         DownloadInfo {
