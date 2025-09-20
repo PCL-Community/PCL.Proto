@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import PCard from '@/components/widget/PCard.vue'
 import { useFloatButton } from '@/composables/useFloatButton'
+import router from '@/router'
 import { useTaskManager } from '@/stores/task'
 import useSideNavState, { defaultWidths } from '@/stores/windowState'
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, watch } from 'vue'
 const { floatButtonState } = useFloatButton()
 let sideNavState = useSideNavState()
 const taskManager = useTaskManager()
@@ -14,8 +15,17 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  floatButtonState.visible = true
+  floatButtonState.visible = taskManager.activeTaskCount > 0
 })
+
+watch(
+  () => taskManager.activeTaskCount,
+  (newCount) => {
+    if (newCount <= 0) {
+      router.back()
+    }
+  },
+)
 </script>
 
 <template>

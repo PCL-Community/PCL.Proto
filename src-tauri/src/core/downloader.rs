@@ -2,7 +2,6 @@ use crate::{
     core::api_client::game::{DownloadInfo, VersionDetails},
     setup::ConfigManager,
 };
-use chrono::format;
 use futures_util::StreamExt;
 use reqwest::Client;
 use std::{
@@ -229,8 +228,6 @@ impl Downloader {
                     })
                     .await?;
                 return Err(format!("sha1 check failed! {:?}", options.out_path).into());
-            } else {
-                log::info!("sha1 check passed! {:?}", options.out_path);
             }
         }
         progress_tx
@@ -325,6 +322,10 @@ impl ProgressMonitor {
         mut progress_rx: mpsc::Receiver<ProgressUpdate>,
         on_event: tauri::ipc::Channel<TaskEvent>,
     ) {
+        // 控制发送频率的时间间隔（毫秒）
+        const MIN_INTERVAL_MS: u128 = 100; // 每100ms最多发送一次更新
+        let mut last_sent_time = tokio::time::Instant::now();
+        let mut pending_report = None;
         while let Some(update) = progress_rx.recv().await {
             let mut task_guard = self
                 .task_items
@@ -333,7 +334,17 @@ impl ProgressMonitor {
                 .lock()
                 .await;
             let report = task_guard.update_file_progress(update.file_index, update.progress);
-            on_event.send(report).expect("report corrupted");
+            pending_report = Some(report);
+            if let Some(report) = pending_report.take() {
+                let now = tokio::time::Instant::now();
+                if report.status == TaskStatus::Completed
+                    || report.status == TaskStatus::Failed
+                    || now.duration_since(last_sent_time).as_millis() >= MIN_INTERVAL_MS
+                {
+                    on_event.send(report).expect("report corrupted");
+                    last_sent_time = now;
+                }
+            }
         }
     }
 }
@@ -407,6 +418,15 @@ pub async fn download_minecraft_version(
                 .map_err(|err| err.to_string())?;
         }
         let libraries = version_details.libraries;
+        on_event
+            .send(TaskEvent {
+                task_id,
+                item_id: 0,
+                files_remaining: 0,
+                overall_progress: 1.0,
+                status: TaskStatus::Completed,
+            })
+            .map_err(|err| err.to_string())?;
         (
             version_details.downloads.client,
             libraries
@@ -417,10 +437,10 @@ pub async fn download_minecraft_version(
     };
 
     // the task info is fixed
-    let (task2, download_options2) =
-        TaskItem::build_with_infos(2, task_id, "jar", vec![jar_download], version_folder);
-    let (task3, download_options3) = TaskItem::build_with_infos(
-        3,
+    let (task1, download_options1) =
+        TaskItem::build_with_infos(1, task_id, "jar", vec![jar_download], version_folder);
+    let (task2, download_options2) = TaskItem::build_with_infos(
+        2,
         task_id,
         "libraries",
         libraries_download,
@@ -430,9 +450,9 @@ pub async fn download_minecraft_version(
     // set up the minotor
     let (progress_tx, progress_rx) = mpsc::channel(100);
     let monitor = ProgressMonitor::default()
-        .with_item(Arc::clone(&task2))
+        .with_item(Arc::clone(&task1))
         .await
-        .with_item(Arc::clone(&task3))
+        .with_item(Arc::clone(&task2))
         .await;
     let monitor_handle = tokio::task::spawn(async move {
         monitor.start_monitoring(progress_rx, on_event).await;
@@ -441,7 +461,7 @@ pub async fn download_minecraft_version(
     let mut download_handles = Vec::new();
 
     // start the actual downloading
-    for options_all in [download_options2, download_options3] {
+    for options_all in [download_options1, download_options2] {
         for options in options_all {
             let tx = progress_tx.clone(); // light weight clone
             let downloader = downloader.clone(); // light weight clone
@@ -460,11 +480,11 @@ pub async fn download_minecraft_version(
     }
     drop(progress_tx);
     monitor_handle.await.map_err(|err| err.to_string())?;
+    let final_task1 = task1.lock().await;
     let final_task2 = task2.lock().await;
-    let final_task3 = task3.lock().await;
     log::info!(
         "下载{}个文件完成！",
-        final_task3.files.len() + final_task2.files.len()
+        final_task2.files.len() + final_task1.files.len()
     );
     Ok(())
 }

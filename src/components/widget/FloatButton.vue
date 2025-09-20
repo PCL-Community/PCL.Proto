@@ -5,7 +5,7 @@ import { ref, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 
 const props = defineProps<FloatButtonState>()
-const backVisible = ref(false)
+const backVisible = ref(false) // the animation circle
 const buttonWidth = ref(36)
 const router = useRouter()
 
