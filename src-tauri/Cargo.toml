@@ -33,3 +33,4 @@ reqwest = {version = "0.12.23", features = ["json", "stream"] }
 thiserror = "2.0.16"
 futures-util = "0.3.31"
 serde_repr = "0.1.20"
+sha1 = "0.10.6"

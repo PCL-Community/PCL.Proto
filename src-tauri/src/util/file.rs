@@ -1,4 +1,10 @@
-use std::path::PathBuf;
+use std::{
+    fs::File,
+    io::{BufReader, Read},
+    path::{Path, PathBuf},
+};
+
+use sha1::Digest;
 
 /// find file of name
 pub fn find_file_of_name(
@@ -15,4 +21,19 @@ pub fn find_file_of_name(
     None
 }
 
-pub fn check_sha() {}
+pub fn check_sha1(file: &Path, given: &str) -> Result<bool, std::io::Error> {
+    let file = File::open(file)?;
+    let mut reader = BufReader::new(file);
+    let mut hasher = sha1::Sha1::new();
+    let mut buffer = [0u8; 8192];
+    loop {
+        let n = reader.read(&mut buffer)?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buffer[..n]);
+    }
+    let result = hasher.finalize();
+    let computed = format!("{:x}", result);
+    Ok(computed == given)
+}
