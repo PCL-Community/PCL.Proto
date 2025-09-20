@@ -20,11 +20,6 @@ const { floatButtonState, setFloatButton } = useFloatButton()
 var unlistenButton: any
 const taskManager = useTaskManager()
 
-const downloadGame = async () => {
-  info(`download game: ${version_id}`)
-  taskManager.StartDownloadMCVersion(version_id)
-}
-
 const arrowLeftClicked = () => {
   router.back()
 }
@@ -34,17 +29,17 @@ onMounted(async () => {
   setFloatButton(FloatButtonType.DownloadGame)
   unlistenButton = await listen('float-button-click', (event) => {
     if (event.payload === FloatButtonType.DownloadGame) {
-      downloadGame().then(() => {
-        setFloatButton(FloatButtonType.TaskManage)
-        router.back()
-      })
+      info(`download game: ${version_id}`)
+      taskManager.startDownloadMCVersion(version_id)
+      setFloatButton(FloatButtonType.TaskManage)
+      router.back()
     }
   })
   // get version info from backend
-  let res = await invoke('handle_clicked_on_version', {
+  let res = await invoke<{ id: string }>('handle_clicked_on_version', {
     id: version_id,
   })
-  console.log('got version info:', res)
+  info(`got version info: ${res.id}`)
 })
 
 onUnmounted(() => {

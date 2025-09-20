@@ -317,11 +317,19 @@ fn try_get_temp_json(
     Ok(details)
 }
 
+/// This command would receive a version_id of the game to download.
+/// The frontend would provide a task_id and a channel for the progress feedback, and the progress happended should be sent throught the channel.
+/// ## The four task items are fixed that:
+/// 1. Fetch the json indicating the version details
+/// 2. Download the version jar file
+/// 3. Download the libraries to support the version
+/// 4. Download the resources
 #[tauri::command(rename_all = "snake_case")]
 pub async fn download_minecraft_version(
     state: tauri::State<'_, Arc<std::sync::Mutex<crate::setup::AppState>>>,
     on_event: tauri::ipc::Channel<TaskEvent>,
     version_id: &str,
+    task_id: i32,
 ) -> Result<(), String> {
     log::info!("start a task of downloading mc: {}", version_id);
     // get the folder of this version
@@ -329,14 +337,17 @@ pub async fn download_minecraft_version(
         let guard = state.lock().map_err(|err| err.to_string())?;
         (
             guard.active_repo_path.clone(),
-            guard.active_repo_path.join(version_id),
+            guard
+                .active_repo_path
+                .join(format!("versions/{}", version_id)),
         )
     };
     if !version_folder.exists() {
-        fs::create_dir(&version_folder).map_err(|err| err.to_string())?;
+        fs::create_dir_all(&version_folder).map_err(|err| err.to_string())?;
     } else {
         log::warn!("downloading mc in an exsiting directory!")
     }
+
     // compose the task items
     // get the download info
     let (jar_download, libraries_download) = {
@@ -359,46 +370,52 @@ pub async fn download_minecraft_version(
                 .collect::<Vec<DownloadInfo>>(),
         )
     };
-    let (task, download_options) =
-        TaskItem::build_with_infos(0, 0, "多文件下载", libraries_download, version_folder);
-    // {
-    //     let task_ref = &task.lock().await;
-    //     on_event
-    //         .send(TaskEvent {
-    //             task_id: 0,
-    //             item_id: 0,
-    //             files_remaining: 0,
-    //             overall_progress: 0.0,
-    //             status: TaskStatus::Failed,
-    //         })
-    //         .unwrap();
-    // }
+
+    // the task info is fixed
+    let (task2, download_options2) =
+        TaskItem::build_with_infos(2, task_id, "jar", vec![jar_download], version_folder);
+    let (task3, download_options3) = TaskItem::build_with_infos(
+        3,
+        task_id,
+        "libraries",
+        libraries_download,
+        repo.join("libraries"),
+    );
+
+    // set up the minotor
     let (progress_tx, progress_rx) = mpsc::channel(100);
-    let monitor = ProgressMonitor::new(Arc::clone(&task));
+    let monitor = ProgressMonitor::new(Arc::clone(&task3));
     let monitor_handle = tokio::task::spawn(async move {
         monitor.start_monitoring(progress_rx, on_event).await;
     });
     let download_manager = DownloadManager::new();
     let mut download_handles = Vec::new();
-    for options in download_options {
-        let tx = progress_tx.clone();
-        let manager = download_manager.clone();
-        let handle = tokio::task::spawn(async move {
-            if let Err(e) = manager.start_download(options, tx).await {
-                eprintln!("下载错误: {}", e);
-            }
-        });
-        download_handles.push(handle);
+
+    // start the actual downloading
+    for options_all in [download_options2, download_options3] {
+        for options in options_all {
+            let tx = progress_tx.clone();
+            let manager = download_manager.clone();
+            let handle = tokio::task::spawn(async move {
+                if let Err(e) = manager.start_download(options, tx).await {
+                    log::error!("下载错误: {}", e);
+                }
+            });
+            download_handles.push(handle);
+        }
     }
+
+    // wait until all the procedures have been finished
     for handle in download_handles {
         handle.await.map_err(|err| err.to_string())?;
     }
     drop(progress_tx);
     monitor_handle.await.map_err(|err| err.to_string())?;
-    let final_task = task.lock().await;
-    println!("\n下载完成！");
-    for (i, file) in final_task.files.iter().enumerate() {
-        println!("文件{}:{:?}", i, file.progress.status);
-    }
+    let final_task2 = task2.lock().await;
+    let final_task3 = task3.lock().await;
+    println!(
+        "下载{}个文件完成！",
+        final_task3.files.len() + final_task2.files.len()
+    );
     Ok(())
 }
