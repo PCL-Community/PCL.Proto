@@ -32,7 +32,17 @@ export class Task {
     }
 }
 
-export class TaskItem {
+export interface ITaskItem {
+    id: number;
+    task_id: number;
+    name: string;
+    status: TaskStatus;
+    speed: number;
+    progress: number;
+    remaining: number | undefined;
+}
+
+class TaskItem implements ITaskItem {
     id: number;
     task_id: number;
     name: string;

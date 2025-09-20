@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import PCard from '@/components/widget/PCard.vue'
+import TaskItem from '@/components/widget/TaskItem.vue'
 import { useFloatButton } from '@/composables/useFloatButton'
 import router from '@/router'
-import { useTaskManager } from '@/stores/task'
+import { TaskStatus, useTaskManager } from '@/stores/task'
 import useSideNavState, { defaultWidths } from '@/stores/windowState'
 import { onMounted, onUnmounted, watch } from 'vue'
 const { floatButtonState } = useFloatButton()
@@ -49,11 +50,13 @@ watch(
     </aside>
     <article class="subview">
       <PCard v-for="task in taskManager.tasks" :key="task.id" :title="task.name">
-        <div v-for="item in task.items" :key="item.id">
-          <div class="sub-indicator"></div>
-          <p>{{ item.name }}</p>
-        </div>
+        <TaskItem v-for="item in task.items" :key="item.id" v-bind="item" />
       </PCard>
+      <!-- <PCard title="Test Task">
+        <TaskItem name="Test Item" :status="TaskStatus.Pending" />
+        <TaskItem name="Test Item" :status="TaskStatus.Running" :progress="0.67" />
+        <TaskItem name="Test Item" :status="TaskStatus.Completed" />
+      </PCard> -->
     </article>
   </div>
 </template>
