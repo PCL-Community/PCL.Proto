@@ -67,7 +67,7 @@ pub fn get_java_list(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<JavaRuntime>
 pub async fn refresh_java_list() -> Result<Vec<JavaRuntime>, ()> {
     let java_runtimes = JavaRuntime::search().await;
     java_runtimes.clone().patch_state();
-    return Ok(java_runtimes);
+    Ok(java_runtimes)
 }
 
 #[tauri::command]

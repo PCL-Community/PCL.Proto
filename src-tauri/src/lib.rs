@@ -1,4 +1,5 @@
 use crate::core::java::JavaRuntimeVecExt;
+use core::downloader;
 use setup::AppState;
 use std::sync::Arc;
 use tauri::Manager;
@@ -55,6 +56,7 @@ pub fn run() {
             commands::select_instance,
             commands::get_version_manifest,
             commands::handle_clicked_on_version,
+            downloader::download_jars,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

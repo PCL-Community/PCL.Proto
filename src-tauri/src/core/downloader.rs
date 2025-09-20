@@ -12,10 +12,11 @@ use tokio::{
 
 use crate::core::api_client::game::DownloadInfo;
 
+#[derive(serde::Serialize)]
 pub struct FileProgress {
     pub downloaded_bytes: u64,
     pub total_bytes: Option<u64>,
-    pub status: DownloadStatus,
+    pub status: TaskStatus,
 }
 
 impl Default for FileProgress {
@@ -23,13 +24,13 @@ impl Default for FileProgress {
         Self {
             downloaded_bytes: 0,
             total_bytes: None,
-            status: DownloadStatus::Pending,
+            status: TaskStatus::Pending,
         }
     }
 }
 
-#[derive(PartialEq, Debug)]
-pub enum DownloadStatus {
+#[derive(PartialEq, Debug, serde::Serialize)]
+pub enum TaskStatus {
     Pending,
     Downloading,
     Completed,
@@ -43,8 +44,10 @@ pub struct DownloadOptions {
     pub out_path: PathBuf,
 }
 
+#[derive(serde::Serialize)]
 pub struct TaskItem {
     pub id: i32,
+    pub task_id: i32,
     pub name: String,
     pub overall_progress: f64,
     pub files: Vec<DownloadFile>,
@@ -52,6 +55,7 @@ pub struct TaskItem {
 }
 
 /// one file to be downloaded in the TaskItem files
+#[derive(serde::Serialize)]
 pub struct DownloadFile {
     progress: FileProgress,
     info: DownloadInfo,
@@ -63,17 +67,11 @@ pub struct ProgressUpdate {
     pub progress: FileProgress,
 }
 
-/// report to frontend
-pub struct TaskItemReport {
-    pub id: i32,
-    pub overall_progress: f64,
-    pub files_remaining: usize,
-}
-
 impl TaskItem {
     /// create a new TaskItem with several urls to download
     pub fn build_with_infos(
         id: i32,
+        task_id: i32,
         name: impl Into<String>,
         download_infos: Vec<DownloadInfo>,
         out_dir: impl Into<PathBuf>,
@@ -91,18 +89,24 @@ impl TaskItem {
             files,
             out_dir: out_dir.into(),
             id,
+            task_id,
         };
         let download_options = new_item.create_download_options();
         (Mutex::new(new_item).into(), download_options)
     }
 
     /// update the file progress at specific index
-    pub fn update_file_progress(&mut self, index: usize, progress: FileProgress) -> TaskItemReport {
+    pub fn update_file_progress(
+        &mut self,
+        index: usize,
+        progress: FileProgress,
+    ) -> TaskEvent<'static> {
         self.files[index].progress = progress;
         let remaining: usize;
         (self.overall_progress, remaining) = self.calculate_overall_progress();
-        TaskItemReport {
-            id: self.id,
+        TaskEvent::UpdateItem {
+            task_id: self.task_id,
+            item_id: self.id,
             overall_progress: self.overall_progress,
             files_remaining: remaining,
         }
@@ -119,11 +123,11 @@ impl TaskItem {
 
         for file in &self.files {
             match &file.progress.status {
-                DownloadStatus::Completed => {
+                TaskStatus::Completed => {
                     weighted_progress += 1.0;
                     remaining -= 1;
                 }
-                DownloadStatus::Downloading => {
+                TaskStatus::Downloading => {
                     let file_progress = if let Some(total) = file.progress.total_bytes {
                         if total > 0 {
                             file.progress.downloaded_bytes as f64 / total as f64
@@ -185,7 +189,7 @@ impl DownloadManager {
                 progress: FileProgress {
                     downloaded_bytes: 0,
                     total_bytes: None,
-                    status: DownloadStatus::Downloading,
+                    status: TaskStatus::Downloading,
                 },
             })
             .await?;
@@ -206,7 +210,7 @@ impl DownloadManager {
                     progress: FileProgress {
                         downloaded_bytes: 0,
                         total_bytes: None,
-                        status: DownloadStatus::Completed,
+                        status: TaskStatus::Completed,
                     },
                 })
                 .await?;
@@ -221,7 +225,7 @@ impl DownloadManager {
                     progress: FileProgress {
                         downloaded_bytes: 0,
                         total_bytes: Some(total_size),
-                        status: DownloadStatus::Downloading,
+                        status: TaskStatus::Downloading,
                     },
                 })
                 .await?;
@@ -237,7 +241,7 @@ impl DownloadManager {
                         progress: FileProgress {
                             downloaded_bytes: downloaded,
                             total_bytes: Some(total_size),
-                            status: DownloadStatus::Downloading,
+                            status: TaskStatus::Downloading,
                         },
                     })
                     .await?;
@@ -248,7 +252,7 @@ impl DownloadManager {
                     progress: FileProgress {
                         downloaded_bytes: downloaded,
                         total_bytes: Some(total_size),
-                        status: DownloadStatus::Completed,
+                        status: TaskStatus::Completed,
                     },
                 })
                 .await?;
@@ -266,21 +270,41 @@ impl ProgressMonitor {
         Self { task }
     }
 
-    pub async fn start_monitoring(&self, mut progress_rx: mpsc::Receiver<ProgressUpdate>) {
+    pub async fn start_monitoring<'a>(
+        &self,
+        mut progress_rx: mpsc::Receiver<ProgressUpdate>,
+        on_event: tauri::ipc::Channel<TaskEvent<'a>>,
+    ) {
         while let Some(update) = progress_rx.recv().await {
             let mut task_guard = self.task.lock().await;
             let report = task_guard.update_file_progress(update.file_index, update.progress);
-            println!(
-                "id: {}, progress: {}, remaining: {}",
-                report.id, report.overall_progress, report.files_remaining
-            );
+            on_event.send(report).expect("report corrupted");
         }
     }
 }
 
-#[cfg(test)]
-#[tokio::test]
-async fn download_jars() -> Result<(), Box<dyn Error>> {
+#[derive(Clone, serde::Serialize)]
+#[serde(
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase",
+    tag = "event",
+    content = "data"
+)]
+pub enum TaskEvent<'a> {
+    Created {
+        id: i32,
+        task_items: Vec<&'a TaskItem>,
+    },
+    UpdateItem {
+        task_id: i32,
+        item_id: i32,
+        overall_progress: f64,
+        files_remaining: usize,
+    },
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn download_jars(on_event: tauri::ipc::Channel<TaskEvent<'static>>) -> Result<(), ()> {
     println!("启动异步下载测试...");
     let downloads = vec![
         DownloadInfo {
@@ -297,11 +321,11 @@ async fn download_jars() -> Result<(), Box<dyn Error>> {
         },
     ];
     let (task, download_options) =
-        TaskItem::build_with_infos(0, "多文件下载", downloads, "/Users/amagicpear/Downloads");
+        TaskItem::build_with_infos(0, 0, "多文件下载", downloads, "/Users/amagicpear/Downloads");
     let (progress_tx, progress_rx) = mpsc::channel(100);
     let monitor = ProgressMonitor::new(Arc::clone(&task));
     let monitor_handle = tokio::task::spawn(async move {
-        monitor.start_monitoring(progress_rx).await;
+        monitor.start_monitoring(progress_rx, on_event).await;
     });
     let download_manager = DownloadManager::new();
     let mut download_handles = Vec::new();
@@ -316,10 +340,10 @@ async fn download_jars() -> Result<(), Box<dyn Error>> {
         download_handles.push(handle);
     }
     for handle in download_handles {
-        handle.await?;
+        handle.await.unwrap();
     }
     drop(progress_tx);
-    monitor_handle.await?;
+    monitor_handle.await.unwrap();
     let final_task = task.lock().await;
     println!("\n下载完成！");
     for (i, file) in final_task.files.iter().enumerate() {

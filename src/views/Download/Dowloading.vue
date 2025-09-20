@@ -2,13 +2,23 @@
 import PCard from '@/components/widget/PCard.vue'
 import { useFloatButton } from '@/composables/useFloatButton'
 import useSideNavState, { defaultWidths } from '@/stores/windowState'
+import { Channel, invoke } from '@tauri-apps/api/core'
 import { onMounted, onUnmounted } from 'vue'
 const { floatButtonState } = useFloatButton()
 let sideNavState = useSideNavState()
+const onEvent = new Channel()
+let count = 0
+onEvent.onmessage = (message) => {
+  count += 1
+  if (count <= 3) {
+    console.log('got task event', message)
+  }
+}
 
 onMounted(() => {
   floatButtonState.visible = false
   sideNavState.setWidth(defaultWidths.task_manage)
+  invoke('download_jars', { on_event: onEvent })
 })
 
 onUnmounted(() => {
