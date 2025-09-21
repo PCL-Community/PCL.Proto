@@ -24,7 +24,6 @@ use tokio::{
 #[derive(serde::Serialize)]
 pub struct FileProgress {
     pub downloaded_bytes: u64,
-    pub total_bytes: Option<u64>,
     pub status: TaskStatus,
 }
 
@@ -32,7 +31,7 @@ impl Default for FileProgress {
     fn default() -> Self {
         Self {
             downloaded_bytes: 0,
-            total_bytes: None,
+            // total_bytes: None,
             status: TaskStatus::Pending,
         }
     }
@@ -57,12 +56,11 @@ pub struct ProgressUpdate {
 // ---------------- 🌟 Downloader 🌟 ----------------
 
 /// options to perform a download action
-pub struct DownloadOptions {
-    pub url: String,
+pub struct DownloadConfig {
     pub file_index: usize,
     pub out_path: PathBuf,
     pub task_item_id: i32,
-    pub sha1: Option<String>,
+    pub info: DownloadInfo,
 }
 
 /// one file to be downloaded in the TaskItem files
@@ -86,7 +84,7 @@ impl Downloader {
     /// start downloading a single file
     pub async fn start_download(
         &self,
-        options: DownloadOptions,
+        options: DownloadConfig,
         progress_tx: mpsc::Sender<ProgressUpdate>,
     ) -> Result<(), Box<dyn Error>> {
         progress_tx
@@ -94,7 +92,7 @@ impl Downloader {
                 file_index: options.file_index,
                 progress: FileProgress {
                     downloaded_bytes: 0,
-                    total_bytes: None,
+                    // total_bytes: None,
                     status: TaskStatus::Pending,
                 },
                 item_id: options.task_item_id,
@@ -107,30 +105,29 @@ impl Downloader {
                 .await?;
         }
 
-        if let Some(sha1) = options.sha1.as_deref() {
-            if !crate::util::file::check_sha1(&options.out_path, sha1)? {
-                log::error!("sha1 check failed! {:?}", options.out_path);
-                fs::remove_file(&options.out_path)?;
-                progress_tx
-                    .send(ProgressUpdate {
-                        file_index: options.file_index,
-                        progress: FileProgress {
-                            downloaded_bytes: 0,
-                            total_bytes: None,
-                            status: TaskStatus::Failed,
-                        },
-                        item_id: options.task_item_id,
-                    })
-                    .await?;
-                return Err(format!("sha1 check failed! {:?}", options.out_path).into());
-            }
+        if !crate::util::file::check_sha1(&options.out_path, &options.info.sha1)? {
+            log::error!("sha1 check failed! {:?}", options.out_path);
+            fs::remove_file(&options.out_path)?;
+            progress_tx
+                .send(ProgressUpdate {
+                    file_index: options.file_index,
+                    progress: FileProgress {
+                        downloaded_bytes: 0,
+                        // total_bytes: None,
+                        status: TaskStatus::Failed,
+                    },
+                    item_id: options.task_item_id,
+                })
+                .await?;
+            return Err(format!("sha1 check failed! {:?}", options.out_path).into());
         }
+
         progress_tx
             .send(ProgressUpdate {
                 file_index: options.file_index,
                 progress: FileProgress {
                     downloaded_bytes: 0,
-                    total_bytes: None,
+                    // total_bytes: None,
                     status: TaskStatus::Completed,
                 },
                 item_id: options.task_item_id,
@@ -142,57 +139,57 @@ impl Downloader {
     /// the actual process of downloading a single file
     async fn http_download_inner(
         &self,
-        option: &DownloadOptions,
+        option: &DownloadConfig,
         progress_tx: mpsc::Sender<ProgressUpdate>,
     ) -> Result<(), Box<dyn Error>> {
-        let response = self.client.get(&option.url).send().await?;
+        let response = self.client.get(&option.info.url).send().await?;
         let parent_path = option.out_path.parent().unwrap();
-        if !option.out_path.parent().unwrap().is_dir() {
+        if !parent_path.is_dir() {
             fs::create_dir_all(parent_path)?;
         }
         let mut file = tokio::fs::File::create(&option.out_path).await?;
-        if let Some(total_size) = response.content_length() {
-            progress_tx
-                .send(ProgressUpdate {
-                    file_index: option.file_index,
-                    progress: FileProgress {
-                        downloaded_bytes: 0,
-                        total_bytes: Some(total_size),
-                        status: TaskStatus::Running,
-                    },
-                    item_id: option.task_item_id,
-                })
-                .await?;
-            let mut stream = response.bytes_stream();
-            let mut downloaded: u64 = 0;
-            while let Some(chunk) = stream.next().await {
-                let chunk = chunk?;
-                file.write_all(&chunk).await?;
-                downloaded += chunk.len() as u64;
-                progress_tx
-                    .send(ProgressUpdate {
-                        file_index: option.file_index,
-                        progress: FileProgress {
-                            downloaded_bytes: downloaded,
-                            total_bytes: Some(total_size),
-                            status: TaskStatus::Running,
-                        },
-                        item_id: option.task_item_id,
-                    })
-                    .await?;
-            }
+        // if let Some(total_size) = response.content_length() {
+        progress_tx
+            .send(ProgressUpdate {
+                file_index: option.file_index,
+                progress: FileProgress {
+                    downloaded_bytes: 0,
+                    // total_bytes: Some(total_size),
+                    status: TaskStatus::Running,
+                },
+                item_id: option.task_item_id,
+            })
+            .await?;
+        let mut stream = response.bytes_stream();
+        let mut downloaded: u64 = 0;
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk?;
+            file.write_all(&chunk).await?;
+            downloaded += chunk.len() as u64;
             progress_tx
                 .send(ProgressUpdate {
                     file_index: option.file_index,
                     progress: FileProgress {
                         downloaded_bytes: downloaded,
-                        total_bytes: Some(total_size),
-                        status: TaskStatus::Completed,
+                        // total_bytes: Some(total_size),
+                        status: TaskStatus::Running,
                     },
                     item_id: option.task_item_id,
                 })
                 .await?;
         }
+        progress_tx
+            .send(ProgressUpdate {
+                file_index: option.file_index,
+                progress: FileProgress {
+                    downloaded_bytes: downloaded,
+                    // total_bytes: Some(total_size),
+                    status: TaskStatus::Completed,
+                },
+                item_id: option.task_item_id,
+            })
+            .await?;
+        // }
         Ok(())
     }
 }
@@ -216,7 +213,7 @@ impl TaskItem {
         name: impl Into<String>,
         download_infos: Vec<DownloadInfo>,
         out_dir: impl Into<PathBuf>,
-    ) -> (Arc<Mutex<Self>>, Vec<DownloadOptions>) {
+    ) -> (Arc<Mutex<Self>>, Vec<DownloadConfig>) {
         let files = download_infos
             .into_iter()
             .map(|download_item| DownloadFile {
@@ -270,14 +267,10 @@ impl TaskItem {
                     remaining -= 1;
                 }
                 TaskStatus::Running => {
-                    let file_progress = if let Some(total) = file.progress.total_bytes {
-                        if total > 0 {
-                            file.progress.downloaded_bytes as f64 / total as f64
-                        } else {
-                            1.0
-                        }
+                    let file_progress = if file.info.size > 0 {
+                        file.progress.downloaded_bytes as f64 / file.info.size as f64
                     } else {
-                        0.5
+                        1.0
                     };
                     weighted_progress += file_progress;
                 }
@@ -289,13 +282,13 @@ impl TaskItem {
     }
 
     /// generate download options
-    fn create_download_options(&self) -> Vec<DownloadOptions> {
+    fn create_download_options(&self) -> Vec<DownloadConfig> {
         self.files
             .iter()
             .enumerate()
-            .map(|(index, file)| DownloadOptions {
+            .map(|(index, file)| DownloadConfig {
                 task_item_id: self.id,
-                url: file.info.url.clone(),
+                // url: file.info.url.clone(),
                 file_index: index,
                 out_path: self.out_dir.join(Path::new(
                     &file
@@ -304,7 +297,7 @@ impl TaskItem {
                         .as_deref()
                         .unwrap_or(&file.info.url.split('/').last().unwrap_or(&file.info.url)),
                 )),
-                sha1: Some(file.info.sha1.clone()),
+                info: file.info.clone(),
             })
             .collect()
     }
@@ -332,8 +325,8 @@ impl ProgressMonitor {
         mut progress_rx: mpsc::Receiver<ProgressUpdate>,
         on_event: tauri::ipc::Channel<TaskItemReport>,
     ) {
-        // 控制发送频率的时间间隔（毫秒）
-        const MIN_INTERVAL_MS: u128 = 100; // 每100ms最多发送一次更新
+        // restrain the frequency to 10 send per secend
+        const MIN_INTERVAL_MS: u128 = 100;
         let mut last_sent_time = tokio::time::Instant::now();
         let mut pending_report: Option<TaskItemReport>;
         while let Some(update) = progress_rx.recv().await {
