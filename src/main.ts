@@ -7,6 +7,7 @@ import { createPinia } from 'pinia'
 import router from '@/router/index'
 import { createI18n } from 'vue-i18n'
 import locales from './locales'
+import { useAccountInfo } from './stores/account'
 
 const pinia = createPinia()
 
@@ -22,4 +23,10 @@ app.use(router)
 app.use(pinia)
 app.use(i18n)
 
+async function initializeAppState() {
+    const accountStore = useAccountInfo()
+    await accountStore.initialize()
+}
+
 app.mount('#app')
+initializeAppState()

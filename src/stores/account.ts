@@ -10,21 +10,29 @@ interface Account {
     Offline?: AccountInner,
 }
 
-let element: AccountInner | undefined = undefined;
-
-// [WARN] 这里构建时会报错不能在顶级作用域使用await
-// TODO: 最好改一下
-const account = await invoke<Account>('get_account');
-for (const key in account) {
-    if (Object.prototype.hasOwnProperty.call(account, key)) {
-        element = (account as any)[key] as AccountInner;
-        break
-    }
-}
-
 export const useAccountInfo = defineStore('account-info', {
-    state: () => (element as AccountInner),
+    state: () => ({
+        username: undefined as string | undefined,
+        uuid: undefined as string | undefined,
+    }),
     getters: {
-        skinUrl: (state) => getSkinUrl(state.username, 'username')
+        skinUrl: (state) => getSkinUrl(state.username as string, 'username')
+    },
+    actions: {
+        async initialize() {
+            try {
+                const account = await invoke<Account>('get_account');
+                for (const key in account) {
+                    if (Object.prototype.hasOwnProperty.call(account, key)) {
+                        const element = (account as any)[key] as AccountInner;
+                        this.username = element.username;
+                        this.uuid = element.uuid;
+                        break;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to initialize account:', error);
+            }
+        }
     }
 })
