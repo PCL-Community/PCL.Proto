@@ -99,7 +99,7 @@ impl Downloader {
             })
             .await?;
         if options.out_path.exists() {
-            log::info!("file exists, skip {:?}", options.out_path);
+            log::debug!("file exists, skip {:?}", options.out_path);
         } else {
             self.http_download_inner(&options, progress_tx.clone())
                 .await?;
@@ -119,7 +119,9 @@ impl Downloader {
                     item_id: options.task_item_id,
                 })
                 .await?;
-            return Err(format!("sha1 check failed! {:?}", options.out_path).into());
+            let error_notice = format!("sha1 check failed! {:?}", options.out_path);
+            log::error!("{error_notice}");
+            return Err(error_notice.into());
         }
 
         progress_tx
@@ -251,6 +253,7 @@ impl TaskItem {
         }
     }
 
+    /// TODO)) calculate the progress according to each file's size
     fn calculate_item_progress(&self) -> (f64, usize) {
         let total_files = self.files.len();
         if total_files == 0 {
@@ -415,8 +418,11 @@ pub async fn download_minecraft_version(
                 .map_err(|err| err.to_string())?;
         }
         let libraries = version_details.libraries;
+        // modify the jar path cause api don't provide it
+        let mut jar_download = version_details.downloads.client;
+        jar_download.path = Some(format!("{}.jar", version_id));
         (
-            version_details.downloads.client,
+            jar_download,
             libraries
                 .iter()
                 .map(|lib| lib.downloads.artifact.to_owned())
@@ -481,7 +487,7 @@ pub async fn download_minecraft_version(
     let final_task1 = task1.lock().await;
     let final_task2 = task2.lock().await;
     log::info!(
-        "下载{}个文件完成！",
+        "successfully downloaded {} files!",
         final_task2.files.len() + final_task1.files.len()
     );
     Ok(())
