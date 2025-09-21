@@ -1,3 +1,6 @@
+//! The downloader mod.
+//! Designed for Minecraft version and mod downloads.
+//! Supports mutli task parallel and mspc channel.
 use crate::{
     core::api_client::game::{DownloadInfo, VersionDetails},
     setup::ConfigManager,
@@ -15,6 +18,8 @@ use tokio::{
     io::AsyncWriteExt,
     sync::{Mutex, mpsc},
 };
+
+// ---------------- 🌟 Progress Types 🌟 ----------------
 
 #[derive(serde::Serialize)]
 pub struct FileProgress {
@@ -42,6 +47,15 @@ pub enum TaskStatus {
     Failed = 3,
 }
 
+/// inner progress update structure
+pub struct ProgressUpdate {
+    pub file_index: usize,
+    pub progress: FileProgress,
+    pub item_id: i32,
+}
+
+// ---------------- 🌟 Downloader 🌟 ----------------
+
 /// options to perform a download action
 pub struct DownloadOptions {
     pub url: String,
@@ -51,130 +65,11 @@ pub struct DownloadOptions {
     pub sha1: Option<String>,
 }
 
-#[derive(serde::Serialize)]
-pub struct TaskItem {
-    pub id: i32,
-    pub task_id: i32,
-    pub name: String,
-    pub progress: f64,
-    pub files: Vec<DownloadFile>,
-    pub out_dir: PathBuf,
-}
-
 /// one file to be downloaded in the TaskItem files
 #[derive(serde::Serialize)]
 pub struct DownloadFile {
     progress: FileProgress,
     info: DownloadInfo,
-}
-
-/// inner progress update structure
-pub struct ProgressUpdate {
-    pub file_index: usize,
-    pub progress: FileProgress,
-    pub item_id: i32,
-}
-
-impl TaskItem {
-    /// create a new TaskItem with several urls to download
-    pub fn build_with_infos(
-        id: i32,
-        task_id: i32,
-        name: impl Into<String>,
-        download_infos: Vec<DownloadInfo>,
-        out_dir: impl Into<PathBuf>,
-    ) -> (Arc<Mutex<Self>>, Vec<DownloadOptions>) {
-        let files = download_infos
-            .into_iter()
-            .map(|download_item| DownloadFile {
-                progress: FileProgress::default(),
-                info: download_item,
-            })
-            .collect();
-        let new_item = Self {
-            name: name.into(),
-            progress: 0.0,
-            files,
-            out_dir: out_dir.into(),
-            id,
-            task_id,
-        };
-        let download_options = new_item.create_download_options();
-        (Mutex::new(new_item).into(), download_options)
-    }
-
-    /// update the file progress at specific index
-    pub fn update_file_progress(&mut self, index: usize, progress: FileProgress) -> TaskEvent {
-        self.files[index].progress = progress;
-        let remaining: usize;
-        (self.progress, remaining) = self.calculate_overall_progress();
-        TaskEvent {
-            task_id: self.task_id,
-            item_id: self.id,
-            overall_progress: self.progress,
-            files_remaining: remaining,
-            status: if remaining > 0 {
-                TaskStatus::Running
-            } else {
-                TaskStatus::Completed
-            },
-        }
-    }
-
-    fn calculate_overall_progress(&self) -> (f64, usize) {
-        let total_files = self.files.len();
-        if total_files == 0 {
-            return (1.0, 0);
-        }
-
-        let mut weighted_progress = 0.0;
-        let mut remaining = total_files;
-
-        for file in &self.files {
-            match &file.progress.status {
-                TaskStatus::Completed => {
-                    weighted_progress += 1.0;
-                    remaining -= 1;
-                }
-                TaskStatus::Running => {
-                    let file_progress = if let Some(total) = file.progress.total_bytes {
-                        if total > 0 {
-                            file.progress.downloaded_bytes as f64 / total as f64
-                        } else {
-                            0.0
-                        }
-                    } else {
-                        0.5
-                    };
-                    weighted_progress += file_progress;
-                }
-                _ => {}
-            }
-        }
-
-        (weighted_progress / total_files as f64, remaining)
-    }
-
-    /// generate download options
-    fn create_download_options(&self) -> Vec<DownloadOptions> {
-        self.files
-            .iter()
-            .enumerate()
-            .map(|(index, file)| DownloadOptions {
-                task_item_id: self.id,
-                url: file.info.url.clone(),
-                file_index: index,
-                out_path: self.out_dir.join(Path::new(
-                    &file
-                        .info
-                        .path
-                        .as_deref()
-                        .unwrap_or(&file.info.url.split('/').last().unwrap_or(&file.info.url)),
-                )),
-                sha1: Some(file.info.sha1.clone()),
-            })
-            .collect()
-    }
 }
 #[derive(Clone)]
 pub struct Downloader {
@@ -302,6 +197,121 @@ impl Downloader {
     }
 }
 
+// ---------------- 🌟 TaskItem 🌟 ----------------
+
+#[derive(serde::Serialize)]
+pub struct TaskItem {
+    pub id: i32,
+    pub task_id: i32,
+    pub name: String,
+    pub progress: f64,
+    pub files: Vec<DownloadFile>,
+    pub out_dir: PathBuf,
+}
+impl TaskItem {
+    /// create a new TaskItem with several urls to download
+    pub fn build_with_infos(
+        id: i32,
+        task_id: i32,
+        name: impl Into<String>,
+        download_infos: Vec<DownloadInfo>,
+        out_dir: impl Into<PathBuf>,
+    ) -> (Arc<Mutex<Self>>, Vec<DownloadOptions>) {
+        let files = download_infos
+            .into_iter()
+            .map(|download_item| DownloadFile {
+                progress: FileProgress::default(),
+                info: download_item,
+            })
+            .collect();
+        let new_item = Self {
+            name: name.into(),
+            progress: 0.0,
+            files,
+            out_dir: out_dir.into(),
+            id,
+            task_id,
+        };
+        let download_options = new_item.create_download_options();
+        (Mutex::new(new_item).into(), download_options)
+    }
+
+    /// update the file progress at specific index
+    pub fn update_file_progress(&mut self, index: usize, progress: FileProgress) -> TaskItemReport {
+        self.files[index].progress = progress;
+        let remaining: usize;
+        (self.progress, remaining) = self.calculate_item_progress();
+        TaskItemReport {
+            task_id: self.task_id,
+            item_id: self.id,
+            overall_progress: self.progress,
+            files_remaining: remaining,
+            status: if remaining > 0 {
+                TaskStatus::Running
+            } else {
+                TaskStatus::Completed
+            },
+        }
+    }
+
+    fn calculate_item_progress(&self) -> (f64, usize) {
+        let total_files = self.files.len();
+        if total_files == 0 {
+            return (1.0, 0);
+        }
+
+        let mut weighted_progress = 0.0;
+        let mut remaining = total_files;
+
+        for file in &self.files {
+            match &file.progress.status {
+                TaskStatus::Completed => {
+                    weighted_progress += 1.0;
+                    remaining -= 1;
+                }
+                TaskStatus::Running => {
+                    let file_progress = if let Some(total) = file.progress.total_bytes {
+                        if total > 0 {
+                            file.progress.downloaded_bytes as f64 / total as f64
+                        } else {
+                            1.0
+                        }
+                    } else {
+                        0.5
+                    };
+                    weighted_progress += file_progress;
+                }
+                _ => {}
+            }
+        }
+
+        (weighted_progress / total_files as f64, remaining)
+    }
+
+    /// generate download options
+    fn create_download_options(&self) -> Vec<DownloadOptions> {
+        self.files
+            .iter()
+            .enumerate()
+            .map(|(index, file)| DownloadOptions {
+                task_item_id: self.id,
+                url: file.info.url.clone(),
+                file_index: index,
+                out_path: self.out_dir.join(Path::new(
+                    &file
+                        .info
+                        .path
+                        .as_deref()
+                        .unwrap_or(&file.info.url.split('/').last().unwrap_or(&file.info.url)),
+                )),
+                sha1: Some(file.info.sha1.clone()),
+            })
+            .collect()
+    }
+}
+
+// ---------------- 🌟 ProgressMonitor 🌟 ----------------
+
 #[derive(Default)]
 pub struct ProgressMonitor {
     task_items: HashMap<i32, Arc<Mutex<TaskItem>>>,
@@ -320,12 +330,12 @@ impl ProgressMonitor {
     pub async fn start_monitoring(
         &self,
         mut progress_rx: mpsc::Receiver<ProgressUpdate>,
-        on_event: tauri::ipc::Channel<TaskEvent>,
+        on_event: tauri::ipc::Channel<TaskItemReport>,
     ) {
         // 控制发送频率的时间间隔（毫秒）
         const MIN_INTERVAL_MS: u128 = 100; // 每100ms最多发送一次更新
         let mut last_sent_time = tokio::time::Instant::now();
-        let mut pending_report = None;
+        let mut pending_report: Option<TaskItemReport>;
         while let Some(update) = progress_rx.recv().await {
             let mut task_guard = self
                 .task_items
@@ -349,9 +359,11 @@ impl ProgressMonitor {
     }
 }
 
+// ---------------- 🌟 The Minecraft Download Event 🌟 ----------------
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "snake_case")]
-pub struct TaskEvent {
+pub struct TaskItemReport {
     pub task_id: i32,
     pub item_id: i32,
     pub files_remaining: usize,
@@ -383,26 +395,18 @@ fn try_get_temp_json(
 #[tauri::command(rename_all = "snake_case")]
 pub async fn download_minecraft_version(
     state: tauri::State<'_, Arc<std::sync::Mutex<crate::setup::AppState>>>,
-    on_event: tauri::ipc::Channel<TaskEvent>,
+    on_event: tauri::ipc::Channel<TaskItemReport>,
     version_id: &str,
     task_id: i32,
 ) -> Result<(), String> {
     log::info!("start a task of downloading mc: {}", version_id);
     // get the folder of this version
-    let (repo, version_folder) = {
-        let guard = state.lock().map_err(|err| err.to_string())?;
-        (
-            guard.active_repo_path.clone(),
-            guard
-                .active_repo_path
-                .join(format!("versions/{}", version_id)),
-        )
-    };
-    if !version_folder.exists() {
-        fs::create_dir_all(&version_folder).map_err(|err| err.to_string())?;
-    } else {
-        log::warn!("downloading mc in an exsiting directory!")
-    }
+    let repo = state
+        .lock()
+        .map_err(|err| err.to_string())?
+        .active_repo_path
+        .clone();
+    let version_folder = repo.join(format!("versions/{}", version_id));
 
     // compose the task items
     // get the download info
@@ -418,15 +422,6 @@ pub async fn download_minecraft_version(
                 .map_err(|err| err.to_string())?;
         }
         let libraries = version_details.libraries;
-        on_event
-            .send(TaskEvent {
-                task_id,
-                item_id: 0,
-                files_remaining: 0,
-                overall_progress: 1.0,
-                status: TaskStatus::Completed,
-            })
-            .map_err(|err| err.to_string())?;
         (
             version_details.downloads.client,
             libraries
@@ -435,6 +430,16 @@ pub async fn download_minecraft_version(
                 .collect::<Vec<DownloadInfo>>(),
         )
     };
+    // report the first task item: get the version json
+    on_event
+        .send(TaskItemReport {
+            task_id,
+            item_id: 0,
+            files_remaining: 0,
+            overall_progress: 1.0,
+            status: TaskStatus::Completed,
+        })
+        .map_err(|err| err.to_string())?;
 
     // the task info is fixed
     let (task1, download_options1) =
@@ -457,10 +462,10 @@ pub async fn download_minecraft_version(
     let monitor_handle = tokio::task::spawn(async move {
         monitor.start_monitoring(progress_rx, on_event).await;
     });
-    let downloader = Downloader::new();
-    let mut download_handles = Vec::new();
 
     // start the actual downloading
+    let downloader = Downloader::new();
+    let mut download_handles = Vec::new();
     for options_all in [download_options1, download_options2] {
         for options in options_all {
             let tx = progress_tx.clone(); // light weight clone
