@@ -2857,7 +2857,7 @@ dependencies = [
 
 [[package]]
 name = "pcl-proto"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "chrono",
  "directories",
@@ -2868,6 +2868,8 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "serde_repr",
+ "sha1",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",

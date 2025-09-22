@@ -1,19 +1,49 @@
-use std::{
-    collections::HashMap,
-    sync::Arc,
-    time::{Duration, Instant},
-};
-
 use crate::setup::constants::USER_AGENT;
 use reqwest::Client;
 use serde::{Serialize, de::DeserializeOwned};
+use std::{
+    collections::HashMap,
+    path::Path,
+    sync::{Arc, Mutex},
+    time::{Duration, Instant},
+};
 use thiserror::Error;
 use tokio::sync::RwLock;
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub enum ApiSource {
+#[serde(rename_all = "lowercase")]
+pub enum ApiProvider {
     Official,
     BMCLApi,
+}
+
+impl Default for ApiProvider {
+    fn default() -> Self {
+        Self::Official
+    }
+}
+
+/// TODO)) 需要在下载时截取后面的部分才能正常使用第三方API
+/// 否则还是用的官方API
+#[derive(Clone)]
+pub struct ApiBases {
+    pub meta_base: &'static str,
+    pub resources_base: &'static str,
+}
+
+impl ApiBases {
+    pub fn new(provider: &ApiProvider) -> Self {
+        match provider {
+            ApiProvider::Official => ApiBases {
+                meta_base: "https://piston-meta.mojang.com",
+                resources_base: "https://resources.download.minecraft.net",
+            },
+            ApiProvider::BMCLApi => ApiBases {
+                meta_base: "https://bmclapi2.bangbang93.com",
+                resources_base: "https://bmclapi2.bangbang93.com/assets",
+            },
+        }
+    }
 }
 
 #[derive(Error, Debug)]
@@ -29,12 +59,6 @@ pub enum McApiError {
 
     #[error("Version not found: {0}")]
     VersionNotFound(String),
-
-    #[error("Download failed: {0}")]
-    DownloadFailed(String),
-
-    #[error("Invalid URL: {0}")]
-    InvalidUrl(String),
 }
 
 pub mod game {
@@ -69,6 +93,10 @@ pub mod game {
         #[serde(rename = "type")]
         pub version_type: String,
         pub downloads: VersionDownloads,
+        pub libraries: Vec<LibraryItem>,
+        pub assets: String,
+        #[serde(rename = "assetIndex")]
+        pub asset_index: DownloadInfo,
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,28 +110,64 @@ pub mod game {
         pub sha1: String,
         pub size: u64,
         pub url: String,
+        pub path: Option<String>,
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct Rule {
+        pub action: String, // allow or not allow
+        pub os: OSRule,
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct OSRule {
+        pub name: crate::util::OS,
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct LibraryItem {
+        pub name: String,
+        pub downloads: LibraryDownloads,
+        pub rules: Option<Vec<Rule>>,
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct LibraryDownloads {
+        pub artifact: DownloadInfo,
     }
 
     pub const VERSION_MANIFEST_ENDPOINT: &str = "mc/game/version_manifest.json";
 }
 
-#[derive(Clone)]
 pub struct MinecraftApiClient {
-    client: Arc<Client>,
-    base_url: String,
+    client: Client,
+    api_bases: Mutex<ApiBases>,
     cache: Arc<RwLock<HashMap<String, (Instant, serde_json::Value)>>>,
     ttl: Duration,
 }
 
 impl MinecraftApiClient {
     /// Create a new MinecraftApiClient
-    pub fn new(client: Arc<Client>, base_url: impl Into<String>) -> Self {
+    pub fn new(client: Client, api_provider: &ApiProvider) -> Self {
         Self {
             client,
-            base_url: base_url.into(),
+            api_bases: Mutex::new(ApiBases::new(api_provider)),
             cache: Arc::new(RwLock::new(HashMap::new())),
             ttl: Duration::from_secs(60 * 5),
         }
+    }
+
+    pub fn switch_api_bases(&self, provider: &ApiProvider) {
+        let mut guard = self.api_bases.lock().unwrap();
+        *guard = ApiBases::new(provider);
+        drop(guard);
+    }
+
+    pub fn api_bases(&self) -> ApiBases {
+        let guard = self.api_bases.lock().unwrap();
+        let bases = guard.clone();
+        drop(guard);
+        bases
     }
 
     /// Get data from a URL
@@ -148,17 +212,39 @@ impl MinecraftApiClient {
         endpoint: &str,
         allow_from_cache: bool,
     ) -> Result<T, McApiError> {
-        let url = format!("{}/{}", self.base_url, endpoint);
+        let url = format!("{}/{}", self.api_bases.lock().unwrap().meta_base, endpoint);
         let data = self.get(&url, allow_from_cache).await?;
         Ok(data)
+    }
+
+    /// Get version details from version id and save the temp
+    pub async fn get_version_details(
+        &self,
+        version_id: &str,
+        temp_dir: &Path,
+    ) -> Result<game::VersionDetails, McApiError> {
+        // STEP1: get the version json
+        let endpoint = game::VERSION_MANIFEST_ENDPOINT;
+        let manifest: game::VersionManifest = self.get_with_endpoint(&endpoint, true).await?;
+        let version = manifest
+            .versions
+            .iter()
+            .find(|v| v.id == version_id)
+            .ok_or(McApiError::VersionNotFound(version_id.to_string()))?;
+        let version_json = self.get::<serde_json::Value>(&version.url, false).await?;
+        // save version detail json to temp_dir
+        tokio::fs::create_dir_all(temp_dir).await?;
+        let version_json_path = temp_dir.join(format!("{}.json", version_id));
+        let version_json_str = serde_json::to_string(&version_json)?;
+        tokio::fs::write(&version_json_path, version_json_str).await?;
+        let version_detail: game::VersionDetails = serde_json::from_value(version_json)?;
+        Ok(version_detail)
     }
 }
 
 #[tokio::test]
 async fn mc_manifest() {
-    use crate::core::downloader::DOWNLOADER;
-    let mc_api_client =
-        MinecraftApiClient::new(DOWNLOADER.client.clone(), "https://launchermeta.mojang.com");
+    let mc_api_client = MinecraftApiClient::new(Client::new(), &ApiProvider::Official);
     let manifest: game::VersionManifest = mc_api_client
         .get_with_endpoint(game::VERSION_MANIFEST_ENDPOINT, true)
         .await

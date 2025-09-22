@@ -7,6 +7,7 @@
 //! GPL-3.0 License | https://github.com/HMCL-dev/HMCL
 // use crate::setup::constants::LAUNCHER_NAME;
 
+use crate::core::api_client::game::VersionDetails;
 use crate::setup::constants::{APP_VERSION, LAUNCHER_NAME};
 use crate::{
     core::{
@@ -116,27 +117,18 @@ impl LaunchOption {
 
     fn build_classpath(&self) -> Result<String, Box<dyn std::error::Error>> {
         let json_reader = std::fs::File::open(&self.game_instance.json_path)?;
-        let version_json: serde_json::Value = serde_json::from_reader(json_reader)?;
+        let version_json: VersionDetails = serde_json::from_reader(json_reader)?;
         let mut classpath = Vec::new();
-
-        if let Some(libraries) = version_json["libraries"].as_array() {
-            for lib in libraries {
-                let downloads = lib["downloads"]
-                    .as_object()
-                    .ok_or("Missing downloads object in library")?;
-                let lib_artifact = downloads["artifact"]
-                    .as_object()
-                    .ok_or("Missing artifact object in downloads")?;
-                let lib_path = lib_artifact["path"]
-                    .as_str()
-                    .ok_or("Missing path in artifact")?;
-                let lib_full_path = format!(
-                    "{}/libraries/{}",
-                    self.game_instance.global_dir.path.display(),
-                    lib_path
-                );
-                classpath.push(lib_full_path);
-            }
+        let libraries = version_json.libraries;
+        for lib in libraries {
+            let lib_artifact = lib.downloads.artifact;
+            let lib_path = lib_artifact.path.ok_or("Missing path in artifact")?;
+            let lib_full_path = format!(
+                "{}/libraries/{}",
+                self.game_instance.global_dir.path.display(),
+                lib_path
+            );
+            classpath.push(lib_full_path);
         }
         if self.game_instance.jar_path.exists() {
             classpath.push(self.game_instance.jar_path.display().to_string());
@@ -157,7 +149,6 @@ impl LaunchOption {
             ),
             "--assetIndex=26".to_string(), // TODO: read from version json
             format!("--uuid={}", self.account.uuid()),
-            // TODO: get the below from account
             format!(
                 "--accessToken={}",
                 self.account.access_token().unwrap_or("0")

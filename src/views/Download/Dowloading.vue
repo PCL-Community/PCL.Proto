@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import PCard from '@/components/widget/PCard.vue'
+import TaskItem from '@/components/widget/TaskItem.vue'
 import { useFloatButton } from '@/composables/useFloatButton'
+import router from '@/router'
+import { TaskStatus, useTaskManager } from '@/stores/task'
 import useSideNavState, { defaultWidths } from '@/stores/windowState'
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, watch } from 'vue'
 const { floatButtonState } = useFloatButton()
 let sideNavState = useSideNavState()
+const taskManager = useTaskManager()
 
 onMounted(() => {
   floatButtonState.visible = false
@@ -12,8 +16,17 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  floatButtonState.visible = true
+  floatButtonState.visible = taskManager.activeTaskCount > 0
 })
+
+watch(
+  () => taskManager.activeTaskCount,
+  (newCount) => {
+    if (newCount <= 0) {
+      router.back()
+    }
+  },
+)
 </script>
 
 <template>
@@ -22,23 +35,28 @@ onUnmounted(() => {
       <div class="task-left-item">
         <span class="header">总进度</span>
         <div class="divider" />
-        <span class="indicator">19.69 %</span>
+        <span class="indicator">{{ taskManager.totalProgress }} %</span>
       </div>
       <div class="task-left-item">
         <span class="header">下载速度</span>
         <div class="divider" />
-        <span class="indicator">0 B/s</span>
+        <span class="indicator">{{ taskManager.totalSpeed }} B/s</span>
       </div>
       <div class="task-left-item">
         <span class="header">剩余文件</span>
         <div class="divider" />
-        <span class="indicator">0</span>
+        <span class="indicator">{{ taskManager.totalRemaining }}</span>
       </div>
     </aside>
     <article class="subview">
-      <PCard title="1.21.8 安装">
-        <div>下载原版 Json 文件</div>
+      <PCard v-for="task in taskManager.tasks" :key="task.id" :title="task.name">
+        <TaskItem v-for="item in task.items" :key="item.id" v-bind="item" />
       </PCard>
+      <!-- <PCard title="Test Task">
+        <TaskItem name="Test Item" :status="TaskStatus.Pending" />
+        <TaskItem name="Test Item" :status="TaskStatus.Running" :progress="0.67" />
+        <TaskItem name="Test Item" :status="TaskStatus.Completed" />
+      </PCard> -->
     </article>
   </div>
 </template>

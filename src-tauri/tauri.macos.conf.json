@@ -3,7 +3,7 @@
   "app": {
     "windows": [
       {
-        "title": "",
+        "title": "PCL.Proto",
         "width": 814,
         "height": 464,
         "minHeight": 464,
@@ -14,7 +14,8 @@
         "trafficLightPosition": {
           "x": 14.0,
           "y": 26.0
-        }
+        },
+        "hiddenTitle": true
       }
     ],
     "security": {

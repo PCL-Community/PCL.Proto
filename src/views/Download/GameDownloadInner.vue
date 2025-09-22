@@ -9,6 +9,8 @@ import ArrowLeft from '@/assets/icons/ArrowLeft.svg'
 import ModifyCard from '@/components/widget/ModifyCard.vue'
 import { FloatButtonType, useFloatButton } from '@/composables/useFloatButton'
 import { listen } from '@tauri-apps/api/event'
+import { invoke } from '@tauri-apps/api/core'
+import { useTaskManager } from '@/stores/task'
 
 const router = useRouter()
 const version_id = useRoute().query.version as string
@@ -16,11 +18,7 @@ const instance_name = ref(version_id)
 const pluginTypes = Object.keys(pluginShowText) as pluginType[]
 const { floatButtonState, setFloatButton } = useFloatButton()
 var unlistenButton: any
-
-const downloadGame = async () => {
-  info(`download game: ${version_id}`)
-  // TODO: 向后端发送下载请求，将下载任务添加到下载队列中
-}
+const taskManager = useTaskManager()
 
 const arrowLeftClicked = () => {
   router.back()
@@ -31,12 +29,17 @@ onMounted(async () => {
   setFloatButton(FloatButtonType.DownloadGame)
   unlistenButton = await listen('float-button-click', (event) => {
     if (event.payload === FloatButtonType.DownloadGame) {
-      downloadGame().then(() => {
-        setFloatButton(FloatButtonType.TaskManage)
-        router.back()
-      })
+      info(`download game: ${version_id}`)
+      taskManager.startDownloadMCVersion(version_id)
+      setFloatButton(FloatButtonType.TaskManage)
+      router.back()
     }
   })
+  // get version info from backend
+  let res = await invoke<{ id: string }>('handle_clicked_on_version', {
+    id: version_id,
+  })
+  info(`got version info: ${res.id}`)
 })
 
 onUnmounted(() => {

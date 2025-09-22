@@ -1,20 +1,18 @@
+use crate::{
+    core::{
+        api_client::{ApiProvider, MinecraftApiClient},
+        auth::Account,
+        game::GameInstance,
+        java::JavaRuntime,
+        repository::GameRepository,
+    },
+    util,
+};
 use std::{
     fs,
     io::Write,
     path::PathBuf,
     sync::{Arc, LazyLock, Mutex},
-};
-
-use crate::{
-    core::{
-        api_client::{ApiSource, MinecraftApiClient},
-        auth::Account,
-        downloader::DOWNLOADER,
-        game::GameInstance,
-        java::JavaRuntime,
-        repository::GameRepository,
-    },
-    util::{self, get_board_serial},
 };
 
 pub mod constants {
@@ -29,7 +27,7 @@ pub mod constants {
 pub struct PCLSetupInfo {
     setup_version: i32,
     theme: Theme,
-    download_source: ApiSource,
+    api_provider: ApiProvider,
     pub max_memory: usize,
     pub default_java: Option<Arc<JavaRuntime>>,
 }
@@ -48,13 +46,14 @@ impl Default for PCLSetupInfo {
         PCLSetupInfo {
             setup_version: constants::DEFAULT_JAVA_LIST_CACHE_VERSION,
             theme: Theme::BlueLight,
-            download_source: ApiSource::Official,
+            api_provider: ApiProvider::Official,
             max_memory: 2048,
             default_java: None,
         }
     }
 }
 
+/// Something that would be shared all over the app and may be displayed
 #[derive(serde::Serialize, serde::Deserialize, Default)]
 pub struct AppState {
     pub java_runtimes: Vec<crate::core::java::JavaRuntime>,
@@ -63,6 +62,7 @@ pub struct AppState {
     pub active_account: Option<Arc<Account>>,
     pub repositories: Vec<GameRepository>,
     pub active_game_instance: Option<Arc<GameInstance>>,
+    pub active_repo_path: PathBuf,
 }
 
 /// config manager, for loading and saving config file
@@ -121,10 +121,7 @@ impl ConfigManager {
             config_path,
             config_dir: config_dir.to_path_buf(),
             app_state: Arc::new(Mutex::new(AppState::default())),
-            api_client: MinecraftApiClient::new(
-                DOWNLOADER.client.clone(),
-                "https://launchermeta.mojang.com",
-            ),
+            api_client: MinecraftApiClient::new(reqwest::Client::new(), &ApiProvider::default()),
             pcl_identifier,
         };
         if !instance.config_path.exists()
@@ -151,6 +148,7 @@ impl ConfigManager {
         let mut state = self.app_state.lock().unwrap();
         // [WARN] Only for Debug!!
         // TODO: 后面去除下面的代码
+        state.active_repo_path = game_dir.clone();
         state
             .repositories
             .push(GameRepository::new("Default", game_dir));
@@ -177,7 +175,9 @@ impl ConfigManager {
             .map_err(|_| ConfigManagerError::ConfigFileCorrupted)?;
         let mut state = self.app_state.lock().unwrap();
         *state = state_read;
-        // 随后需要更新api_clent的base_rul
+        // update the api provider
+        self.api_client
+            .switch_api_bases(&state.pcl_setup_info.api_provider);
         Ok(())
     }
 
