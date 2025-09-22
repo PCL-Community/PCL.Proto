@@ -4,16 +4,44 @@ use serde::{Serialize, de::DeserializeOwned};
 use std::{
     collections::HashMap,
     path::Path,
-    sync::Arc,
+    sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
 use thiserror::Error;
 use tokio::sync::RwLock;
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub enum ApiSource {
+#[serde(rename_all = "lowercase")]
+pub enum ApiProvider {
     Official,
     BMCLApi,
+}
+
+impl Default for ApiProvider {
+    fn default() -> Self {
+        Self::Official
+    }
+}
+
+#[derive(Clone)]
+pub struct ApiBases {
+    pub meta_base: &'static str,
+    pub resources_base: &'static str,
+}
+
+impl ApiBases {
+    pub fn new(provider: &ApiProvider) -> Self {
+        match provider {
+            ApiProvider::Official => ApiBases {
+                meta_base: "https://piston-meta.mojang.com",
+                resources_base: "https://resources.download.minecraft.net",
+            },
+            ApiProvider::BMCLApi => ApiBases {
+                meta_base: "https://bmclapi2.bangbang93.com",
+                resources_base: "https://bmclapi2.bangbang93.com/assets",
+            },
+        }
+    }
 }
 
 #[derive(Error, Debug)]
@@ -112,23 +140,28 @@ pub mod game {
     pub const VERSION_MANIFEST_ENDPOINT: &str = "mc/game/version_manifest.json";
 }
 
-#[derive(Clone)]
 pub struct MinecraftApiClient {
     client: Client,
-    base_url: String,
+    api_bases: Mutex<ApiBases>,
     cache: Arc<RwLock<HashMap<String, (Instant, serde_json::Value)>>>,
     ttl: Duration,
 }
 
 impl MinecraftApiClient {
     /// Create a new MinecraftApiClient
-    pub fn new(client: Client, base_url: impl Into<String>) -> Self {
+    pub fn new(client: Client, api_provider: &ApiProvider) -> Self {
         Self {
             client,
-            base_url: base_url.into(),
+            api_bases: Mutex::new(ApiBases::new(api_provider)),
             cache: Arc::new(RwLock::new(HashMap::new())),
             ttl: Duration::from_secs(60 * 5),
         }
+    }
+
+    pub fn switch_api_bases(&self, provider: &ApiProvider) {
+        let mut guard = self.api_bases.lock().unwrap();
+        *guard = ApiBases::new(provider);
+        drop(guard);
     }
 
     /// Get data from a URL
@@ -173,7 +206,7 @@ impl MinecraftApiClient {
         endpoint: &str,
         allow_from_cache: bool,
     ) -> Result<T, McApiError> {
-        let url = format!("{}/{}", self.base_url, endpoint);
+        let url = format!("{}/{}", self.api_bases.lock().unwrap().meta_base, endpoint);
         let data = self.get(&url, allow_from_cache).await?;
         Ok(data)
     }
@@ -205,7 +238,7 @@ impl MinecraftApiClient {
 
 #[tokio::test]
 async fn mc_manifest() {
-    let mc_api_client = MinecraftApiClient::new(Client::new(), "https://launchermeta.mojang.com");
+    let mc_api_client = MinecraftApiClient::new(Client::new(), &ApiProvider::Official);
     let manifest: game::VersionManifest = mc_api_client
         .get_with_endpoint(game::VERSION_MANIFEST_ENDPOINT, true)
         .await

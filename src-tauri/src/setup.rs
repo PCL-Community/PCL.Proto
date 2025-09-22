@@ -1,19 +1,18 @@
-use std::{
-    fs,
-    io::Write,
-    path::PathBuf,
-    sync::{Arc, LazyLock, Mutex},
-};
-
 use crate::{
     core::{
-        api_client::{ApiSource, MinecraftApiClient},
+        api_client::{ApiProvider, MinecraftApiClient},
         auth::Account,
         game::GameInstance,
         java::JavaRuntime,
         repository::GameRepository,
     },
     util,
+};
+use std::{
+    fs,
+    io::Write,
+    path::PathBuf,
+    sync::{Arc, LazyLock, Mutex},
 };
 
 pub mod constants {
@@ -28,7 +27,7 @@ pub mod constants {
 pub struct PCLSetupInfo {
     setup_version: i32,
     theme: Theme,
-    download_source: ApiSource,
+    api_provider: ApiProvider,
     pub max_memory: usize,
     pub default_java: Option<Arc<JavaRuntime>>,
 }
@@ -47,7 +46,7 @@ impl Default for PCLSetupInfo {
         PCLSetupInfo {
             setup_version: constants::DEFAULT_JAVA_LIST_CACHE_VERSION,
             theme: Theme::BlueLight,
-            download_source: ApiSource::Official,
+            api_provider: ApiProvider::Official,
             max_memory: 2048,
             default_java: None,
         }
@@ -122,10 +121,7 @@ impl ConfigManager {
             config_path,
             config_dir: config_dir.to_path_buf(),
             app_state: Arc::new(Mutex::new(AppState::default())),
-            api_client: MinecraftApiClient::new(
-                reqwest::Client::new(),
-                "https://launchermeta.mojang.com",
-            ),
+            api_client: MinecraftApiClient::new(reqwest::Client::new(), &ApiProvider::default()),
             pcl_identifier,
         };
         if !instance.config_path.exists()
@@ -179,7 +175,9 @@ impl ConfigManager {
             .map_err(|_| ConfigManagerError::ConfigFileCorrupted)?;
         let mut state = self.app_state.lock().unwrap();
         *state = state_read;
-        // 随后需要更新api_clent的base_rul
+        // update the api provider
+        self.api_client
+            .switch_api_bases(&state.pcl_setup_info.api_provider);
         Ok(())
     }
 
