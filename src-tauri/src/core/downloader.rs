@@ -194,6 +194,40 @@ impl Downloader {
         // }
         Ok(())
     }
+
+    /// simply download a file and check its sha1
+    async fn download_without_report(
+        &self,
+        info: &DownloadInfo,
+        base_path: &Path,
+    ) -> Result<PathBuf, Box<dyn Error>> {
+        let response = self.client.get(&info.url).send().await?;
+        let bytes = response.bytes().await?;
+        let out_path = base_path.join(
+            info.path
+                .as_deref()
+                .unwrap_or(info.url.split('/').last().unwrap_or(&info.url).into()),
+        );
+        // return directly if there is already the right file
+        if let Ok(sha1_check) = crate::util::file::check_sha1(&out_path, &info.sha1)
+            && sha1_check
+        {
+            return Ok(out_path);
+        }
+        let parent_path = out_path.parent().unwrap();
+        if !parent_path.is_dir() {
+            fs::create_dir_all(parent_path)?;
+        }
+        let mut file = tokio::fs::File::create(&out_path).await?;
+        file.write(&bytes).await?;
+        file.flush().await?;
+        drop(file);
+        if !crate::util::file::check_sha1(&out_path, &info.sha1)? {
+            Err("sha1 mismatch".into())
+        } else {
+            Ok(out_path)
+        }
+    }
 }
 
 // ---------------- 🌟 TaskItem 🌟 ----------------
@@ -206,7 +240,9 @@ pub struct TaskItem {
     pub progress: f64,
     pub files: Vec<DownloadFile>,
     pub out_dir: PathBuf,
+    pub total_size: u64, // for convenience of progress calculate
 }
+
 impl TaskItem {
     /// create a new TaskItem with several urls to download
     pub fn build_with_infos(
@@ -216,6 +252,7 @@ impl TaskItem {
         download_infos: Vec<DownloadInfo>,
         out_dir: impl Into<PathBuf>,
     ) -> (Arc<Mutex<Self>>, Vec<DownloadConfig>) {
+        let total_size = download_infos.iter().fold(0, |acc, info| acc + info.size);
         let files = download_infos
             .into_iter()
             .map(|download_item| DownloadFile {
@@ -230,6 +267,7 @@ impl TaskItem {
             out_dir: out_dir.into(),
             id,
             task_id,
+            total_size,
         };
         let download_options = new_item.create_download_options();
         (Mutex::new(new_item).into(), download_options)
@@ -253,35 +291,21 @@ impl TaskItem {
         }
     }
 
-    /// TODO)) calculate the progress according to each file's size
+    /// calculate the progress according to each file's size
     fn calculate_item_progress(&self) -> (f64, usize) {
-        let total_files = self.files.len();
-        if total_files == 0 {
-            return (1.0, 0);
-        }
-
-        let mut weighted_progress = 0.0;
-        let mut remaining = total_files;
-
-        for file in &self.files {
-            match &file.progress.status {
-                TaskStatus::Completed => {
-                    weighted_progress += 1.0;
-                    remaining -= 1;
-                }
-                TaskStatus::Running => {
-                    let file_progress = if file.info.size > 0 {
-                        file.progress.downloaded_bytes as f64 / file.info.size as f64
-                    } else {
-                        1.0
-                    };
-                    weighted_progress += file_progress;
-                }
-                _ => {}
+        let downloaded = self.files.iter().fold(0, |acc, file| {
+            acc + match file.progress.status {
+                TaskStatus::Completed => file.info.size,
+                TaskStatus::Running => file.progress.downloaded_bytes,
+                _ => 0,
             }
-        }
-
-        (weighted_progress / total_files as f64, remaining)
+        });
+        let remaining = self
+            .files
+            .iter()
+            .filter(|file| file.progress.status != TaskStatus::Completed)
+            .count();
+        (downloaded as f64 / self.total_size as f64, remaining)
     }
 
     /// generate download options
@@ -367,128 +391,149 @@ pub struct TaskItemReport {
     pub status: TaskStatus,
 }
 
-fn try_get_temp_json(
-    version_id: &str,
-    version_folder: &Path,
-) -> Result<VersionDetails, Box<dyn Error>> {
-    let temp_json = std::env::temp_dir().join(format!("pcl-proto-{0}/{0}.json", &version_id));
-    let reader = fs::File::open(&temp_json)?;
-    let details: VersionDetails = serde_json::from_reader(reader)?;
-    fs::copy(
-        temp_json,
-        version_folder.join(format!("{}.json", version_id)),
-    )?;
-    Ok(details)
-}
+pub mod minecraft_resource {
+    use super::*;
 
-/// This command would receive a version_id of the game to download.
-/// The frontend would provide a task_id and a channel for the progress feedback, and the progress happended should be sent throught the channel.
-/// ## The four task items are fixed that:
-/// 1. Fetch the json indicating the version details
-/// 2. Download the version jar file
-/// 3. Download the libraries to support the version
-/// 4. Download the resources
-#[tauri::command(rename_all = "snake_case")]
-pub async fn download_minecraft_version(
-    state: tauri::State<'_, Arc<std::sync::Mutex<crate::setup::AppState>>>,
-    on_event: tauri::ipc::Channel<TaskItemReport>,
-    version_id: &str,
-    task_id: i32,
-) -> Result<(), String> {
-    log::info!("start a task of downloading mc: {}", version_id);
-    // get the folder of this version
-    let repo = state
-        .lock()
-        .map_err(|err| err.to_string())?
-        .active_repo_path
-        .clone();
-    let version_folder = repo.join(format!("versions/{}", version_id));
+    /// get cached version json from the temp dir if it exists,
+    /// then copy it to the vesion folder and return the value of it
+    fn try_get_temp_json(
+        version_id: &str,
+        version_folder: &Path,
+    ) -> Result<VersionDetails, Box<dyn Error>> {
+        let temp_json = std::env::temp_dir().join(format!("pcl-proto-{0}/{0}.json", &version_id));
+        let reader = fs::File::open(&temp_json)?;
+        let details: VersionDetails = serde_json::from_reader(reader)?;
+        fs::copy(
+            temp_json,
+            version_folder.join(format!("{}.json", version_id)),
+        )?;
+        Ok(details)
+    }
 
-    // compose the task items
-    // get the download info
-    let (jar_download, libraries_download) = {
-        let version_details: VersionDetails;
-        if let Ok(version_details_tmp) = try_get_temp_json(&version_id, &version_folder) {
-            version_details = version_details_tmp;
-        } else {
-            version_details = ConfigManager::instance()
-                .api_client
-                .get_version_details(&version_id, &version_folder)
+    ///
+    // fn fetch_assets_index()
+
+    /// This command would receive a version_id of the game to download.
+    /// The frontend would provide a task_id and a channel for the progress feedback, and the progress happended should be sent throught the channel.
+    /// ## The four task items are fixed that:
+    /// 1. Fetch the json indicating the version details
+    /// 2. Download the version jar file
+    /// 3. Download the libraries to support the version
+    /// 4. Download the resources
+    #[tauri::command(rename_all = "snake_case")]
+    pub async fn download_minecraft_version(
+        state: tauri::State<'_, Arc<std::sync::Mutex<crate::setup::AppState>>>,
+        on_event: tauri::ipc::Channel<TaskItemReport>,
+        version_id: &str,
+        task_id: i32,
+    ) -> Result<(), String> {
+        let downloader = Downloader::new();
+        log::info!("start a task of downloading mc: {}", version_id);
+        // get the folder of this version
+        let repo = state
+            .lock()
+            .map_err(|err| err.to_string())?
+            .active_repo_path
+            .clone();
+        let version_folder = repo.join(format!("versions/{}", version_id));
+        let assets_folder = repo.join("assets");
+
+        // compose the task items
+        // get the download info
+        let (jar_download, libraries_download) = {
+            let version_details: VersionDetails;
+            if let Ok(version_details_tmp) = try_get_temp_json(&version_id, &version_folder) {
+                version_details = version_details_tmp;
+            } else {
+                version_details = ConfigManager::instance()
+                    .api_client
+                    .get_version_details(&version_id, &version_folder)
+                    .await
+                    .map_err(|err| err.to_string())?;
+            }
+            let libraries = version_details.libraries;
+            // modify the jar path cause api don't provide it
+            let mut jar_download = version_details.downloads.client;
+            // fetch the assets index
+            // let assets_index_downloadInfo = version_details.asset_index;
+            let asset_index_file = downloader
+                .download_without_report(
+                    &version_details.asset_index,
+                    &assets_folder.join("indexes"),
+                )
                 .await
                 .map_err(|err| err.to_string())?;
-        }
-        let libraries = version_details.libraries;
-        // modify the jar path cause api don't provide it
-        let mut jar_download = version_details.downloads.client;
-        jar_download.path = Some(format!("{}.jar", version_id));
-        (
-            jar_download,
-            libraries
-                .iter()
-                .map(|lib| lib.downloads.artifact.to_owned())
-                .collect::<Vec<DownloadInfo>>(),
-        )
-    };
-    // report the first task item: get the version json
-    on_event
-        .send(TaskItemReport {
+
+            jar_download.path = Some(format!("{}.jar", version_id));
+            // TODO)) 仅筛选当前平台的库，去除无关平台
+            (
+                jar_download,
+                libraries
+                    .iter()
+                    .map(|lib| lib.downloads.artifact.to_owned())
+                    .collect::<Vec<DownloadInfo>>(),
+            )
+        };
+        // report the first task item: get the version json
+        on_event
+            .send(TaskItemReport {
+                task_id,
+                item_id: 0,
+                files_remaining: 0,
+                overall_progress: 1.0,
+                status: TaskStatus::Completed,
+            })
+            .map_err(|err| err.to_string())?;
+
+        // the task info is fixed
+        let (task1, download_options1) =
+            TaskItem::build_with_infos(1, task_id, "jar", vec![jar_download], version_folder);
+        let (task2, download_options2) = TaskItem::build_with_infos(
+            2,
             task_id,
-            item_id: 0,
-            files_remaining: 0,
-            overall_progress: 1.0,
-            status: TaskStatus::Completed,
-        })
-        .map_err(|err| err.to_string())?;
+            "libraries",
+            libraries_download,
+            repo.join("libraries"),
+        );
 
-    // the task info is fixed
-    let (task1, download_options1) =
-        TaskItem::build_with_infos(1, task_id, "jar", vec![jar_download], version_folder);
-    let (task2, download_options2) = TaskItem::build_with_infos(
-        2,
-        task_id,
-        "libraries",
-        libraries_download,
-        repo.join("libraries"),
-    );
+        // set up the minotor
+        let (progress_tx, progress_rx) = mpsc::channel(100);
+        let monitor = ProgressMonitor::default()
+            .with_item(Arc::clone(&task1))
+            .await
+            .with_item(Arc::clone(&task2))
+            .await;
+        let monitor_handle = tokio::task::spawn(async move {
+            monitor.start_monitoring(progress_rx, on_event).await;
+        });
 
-    // set up the minotor
-    let (progress_tx, progress_rx) = mpsc::channel(100);
-    let monitor = ProgressMonitor::default()
-        .with_item(Arc::clone(&task1))
-        .await
-        .with_item(Arc::clone(&task2))
-        .await;
-    let monitor_handle = tokio::task::spawn(async move {
-        monitor.start_monitoring(progress_rx, on_event).await;
-    });
-
-    // start the actual downloading
-    let downloader = Downloader::new();
-    let mut download_handles = Vec::new();
-    for options_all in [download_options1, download_options2] {
-        for options in options_all {
-            let tx = progress_tx.clone(); // light weight clone
-            let downloader = downloader.clone(); // light weight clone
-            let handle = tokio::task::spawn(async move {
-                if let Err(e) = downloader.start_download(options, tx).await {
-                    log::error!("{}", e);
-                }
-            });
-            download_handles.push(handle);
+        // start the actual downloading
+        let mut download_handles = Vec::new();
+        for options_all in [download_options1, download_options2] {
+            for options in options_all {
+                let tx = progress_tx.clone(); // light weight clone
+                let downloader = downloader.clone(); // light weight clone
+                let handle = tokio::task::spawn(async move {
+                    if let Err(e) = downloader.start_download(options, tx).await {
+                        log::error!("{}", e);
+                    }
+                });
+                download_handles.push(handle);
+            }
         }
-    }
 
-    // wait until all the procedures have been finished
-    for handle in download_handles {
-        handle.await.map_err(|err| err.to_string())?;
+        // wait until all the procedures have been finished
+        for handle in download_handles {
+            handle.await.map_err(|err| err.to_string())?;
+        }
+        drop(progress_tx);
+        monitor_handle.await.map_err(|err| err.to_string())?;
+        let final_task1 = task1.lock().await;
+        let final_task2 = task2.lock().await;
+        log::info!(
+            "successfully downloaded {} files!",
+            final_task2.files.len() + final_task1.files.len()
+        );
+        Ok(())
     }
-    drop(progress_tx);
-    monitor_handle.await.map_err(|err| err.to_string())?;
-    let final_task1 = task1.lock().await;
-    let final_task2 = task2.lock().await;
-    log::info!(
-        "successfully downloaded {} files!",
-        final_task2.files.len() + final_task1.files.len()
-    );
-    Ok(())
 }

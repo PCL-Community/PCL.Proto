@@ -67,6 +67,9 @@ pub mod game {
         pub version_type: String,
         pub downloads: VersionDownloads,
         pub libraries: Vec<LibraryItem>,
+        pub assets: String,
+        #[serde(rename = "assetIndex")]
+        pub asset_index: DownloadInfo,
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -84,9 +87,21 @@ pub mod game {
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct Rule {
+        pub action: String, // allow or not allow
+        pub os: OSRule,
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct OSRule {
+        pub name: crate::util::OS,
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct LibraryItem {
         pub name: String,
         pub downloads: LibraryDownloads,
+        pub rules: Option<Vec<Rule>>,
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
