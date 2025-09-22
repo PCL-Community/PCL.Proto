@@ -541,32 +541,32 @@ pub mod minecraft_resource {
         });
 
         // start the actual downloading
-        let mut download_handles = Vec::new();
-        for options_all in [download_options1, download_options2, download_options3] {
-            for options in options_all {
-                let tx = progress_tx.clone(); // light weight clone
-                let downloader = downloader.clone(); // light weight clone
-                let handle = tokio::task::spawn(async move {
-                    if let Err(e) = downloader.start_download(options, tx).await {
-                        log::error!("{}", e);
-                    }
-                });
-                download_handles.push(handle);
+        let max_concurrent_downloads = 15;
+        let mut all_options = Vec::new();
+        all_options.extend(download_options1);
+        all_options.extend(download_options2);
+        all_options.extend(download_options3);
+        let download_stream = futures_util::stream::iter(all_options.into_iter().map(|options| {
+            let downloader = downloader.clone();
+            let tx = progress_tx.clone();
+            async move {
+                if let Err(e) = downloader.start_download(options, tx).await {
+                    log::error!("{}", e);
+                }
             }
-        }
-
-        // wait until all the procedures have been finished
-        for handle in download_handles {
-            handle.await.map_err(|err| err.to_string())?;
-        }
+        }));
+        // wait until all the tasks has finished
+        let _ = download_stream
+            .buffer_unordered(max_concurrent_downloads)
+            .collect::<Vec<_>>()
+            .await;
         drop(progress_tx);
         monitor_handle.await.map_err(|err| err.to_string())?;
-        let final_task1 = task1.lock().await;
-        let final_task2 = task2.lock().await;
-        let final_task3 = task3.lock().await;
         log::info!(
             "successfully downloaded {} files!",
-            final_task2.files.len() + final_task1.files.len() + final_task3.files.len()
+            task1.lock().await.files.len()
+                + task2.lock().await.files.len()
+                + task3.lock().await.files.len()
         );
         Ok(())
     }
