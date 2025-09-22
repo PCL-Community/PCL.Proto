@@ -27,6 +27,7 @@ export class Task {
             new TaskItem(0, "json download", id, 1),
             new TaskItem(1, "version jar", id, 1),
             new TaskItem(2, "libraries", id),
+            new TaskItem(3, "objects", id)
         ]
         this.progress = 0
     }

@@ -440,7 +440,7 @@ pub mod minecraft_resource {
 
         // compose the task items
         // get the download info
-        let (jar_download, libraries_download) = {
+        let (jar_download, libraries_download, assets_download) = {
             let version_details: VersionDetails;
             if let Ok(version_details_tmp) = try_get_temp_json(&version_id, &version_folder) {
                 version_details = version_details_tmp;
@@ -454,17 +454,40 @@ pub mod minecraft_resource {
             let libraries = version_details.libraries;
             // modify the jar path cause api don't provide it
             let mut jar_download = version_details.downloads.client;
+            jar_download.path = Some(format!("{}.jar", version_id));
+
             // fetch the assets index
             // let assets_index_downloadInfo = version_details.asset_index;
-            let asset_index_file = downloader
-                .download_without_report(
-                    &version_details.asset_index,
-                    &assets_folder.join("indexes"),
-                )
-                .await
-                .map_err(|err| err.to_string())?;
-
-            jar_download.path = Some(format!("{}.jar", version_id));
+            let assets_download = {
+                let asset_index_file = downloader
+                    .download_without_report(
+                        &version_details.asset_index,
+                        &assets_folder.join("indexes"),
+                    )
+                    .await
+                    .map_err(|err| err.to_string())?;
+                let reader = fs::File::open(asset_index_file).unwrap();
+                let asset_index: serde_json::Value = serde_json::from_reader(reader).unwrap();
+                let objects = asset_index["objects"].as_object().unwrap();
+                let resources_base = ConfigManager::instance()
+                    .api_client
+                    .api_bases()
+                    .resources_base;
+                objects
+                    .iter()
+                    .map(|(_path, value)| {
+                        let hash = value["hash"].as_str().unwrap();
+                        let size = value["size"].as_u64().unwrap();
+                        let path = format!("{}/{}", &hash[..2], hash);
+                        DownloadInfo {
+                            sha1: hash.to_string(),
+                            size,
+                            url: format!("{}/{}", resources_base, path),
+                            path: Some(path),
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            };
             // TODO)) 仅筛选当前平台的库，去除无关平台
             (
                 jar_download,
@@ -472,6 +495,7 @@ pub mod minecraft_resource {
                     .iter()
                     .map(|lib| lib.downloads.artifact.to_owned())
                     .collect::<Vec<DownloadInfo>>(),
+                assets_download,
             )
         };
         // report the first task item: get the version json
@@ -495,6 +519,13 @@ pub mod minecraft_resource {
             libraries_download,
             repo.join("libraries"),
         );
+        let (task3, download_options3) = TaskItem::build_with_infos(
+            3,
+            task_id,
+            "assets",
+            assets_download,
+            repo.join("assets/objects"),
+        );
 
         // set up the minotor
         let (progress_tx, progress_rx) = mpsc::channel(100);
@@ -502,6 +533,8 @@ pub mod minecraft_resource {
             .with_item(Arc::clone(&task1))
             .await
             .with_item(Arc::clone(&task2))
+            .await
+            .with_item(Arc::clone(&task3))
             .await;
         let monitor_handle = tokio::task::spawn(async move {
             monitor.start_monitoring(progress_rx, on_event).await;
@@ -509,7 +542,7 @@ pub mod minecraft_resource {
 
         // start the actual downloading
         let mut download_handles = Vec::new();
-        for options_all in [download_options1, download_options2] {
+        for options_all in [download_options1, download_options2, download_options3] {
             for options in options_all {
                 let tx = progress_tx.clone(); // light weight clone
                 let downloader = downloader.clone(); // light weight clone
@@ -530,9 +563,10 @@ pub mod minecraft_resource {
         monitor_handle.await.map_err(|err| err.to_string())?;
         let final_task1 = task1.lock().await;
         let final_task2 = task2.lock().await;
+        let final_task3 = task3.lock().await;
         log::info!(
             "successfully downloaded {} files!",
-            final_task2.files.len() + final_task1.files.len()
+            final_task2.files.len() + final_task1.files.len() + final_task3.files.len()
         );
         Ok(())
     }

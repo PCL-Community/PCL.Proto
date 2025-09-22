@@ -23,6 +23,8 @@ impl Default for ApiProvider {
     }
 }
 
+/// TODO)) 需要在下载时截取后面的部分才能正常使用第三方API
+/// 否则还是用的官方API
 #[derive(Clone)]
 pub struct ApiBases {
     pub meta_base: &'static str,
@@ -57,9 +59,6 @@ pub enum McApiError {
 
     #[error("Version not found: {0}")]
     VersionNotFound(String),
-
-    #[error("Download failed: {0}")]
-    DownloadFailed(String),
 }
 
 pub mod game {
@@ -162,6 +161,13 @@ impl MinecraftApiClient {
         let mut guard = self.api_bases.lock().unwrap();
         *guard = ApiBases::new(provider);
         drop(guard);
+    }
+
+    pub fn api_bases(&self) -> ApiBases {
+        let guard = self.api_bases.lock().unwrap();
+        let bases = guard.clone();
+        drop(guard);
+        bases
     }
 
     /// Get data from a URL
