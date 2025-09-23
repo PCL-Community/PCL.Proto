@@ -119,24 +119,32 @@ impl Downloader {
             self.http_download_inner(&options, progress_tx.clone())
                 .await?;
         }
-
-        if !crate::util::file::check_sha1(&options.out_path, &options.info.sha1)? {
-            log::error!("sha1 check failed! {:?}", options.out_path);
-            fs::remove_file(&options.out_path)?;
-            progress_tx
-                .send(ProgressUpdate {
-                    file_index: options.file_index,
-                    progress: FileProgress {
-                        downloaded_bytes: 0,
-                        // total_bytes: None,
-                        status: TaskStatus::Failed,
-                    },
-                    item_id: options.task_item_id,
-                })
-                .await?;
-            let error_notice = format!("sha1 check failed! {:?}", options.out_path);
-            log::error!("{error_notice}");
-            return Err(error_notice.into());
+        // 尝试最多3次SHA1检查
+        let mut retry_count = 0;
+        while retry_count < 3 {
+            if !crate::util::file::check_sha1(&options.out_path, &options.info.sha1)? {
+                retry_count += 1;
+                if retry_count >= 3 {
+                    fs::remove_file(&options.out_path)?;
+                    progress_tx
+                        .send(ProgressUpdate {
+                            file_index: options.file_index,
+                            progress: FileProgress {
+                                downloaded_bytes: 0,
+                                status: TaskStatus::Failed,
+                            },
+                            item_id: options.task_item_id,
+                        })
+                        .await?;
+                    let error_notice = format!("sha1 check failed! {:?}", options.out_path);
+                    log::error!("{error_notice}");
+                    return Err(error_notice.into());
+                }
+                // 短暂延迟后重试
+                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            } else {
+                break; // SHA1检查通过
+            }
         }
 
         progress_tx
@@ -195,6 +203,8 @@ impl Downloader {
                 })
                 .await?;
         }
+        file.flush().await?;
+        file.sync_data().await?;
         progress_tx
             .send(ProgressUpdate {
                 file_index: option.file_index,
