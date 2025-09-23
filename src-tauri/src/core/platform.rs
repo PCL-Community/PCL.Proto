@@ -137,7 +137,7 @@ fn read_linux_test() {
 
 #[cfg(target_os = "windows")]
 #[test]
-fn read_pe_test() {
+pub fn read_pe_test() {
     let arch = Architecture::read_header(Path::new(
         "/Users/amagicpear/Downloads/mihomo-windows-amd64-v1.exe",
     ));

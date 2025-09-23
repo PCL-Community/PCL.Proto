@@ -98,8 +98,23 @@ impl Downloader {
                 item_id: options.task_item_id,
             })
             .await?;
-        if options.out_path.exists() {
+        if options.out_path.exists()
+            && crate::util::file::check_sha1(&options.out_path, &options.info.sha1)
+                .is_ok_and(|result| result == true)
+        {
             log::debug!("file exists, skip {:?}", options.out_path);
+            progress_tx
+                .send(ProgressUpdate {
+                    file_index: options.file_index,
+                    progress: FileProgress {
+                        downloaded_bytes: 0,
+                        // total_bytes: None,
+                        status: TaskStatus::Completed,
+                    },
+                    item_id: options.task_item_id,
+                })
+                .await?;
+            return Ok(());
         } else {
             self.http_download_inner(&options, progress_tx.clone())
                 .await?;
