@@ -4,10 +4,9 @@ use serde::{Serialize, de::DeserializeOwned};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::Arc,
     time::{Duration, Instant},
 };
-use thiserror::Error;
 use tokio::sync::RwLock;
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -46,7 +45,7 @@ impl ApiBases {
     }
 }
 
-#[derive(Error, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum McApiError {
     #[error("HTTP request failed: {0}")]
     RequestError(#[from] reqwest::Error),
@@ -147,7 +146,7 @@ pub mod game {
 
 pub struct MinecraftApiClient {
     client: Client,
-    api_bases: Mutex<ApiBases>,
+    api_bases: RwLock<ApiBases>,
     cache: Arc<RwLock<HashMap<String, (Instant, serde_json::Value)>>>,
     ttl: Duration,
 }
@@ -157,23 +156,21 @@ impl MinecraftApiClient {
     pub fn new(client: Client, api_provider: &ApiProvider) -> Self {
         Self {
             client,
-            api_bases: Mutex::new(ApiBases::new(api_provider)),
+            api_bases: RwLock::new(ApiBases::new(api_provider)),
             cache: Arc::new(RwLock::new(HashMap::new())),
             ttl: Duration::from_secs(60 * 5),
         }
     }
 
     pub fn switch_api_bases(&self, provider: &ApiProvider) {
-        let mut guard = self.api_bases.lock().unwrap();
+        let mut guard = self.api_bases.blocking_write();
         *guard = ApiBases::new(provider);
         drop(guard);
     }
 
     pub fn api_bases(&self) -> ApiBases {
-        let guard = self.api_bases.lock().unwrap();
-        let bases = guard.clone();
-        drop(guard);
-        bases
+        let guard = self.api_bases.blocking_read();
+        guard.clone()
     }
 
     /// Get data from a URL
@@ -218,7 +215,7 @@ impl MinecraftApiClient {
         endpoint: &str,
         allow_from_cache: bool,
     ) -> Result<T, McApiError> {
-        let url = format!("{}/{}", self.api_bases.lock().unwrap().meta_base, endpoint);
+        let url = format!("{}/{}", self.api_bases.blocking_read().meta_base, endpoint);
         let data = self.get(&url, allow_from_cache).await?;
         Ok(data)
     }
