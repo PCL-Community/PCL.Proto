@@ -2,8 +2,12 @@
 //! Designed for Minecraft version and mod downloads.
 //! Supports mutli task parallel and mspc channel.
 use crate::{
-    core::api_client::game::{DownloadInfo, VersionDetails},
+    core::api_client::{
+        McApiError,
+        game::{DownloadInfo, VersionDetails},
+    },
     setup::ConfigManager,
+    util::file,
 };
 use futures_util::StreamExt;
 use reqwest::Client;
@@ -31,7 +35,6 @@ impl Default for FileProgress {
     fn default() -> Self {
         Self {
             downloaded_bytes: 0,
-            // total_bytes: None,
             status: TaskStatus::Pending,
         }
     }
@@ -86,7 +89,7 @@ impl Downloader {
         &self,
         options: DownloadConfig,
         progress_tx: mpsc::Sender<ProgressUpdate>,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<(), McApiError> {
         progress_tx
             .send(ProgressUpdate {
                 file_index: options.file_index,
@@ -98,10 +101,7 @@ impl Downloader {
                 item_id: options.task_item_id,
             })
             .await?;
-        if options.out_path.exists()
-            && crate::util::file::check_sha1(&options.out_path, &options.info.sha1)
-                .is_ok_and(|result| result == true)
-        {
+        if let Ok(true) = file::check_sha1(&options.out_path, &options.info.sha1) {
             log::debug!("file exists, skip {:?}", options.out_path);
             progress_tx
                 .send(ProgressUpdate {
@@ -122,7 +122,7 @@ impl Downloader {
         // 尝试最多3次SHA1检查
         let mut retry_count = 0;
         while retry_count < 3 {
-            if !crate::util::file::check_sha1(&options.out_path, &options.info.sha1)? {
+            if !file::check_sha1(&options.out_path, &options.info.sha1)? {
                 retry_count += 1;
                 if retry_count >= 3 {
                     fs::remove_file(&options.out_path)?;
@@ -136,9 +136,7 @@ impl Downloader {
                             item_id: options.task_item_id,
                         })
                         .await?;
-                    let error_notice = format!("sha1 check failed! {:?}", options.out_path);
-                    log::error!("{error_notice}");
-                    return Err(error_notice.into());
+                    return Err(McApiError::Sha1Mismatch(options.out_path));
                 }
                 // 短暂延迟后重试
                 tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
@@ -166,7 +164,7 @@ impl Downloader {
         &self,
         option: &DownloadConfig,
         progress_tx: mpsc::Sender<ProgressUpdate>,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<(), McApiError> {
         let response = self.client.get(&option.info.url).send().await?;
         let parent_path = option.out_path.parent().unwrap();
         if !parent_path.is_dir() {
@@ -196,7 +194,6 @@ impl Downloader {
                     file_index: option.file_index,
                     progress: FileProgress {
                         downloaded_bytes: downloaded,
-                        // total_bytes: Some(total_size),
                         status: TaskStatus::Running,
                     },
                     item_id: option.task_item_id,
@@ -210,7 +207,6 @@ impl Downloader {
                 file_index: option.file_index,
                 progress: FileProgress {
                     downloaded_bytes: downloaded,
-                    // total_bytes: Some(total_size),
                     status: TaskStatus::Completed,
                 },
                 item_id: option.task_item_id,
@@ -225,7 +221,7 @@ impl Downloader {
         &self,
         info: &DownloadInfo,
         base_path: &Path,
-    ) -> Result<PathBuf, Box<dyn Error>> {
+    ) -> Result<PathBuf, McApiError> {
         let response = self.client.get(&info.url).send().await?;
         let bytes = response.bytes().await?;
         let out_path = base_path.join(
@@ -234,9 +230,7 @@ impl Downloader {
                 .unwrap_or(info.url.split('/').last().unwrap_or(&info.url).into()),
         );
         // return directly if there is already the right file
-        if let Ok(sha1_check) = crate::util::file::check_sha1(&out_path, &info.sha1)
-            && sha1_check
-        {
+        if let Ok(true) = file::check_sha1(&out_path, &info.sha1) {
             return Ok(out_path);
         }
         let parent_path = out_path.parent().unwrap();
@@ -248,7 +242,7 @@ impl Downloader {
         file.flush().await?;
         drop(file);
         if !crate::util::file::check_sha1(&out_path, &info.sha1)? {
-            Err("sha1 mismatch".into())
+            Err(McApiError::Sha1Mismatch(out_path))
         } else {
             Ok(out_path)
         }
@@ -434,9 +428,6 @@ pub mod minecraft_resource {
         )?;
         Ok(details)
     }
-
-    ///
-    // fn fetch_assets_index()
 
     /// This command would receive a version_id of the game to download.
     /// The frontend would provide a task_id and a channel for the progress feedback, and the progress happended should be sent throught the channel.

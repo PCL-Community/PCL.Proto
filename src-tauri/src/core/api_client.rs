@@ -1,9 +1,9 @@
-use crate::setup::constants::USER_AGENT;
+use crate::{core::downloader, setup::constants::USER_AGENT};
 use reqwest::Client;
 use serde::{Serialize, de::DeserializeOwned};
 use std::{
     collections::HashMap,
-    path::Path,
+    path::{Path, PathBuf},
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
@@ -59,6 +59,12 @@ pub enum McApiError {
 
     #[error("Version not found: {0}")]
     VersionNotFound(String),
+
+    #[error("sha1 check failed: {0}")]
+    Sha1Mismatch(PathBuf),
+
+    #[error("progress sender: {0}")]
+    ProgressSenderError(#[from] tokio::sync::mpsc::error::SendError<downloader::ProgressUpdate>),
 }
 
 pub mod game {
