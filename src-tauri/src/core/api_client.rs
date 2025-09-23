@@ -172,7 +172,7 @@ impl MinecraftApiClient {
         let response = self
             .client
             .get(url)
-            .header("User-Agent", USER_AGENT)
+            .header(reqwest::header::USER_AGENT, USER_AGENT)
             .send()
             .await?;
         let data: T = response.json().await?;
@@ -209,7 +209,7 @@ impl MinecraftApiClient {
         endpoint: &str,
         allow_from_cache: bool,
     ) -> Result<T, McApiError> {
-        let url = format!("{}/{}", self.api_bases.blocking_read().meta_base, endpoint);
+        let url = format!("{}/{}", self.api_bases.read().await.meta_base, endpoint);
         let data = self.get(&url, allow_from_cache).await?;
         Ok(data)
     }

@@ -19,5 +19,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "app": {
+    "windows": [
+      {
+        "userAgent": "PCL-Community/PCL.Proto/0.6.0",
+        "label": "main"
+      }
+    ]
   }
 }

@@ -6,6 +6,7 @@ use crate::{
         java::JavaRuntime,
         repository::GameRepository,
     },
+    setup::constants::USER_AGENT,
     util,
 };
 use std::{
@@ -121,7 +122,13 @@ impl ConfigManager {
             config_path,
             config_dir: config_dir.to_path_buf(),
             app_state: Arc::new(Mutex::new(AppState::default())),
-            api_client: MinecraftApiClient::new(reqwest::Client::new(), &ApiProvider::default()),
+            api_client: MinecraftApiClient::new(
+                reqwest::Client::builder()
+                    .user_agent(USER_AGENT)
+                    .build()
+                    .unwrap(),
+                &ApiProvider::default(),
+            ),
             pcl_identifier,
         };
         if !instance.config_path.exists()

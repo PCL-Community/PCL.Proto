@@ -3,19 +3,19 @@ import { TaskStatus, type ITaskItem } from '@/stores/task'
 import IconTick from '@/assets/icons/Tick.svg'
 import IconPending from '@/assets/icons/Pending.svg'
 
-const props = defineProps<ITaskItem>()
+defineProps<ITaskItem>()
 </script>
 
 <template>
   <div class="task-item">
     <span class="sub-indicator">
-      <span v-if="props.status === TaskStatus.Pending"><IconPending /></span>
-      <span v-else-if="props.status === TaskStatus.Running">
-        {{ (props.progress * 100).toFixed(0) + '%' }}
+      <span v-if="status === TaskStatus.Pending"><IconPending /></span>
+      <span v-else-if="status === TaskStatus.Running">
+        {{ (progress * 100).toFixed(0) + '%' }}
       </span>
-      <span v-else-if="props.status === TaskStatus.Completed"><IconTick /></span>
+      <span v-else-if="status === TaskStatus.Completed"><IconTick /></span>
     </span>
-    <span>{{ props.name }}</span>
+    <span>{{ name }}</span>
   </div>
 </template>
 

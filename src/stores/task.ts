@@ -4,10 +4,10 @@ import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 
 export enum TaskStatus {
-    Pending,
-    Running,
-    Completed,
-    Failed,
+    Pending = 0,
+    Running = 1,
+    Completed = 2,
+    Failed = 3,
 }
 
 export class Task {

@@ -6,7 +6,7 @@ use crate::{
         McApiError,
         game::{DownloadInfo, VersionDetails},
     },
-    setup::ConfigManager,
+    setup::{ConfigManager, constants::USER_AGENT},
     util::file,
 };
 use futures_util::StreamExt;
@@ -80,7 +80,7 @@ pub struct Downloader {
 impl Downloader {
     pub fn new() -> Self {
         Self {
-            client: Client::new(),
+            client: Client::builder().user_agent(USER_AGENT).build().unwrap(),
         }
     }
 
