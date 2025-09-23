@@ -7,6 +7,8 @@
 //! GPL-3.0 License | https://github.com/HMCL-dev/HMCL
 // use crate::setup::constants::LAUNCHER_NAME;
 
+use serde::de::Error;
+
 use crate::core::api_client::game::VersionDetails;
 use crate::setup::constants::{APP_VERSION, LAUNCHER_NAME};
 use crate::{
@@ -31,6 +33,24 @@ pub struct LaunchOption {
     max_memory: usize,
     width: Option<usize>,
     height: Option<usize>,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum GameLaunchError {
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("Json pasring failed: {0}")]
+    JsonError(#[from] serde_json::Error),
+
+    #[error("active java runtime not found")]
+    MissingJava,
+
+    #[error("active account not found")]
+    MissingAccount,
+
+    #[error("active game instance not found")]
+    MissingGameInstance,
 }
 
 impl LaunchOption {
@@ -115,14 +135,16 @@ impl LaunchOption {
         args
     }
 
-    fn build_classpath(&self) -> Result<String, Box<dyn std::error::Error>> {
+    fn build_classpath(&self) -> Result<String, GameLaunchError> {
         let json_reader = std::fs::File::open(&self.game_instance.json_path)?;
         let version_json: VersionDetails = serde_json::from_reader(json_reader)?;
         let mut classpath = Vec::new();
         let libraries = version_json.libraries;
         for lib in libraries {
             let lib_artifact = lib.downloads.artifact;
-            let lib_path = lib_artifact.path.ok_or("Missing path in artifact")?;
+            let lib_path = lib_artifact
+                .path
+                .ok_or(serde_json::Error::custom("Missing path in artifact"))?;
             let lib_full_path = format!(
                 "{}/libraries/{}",
                 self.game_instance.global_dir.path.display(),
@@ -133,7 +155,9 @@ impl LaunchOption {
         if self.game_instance.jar_path.exists() {
             classpath.push(self.game_instance.jar_path.display().to_string());
         } else {
-            return Err("Main jar file does not exist".into());
+            return Err(
+                std::io::Error::new(std::io::ErrorKind::NotFound, "main jar not found").into(),
+            );
         }
         Ok(classpath.join(":"))
     }
@@ -161,21 +185,21 @@ impl LaunchOption {
     }
 
     /// build a launch option from app state if it is possible
-    pub fn from_state(state: &AppState) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_state(state: &AppState) -> Result<Self, GameLaunchError> {
         if let Some(game_instance) = state.active_game_instance.as_ref() {
             let java_selected: &Arc<JavaRuntime> = match game_instance.game_java {
                 GameJava::Default => {
                     if let Some(java_runtime) = state.pcl_setup_info.default_java.as_ref() {
                         java_runtime
                     } else {
-                        return Err("No default java runtime found".into());
+                        return Err(GameLaunchError::MissingJava);
                     }
                 }
                 GameJava::Custom(ref java_runtime) => java_runtime,
             };
             let active_account = state.active_account.as_ref();
             if active_account.is_none() {
-                return Err("No active account found".into());
+                return Err(GameLaunchError::MissingAccount);
             }
             return Ok(Self {
                 account: active_account.unwrap().clone(),
@@ -186,7 +210,7 @@ impl LaunchOption {
                 height: None,
             });
         }
-        Err("No active game instance found".into())
+        Err(GameLaunchError::MissingGameInstance)
     }
 }
 
