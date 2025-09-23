@@ -4,22 +4,16 @@ use serde::{Serialize, de::DeserializeOwned};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
-    sync::Arc,
     time::{Duration, Instant},
 };
 use tokio::sync::RwLock;
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ApiProvider {
+    #[default]
     Official,
     BMCLApi,
-}
-
-impl Default for ApiProvider {
-    fn default() -> Self {
-        Self::Official
-    }
 }
 
 /// TODO)) 需要在下载时截取后面的部分才能正常使用第三方API
@@ -126,7 +120,7 @@ pub mod game {
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct OSRule {
-        pub name: crate::util::OS,
+        pub name: crate::core::platform::OS,
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -147,7 +141,7 @@ pub mod game {
 pub struct MinecraftApiClient {
     client: Client,
     api_bases: RwLock<ApiBases>,
-    cache: Arc<RwLock<HashMap<String, (Instant, serde_json::Value)>>>,
+    cache: RwLock<HashMap<String, (Instant, serde_json::Value)>>,
     ttl: Duration,
 }
 
@@ -157,7 +151,7 @@ impl MinecraftApiClient {
         Self {
             client,
             api_bases: RwLock::new(ApiBases::new(api_provider)),
-            cache: Arc::new(RwLock::new(HashMap::new())),
+            cache: RwLock::new(HashMap::new()),
             ttl: Duration::from_secs(60 * 5),
         }
     }

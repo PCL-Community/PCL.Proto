@@ -13,6 +13,16 @@ pub enum Architecture {
     Unknown,
 }
 
+#[allow(non_camel_case_types)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OS {
+    Windows,
+    Linux,
+    #[serde(rename = "osx")]
+    macOS,
+}
+
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub enum Compability {
     Perfect,

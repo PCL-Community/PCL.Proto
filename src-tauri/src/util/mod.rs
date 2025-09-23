@@ -3,16 +3,6 @@ use std::process::Command;
 pub mod file;
 pub mod toys;
 
-#[allow(non_camel_case_types)]
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum OS {
-    Windows,
-    Linux,
-    #[serde(rename = "osx")]
-    macOS,
-}
-
 pub fn get_hash(str: &str) -> u64 {
     let mut result = 5381 as u64;
     for c in str.chars() {
