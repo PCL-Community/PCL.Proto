@@ -167,6 +167,11 @@ impl MinecraftApiClient {
         guard.clone()
     }
 
+    pub async fn api_bases_async(&self) -> ApiBases {
+        let guard = self.api_bases.read().await;
+        guard.clone()
+    }
+
     /// Get data from a URL
     async fn get_inner<T: DeserializeOwned>(&self, url: &str) -> Result<T, McApiError> {
         let response = self

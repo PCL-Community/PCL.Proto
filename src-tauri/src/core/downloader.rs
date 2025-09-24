@@ -40,9 +40,10 @@ impl Default for FileProgress {
     }
 }
 
-#[derive(PartialEq, Debug, serde_repr::Serialize_repr)]
+#[derive(PartialEq, Debug, serde_repr::Serialize_repr, Default, Clone, Copy)]
 #[repr(u8)]
 pub enum TaskStatus {
+    #[default]
     Pending = 0,
     Running = 1,
     Completed = 2,
@@ -95,7 +96,6 @@ impl Downloader {
                 file_index: options.file_index,
                 progress: FileProgress {
                     downloaded_bytes: 0,
-                    // total_bytes: None,
                     status: TaskStatus::Pending,
                 },
                 item_id: options.task_item_id,
@@ -108,7 +108,6 @@ impl Downloader {
                     file_index: options.file_index,
                     progress: FileProgress {
                         downloaded_bytes: 0,
-                        // total_bytes: None,
                         status: TaskStatus::Completed,
                     },
                     item_id: options.task_item_id,
@@ -149,8 +148,7 @@ impl Downloader {
             .send(ProgressUpdate {
                 file_index: options.file_index,
                 progress: FileProgress {
-                    downloaded_bytes: 0,
-                    // total_bytes: None,
+                    downloaded_bytes: options.info.size,
                     status: TaskStatus::Completed,
                 },
                 item_id: options.task_item_id,
@@ -171,18 +169,6 @@ impl Downloader {
             fs::create_dir_all(parent_path)?;
         }
         let mut file = tokio::fs::File::create(&option.out_path).await?;
-        // if let Some(total_size) = response.content_length() {
-        progress_tx
-            .send(ProgressUpdate {
-                file_index: option.file_index,
-                progress: FileProgress {
-                    downloaded_bytes: 0,
-                    // total_bytes: Some(total_size),
-                    status: TaskStatus::Running,
-                },
-                item_id: option.task_item_id,
-            })
-            .await?;
         let mut stream = response.bytes_stream();
         let mut downloaded: u64 = 0;
         while let Some(chunk) = stream.next().await {
@@ -260,6 +246,9 @@ pub struct TaskItem {
     pub files: Vec<DownloadFile>,
     pub out_dir: PathBuf,
     pub total_size: u64, // for convenience of progress calculate
+    pub remaining_files: usize,
+    pub status: TaskStatus,
+    pub downloaded_size: u64,
 }
 
 impl TaskItem {
@@ -272,13 +261,14 @@ impl TaskItem {
         out_dir: impl Into<PathBuf>,
     ) -> (Arc<Mutex<Self>>, Vec<DownloadConfig>) {
         let total_size = download_infos.iter().fold(0, |acc, info| acc + info.size);
-        let files = download_infos
+        let files: Vec<DownloadFile> = download_infos
             .into_iter()
             .map(|download_item| DownloadFile {
                 progress: FileProgress::default(),
                 info: download_item,
             })
             .collect();
+        let count = files.len();
         let new_item = Self {
             name: name.into(),
             progress: 0.0,
@@ -287,44 +277,41 @@ impl TaskItem {
             id,
             task_id,
             total_size,
+            remaining_files: count,
+            status: TaskStatus::default(),
+            downloaded_size: 0,
         };
         let download_options = new_item.create_download_options();
         (Mutex::new(new_item).into(), download_options)
     }
 
     /// update the file progress at specific index
-    pub fn update_file_progress(&mut self, index: usize, progress: FileProgress) -> TaskItemReport {
+    pub fn update_file_progress(&mut self, index: usize, progress: FileProgress) {
         self.files[index].progress = progress;
-        let remaining: usize;
-        (self.progress, remaining) = self.calculate_item_progress();
-        TaskItemReport {
-            task_id: self.task_id,
-            item_id: self.id,
-            overall_progress: self.progress,
-            files_remaining: remaining,
-            status: if remaining > 0 {
-                TaskStatus::Running
-            } else {
-                TaskStatus::Completed
-            },
-        }
-    }
-
-    /// calculate the progress according to each file's size
-    fn calculate_item_progress(&self) -> (f64, usize) {
-        let downloaded = self.files.iter().fold(0, |acc, file| {
+        self.downloaded_size = self.files.iter().fold(0, |acc, file| {
             acc + match file.progress.status {
                 TaskStatus::Completed => file.info.size,
                 TaskStatus::Running => file.progress.downloaded_bytes,
                 _ => 0,
             }
         });
-        let remaining = self
+        self.remaining_files = self
             .files
             .iter()
             .filter(|file| file.progress.status != TaskStatus::Completed)
             .count();
-        (downloaded as f64 / self.total_size as f64, remaining)
+        self.progress = self.downloaded_size as f64 / self.total_size as f64;
+        self.status = if self.remaining_files == 0 {
+            TaskStatus::Completed
+        } else if self
+            .files
+            .iter()
+            .any(|file| file.progress.status == TaskStatus::Failed)
+        {
+            TaskStatus::Failed
+        } else {
+            TaskStatus::Running
+        };
     }
 
     /// generate download options
@@ -374,25 +361,42 @@ impl ProgressMonitor {
         // restrain the frequency to 10 send per secend
         const MIN_INTERVAL_MS: u128 = 100;
         let mut last_sent_time = tokio::time::Instant::now();
-        let mut pending_report: Option<TaskItemReport>;
         while let Some(update) = progress_rx.recv().await {
-            let mut task_guard = self
+            let item_id = update.item_id;
+            let mut task_item_to_report = self
                 .task_items
-                .get(&update.item_id)
+                .get(&item_id)
                 .expect("[progress minitor] wrong item id's got!!!")
                 .lock()
                 .await;
-            let report = task_guard.update_file_progress(update.file_index, update.progress);
-            pending_report = Some(report);
-            if let Some(report) = pending_report.take() {
-                let now = tokio::time::Instant::now();
-                if report.status == TaskStatus::Completed
-                    || report.status == TaskStatus::Failed
-                    || now.duration_since(last_sent_time).as_millis() >= MIN_INTERVAL_MS
-                {
-                    on_event.send(report).expect("report corrupted");
-                    last_sent_time = now;
+            let last_download_bytes = task_item_to_report.downloaded_size;
+            task_item_to_report.update_file_progress(update.file_index, update.progress);
+            let mut report: TaskItemReport = TaskItemReport::from(&*task_item_to_report);
+            let this_downloaded_bytes = task_item_to_report.downloaded_size;
+            let this_status = report.status;
+            drop(task_item_to_report);
+            let now = tokio::time::Instant::now();
+            let during = now.duration_since(last_sent_time);
+            if during.as_millis() >= MIN_INTERVAL_MS
+                || matches!(this_status, TaskStatus::Completed | TaskStatus::Failed)
+            {
+                assert!(
+                    this_downloaded_bytes >= last_download_bytes
+                        || this_status == TaskStatus::Failed,
+                    "wrong update at: index: {:?}, report: {:?}, downloaded: {}, last: {}",
+                    update.file_index,
+                    report,
+                    this_downloaded_bytes,
+                    last_download_bytes
+                );
+
+                if this_status != TaskStatus::Failed {
+                    report.set_speed(
+                        (this_downloaded_bytes - last_download_bytes) as f64 / during.as_secs_f64(),
+                    );
                 }
+                on_event.send(report).expect("report corrupted");
+                last_sent_time = now;
             }
         }
     }
@@ -400,14 +404,34 @@ impl ProgressMonitor {
 
 // ---------------- 🌟 The Minecraft Download Event 🌟 ----------------
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct TaskItemReport {
     pub task_id: i32,
     pub item_id: i32,
     pub files_remaining: usize,
-    pub overall_progress: f64,
+    pub progress: f64,
     pub status: TaskStatus,
+    pub speed: Option<f64>, // bytes per second
+}
+
+impl From<&TaskItem> for TaskItemReport {
+    fn from(item: &TaskItem) -> Self {
+        TaskItemReport {
+            task_id: item.task_id,
+            item_id: item.id,
+            files_remaining: item.remaining_files,
+            progress: item.progress,
+            status: item.status,
+            speed: None,
+        }
+    }
+}
+
+impl TaskItemReport {
+    fn set_speed(&mut self, speed: f64) {
+        self.speed = Some(speed);
+    }
 }
 
 pub mod minecraft_resource {
@@ -487,7 +511,8 @@ pub mod minecraft_resource {
                 let objects = asset_index["objects"].as_object().unwrap();
                 let resources_base = ConfigManager::instance()
                     .api_client
-                    .api_bases()
+                    .api_bases_async()
+                    .await
                     .resources_base;
                 objects
                     .iter()
@@ -520,8 +545,9 @@ pub mod minecraft_resource {
                 task_id,
                 item_id: 0,
                 files_remaining: 0,
-                overall_progress: 1.0,
+                progress: 1.0,
                 status: TaskStatus::Completed,
+                speed: None,
             })
             .map_err(|err| err.to_string())?;
 
@@ -579,7 +605,7 @@ pub mod minecraft_resource {
         drop(progress_tx);
         monitor_handle.await.map_err(|err| err.to_string())?;
         log::info!(
-            "successfully downloaded {} files!",
+            "finished downloading {} files!",
             task1.lock().await.files.len()
                 + task2.lock().await.files.len()
                 + task3.lock().await.files.len()

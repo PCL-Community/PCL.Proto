@@ -2,6 +2,7 @@
 import { TaskStatus, type ITaskItem } from '@/stores/task'
 import IconTick from '@/assets/icons/Tick.svg'
 import IconPending from '@/assets/icons/Pending.svg'
+import TitleClose from '@/assets/icons/TitleClose.svg'
 
 defineProps<ITaskItem>()
 </script>
@@ -14,6 +15,7 @@ defineProps<ITaskItem>()
         {{ (progress * 100).toFixed(0) + '%' }}
       </span>
       <span v-else-if="status === TaskStatus.Completed"><IconTick /></span>
+      <span v-else-if="status === TaskStatus.Failed" class="error"><TitleClose /></span>
     </span>
     <span>{{ name }}</span>
   </div>
@@ -37,5 +39,9 @@ defineProps<ITaskItem>()
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.sub-indicator > span.error {
+  color: var(--color-warn);
 }
 </style>

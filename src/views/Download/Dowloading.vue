@@ -3,7 +3,7 @@ import PCard from '@/components/widget/PCard.vue'
 import TaskItem from '@/components/widget/TaskItem.vue'
 import { useFloatButton } from '@/composables/useFloatButton'
 import router from '@/router'
-import { TaskStatus, useTaskManager } from '@/stores/task'
+import { useTaskManager } from '@/stores/task'
 import useSideNavState, { defaultWidths } from '@/stores/windowState'
 import { onMounted, onUnmounted, watch } from 'vue'
 const { floatButtonState } = useFloatButton()
@@ -40,7 +40,7 @@ watch(
       <div class="task-left-item">
         <span class="header">下载速度</span>
         <div class="divider" />
-        <span class="indicator">{{ taskManager.totalSpeed }} B/s</span>
+        <span class="indicator">{{ (taskManager.totalSpeed / 1024).toFixed(2) }} KB/s</span>
       </div>
       <div class="task-left-item">
         <span class="header">剩余文件</span>

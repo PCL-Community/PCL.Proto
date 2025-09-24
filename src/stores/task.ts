@@ -38,7 +38,7 @@ export interface ITaskItem {
     task_id: number;
     name: string;
     status: TaskStatus;
-    speed: number;
+    speed: number | null;
     progress: number;
     remaining: number | undefined;
 }
@@ -48,7 +48,7 @@ class TaskItem implements ITaskItem {
     task_id: number;
     name: string;
     status: TaskStatus;
-    speed: number;
+    speed: number | null;
     progress: number;
     remaining: number | undefined;
 
@@ -59,38 +59,43 @@ class TaskItem implements ITaskItem {
         this.status = TaskStatus.Pending;
         this.progress = 0;
         this.remaining = files_num;
-        this.speed = 0;
+        this.speed = null;
     }
 
-    update(event: TaskEvent) {
+    update(event: TaskItemReport) {
         this.status = event.status
-        this.progress = event.overall_progress
+        this.progress = event.progress
         this.remaining = event.files_remaining
+        this.speed = event.speed
     }
 }
 
-interface TaskEvent {
+interface TaskItemReport {
     item_id: number,
     task_id: number,
     files_remaining: number,
-    overall_progress: number,
-    status: TaskStatus
+    progress: number,
+    status: TaskStatus,
+    speed: number | null
 }
 
 
 export const useTaskManager = defineStore('task-manager', () => {
     const tasks = ref<Task[]>([])
     let current_taskid = -1
-    // TODO)) calculate total progress with weight of task files count
     const totalProgress = computed(() => {
-        return (tasks.value.reduce((total, task) => {
-            return total + task.progress
+        return (tasks.value.reduce((acc, task) => {
+            return acc + task.progress
         }, 0) / tasks.value.length * 100).toFixed(2)
     })
-    const totalSpeed = computed(() => 0)
+    const totalSpeed = computed(() => {
+        return tasks.value.reduce((acc, task) => {
+            return acc + task.speed
+        }, 0)
+    })
     const totalRemaining = computed(() => {
-        return tasks.value.reduce((total, task) => {
-            return total + task.items.reduce((sum, item) => sum + (item.remaining || 0), 0)
+        return tasks.value.reduce((acc, task) => {
+            return acc + task.items.reduce((sum, item) => sum + (item.remaining || 0), 0)
         }, 0);
     })
     const activeTaskCount = computed(() => {
@@ -101,7 +106,7 @@ export const useTaskManager = defineStore('task-manager', () => {
     async function startDownloadMCVersion(version_id: string) {
         let newTask = new Task(++current_taskid, version_id)
         tasks.value.push(newTask)
-        const onEvent = new Channel<TaskEvent>()
+        const onEvent = new Channel<TaskItemReport>()
         onEvent.onmessage = (message) => {
             const taskToUpdate = tasks.value[message.task_id]
             if (taskToUpdate) {
@@ -112,6 +117,7 @@ export const useTaskManager = defineStore('task-manager', () => {
                         taskToUpdate.status = TaskStatus.Completed
                     }
                     taskToUpdate.progress = taskToUpdate.items.reduce((total, item) => total + item.progress, 0) / taskToUpdate.items.length
+                    taskToUpdate.speed = taskToUpdate.items.reduce((total, item) => total + (item.speed || 0), 0)
                 }
             }
         }
