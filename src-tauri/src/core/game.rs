@@ -112,6 +112,7 @@ impl GameInstance {
     }
 }
 
+#[cfg(test)]
 #[test]
 fn from_version_folder() {
     let version_folder =

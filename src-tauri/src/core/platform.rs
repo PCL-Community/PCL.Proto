@@ -14,13 +14,27 @@ pub enum Architecture {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum OS {
     Windows,
     Linux,
     #[serde(rename = "osx")]
     macOS,
+}
+
+impl OS {
+    pub fn current() -> Self {
+        match std::env::consts::OS {
+            "windows" => Self::Windows,
+            "macos" => Self::macOS,
+            _ => Self::Linux,
+        }
+    }
+
+    pub fn is_current(&self) -> bool {
+        return *self == Self::current();
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]

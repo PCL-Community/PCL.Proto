@@ -118,6 +118,12 @@ pub mod game {
         pub os: OSRule,
     }
 
+    impl Rule {
+        pub fn allow(&self) -> bool {
+            return self.action == "allow" && self.os.name.is_current();
+        }
+    }
+
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct OSRule {
         pub name: crate::core::platform::OS,
@@ -136,6 +142,15 @@ pub mod game {
     }
 
     pub const VERSION_MANIFEST_ENDPOINT: &str = "mc/game/version_manifest.json";
+
+    impl LibraryItem {
+        pub fn rule_allow(&self) -> bool {
+            if let Some(rules) = &self.rules {
+                return rules.iter().any(|rule| rule.allow());
+            }
+            return true;
+        }
+    }
 }
 
 pub struct MinecraftApiClient {
@@ -162,10 +177,10 @@ impl MinecraftApiClient {
         drop(guard);
     }
 
-    pub fn api_bases(&self) -> ApiBases {
-        let guard = self.api_bases.blocking_read();
-        guard.clone()
-    }
+    // pub fn api_bases(&self) -> ApiBases {
+    //     let guard = self.api_bases.blocking_read();
+    //     guard.clone()
+    // }
 
     pub async fn api_bases_async(&self) -> ApiBases {
         let guard = self.api_bases.read().await;

@@ -476,7 +476,15 @@ pub mod minecraft_resource {
                     .await
                     .map_err(|err| err.to_string())?;
             }
-            let libraries = version_details.libraries;
+            // filter the not allowed libraries
+            let libraries_download = {
+                let libraries = version_details.libraries;
+                libraries
+                    .iter()
+                    .filter(|lib| lib.rule_allow())
+                    .map(|lib| lib.downloads.artifact.to_owned())
+                    .collect::<Vec<DownloadInfo>>()
+            };
             // modify the jar path cause api don't provide it
             let mut jar_download = version_details.downloads.client;
             jar_download.path = Some(format!("{}.jar", version_id));
@@ -514,15 +522,7 @@ pub mod minecraft_resource {
                     })
                     .collect::<Vec<_>>()
             };
-            // TODO)) 仅筛选当前平台的库，去除无关平台
-            (
-                jar_download,
-                libraries
-                    .iter()
-                    .map(|lib| lib.downloads.artifact.to_owned())
-                    .collect::<Vec<DownloadInfo>>(),
-                assets_download,
-            )
+            (jar_download, libraries_download, assets_download)
         };
         // report the first task item: get the version json
         on_event
