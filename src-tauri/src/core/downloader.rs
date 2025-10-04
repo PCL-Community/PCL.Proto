@@ -115,46 +115,42 @@ impl Downloader {
                 .await?;
             return Ok(());
         } else {
-            self.http_download_inner(&options, progress_tx.clone())
-                .await?;
-        }
-        // 尝试最多3次SHA1检查
-        let mut retry_count = 0;
-        while retry_count < 3 {
-            if !file::check_sha1(&options.out_path, &options.info.sha1)? {
-                retry_count += 1;
-                if retry_count >= 3 {
-                    fs::remove_file(&options.out_path)?;
+            let mut retries: u8 = 3;
+            while retries > 0 {
+                self.http_download_inner(&options, progress_tx.clone())
+                    .await?;
+                if file::check_sha1(&options.out_path, &options.info.sha1)? {
                     progress_tx
                         .send(ProgressUpdate {
                             file_index: options.file_index,
                             progress: FileProgress {
-                                downloaded_bytes: 0,
-                                status: TaskStatus::Failed,
+                                downloaded_bytes: options.info.size,
+                                status: TaskStatus::Completed,
                             },
                             item_id: options.task_item_id,
                         })
                         .await?;
-                    return Err(McApiError::Sha1Mismatch(options.out_path));
+                    return Ok(());
                 }
-                // 短暂延迟后重试
-                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-            } else {
-                break; // SHA1检查通过
+                log::warn!(
+                    "sha1 mismatch, file: {:?}, retry remaining: {}",
+                    options.info.path,
+                    retries
+                );
+                retries -= 1;
             }
         }
-
         progress_tx
             .send(ProgressUpdate {
                 file_index: options.file_index,
                 progress: FileProgress {
-                    downloaded_bytes: options.info.size,
-                    status: TaskStatus::Completed,
+                    downloaded_bytes: 0,
+                    status: TaskStatus::Failed,
                 },
                 item_id: options.task_item_id,
             })
             .await?;
-        Ok(())
+        return Err(McApiError::Sha1Mismatch(options.out_path));
     }
 
     /// the actual process of downloading a single file
@@ -188,17 +184,6 @@ impl Downloader {
         }
         file.flush().await?;
         file.sync_data().await?;
-        progress_tx
-            .send(ProgressUpdate {
-                file_index: option.file_index,
-                progress: FileProgress {
-                    downloaded_bytes: downloaded,
-                    status: TaskStatus::Completed,
-                },
-                item_id: option.task_item_id,
-            })
-            .await?;
-        // }
         Ok(())
     }
 
@@ -583,7 +568,7 @@ pub mod minecraft_resource {
         });
 
         // start the actual downloading
-        let max_concurrent_downloads = 15;
+        const MAX_CONCURRENT_DOWNLOADS: usize = 8;
         let mut all_options = Vec::new();
         all_options.extend(download_options1);
         all_options.extend(download_options2);
@@ -599,7 +584,7 @@ pub mod minecraft_resource {
         }));
         // wait until all the tasks has finished
         let _ = download_stream
-            .buffer_unordered(max_concurrent_downloads)
+            .buffer_unordered(MAX_CONCURRENT_DOWNLOADS)
             .collect::<Vec<_>>()
             .await;
         drop(progress_tx);

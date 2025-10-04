@@ -36,3 +36,13 @@ pub fn check_sha1(file: &Path, given: &str) -> Result<bool, std::io::Error> {
     let computed = format!("{:x}", result);
     Ok(computed == given)
 }
+
+#[cfg(test)]
+#[test]
+fn check_sha1_test() {
+    let result = check_sha1(
+        Path::new("/Users/amagicpear/Library/Application Support/cc.PCL-Community.PCL.Proto/.minecraft/assets/objects/ac/ac88b24961961f52fbaf8efc55ae7e260b6f4ad2"),
+        "ac88b24961961f52fbaf8efc55ae7e260b6f4ad2",
+    ).unwrap();
+    assert!(result);
+}
