@@ -58,6 +58,10 @@
   box-sizing: border-box;
   margin: 0;
   font-weight: normal;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 @font-face {

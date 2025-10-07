@@ -99,6 +99,8 @@ menu > li.active {
 
 :deep(.markdown *) {
   max-width: 100%;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 :deep(.markdown strong) {

@@ -214,6 +214,7 @@ impl LaunchOption {
     }
 }
 
+#[cfg(test)]
 #[test]
 pub fn game_launch_test() {
     use crate::core::repository::GameRepository;
