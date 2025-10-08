@@ -8,5 +8,5 @@ const pluginTypes = Object.keys(pluginShowText) as pluginType[]
 
 <template>
   <OverviewCard />
-  <ModifyCard v-for="type in pluginTypes" :key="type" :type />
+  <ModifyCard v-for="type in pluginTypes" :key="type" :plugin />
 </template>

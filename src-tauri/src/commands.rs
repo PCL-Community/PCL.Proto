@@ -151,7 +151,7 @@ pub async fn handle_clicked_on_version(id: &str) -> Result<VersionDetails, Strin
     Ok(version_detail)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_forge_versions(version_id: &str) -> Result<Vec<String>, String> {
     let client = &ConfigManager::instance().api_client;
     let versions = client.get_forge_versions(version_id).await;

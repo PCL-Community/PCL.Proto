@@ -40,7 +40,7 @@ withDefaults(
             a(:href="'https://zh.minecraft.wiki/w/Special:Search?search=' + title" target="_blank"): i(title="更新日志" v-if="isGameInfo"): IconInfo
             a: i(title="下载服务端" v-if="isGameInfo"): IconServer
             a(v-if="btn" :href="btn.link"): PButton(:inline="true") {{btn.text}}
-            
+
 </template>
 
 <style lang="css" scoped>

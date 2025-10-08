@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import PCard from '@/components/widget/PCard.vue'
 import PInput from '@/components/widget/PInput.vue'
-import { pluginShowText, showIconPath, type pluginType } from '@/util/gameInfo'
+import { showIconPath, type pluginType } from '@/util/gameInfo'
 import { info } from '@tauri-apps/plugin-log'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -16,11 +16,13 @@ import type { VersionDetails } from '@/api/gameVersions'
 const router = useRouter()
 const version_id = useRoute().query.version as string
 const instance_name = ref(version_id)
-const pluginTypes = Object.keys(pluginShowText) as pluginType[]
+// const pluginTypes = Object.keys(pluginShowText) as pluginType[]
 const { floatButtonState, setFloatButton } = useFloatButton()
 var unlistenButton: any
 const taskManager = useTaskManager()
-
+// let pluginVersions = new Map<pluginType, Array<string>>()
+const pluginVersions = ref({} as Record<pluginType, string[]>)
+const pluginSelectState = ref({} as Record<pluginType, string>)
 const arrowLeftClicked = () => {
   router.back()
 }
@@ -41,6 +43,8 @@ onMounted(async () => {
     id: version_id,
   })
   info(`got version info: ${versionDetails.id}`)
+  pluginVersions.value.forge = await invoke<string[]>('get_forge_versions', { version_id })
+  console.log(pluginVersions.value.forge)
 })
 
 onUnmounted(() => {
@@ -49,6 +53,11 @@ onUnmounted(() => {
   }
   unlistenButton?.()
 })
+
+function onSelect(plugin: pluginType, versionId: string) {
+  pluginSelectState.value[plugin] = versionId
+  console.log(pluginSelectState.value)
+}
 </script>
 
 <template>
@@ -57,7 +66,13 @@ onUnmounted(() => {
     <img :src="showIconPath['vanilla']" />
     <PInput v-model="instance_name" />
   </PCard>
-  <ModifyCard v-for="type in pluginTypes" :key="type" :type />
+  <ModifyCard :plugin="'vanilla'" :versions="[version_id]" :is-loading="false" />
+  <ModifyCard
+    :plugin="'forge'"
+    :is-loading="pluginVersions['forge'] == undefined"
+    :versions="pluginVersions['forge']"
+    @select-version="onSelect"
+  />
 </template>
 
 <style lang="css" scoped>
@@ -72,7 +87,8 @@ img {
   height: 30px;
 }
 
-:deep(section.mycard-content) {
+/* set the title flex row */
+:deep(section.mycard-content:nth-child(1)) {
   flex-direction: row;
   align-items: center;
   gap: 10px;

@@ -51,6 +51,9 @@ onMounted(() => {
 })
 
 onUnmounted(() => observer?.disconnect())
+
+// allow outside state control
+defineExpose({ SwitchFoldState })
 </script>
 
 <template lang="pug">
