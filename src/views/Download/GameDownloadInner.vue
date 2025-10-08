@@ -11,6 +11,7 @@ import { FloatButtonType, useFloatButton } from '@/composables/useFloatButton'
 import { listen } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
 import { useTaskManager } from '@/stores/task'
+import type { VersionDetails } from '@/api/gameVersions'
 
 const router = useRouter()
 const version_id = useRoute().query.version as string
@@ -36,10 +37,10 @@ onMounted(async () => {
     }
   })
   // get version info from backend
-  let res = await invoke<{ id: string }>('handle_clicked_on_version', {
+  let versionDetails = await invoke<VersionDetails>('handle_clicked_on_version', {
     id: version_id,
   })
-  info(`got version info: ${res.id}`)
+  info(`got version info: ${versionDetails.id}`)
 })
 
 onUnmounted(() => {
@@ -63,6 +64,7 @@ onUnmounted(() => {
 .arrow-left {
   margin-inline: 6px;
   color: var(--vt-c-gray);
+  cursor: pointer;
 }
 
 img {

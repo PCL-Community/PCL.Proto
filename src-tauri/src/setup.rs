@@ -28,7 +28,7 @@ pub mod constants {
 pub struct PCLSetupInfo {
     setup_version: i32,
     theme: Theme,
-    api_provider: ApiProvider,
+    pub api_provider: ApiProvider,
     pub max_memory: usize,
     pub default_java: Option<Arc<JavaRuntime>>,
 }
@@ -184,7 +184,7 @@ impl ConfigManager {
         *state = state_read;
         // update the api provider
         self.api_client
-            .switch_api_bases(&state.pcl_setup_info.api_provider);
+            .switch_provider(&state.pcl_setup_info.api_provider);
         Ok(())
     }
 

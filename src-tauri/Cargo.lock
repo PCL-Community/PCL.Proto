@@ -2734,6 +2734,7 @@ dependencies = [
  "futures-util",
  "goblin",
  "log",
+ "quick-xml 0.38.3",
  "regex",
  "reqwest",
  "serde",
@@ -3073,6 +3074,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42a232e7487fc2ef313d96dde7948e7a3c05101870d8985e4fd8d26aedd27b89"
 dependencies = [
  "memchr",
+ "serde",
 ]
 
 [[package]]

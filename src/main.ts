@@ -12,7 +12,7 @@ import { useAccountInfo } from './stores/account'
 const pinia = createPinia()
 
 const i18n = createI18n({
-    // locale: navigator.language,
+    locale: navigator.language,
     fallbackLocale: 'en-US',
     messages: locales
 })

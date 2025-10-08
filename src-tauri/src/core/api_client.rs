@@ -1,4 +1,7 @@
-use crate::{core::downloader, setup::constants::USER_AGENT};
+use crate::{
+    core::downloader,
+    setup::{ConfigManager, constants::USER_AGENT},
+};
 use reqwest::Client;
 use serde::{Serialize, de::DeserializeOwned};
 use std::{
@@ -22,6 +25,7 @@ pub enum ApiProvider {
 pub struct ApiBases {
     pub meta_base: &'static str,
     pub resources_base: &'static str,
+    pub forge_base: &'static str,
 }
 
 impl ApiBases {
@@ -30,10 +34,12 @@ impl ApiBases {
             ApiProvider::Official => ApiBases {
                 meta_base: "https://piston-meta.mojang.com",
                 resources_base: "https://resources.download.minecraft.net",
+                forge_base: "https://maven.minecraftforge.net/net/minecraftforge/forge",
             },
             ApiProvider::BMCLApi => ApiBases {
                 meta_base: "https://bmclapi2.bangbang93.com",
                 resources_base: "https://bmclapi2.bangbang93.com/assets",
+                forge_base: "https://bmclapi2.bangbang93.com/forge",
             },
         }
     }
@@ -58,6 +64,12 @@ pub enum McApiError {
 
     #[error("progress sender: {0}")]
     ProgressSenderError(#[from] tokio::sync::mpsc::error::SendError<downloader::ProgressUpdate>),
+
+    #[error("poison error while reading app state")]
+    PoisonError,
+
+    #[error("xml parse error: {0}")]
+    XmlError(#[from] quick_xml::DeError),
 }
 
 pub mod game {
@@ -153,6 +165,35 @@ pub mod game {
     }
 }
 
+mod forge_xml {
+    #[derive(serde::Deserialize)]
+    pub struct Metadata {
+        versioning: Versioning,
+    }
+
+    #[derive(serde::Deserialize)]
+    struct Versioning {
+        versions: Versions,
+    }
+
+    #[derive(Debug, serde::Deserialize)]
+    struct Versions {
+        version: Vec<String>,
+    }
+
+    impl Metadata {
+        pub fn find_versions_of_game(&self, mc_version: &str) -> Vec<String> {
+            self.versioning
+                .versions
+                .version
+                .iter()
+                .filter(|v| v.starts_with(mc_version))
+                .cloned()
+                .collect()
+        }
+    }
+}
+
 pub struct MinecraftApiClient {
     client: Client,
     api_bases: RwLock<ApiBases>,
@@ -171,16 +212,12 @@ impl MinecraftApiClient {
         }
     }
 
-    pub fn switch_api_bases(&self, provider: &ApiProvider) {
+    /// the provider should be managed in setup info, this will be called once the setup changed
+    pub fn switch_provider(&self, provider: &ApiProvider) {
         let mut guard = self.api_bases.blocking_write();
         *guard = ApiBases::new(provider);
         drop(guard);
     }
-
-    // pub fn api_bases(&self) -> ApiBases {
-    //     let guard = self.api_bases.blocking_read();
-    //     guard.clone()
-    // }
 
     pub async fn api_bases_async(&self) -> ApiBases {
         let guard = self.api_bases.read().await;
@@ -257,6 +294,37 @@ impl MinecraftApiClient {
         let version_detail: game::VersionDetails = serde_json::from_value(version_json)?;
         Ok(version_detail)
     }
+
+    /// Get forge version details
+    pub async fn get_forge_versions(&self, version_id: &str) -> Result<Vec<String>, McApiError> {
+        let guard = ConfigManager::instance()
+            .app_state
+            .lock()
+            .map_err(|_| McApiError::PoisonError)?;
+        let current_provider = &guard.pcl_setup_info.api_provider;
+        let forge_base = self.api_bases.read().await.forge_base;
+        match current_provider {
+            ApiProvider::Official => {
+                let url = format!("{forge_base}/maven-metadata.xml");
+                drop(guard);
+                let response = self
+                    .client
+                    .get(url)
+                    .header(reqwest::header::USER_AGENT, USER_AGENT)
+                    .send()
+                    .await?;
+                let xml_text = response.text().await?;
+                let metadata: forge_xml::Metadata = quick_xml::de::from_str(&xml_text)?;
+                let matched_versions = metadata.find_versions_of_game(version_id);
+                return Ok(matched_versions);
+            }
+            ApiProvider::BMCLApi => {
+                let url = "";
+                drop(guard);
+                return Ok(Vec::new());
+            }
+        }
+    }
 }
 
 #[tokio::test]
@@ -267,4 +335,13 @@ async fn mc_manifest() {
         .await
         .unwrap();
     println!("{:?}", manifest);
+}
+
+#[test]
+fn forge_test() {
+    let mc_api_client = &ConfigManager::instance().api_client;
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let re = mc_api_client.get_forge_versions("1.21.9").await;
+    });
 }
