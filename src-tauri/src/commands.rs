@@ -10,14 +10,15 @@ use crate::{
     },
     setup::ConfigManager,
 };
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
+use tokio::sync::Mutex;
 
 #[tauri::command]
 pub fn launch_game(_app: AppHandle, state: State<'_, Arc<Mutex<AppState>>>) -> Result<(), String> {
     log::info!("launch_game invoked from js.");
-    let guard = state.lock().unwrap();
+    let guard = state.blocking_lock();
     let launch_option = LaunchOption::from_state(&guard);
     drop(guard);
     if let Err(e) = launch_option {
@@ -41,7 +42,7 @@ pub async fn add_java(
         let file_path_str = file_path.to_string();
         if let Ok(mut java_runtime) = JavaRuntime::try_from(file_path_str.as_str()) {
             java_runtime.is_user_imported = true;
-            let mut state = state.lock().unwrap();
+            let mut state = state.lock().await;
             if state.java_runtimes.contains(&java_runtime) {
                 return Err(());
             }
@@ -58,7 +59,7 @@ pub async fn add_java(
 
 #[tauri::command]
 pub fn get_java_list(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<JavaRuntime> {
-    let state = state.lock().unwrap();
+    let state = state.blocking_lock();
     state.java_runtimes.clone()
 }
 
@@ -72,12 +73,12 @@ pub async fn refresh_java_list() -> Result<Vec<JavaRuntime>, ()> {
 
 #[tauri::command]
 pub fn get_repositories(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<GameRepository> {
-    let state = state.lock().unwrap();
+    let state = state.blocking_lock();
     state.repositories.clone()
 }
 
-/// account should be got during initialization, as the state may not have been managed
-/// so it should be read directly from ConfigManager
+/// async commands that contain references as inputs must return a Result
+/// so this place returns an option
 #[tauri::command]
 pub async fn get_account() -> Option<Account> {
     let account = &ConfigManager::instance()
@@ -93,7 +94,7 @@ pub async fn get_instances_in_repository(
     state: State<'_, Arc<Mutex<AppState>>>,
     repository_name: &str,
 ) -> Result<Vec<GameInstance>, ()> {
-    let state = state.lock().unwrap();
+    let state = state.lock().await;
     let all_repos = &state.repositories;
     let repo = all_repos.iter().find(|repo| repo.name == repository_name);
     match repo {
@@ -108,7 +109,7 @@ pub async fn select_instance(
     repository_name: &str,
     instance_id: &str,
 ) -> Result<(), ()> {
-    let mut state = state.lock().unwrap();
+    let mut state = state.lock().await;
     let instances = state
         .repositories
         .iter()
