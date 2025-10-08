@@ -185,16 +185,20 @@ impl JavaRuntime {
 }
 
 pub trait JavaRuntimeVecExt {
-    fn patch_state(self);
+    async fn patch_state(self);
 }
 impl JavaRuntimeVecExt for Vec<JavaRuntime> {
-    fn patch_state(self) {
+    async fn patch_state(self) {
         // TODO: 根据是否为用户导入写一个更复杂的合并逻辑
         let config_manager = ConfigManager::instance();
-        let mut guard = config_manager.app_state.lock().unwrap();
+        let mut guard = config_manager.app_state.lock().await;
         guard.java_runtimes = self;
         drop(guard);
-        config_manager.save().unwrap();
+        tauri::async_runtime::spawn_blocking(move || {
+            config_manager.save().unwrap();
+        })
+        .await
+        .unwrap();
         // TODO: 应该根据配置文件选择默认的java runtime
         log::info!("patched java runtimes to config");
     }

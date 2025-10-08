@@ -11,7 +11,7 @@ use std::{
 };
 use tokio::sync::RwLock;
 
-#[derive(serde::Serialize, serde::Deserialize, Default)]
+#[derive(serde::Serialize, serde::Deserialize, Default, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum ApiProvider {
     #[default]
@@ -297,16 +297,19 @@ impl MinecraftApiClient {
 
     /// Get forge version details
     pub async fn get_forge_versions(&self, version_id: &str) -> Result<Vec<String>, McApiError> {
-        let guard = ConfigManager::instance()
-            .app_state
-            .lock()
-            .map_err(|_| McApiError::PoisonError)?;
-        let current_provider = &guard.pcl_setup_info.api_provider;
+        let guard = ConfigManager::instance().app_state.lock().await;
+        let current_provider = &guard.pcl_setup_info.api_provider.clone();
+        drop(guard);
         let forge_base = self.api_bases.read().await.forge_base;
+        // let forge_base = {
+        //     let guard = self.api_bases.read().await;
+        //     let base = guard.forge_base.to_string();
+        //     drop(guard);
+        //     base
+        // };
         match current_provider {
             ApiProvider::Official => {
                 let url = format!("{forge_base}/maven-metadata.xml");
-                drop(guard);
                 let response = self
                     .client
                     .get(url)
@@ -320,7 +323,6 @@ impl MinecraftApiClient {
             }
             ApiProvider::BMCLApi => {
                 let url = "";
-                drop(guard);
                 return Ok(Vec::new());
             }
         }

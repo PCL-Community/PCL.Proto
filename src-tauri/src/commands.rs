@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use crate::{
     AppState,
     core::{
@@ -12,6 +10,7 @@ use crate::{
     },
     setup::ConfigManager,
 };
+use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 
@@ -66,8 +65,9 @@ pub fn get_java_list(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<JavaRuntime>
 #[tauri::command]
 pub async fn refresh_java_list() -> Result<Vec<JavaRuntime>, ()> {
     let java_runtimes = JavaRuntime::search().await;
-    java_runtimes.clone().patch_state();
-    Ok(java_runtimes)
+    let return_runtimes = java_runtimes.clone();
+    java_runtimes.patch_state().await;
+    Ok(return_runtimes)
 }
 
 #[tauri::command]
@@ -76,10 +76,16 @@ pub fn get_repositories(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<GameRepos
     state.repositories.clone()
 }
 
+/// account should be got during initialization, as the state may not have been managed
+/// so it should be read directly from ConfigManager
 #[tauri::command]
-pub fn get_account(state: State<'_, Arc<Mutex<AppState>>>) -> Option<Account> {
-    let state = state.lock().unwrap();
-    state.active_account.as_deref().cloned()
+pub async fn get_account() -> Option<Account> {
+    let account = &ConfigManager::instance()
+        .app_state
+        .lock()
+        .await
+        .active_account;
+    account.as_deref().cloned()
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -143,4 +149,11 @@ pub async fn handle_clicked_on_version(id: &str) -> Result<VersionDetails, Strin
         .await
         .map_err(|err| err.to_string())?;
     Ok(version_detail)
+}
+
+#[tauri::command]
+pub async fn get_forge_versions(version_id: &str) -> Result<Vec<String>, String> {
+    let client = &ConfigManager::instance().api_client;
+    let versions = client.get_forge_versions(version_id).await;
+    versions.map_err(|err| err.to_string())
 }

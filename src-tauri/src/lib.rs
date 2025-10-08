@@ -25,6 +25,7 @@ pub fn run() {
             }
             if let Some(config_manager) = setup::CONFIG_MANAGER.as_ref() {
                 app.manage(Arc::clone(&config_manager.app_state));
+                log::debug!("app state managed");
             } else {
                 log::error!("CONFIG_MANAGER is None");
                 app.dialog()
@@ -40,7 +41,7 @@ pub fn run() {
             // search for Java during init
             tauri::async_runtime::spawn(async move {
                 let java_runtimes = core::java::JavaRuntime::search().await;
-                java_runtimes.patch_state();
+                java_runtimes.patch_state().await;
             });
             Ok(())
         })
@@ -57,6 +58,7 @@ pub fn run() {
             commands::get_version_manifest,
             commands::handle_clicked_on_version,
             downloader::minecraft_resource::download_minecraft_version,
+            commands::get_forge_versions
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

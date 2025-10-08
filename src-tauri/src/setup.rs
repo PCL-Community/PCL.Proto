@@ -1,3 +1,5 @@
+use tokio::sync::Mutex;
+
 use crate::{
     core::{
         api_client::{ApiProvider, MinecraftApiClient},
@@ -13,7 +15,7 @@ use std::{
     fs,
     io::Write,
     path::PathBuf,
-    sync::{Arc, LazyLock, Mutex},
+    sync::{Arc, LazyLock},
 };
 
 pub mod constants {
@@ -152,7 +154,7 @@ impl ConfigManager {
         if !game_dir.exists() {
             fs::create_dir_all(&game_dir).map_err(|_| ConfigManagerError::ConfigDirNotFound)?;
         }
-        let mut state = self.app_state.lock().unwrap();
+        let mut state = self.app_state.blocking_lock();
         // [WARN] Only for Debug!!
         // TODO: 后面去除下面的代码
         state.active_repo_path = game_dir.clone();
@@ -180,7 +182,7 @@ impl ConfigManager {
         let mut reader = std::io::BufReader::new(file);
         let state_read: AppState = serde_json::from_reader(&mut reader)
             .map_err(|_| ConfigManagerError::ConfigFileCorrupted)?;
-        let mut state = self.app_state.lock().unwrap();
+        let mut state = self.app_state.blocking_lock();
         *state = state_read;
         // update the api provider
         self.api_client
@@ -193,7 +195,7 @@ impl ConfigManager {
         let file = std::fs::File::create(&self.config_path)
             .map_err(|_| ConfigManagerError::ConfigFileNotFound)?;
         let mut writer = std::io::BufWriter::new(file);
-        let state = self.app_state.lock().unwrap();
+        let state = self.app_state.blocking_lock();
         serde_json::to_writer_pretty(&mut writer, &*state)
             .map_err(|_| ConfigManagerError::ConfigFileCorrupted)?;
         writer
