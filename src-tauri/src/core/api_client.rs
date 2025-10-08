@@ -298,18 +298,12 @@ impl MinecraftApiClient {
     /// Get forge version details
     pub async fn get_forge_versions(&self, version_id: &str) -> Result<Vec<String>, McApiError> {
         let guard = ConfigManager::instance().app_state.lock().await;
-        let current_provider = &guard.pcl_setup_info.api_provider.clone();
-        drop(guard);
+        let current_provider = &guard.pcl_setup_info.api_provider;
         let forge_base = self.api_bases.read().await.forge_base;
-        // let forge_base = {
-        //     let guard = self.api_bases.read().await;
-        //     let base = guard.forge_base.to_string();
-        //     drop(guard);
-        //     base
-        // };
-        match current_provider {
+        match *current_provider {
             ApiProvider::Official => {
                 let url = format!("{forge_base}/maven-metadata.xml");
+                drop(guard);
                 let response = self
                     .client
                     .get(url)
@@ -323,6 +317,7 @@ impl MinecraftApiClient {
             }
             ApiProvider::BMCLApi => {
                 let url = "";
+                drop(guard);
                 return Ok(Vec::new());
             }
         }
@@ -345,5 +340,7 @@ fn forge_test() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let re = mc_api_client.get_forge_versions("1.21.9").await;
+        assert!(re.is_ok());
+        println!("{re:?}");
     });
 }
