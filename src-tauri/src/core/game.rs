@@ -1,6 +1,9 @@
 use std::{fs, path::PathBuf, sync::Arc};
 
-use crate::core::{java::JavaRuntime, mcmod::PluginType, repository::GameRepository};
+use crate::core::{
+    api_client::game::VersionDetails, java::JavaRuntime, launcher::GameLaunchError,
+    mcmod::PluginType, repository::GameRepository,
+};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum GameJava {
@@ -93,6 +96,12 @@ impl GameInstance {
             log::error!("version json not found in folder: {:?}", version_folder);
             return Err(GameInstanceError::InvalidVersionJson);
         }
+    }
+
+    pub fn read_version_json(&self) -> Result<VersionDetails, GameLaunchError> {
+        let json_reader = std::fs::File::open(&self.json_path)?;
+        let version_json: VersionDetails = serde_json::from_reader(json_reader)?;
+        Ok(version_json)
     }
 }
 

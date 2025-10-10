@@ -97,26 +97,25 @@ pub mod game {
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase")]
     pub struct VersionInfo {
         pub id: String,
-        #[serde(rename = "type")]
-        pub version_type: String,
+        pub r#type: String,
         pub url: String,
         pub time: String,
-        #[serde(rename = "releaseTime")]
         pub release_time: String,
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase")]
     pub struct VersionDetails {
         pub id: String,
-        #[serde(rename = "type")]
-        pub version_type: String,
+        pub r#type: String,
         pub downloads: VersionDownloads,
         pub libraries: Vec<LibraryItem>,
         pub assets: String,
-        #[serde(rename = "assetIndex")]
         pub asset_index: DownloadInfo,
+        pub main_class: String,
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]

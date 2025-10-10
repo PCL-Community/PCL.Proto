@@ -33,6 +33,7 @@ pub struct LaunchOption {
     max_memory: usize,
     width: Option<usize>,
     height: Option<usize>,
+    version_details: VersionDetails,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -67,7 +68,7 @@ impl LaunchOption {
             .args(self.build_jvm_arguments()) // build jvm arguments
             .arg("-cp")
             .arg(self.build_classpath().unwrap_or_default())
-            .arg("net.minecraft.client.main.Main")
+            .arg(&self.version_details.main_class)
             .args(self.build_game_arguments())
             .current_dir(&self.game_instance.global_dir.path);
         command.spawn()
@@ -136,14 +137,13 @@ impl LaunchOption {
     }
 
     fn build_classpath(&self) -> Result<String, GameLaunchError> {
-        let json_reader = std::fs::File::open(&self.game_instance.json_path)?;
-        let version_json: VersionDetails = serde_json::from_reader(json_reader)?;
         let mut classpath = Vec::new();
-        let libraries = version_json.libraries;
+        let libraries = &self.version_details.libraries;
         for lib in libraries {
-            let lib_artifact = lib.downloads.artifact;
+            let lib_artifact = &lib.downloads.artifact;
             let lib_path = lib_artifact
                 .path
+                .as_deref()
                 .ok_or(serde_json::Error::custom("Missing path in artifact"))?;
             let lib_full_path = format!(
                 "{}/libraries/{}",
@@ -171,7 +171,7 @@ impl LaunchOption {
                 "--assetsDir={}/assets",
                 self.game_instance.global_dir.path.display()
             ),
-            "--assetIndex=26".to_string(), // TODO: read from version json
+            format!("--assetIndex={}", &self.version_details.assets),
             format!("--uuid={}", self.account.uuid()),
             format!(
                 "--accessToken={}",
@@ -208,6 +208,7 @@ impl LaunchOption {
                 max_memory: state.pcl_setup_info.max_memory,
                 width: None,
                 height: None,
+                version_details: game_instance.read_version_json()?,
             });
         }
         Err(GameLaunchError::MissingGameInstance)
@@ -229,16 +230,16 @@ pub fn game_launch_test() {
     let game_repo = GameRepository::new("HMCL", PathBuf::from("/Users/amagicpear/HMCL/.minecraft"));
     let game_repo = Arc::new(game_repo);
     let version_folder = PathBuf::from("/Users/amagicpear/HMCL/.minecraft/versions/1.21.8");
-
+    let game_instance =
+        Arc::new(GameInstance::from_version_folder(&version_folder, &game_repo).unwrap());
     let mut launch_option = LaunchOption {
         account,
         java_runtime: Arc::new(JavaRuntime::try_from("/usr/bin/java").unwrap()),
-        game_instance: Arc::new(
-            GameInstance::from_version_folder(&version_folder, &game_repo).unwrap(),
-        ),
+        game_instance: game_instance.clone(),
         max_memory: 4096,
         width: None,
         height: None,
+        version_details: game_instance.read_version_json().unwrap(),
     };
     launch_option.set_window_size(1280, 720);
     if let Ok(mut child) = launch_option.launch() {

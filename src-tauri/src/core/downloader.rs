@@ -447,20 +447,17 @@ pub mod minecraft_resource {
     /// 4. Download the resources
     #[tauri::command(rename_all = "snake_case")]
     pub async fn download_minecraft_version(
-        state: tauri::State<'_, Arc<std::sync::Mutex<crate::setup::AppState>>>,
+        state: tauri::State<'_, Arc<tokio::sync::Mutex<crate::setup::AppState>>>,
         on_event: tauri::ipc::Channel<TaskItemReport>,
         version_id: &str,
         task_id: i32,
+        instance_name: &str,
     ) -> Result<(), String> {
         let downloader = Downloader::new();
         log::info!("start a task of downloading mc: {}", version_id);
         // get the folder of this version
-        let repo = state
-            .lock()
-            .map_err(|err| err.to_string())?
-            .active_repo_path
-            .clone();
-        let version_folder = repo.join(format!("versions/{}", version_id));
+        let repo = state.lock().await.active_repo_path.clone();
+        let version_folder = repo.join(format!("versions/{}", instance_name));
         let assets_folder = repo.join("assets");
 
         // compose the task items
@@ -487,7 +484,7 @@ pub mod minecraft_resource {
             };
             // modify the jar path cause api don't provide it
             let mut jar_download = version_details.downloads.client;
-            jar_download.path = Some(format!("{}.jar", version_id));
+            jar_download.path = Some(format!("{}.jar", instance_name));
 
             // fetch the assets index
             // let assets_index_downloadInfo = version_details.asset_index;

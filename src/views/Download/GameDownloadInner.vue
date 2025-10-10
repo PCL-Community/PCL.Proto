@@ -35,7 +35,7 @@ onMounted(async () => {
   unlistenButton = await listen('float-button-click', (event) => {
     if (event.payload === FloatButtonType.DownloadGame) {
       info(`download game: ${version_id}`)
-      taskManager.startDownloadMCVersion(version_id)
+      taskManager.startDownloadMCVersion(version_id, instance_name.value)
       setFloatButton(FloatButtonType.TaskManage)
       router.back()
     }
