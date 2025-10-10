@@ -67,6 +67,9 @@ pub enum McApiError {
 
     #[error("xml parse error: {0}")]
     XmlError(#[from] quick_xml::DeError),
+
+    #[error("plugin type {0:?} not supported")]
+    PluginMismatch(super::mcmod::PluginType),
 }
 
 pub mod game {

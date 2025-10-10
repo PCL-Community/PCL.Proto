@@ -1,11 +1,12 @@
 use crate::{
     AppState,
     core::{
-        api_client::{self, game::VersionDetails},
+        api_client,
         auth::Account,
         game::GameInstance,
         java::{JavaRuntime, JavaRuntimeVecExt},
         launcher::LaunchOption,
+        mcmod,
         repository::GameRepository,
     },
     setup::ConfigManager,
@@ -125,8 +126,9 @@ pub async fn select_instance(
 }
 
 #[tauri::command]
-pub async fn get_version_manifest() -> Result<api_client::game::VersionManifest, String> {
-    let client = &ConfigManager::instance().api_client;
+pub async fn get_version_manifest(
+    client: State<'_, &api_client::MinecraftApiClient>,
+) -> Result<api_client::game::VersionManifest, String> {
     match client
         .get_with_endpoint::<api_client::game::VersionManifest>(
             api_client::game::VERSION_MANIFEST_ENDPOINT,
@@ -141,8 +143,10 @@ pub async fn get_version_manifest() -> Result<api_client::game::VersionManifest,
 
 /// return the version json
 #[tauri::command]
-pub async fn handle_clicked_on_version(id: &str) -> Result<VersionDetails, String> {
-    let client = &ConfigManager::instance().api_client;
+pub async fn handle_clicked_on_version(
+    client: State<'_, &api_client::MinecraftApiClient>,
+    id: &str,
+) -> Result<api_client::game::VersionDetails, String> {
     let temp_dir = std::env::temp_dir().join(format!("pcl-proto-{}", id));
     log::debug!("selected tmp: {:?}", &temp_dir);
     let version_detail = client
@@ -153,8 +157,14 @@ pub async fn handle_clicked_on_version(id: &str) -> Result<VersionDetails, Strin
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn get_forge_versions(version_id: &str) -> Result<Vec<String>, String> {
-    let client = &ConfigManager::instance().api_client;
-    let versions = client.get_forge_versions(version_id).await;
-    versions.map_err(|err| err.to_string())
+pub async fn get_plugin_versions(
+    api_client: State<'_, &api_client::MinecraftApiClient>,
+    plugin_type: mcmod::PluginType,
+    mc_version: &str,
+) -> Result<Vec<String>, String> {
+    let verisons = match plugin_type {
+        mcmod::PluginType::Forge => api_client.get_forge_versions(mc_version).await,
+        _ => Err(api_client::McApiError::PluginMismatch(plugin_type)),
+    };
+    verisons.map_err(|err| err.to_string())
 }

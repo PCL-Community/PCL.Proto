@@ -1,27 +1,11 @@
 use std::{fs, path::PathBuf, sync::Arc};
 
-use crate::{core::java::JavaRuntime, core::repository::GameRepository};
+use crate::core::{java::JavaRuntime, mcmod::PluginType, repository::GameRepository};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum GameJava {
     Default,
     Custom(Arc<JavaRuntime>),
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum PluginType {
-    Vanilla,
-    Forge,
-    NeoForge,
-    Fabric,
-    Quilt,
-    Optifine,
-}
-
-impl Default for PluginType {
-    fn default() -> Self {
-        PluginType::Vanilla
-    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

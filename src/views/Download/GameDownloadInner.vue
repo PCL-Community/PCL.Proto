@@ -16,16 +16,17 @@ import type { VersionDetails } from '@/api/gameVersions'
 const router = useRouter()
 const version_id = useRoute().query.version as string
 const instance_name = ref(version_id)
-// const pluginTypes = Object.keys(pluginShowText) as pluginType[]
 const { floatButtonState, setFloatButton } = useFloatButton()
 var unlistenButton: any
 const taskManager = useTaskManager()
-// let pluginVersions = new Map<pluginType, Array<string>>()
-const pluginVersions = ref({} as Record<pluginType, string[]>)
-const pluginSelectState = ref({} as Record<pluginType, string>)
 const arrowLeftClicked = () => {
   router.back()
 }
+
+// defaults are all undefined
+const pluginVersions = ref({} as { [K in pluginType]: string[] })
+const pluginSelectState = ref({} as { [K in pluginType]: string })
+let avaliablePlugins = ['forge', 'fabric'] satisfies pluginType[]
 
 onMounted(async () => {
   floatButtonState.visible = true
@@ -43,8 +44,18 @@ onMounted(async () => {
     id: version_id,
   })
   info(`got version info: ${versionDetails.id}`)
-  pluginVersions.value.forge = await invoke<string[]>('get_forge_versions', { version_id })
-  console.log(pluginVersions.value.forge)
+  await Promise.all(
+    avaliablePlugins.map(async (plugin) => {
+      try {
+        pluginVersions.value[plugin] = await invoke<string[]>('get_plugin_versions', {
+          plugin_type: plugin,
+          mc_version: version_id,
+        })
+      } catch (err) {
+        console.error(`Failed to get versions for ${plugin}:`, err)
+      }
+    }),
+  )
 })
 
 onUnmounted(() => {
@@ -68,9 +79,10 @@ function onSelect(plugin: pluginType, versionId: string) {
   </PCard>
   <ModifyCard :plugin="'vanilla'" :versions="[version_id]" :is-loading="false" />
   <ModifyCard
-    :plugin="'forge'"
-    :is-loading="pluginVersions['forge'] == undefined"
-    :versions="pluginVersions['forge']"
+    v-for="plugin in avaliablePlugins"
+    :plugin
+    :is-loading="pluginVersions[plugin] == undefined"
+    :versions="pluginVersions[plugin]"
     @select-version="onSelect"
   />
 </template>
