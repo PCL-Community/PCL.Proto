@@ -65,9 +65,6 @@ pub enum McApiError {
     #[error("progress sender: {0}")]
     ProgressSenderError(#[from] tokio::sync::mpsc::error::SendError<downloader::ProgressUpdate>),
 
-    #[error("poison error while reading app state")]
-    PoisonError,
-
     #[error("xml parse error: {0}")]
     XmlError(#[from] quick_xml::DeError),
 }
