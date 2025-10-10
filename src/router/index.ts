@@ -1,17 +1,17 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import HomeView from '@/views/Home/HomeView.vue'
-import LinkView from '@/views/Link/LinkView'
-import SetupView from '@/views/Setup/SetupView'
-import MoreView from '@/views/More/MoreView'
+import HomeView from '@/views/Home/index.vue'
+import LinkView from '@/views/Link'
+import SetupView from '@/views/Setup'
+import MoreView from '@/views/More'
 import ManualDownload from '@/views/Download/ManualDownload.vue'
 import HomeSubView from '@/views/Home/HomeSubView.vue'
-import DownloadView from '@/views/Download/DownloadView'
+import DownloadView from '@/views/Download'
 import JavaManage from '@/views/Setup/JavaSetup.vue'
 import LaunchSetup from '@/views/Setup/LaunchSetup.vue'
 import AboutAndThanks from '@/views/More/AboutAndThanks.vue'
-import InstanceSelect from '@/views/InstanceSelect/InstanceSelect.tsx'
+import InstanceSelect from '@/views/InstanceSelect'
 import InstanceSelectSubView from '@/views/InstanceSelect/InstanceSelectSubView.vue'
-import InstanceSetting from '@/views/InstanceSetting/InstanceSetting'
+import InstanceSetting from '@/views/InstanceSetting'
 import InstanceOverview from '@/views/InstanceSetting/InstanceOverview.vue'
 // import { useSelectedInstance } from '@/stores/gameLaunch'
 import HomeNew from '@/views/Home/HomeNew'
@@ -53,13 +53,13 @@ const router = createRouter({
           children: [
             {
               path: '',
-              component: GameDownload
+              component: GameDownload,
             },
             {
               path: 'inner',
-              component: GameDownloadInner
-            }
-          ]
+              component: GameDownloadInner,
+            },
+          ],
         },
         {
           path: 'manual',
@@ -68,23 +68,23 @@ const router = createRouter({
         {
           path: 'mod',
           component: PageComp,
-          meta: { project_type: 'mod' }
+          meta: { project_type: 'mod' },
         },
         {
           path: 'modpack',
           component: PageComp,
-          meta: { project_type: 'modpack' }
+          meta: { project_type: 'modpack' },
         },
         {
           path: 'resourcepack',
           component: PageComp,
-          meta: { project_type: 'resourcepack' }
+          meta: { project_type: 'resourcepack' },
         },
         {
           path: 'shader',
           component: PageComp,
-          meta: { project_type: 'shader' }
-        }
+          meta: { project_type: 'shader' },
+        },
       ],
     },
     {
@@ -99,8 +99,8 @@ const router = createRouter({
         },
         {
           path: 'help',
-          component: () => import('@/views/Link/LinkHelp.vue')
-        }
+          component: () => import('@/views/Link/LinkHelp.vue'),
+        },
       ],
     },
     {
@@ -132,7 +132,7 @@ const router = createRouter({
         {
           path: 'wonder_box',
           component: WonderBox,
-        }
+        },
       ],
     },
     {
@@ -147,7 +147,7 @@ const router = createRouter({
         {
           path: '',
           component: InstanceNotFound,
-        }
+        },
       ],
     },
     {
@@ -196,7 +196,7 @@ const router = createRouter({
       name: 'downloading',
       component: Dowloading,
       meta: { fullPage: false, isSubPage: true, title: 'Task Manage' },
-    }
+    },
   ],
 })
 
