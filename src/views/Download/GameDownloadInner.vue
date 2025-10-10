@@ -12,6 +12,7 @@ import { listen } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
 import { useTaskManager } from '@/stores/task'
 import type { VersionDetails } from '@/api/gameVersions'
+import type { McPluginReport } from '@/types/mcPlugin'
 
 const router = useRouter()
 const version_id = useRoute().query.version as string
@@ -24,7 +25,7 @@ const arrowLeftClicked = () => {
 }
 
 // defaults are all undefined
-const pluginVersions = ref({} as { [K in pluginType]: string[] })
+const pluginVersions = ref({} as { [K in pluginType]: McPluginReport[] })
 const pluginSelectState = ref({} as { [K in pluginType]: string })
 let avaliablePlugins = ['forge', 'fabric'] satisfies pluginType[]
 
@@ -47,7 +48,7 @@ onMounted(async () => {
   await Promise.all(
     avaliablePlugins.map(async (plugin) => {
       try {
-        pluginVersions.value[plugin] = await invoke<string[]>('get_plugin_versions', {
+        pluginVersions.value[plugin] = await invoke<McPluginReport[]>('get_plugin_versions', {
           plugin_type: plugin,
           mc_version: version_id,
         })
@@ -77,7 +78,11 @@ function onSelect(plugin: pluginType, versionId: string) {
     <img :src="showIconPath['vanilla']" />
     <PInput v-model="instance_name" />
   </PCard>
-  <ModifyCard :plugin="'vanilla'" :versions="[version_id]" :is-loading="false" />
+  <ModifyCard
+    :plugin="'vanilla'"
+    :versions="[{ version: version_id, stable: null }]"
+    :is-loading="false"
+  />
   <ModifyCard
     v-for="plugin in avaliablePlugins"
     :plugin

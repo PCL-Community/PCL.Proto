@@ -5,6 +5,7 @@ import CardInfoItem from './CardInfoItem.vue'
 import { ref } from 'vue'
 import { onMounted } from 'vue'
 import { useTemplateRef } from 'vue'
+import type { McPluginReport } from '@/types/mcPlugin'
 // import { useSelectedInstance } from '@/stores/gameLaunch'
 // import { computed } from 'vue'
 const emit = defineEmits<{
@@ -13,21 +14,21 @@ const emit = defineEmits<{
 const cardRef = useTemplateRef('cardRef')
 const props = defineProps<{
   plugin: pluginType
-  versions?: string[]
+  versions?: McPluginReport[]
   notCompatibleWith?: pluginType
   isLoading: boolean
 }>()
 
 function select(versionId: string) {
   emit('selectVersion', props.plugin, versionId)
-  selectedVersion.value = versionId
+  selectedVersionId.value = versionId
   cardRef.value?.SwitchFoldState()
 }
 
-const selectedVersion = ref<string>()
+const selectedVersionId = ref<string>()
 onMounted(() => {
   if (props.plugin == 'vanilla' && props.versions) {
-    selectedVersion.value = props.versions[0]
+    selectedVersionId.value = props.versions[0]?.version
   }
 })
 </script>
@@ -42,9 +43,9 @@ onMounted(() => {
       <div v-else-if="isLoading" class="sub">
         <span>加载中...</span>
       </div>
-      <div v-else-if="selectedVersion" class="version">
+      <div v-else-if="selectedVersionId" class="version">
         <img :src="showIconPath[plugin]" />
-        <span>{{ selectedVersion }} </span>
+        <span>{{ selectedVersionId }} </span>
       </div>
       <div v-else-if="versions" class="sub">
         <span>选择版本</span>
@@ -53,8 +54,9 @@ onMounted(() => {
     <template #content v-if="plugin != 'vanilla' && versions">
       <CardInfoItem
         v-for="version in versions"
-        :title="version"
-        :click="() => select(version)"
+        :title="version.version"
+        :subtitle="version.stable == null ? undefined : version.stable ? '稳定版' : '开发版'"
+        :click="() => select(version.version)"
         :icon="showIconPath[plugin]"
       />
     </template>

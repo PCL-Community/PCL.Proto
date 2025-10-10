@@ -1,7 +1,7 @@
 use crate::{
     AppState,
     core::{
-        api_client,
+        api_client::{self, plugins::McPluginReport},
         auth::Account,
         game::GameInstance,
         java::{JavaRuntime, JavaRuntimeVecExt},
@@ -161,9 +161,10 @@ pub async fn get_plugin_versions(
     api_client: State<'_, &api_client::MinecraftApiClient>,
     plugin_type: mcmod::PluginType,
     mc_version: &str,
-) -> Result<Vec<String>, String> {
+) -> Result<Vec<McPluginReport>, String> {
     let verisons = match plugin_type {
         mcmod::PluginType::Forge => api_client.get_forge_versions(mc_version).await,
+        mcmod::PluginType::Fabric => api_client.get_fabric_versions(mc_version).await,
         _ => Err(api_client::McApiError::PluginMismatch(plugin_type)),
     };
     verisons.map_err(|err| err.to_string())

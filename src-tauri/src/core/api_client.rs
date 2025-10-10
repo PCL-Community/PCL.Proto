@@ -1,9 +1,12 @@
 use crate::{
-    core::downloader,
+    core::{api_client::plugins::McPluginReport, downloader},
     setup::{ConfigManager, constants::USER_AGENT},
 };
 use reqwest::Client;
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{
+    Serialize,
+    de::{DeserializeOwned, Error},
+};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -26,6 +29,7 @@ pub struct ApiBases {
     pub meta_base: &'static str,
     pub resources_base: &'static str,
     pub forge_base: &'static str,
+    pub fabric_base: &'static str,
 }
 
 impl ApiBases {
@@ -35,11 +39,13 @@ impl ApiBases {
                 meta_base: "https://piston-meta.mojang.com",
                 resources_base: "https://resources.download.minecraft.net",
                 forge_base: "https://maven.minecraftforge.net/net/minecraftforge/forge",
+                fabric_base: "https://meta.fabricmc.net/v2/versions/loader",
             },
             ApiProvider::BMCLApi => ApiBases {
                 meta_base: "https://bmclapi2.bangbang93.com",
                 resources_base: "https://bmclapi2.bangbang93.com/assets",
                 forge_base: "https://bmclapi2.bangbang93.com/forge",
+                fabric_base: "https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader",
             },
         }
     }
@@ -71,6 +77,9 @@ pub enum McApiError {
     #[error("plugin type {0:?} not supported")]
     PluginMismatch(super::mcmod::PluginType),
 }
+
+/// Result type for Minecraft API operations.
+pub type McApiResult<T> = Result<T, McApiError>;
 
 pub mod game {
     use serde::{Deserialize, Serialize};
@@ -165,31 +174,66 @@ pub mod game {
     }
 }
 
-mod forge_xml {
-    #[derive(serde::Deserialize)]
-    pub struct Metadata {
-        versioning: Versioning,
+pub mod plugins {
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct McPluginReport {
+        pub version: String,
+        pub stable: Option<bool>,
     }
 
-    #[derive(serde::Deserialize)]
-    struct Versioning {
-        versions: Versions,
+    pub mod forge_xml {
+        use crate::core::api_client::plugins::McPluginReport;
+
+        #[derive(serde::Deserialize)]
+        pub struct Metadata {
+            versioning: Versioning,
+        }
+
+        #[derive(serde::Deserialize)]
+        struct Versioning {
+            versions: Versions,
+        }
+
+        #[derive(Debug, serde::Deserialize)]
+        struct Versions {
+            version: Vec<String>,
+        }
+
+        impl Metadata {
+            pub fn find_versions_of_game(&self, mc_version: &str) -> Vec<McPluginReport> {
+                let mut versions = Vec::new();
+                for version in &self.versioning.versions.version {
+                    let version_split = version.split_once('-');
+                    if let Some((mc_version_i, forge_version)) = version_split
+                        && mc_version_i == mc_version
+                    {
+                        versions.push(McPluginReport {
+                            version: forge_version.to_string(),
+                            stable: None,
+                        });
+                    }
+                }
+                versions
+            }
+        }
     }
 
-    #[derive(Debug, serde::Deserialize)]
-    struct Versions {
-        version: Vec<String>,
-    }
+    pub mod forge_bmcl {
+        #[derive(serde::Deserialize, serde::Serialize)]
+        pub struct ForgeVersion {
+            mcversion: String,
+            modified: String,
+            pub version: String,
+            files: Vec<File>,
+        }
 
-    impl Metadata {
-        pub fn find_versions_of_game(&self, mc_version: &str) -> Vec<String> {
-            self.versioning
-                .versions
-                .version
-                .iter()
-                .filter(|v| v.starts_with(mc_version))
-                .cloned()
-                .collect()
+        #[derive(serde::Deserialize, serde::Serialize)]
+        struct File {
+            format: String,
+            category: String,
+            hash: String,
         }
     }
 }
@@ -225,7 +269,7 @@ impl MinecraftApiClient {
     }
 
     /// Get data from a URL
-    async fn get_inner<T: DeserializeOwned>(&self, url: &str) -> Result<T, McApiError> {
+    async fn get_inner<T: DeserializeOwned>(&self, url: &str) -> McApiResult<T> {
         let response = self
             .client
             .get(url)
@@ -242,7 +286,7 @@ impl MinecraftApiClient {
         &self,
         url: &str,
         allow_from_cache: bool,
-    ) -> Result<T, McApiError> {
+    ) -> McApiResult<T> {
         let now = Instant::now();
         if allow_from_cache {
             let cache = self.cache.read().await;
@@ -265,7 +309,7 @@ impl MinecraftApiClient {
         &self,
         endpoint: &str,
         allow_from_cache: bool,
-    ) -> Result<T, McApiError> {
+    ) -> McApiResult<T> {
         let url = format!("{}/{}", self.api_bases.read().await.meta_base, endpoint);
         let data = self.get(&url, allow_from_cache).await?;
         Ok(data)
@@ -276,7 +320,7 @@ impl MinecraftApiClient {
         &self,
         version_id: &str,
         temp_dir: &Path,
-    ) -> Result<game::VersionDetails, McApiError> {
+    ) -> McApiResult<game::VersionDetails> {
         // STEP1: get the version json
         let endpoint = game::VERSION_MANIFEST_ENDPOINT;
         let manifest: game::VersionManifest = self.get_with_endpoint(&endpoint, true).await?;
@@ -296,14 +340,14 @@ impl MinecraftApiClient {
     }
 
     /// Get forge version details
-    pub async fn get_forge_versions(&self, version_id: &str) -> Result<Vec<String>, McApiError> {
+    pub async fn get_forge_versions(&self, version_id: &str) -> McApiResult<Vec<McPluginReport>> {
         let guard = ConfigManager::instance().app_state.lock().await;
         let current_provider = &guard.pcl_setup_info.api_provider;
         let forge_base = self.api_bases.read().await.forge_base;
         match *current_provider {
             ApiProvider::Official => {
-                let url = format!("{forge_base}/maven-metadata.xml");
                 drop(guard);
+                let url = format!("{forge_base}/maven-metadata.xml");
                 let response = self
                     .client
                     .get(url)
@@ -311,16 +355,53 @@ impl MinecraftApiClient {
                     .send()
                     .await?;
                 let xml_text = response.text().await?;
-                let metadata: forge_xml::Metadata = quick_xml::de::from_str(&xml_text)?;
+                let metadata: plugins::forge_xml::Metadata = quick_xml::de::from_str(&xml_text)?;
                 let matched_versions = metadata.find_versions_of_game(version_id);
                 return Ok(matched_versions);
             }
             ApiProvider::BMCLApi => {
-                let url = "";
                 drop(guard);
-                return Ok(Vec::new());
+                let url_index = format!("{forge_base}/minecraft");
+                let indexes: Vec<String> = self.get(&url_index, true).await?;
+                log::debug!("BMCL indexes count: {:?}", indexes.len());
+                if indexes.iter().all(|index| index != version_id) {
+                    return Err(McApiError::VersionNotFound(version_id.to_string()));
+                }
+                let forge_info: Vec<plugins::forge_bmcl::ForgeVersion> = self
+                    .get(&format!("{forge_base}/minecraft/{version_id}"), true)
+                    .await?;
+                log::debug!("BMCL forge info count: {:?}", forge_info.len());
+                return Ok(forge_info
+                    .iter()
+                    .map(|info| McPluginReport {
+                        version: info.version.clone(),
+                        stable: None,
+                    })
+                    .collect());
             }
         }
+    }
+
+    pub async fn get_fabric_versions(&self, version_id: &str) -> McApiResult<Vec<McPluginReport>> {
+        let fabric_base = self.api_bases.read().await.fabric_base;
+        let meta_url = format!("{fabric_base}/{version_id}");
+        let fabric_versions: serde_json::Value = self.get(&meta_url, true).await?;
+        let loaders = fabric_versions
+            .as_array()
+            .ok_or_else(|| serde_json::Error::custom("fabric list failed to parse"))?
+            .iter()
+            .filter_map(|v| {
+                let v = v.as_object()?;
+                let loader = v.get("loader")?.as_object()?;
+                let version = loader.get("version")?.as_str()?;
+                let stable = loader.get("stable")?.as_bool();
+                Some(McPluginReport {
+                    version: version.to_string(),
+                    stable: stable,
+                })
+            })
+            .collect();
+        Ok(loaders)
     }
 }
 
