@@ -25,7 +25,7 @@ pub enum OS {
 
 impl OS {
     pub fn current() -> Self {
-        match std::env::consts::OS {
+        match tauri_plugin_os::platform() {
             "windows" => Self::Windows,
             "macos" => Self::macOS,
             _ => Self::Linux,
@@ -109,10 +109,10 @@ impl Architecture {
 
 /// assert compability of java runtime according to the current OS
 pub(super) fn assert_compability(arch: &Architecture) -> Compability {
-    let system = std::env::consts::OS;
-    let current_arch = std::env::consts::ARCH;
+    let system = OS::current();
+    let current_arch = tauri_plugin_os::arch();
     match system {
-        "macos" | "windows" => match current_arch {
+        OS::macOS | OS::Windows => match current_arch {
             "x86_64" => match arch {
                 Architecture::X64 => Compability::Perfect,
                 Architecture::X86 => Compability::Translation,
@@ -125,7 +125,7 @@ pub(super) fn assert_compability(arch: &Architecture) -> Compability {
             },
             _ => Compability::Unknown,
         },
-        "linux" => match current_arch {
+        OS::Linux => match current_arch {
             "x86_64" => match arch {
                 Architecture::X64 => Compability::Perfect,
                 _ => Compability::No,
@@ -136,7 +136,6 @@ pub(super) fn assert_compability(arch: &Architecture) -> Compability {
             },
             _ => Compability::Unknown,
         },
-        _ => Compability::Unknown,
     }
 }
 
@@ -174,8 +173,8 @@ pub fn read_pe_test() {
 
 #[test]
 fn system_arch_test() {
-    let current_arch = std::env::consts::ARCH;
+    let current_arch = tauri_plugin_os::arch();
     println!("current arch: {}", current_arch);
-    let system = std::env::consts::OS;
+    let system = tauri_plugin_os::platform();
     println!("system: {}", system);
 }

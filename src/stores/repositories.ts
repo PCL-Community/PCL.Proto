@@ -5,19 +5,19 @@ import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { defineStore } from 'pinia'
 
-type Repo = { name: string; path: string }
+type Repository = { name: string; path: string }
 
 export const useRepositoriesStore = defineStore('repositories', {
   state: () => ({
-    repositires: [] as Repo[],
+    repositires: undefined as Repository[] | undefined,
   }),
   actions: {
     async fetchFromBackend() {
-      this.repositires = await invoke<Repo[]>('get_repositories')
+      this.repositires = await invoke<Repository[]>('get_repositories')
     },
 
     async getInstancesInRepository(index: number): Promise<GameInstance[]> {
-      return await invoke('get_instances_in_repository', { repository_index: index })
+      return invoke<GameInstance[]>('get_instances_in_repository', { repository_index: index })
     },
 
     async addNew() {
@@ -50,7 +50,7 @@ export const useRepositoriesStore = defineStore('repositories', {
         ],
       })
       if (result) {
-        let repoUpdate = await invoke<Repo[]>('add_new_repository', {
+        let repoUpdate = await invoke<Repository[]>('add_new_repository', {
           new_repo_path: file,
           new_repo_name: result.input,
         })

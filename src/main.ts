@@ -8,6 +8,7 @@ import router from '@/router/index'
 import { createI18n } from 'vue-i18n'
 import locales from './locales'
 import { useAccountInfo } from './stores/account'
+import { attachConsole } from '@tauri-apps/plugin-log'
 
 const pinia = createPinia()
 
@@ -27,6 +28,7 @@ app.use(i18n)
 async function initializeAppState() {
     const accountStore = useAccountInfo()
     await accountStore.initialize()
+    await attachConsole();
 }
 
 app.mount('#app')

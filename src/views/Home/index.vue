@@ -31,9 +31,11 @@ const versionSelectClicked = async () => {
   await useRepositoriesStore().fetchFromBackend()
   router.push({ path: '/instance_select' })
 }
+
 const InstanceSettingClicked = () => {
   router.push({ name: 'instance_setting' })
 }
+
 const launchGame = () => {
   invoke('launch_game')
   console.log('[game] lanuch invoked')
