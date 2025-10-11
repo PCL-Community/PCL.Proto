@@ -1,4 +1,4 @@
-import type { pluginType } from "@/util/gameInfo"
+import type { pluginType } from '@/util/gameInfo'
 
 // export default interface GameInstance {
 //     name: string
@@ -7,19 +7,19 @@ import type { pluginType } from "@/util/gameInfo"
 //     pluginsVersion: Record<pluginType, string>
 // }
 export default interface GameInstance {
-    id: string,
-    name: string,
-    directory: string,
-    jar_path: string,
-    version: string,
-    json_path: string,
-    natives_path: string,
-    // game_java: GameJava,
-    global_dir: GameRepository,
-    pluginsVersion: Record<pluginType, string>
+  id: string
+  name: string
+  directory: string
+  jar_path: string
+  version: string
+  json_path: string
+  natives_path: string
+  // game_java: GameJava,
+  global_dir: string
+  pluginsVersion: Record<pluginType, string>
 }
 
 export interface GameRepository {
-    name: string
-    path: string
+  name: string
+  path: string
 }

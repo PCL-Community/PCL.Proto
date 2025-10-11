@@ -11,9 +11,7 @@ import { type INavItemGroup } from '@/types/naviOptions'
         .side-group-content
             SideNavItem.sidenav-line(
                 v-for="item in content" 
-                :text="item.text" 
-                :icon="item.icon" 
-                :linkto="item.linkto")
+                v-bind="item")
 </template>
 
 <style lang="css" scoped>

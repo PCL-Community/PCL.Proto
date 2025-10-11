@@ -26,7 +26,7 @@ pub fn launch_game(_app: AppHandle, state: State<'_, Arc<Mutex<AppState>>>) -> R
         log::error!("launch_game: {:?}", e);
         return Err(e.to_string());
     } else {
-        if let Err(e) = launch_option.unwrap().launch() {
+        if let Err(e) = launch_option.unwrap().launch_checked() {
             log::error!("launch_game: {:?}", e);
             return Err(e.to_string());
         }
@@ -78,6 +78,18 @@ pub fn get_repositories(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<GameRepos
     state.repositories.clone()
 }
 
+#[tauri::command]
+pub fn add_new_repository(
+    state: State<'_, Arc<Mutex<AppState>>>,
+    new_repo_path: &str,
+    new_repo_name: &str,
+) {
+    let mut guard = state.blocking_lock();
+    guard
+        .repositories
+        .push(GameRepository::new(new_repo_name, new_repo_path.into()));
+}
+
 /// async commands that contain references as inputs must return a Result
 /// so this place returns an option
 #[tauri::command]
@@ -93,36 +105,27 @@ pub async fn get_account() -> Option<Account> {
 #[tauri::command(rename_all = "snake_case")]
 pub async fn get_instances_in_repository(
     state: State<'_, Arc<Mutex<AppState>>>,
-    repository_name: &str,
+    repository_index: usize,
 ) -> Result<Vec<GameInstance>, ()> {
     let state = state.lock().await;
     let all_repos = &state.repositories;
-    let repo = all_repos.iter().find(|repo| repo.name == repository_name);
-    match repo {
-        Some(repo) => Ok(repo.game_instances().to_vec()),
-        None => Err(()),
-    }
+    let repo = &all_repos[repository_index];
+    Ok(repo.game_instances().to_owned())
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn select_instance(
+pub fn select_instance(
     state: State<'_, Arc<Mutex<AppState>>>,
-    repository_name: &str,
+    repository_index: usize,
     instance_id: &str,
-) -> Result<(), ()> {
-    let mut state = state.lock().await;
-    let instances = state
-        .repositories
-        .iter()
-        .find(|repo| repo.name == repository_name)
-        .ok_or(())?
-        .game_instances();
+) {
+    let mut guard = state.blocking_lock();
+    let instances = guard.repositories[repository_index].game_instances();
     let instance = instances
         .iter()
         .find(|instance| instance.id == instance_id)
-        .ok_or(())?;
-    state.active_game_instance = Some(Arc::new(instance.clone()));
-    Ok(())
+        .unwrap();
+    guard.active_game_instance = Some(Arc::new(instance.clone()));
 }
 
 #[tauri::command]

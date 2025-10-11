@@ -21,10 +21,6 @@ use crate::{
 };
 use std::sync::Arc;
 
-// const GAME_DIR: &str = "/Users/amagicpear/HMCL/.minecraft";
-// const LIBRARY_PATH: &str = "/Users/amagicpear/HMCL/.minecraft/libraries";
-// const ASSESTS_DIR: &str = "/Users/amagicpear/HMCL/.minecraft/assets";
-
 /// Essential options for launching a Minecraft game
 pub struct LaunchOption {
     account: Arc<Account>,
@@ -41,7 +37,7 @@ pub enum GameLaunchError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
-    #[error("Json pasring failed: {0}")]
+    #[error("Json parsing failed: {0}")]
     JsonError(#[from] serde_json::Error),
 
     #[error("active java runtime not found")]
@@ -55,14 +51,20 @@ pub enum GameLaunchError {
 }
 
 impl LaunchOption {
-    pub fn set_window_size(&mut self, width: usize, height: usize) -> &Self {
+    pub fn with_window_size(mut self, width: usize, height: usize) -> Self {
         self.width = Some(width);
         self.height = Some(height);
         self
     }
 
+    pub fn launch_checked(&self) -> Result<std::process::Child, GameLaunchError> {
+        // check account
+        // check all the libraries
+        Ok(self.launch()?)
+    }
+
     /// Launch a Minecraft game with the given options
-    pub fn launch(&self) -> Result<std::process::Child, std::io::Error> {
+    fn launch(&self) -> Result<std::process::Child, std::io::Error> {
         let mut command = std::process::Command::new(&self.java_runtime.java_exe);
         command
             .args(self.build_jvm_arguments()) // build jvm arguments
@@ -70,7 +72,7 @@ impl LaunchOption {
             .arg(self.build_classpath().unwrap_or_default())
             .arg(&self.version_details.main_class)
             .args(self.build_game_arguments())
-            .current_dir(&self.game_instance.global_dir.path);
+            .current_dir(&self.game_instance.global_dir);
         command.spawn()
     }
 
@@ -147,7 +149,7 @@ impl LaunchOption {
                 .ok_or(serde_json::Error::custom("Missing path in artifact"))?;
             let lib_full_path = format!(
                 "{}/libraries/{}",
-                self.game_instance.global_dir.path.display(),
+                self.game_instance.global_dir.display(),
                 lib_path
             );
             classpath.push(lib_full_path);
@@ -169,7 +171,7 @@ impl LaunchOption {
             format!("--gameDir={}", self.game_instance.directory.display()),
             format!(
                 "--assetsDir={}/assets",
-                self.game_instance.global_dir.path.display()
+                self.game_instance.global_dir.display()
             ),
             format!("--assetIndex={}", &self.version_details.assets),
             format!("--uuid={}", self.account.uuid()),
@@ -232,7 +234,7 @@ pub fn game_launch_test() {
     let version_folder = PathBuf::from("/Users/amagicpear/HMCL/.minecraft/versions/1.21.8");
     let game_instance =
         Arc::new(GameInstance::from_version_folder(&version_folder, &game_repo).unwrap());
-    let mut launch_option = LaunchOption {
+    let launch_option = LaunchOption {
         account,
         java_runtime: Arc::new(JavaRuntime::try_from("/usr/bin/java").unwrap()),
         game_instance: game_instance.clone(),
@@ -240,8 +242,8 @@ pub fn game_launch_test() {
         width: None,
         height: None,
         version_details: game_instance.read_version_json().unwrap(),
-    };
-    launch_option.set_window_size(1280, 720);
+    }
+    .with_window_size(1280, 720);
     if let Ok(mut child) = launch_option.launch() {
         child.wait().unwrap();
     } else {

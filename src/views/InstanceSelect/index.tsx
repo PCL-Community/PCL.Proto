@@ -1,7 +1,11 @@
 import IconButtonAdd from '@/components/icons/side/IconButtonAdd.vue'
 import IconImportModpack from '@/components/icons/side/IconImportModpack.vue'
+import sideTip from '@/composables/sideTip'
+import { useModal } from '@/composables/useModal'
 import SideNavLayout from '@/layout/SideNavLayout.vue'
 import { useRepositoriesStore } from '@/stores/repositories'
+import { open } from '@tauri-apps/plugin-dialog'
+import { error } from '@tauri-apps/plugin-log'
 import { defineComponent, onBeforeMount } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -15,7 +19,7 @@ export default defineComponent({
         router.push('/instance_select/instance_select_sub/0')
       }
     })
-
+    // TODO)) rewrite this page to allow adding new repositories
     return () => (
       <SideNavLayout
         sideNavGroups={[
@@ -30,8 +34,33 @@ export default defineComponent({
           {
             title: '添加或导入',
             content: [
-              { text: '添加新文件夹', icon: IconButtonAdd },
-              { text: '导入整合包', icon: IconImportModpack },
+              {
+                text: '添加新文件夹',
+                icon: IconButtonAdd,
+                clickCallback() {
+                  open({ multiple: false, directory: true })
+                    .then((file) => {
+                      if (file) {
+                        useModal()
+                          .open({ title: '输入文件夹名称', content: file.split('/').pop() })
+                          .then((value) => {
+                            if (value) {
+                            }
+                          })
+                      }
+                    })
+                    .catch((reason) => {
+                      error('failed to select new repo', reason)
+                    })
+                },
+              },
+              {
+                text: '导入整合包',
+                icon: IconImportModpack,
+                clickCallback() {
+                  sideTip.show('暂未实现导入整合包功能')
+                },
+              },
             ],
           },
         ]}

@@ -33,7 +33,7 @@ watch(
 
 function select_instance(instance: GameInstance) {
   invoke('select_instance', {
-    repository_name: instance.global_dir.name,
+    repository_index: Number(route.params.repository),
     instance_id: instance.id,
   })
     .then(() => {

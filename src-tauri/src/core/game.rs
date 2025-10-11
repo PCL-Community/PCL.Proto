@@ -21,7 +21,7 @@ pub struct GameInstance {
     pub json_path: PathBuf,
     pub natives_path: PathBuf,
     pub game_java: GameJava,
-    pub global_dir: GameRepository,
+    pub global_dir: PathBuf,
     pub plugin_type: PluginType,
 }
 
@@ -89,7 +89,7 @@ impl GameInstance {
                 json_path,
                 natives_path: version_folder.join("natives"),
                 game_java: GameJava::Default,
-                global_dir: repo.clone(),
+                global_dir: repo.path.clone(),
                 plugin_type: PluginType::default(),
             });
         } else {

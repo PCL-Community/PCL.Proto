@@ -19,7 +19,7 @@ pub fn run() {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Debug)
+                        .level(log::LevelFilter::Info)
                         .build(),
                 )?;
             }
@@ -53,6 +53,7 @@ pub fn run() {
             commands::get_java_list,
             commands::refresh_java_list,
             commands::get_repositories,
+            commands::add_new_repository,
             commands::get_account,
             commands::get_instances_in_repository,
             commands::select_instance,

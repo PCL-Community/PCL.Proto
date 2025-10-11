@@ -5,7 +5,7 @@ defineProps<INavItem>()
 </script>
 
 <template lang="pug">
-    RouterLink(:to="linkto ?? '/home'")
+    RouterLink(v-if="linkto" :to="linkto" @click="clickCallback")
         svg.indicator(width="4" height="23" viewBox="0 0 4 23")
             line(x1="2" y1="2" x2="2" y2="21" stroke="currentColor" stroke-width="4" stroke-linecap="round")
 
@@ -15,10 +15,43 @@ defineProps<INavItem>()
         p {{ text }}
         i.refresh-icon.button-animated
             component(:is="IconRefresh")
+    a(v-else @click="clickCallback" class="custom")
+        i.side-nav-icon(v-if="icon")
+            component(:is="icon")
+
+        p {{ text }}
 
 </template>
 
 <style scoped>
+a {
+  width: 100%;
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 13px;
+  color: var(--color-text-black);
+  height: 34px;
+  background-color: transparent;
+  transition: 0.4s;
+  padding-inline-end: 10px;
+}
+
+a:hover {
+  background-color: var(--color-tint-lighter);
+}
+
+a.router-link-active {
+  color: var(--color-tint);
+}
+
+a.custom {
+  /* left: 11px gap + 4px width */
+  padding-inline: 15px 22px;
+  cursor: pointer;
+}
+
 .indicator {
   visibility: hidden;
   transform: scaleY(0);
@@ -37,7 +70,6 @@ i.refresh-icon {
   color: var(--light-blue);
   opacity: 0;
   transition: 0.4s;
-  margin-right: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -63,26 +95,5 @@ a.router-link-active:hover i.refresh-icon {
 :deep(.side-nav-icon > svg) {
   max-width: 100%;
   max-height: 100%;
-}
-
-a {
-  width: 100%;
-  display: flex;
-  gap: 11px;
-  align-items: center;
-  justify-content: flex-start;
-  font-size: 13px;
-  color: var(--color-text-black);
-  height: 34px;
-  background-color: transparent;
-  transition: 0.4s;
-}
-
-a:hover {
-  background-color: var(--color-tint-lighter);
-}
-
-a.router-link-active {
-  color: var(--color-tint);
 }
 </style>
