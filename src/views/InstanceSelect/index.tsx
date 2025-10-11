@@ -4,6 +4,7 @@ import sideTip from '@/composables/sideTip'
 import { useModal } from '@/composables/useModal'
 import SideNavLayout from '@/layout/SideNavLayout.vue'
 import { useRepositoriesStore } from '@/stores/repositories'
+import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { error } from '@tauri-apps/plugin-log'
 import { defineComponent, onBeforeMount } from 'vue'
@@ -11,6 +12,7 @@ import { useRouter } from 'vue-router'
 
 export default defineComponent({
   setup() {
+    const modal = useModal()
     const repo = useRepositoriesStore()
     const router = useRouter()
 
@@ -37,22 +39,7 @@ export default defineComponent({
               {
                 text: '添加新文件夹',
                 icon: IconButtonAdd,
-                clickCallback() {
-                  open({ multiple: false, directory: true })
-                    .then((file) => {
-                      if (file) {
-                        useModal()
-                          .open({ title: '输入文件夹名称', content: file.split('/').pop() })
-                          .then((value) => {
-                            if (value) {
-                            }
-                          })
-                      }
-                    })
-                    .catch((reason) => {
-                      error('failed to select new repo', reason)
-                    })
-                },
+                clickCallback: repo.addNew,
               },
               {
                 text: '导入整合包',

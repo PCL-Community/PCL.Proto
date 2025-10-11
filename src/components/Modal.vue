@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { useModal } from '@/composables/useModal'
 import PButton from './widget/PButton.vue'
+import type { ModalButtonOption } from '@/types/modal'
 
-const { isOpen, options, close } = useModal()
-const handleButtonClick = async (btn: any) => {
+const { isOpen, options, close, inputValue } = useModal()
+const handleButtonClick = async (btn: ModalButtonOption) => {
   if (btn.operation) await btn.operation()
-  close(true)
+  else close(false)
 }
 </script>
 
@@ -18,7 +19,13 @@ const handleButtonClick = async (btn: any) => {
 
         .modal-divider
 
-        .modal-body {{ options.content ?? '模态框正文未设置' }}
+        .modal-body
+          p(v-if="options.content") {{ options.content }}
+
+          input.modal-input(
+            v-if="options.showInput"
+            v-model="inputValue"
+          )
 
         .modal-footer
           template(v-if="options.buttons && options.buttons.length")
@@ -79,6 +86,11 @@ const handleButtonClick = async (btn: any) => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+.modal-input {
+  width: 100%;
+  font-size: 13px;
 }
 
 /*

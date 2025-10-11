@@ -4,7 +4,7 @@ export interface INavItem {
     text: string,
     icon?: Component,
     linkto?: string,
-    clickCallback?: (payload: PointerEvent) => void,
+    clickCallback?: (payload: PointerEvent) => any,
 }
 
 export interface INavItemGroup {

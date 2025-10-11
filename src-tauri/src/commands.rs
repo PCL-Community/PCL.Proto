@@ -78,16 +78,28 @@ pub fn get_repositories(state: State<'_, Arc<Mutex<AppState>>>) -> Vec<GameRepos
     state.repositories.clone()
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn add_new_repository(
     state: State<'_, Arc<Mutex<AppState>>>,
     new_repo_path: &str,
     new_repo_name: &str,
-) {
+) -> Result<Vec<GameRepository>, String> {
     let mut guard = state.blocking_lock();
+    if guard.repositories.iter().any(|repo_old| {
+        repo_old.name == new_repo_name || repo_old.path.as_os_str() == new_repo_path
+    }) {
+        return Err("repo info conflits with current!".into());
+    }
     guard
         .repositories
         .push(GameRepository::new(new_repo_name, new_repo_path.into()));
+    log::info!(
+        "added new repo, name: {}, path: {}, repos count now: {}",
+        new_repo_name,
+        new_repo_path,
+        guard.repositories.len()
+    );
+    Ok(guard.repositories.clone())
 }
 
 /// async commands that contain references as inputs must return a Result

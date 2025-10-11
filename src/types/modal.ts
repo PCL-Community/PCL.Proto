@@ -4,7 +4,12 @@ import { type Ref } from "vue";
 export interface ModalButtonOption {
   type?: ButtonType;
   content: string;
-  operation?: () => void | Promise<void>;
+  operation?: () => any | Promise<any>;
+}
+
+export interface ModalResult {
+  confirmed: boolean
+  input?: string
 }
 
 export enum ModalWidthVirant {
@@ -17,12 +22,15 @@ export interface ModalOptions {
   title?: string;
   width?: ModalWidthVirant;
   buttons?: ModalButtonOption[];
+  showInput?: boolean,
+  defaultInputText?: string;
 }
 
 export interface ModalApi {
   isOpen: Ref<boolean>,
   options: Ref<ModalOptions>,
-  open: (options: ModalOptions) => Promise<boolean>,
+  inputValue: Ref<string | undefined>,
+  open: (options: ModalOptions) => Promise<ModalResult>,
   close: (result?: boolean) => void,
 }
 
