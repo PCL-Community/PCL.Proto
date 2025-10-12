@@ -25,6 +25,7 @@
     "@tauri-apps/plugin-os": "~2.3.1",
     "animate.css": "^4.1.1",
     "marked": "^16.4.0",
+    "motion-v": "^1.7.2",
     "pinia": "^3.0.3",
     "skinview3d": "^3.4.1",
     "vue": "^3.5.22",
