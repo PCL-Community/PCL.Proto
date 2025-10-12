@@ -9,10 +9,12 @@ import { useSelectedInstance } from '@/stores/gameLaunch'
 import router from '@/router'
 import { invoke } from '@tauri-apps/api/core'
 import { useRepositoriesStore } from '@/stores/repositories'
+import sideTip from '@/composables/sideTip'
 
 const subviewRef = ref<HTMLElement>()
 const sideNavState = useSideNavState()
 const accontInfo = useAccountInfo()
+const selectedInstance = useSelectedInstance()
 
 onMounted(() => {
   sideNavState.setWidthOfPageDefault('home')
@@ -33,16 +35,22 @@ const versionSelectClicked = async () => {
 }
 
 const InstanceSettingClicked = () => {
-  router.push({ name: 'instance_setting' })
+  if (selectedInstance.instance_info) {
+    router.push({ name: 'instance_setting' })
+  } else {
+    sideTip.show('Please select an instance first')
+  }
 }
 
 const launchGame = () => {
-  invoke('launch_game')
+  invoke('launch_game').catch((err) => {
+    sideTip.show(`Failed to launch: ${err}`, 'warn')
+  })
   console.log('[game] lanuch invoked')
 }
 
 const gameName = computed(() => {
-  return useSelectedInstance().instance_info?.name || 'No Instance Selected'
+  return selectedInstance.instance_info?.name || 'No Instance Selected'
 })
 </script>
 

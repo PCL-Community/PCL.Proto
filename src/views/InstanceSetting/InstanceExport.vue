@@ -16,7 +16,7 @@ const selectedInstance = useSelectedInstance()
           type="input"
           label="整合包名称"
           style="flex: 3"
-          :options="[{ key: 'placeholder', text: selectedInstance.name }]"
+          :options="[{ key: 'placeholder', text: selectedInstance.instance_info!.name }]"
         />
         <setup-item
           type="input"

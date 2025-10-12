@@ -126,6 +126,13 @@ pub async fn get_instances_in_repository(
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub fn get_active_instance(state: State<'_, Arc<Mutex<AppState>>>) -> Option<GameInstance> {
+    let guard = state.blocking_lock();
+    let active_instance = guard.active_game_instance.clone();
+    active_instance.as_deref().cloned()
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub fn select_instance(
     state: State<'_, Arc<Mutex<AppState>>>,
     repository_index: usize,

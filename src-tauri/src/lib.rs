@@ -64,7 +64,8 @@ pub fn run() {
             commands::get_version_manifest,
             commands::handle_clicked_on_version,
             downloader::minecraft_resource::download_minecraft_version,
-            commands::get_plugin_versions
+            commands::get_plugin_versions,
+            commands::get_active_instance
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

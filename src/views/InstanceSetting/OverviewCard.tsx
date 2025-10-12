@@ -1,29 +1,46 @@
 import CardInfoItem from '@/components/widget/CardInfoItem.vue'
 import PCard from '@/components/widget/PCard.vue'
-import { isIconPixelated, pluginShowText, showIconPath, type pluginType } from '@/util/gameInfo'
+import { isIconPixelated, showIconPath } from '@/util/gameInfo'
 import { useSelectedInstance } from '@/stores/gameLaunch'
 import { computed, defineComponent } from 'vue'
 
 const OverviewCard = defineComponent({
   name: 'OverviewCard',
   setup() {
-    const selectedInstance = useSelectedInstance()
-    const plugin = computed(() => selectedInstance.plugins[0] as pluginType) // TODO: 暂时如此
-    return () => (
-      <PCard hideTitle={true}>
-        {{
-          content: () => (
-            <CardInfoItem
-              title={selectedInstance.name}
-              subtitle={`${selectedInstance.version}, ${pluginShowText[plugin.value]} ${selectedInstance.pluginsVersion[plugin.value]}`}
-              icon={showIconPath[plugin.value]}
-              hoverEffect={false}
-              pixelatedIcon={isIconPixelated[plugin.value]}
-            ></CardInfoItem>
-          ),
-        }}
-      </PCard>
-    )
+    const { instance_info, plugins } = useSelectedInstance()
+
+    if (instance_info != null) {
+      const pluginsMap = instance_info.pluginsVersion
+      const subtitle = computed(() => {
+        let text = instance_info.version
+        if (pluginsMap) {
+          text += ` ${pluginsMap}`
+        }
+        return text
+      })
+
+      const iconType = computed(() => {
+        if (pluginsMap && plugins[0]) {
+          return plugins[0]
+        } else {
+          return 'vanilla'
+        }
+      })
+
+      return () => (
+        <PCard hideTitle={true}>
+          <CardInfoItem
+            title={instance_info.name}
+            subtitle={subtitle.value}
+            icon={showIconPath[iconType.value]}
+            hoverEffect={false}
+            pixelatedIcon={isIconPixelated[iconType.value]}
+          ></CardInfoItem>
+        </PCard>
+      )
+    } else {
+      return () => 'error loading instance'
+    }
   },
 })
 

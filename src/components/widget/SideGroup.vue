@@ -9,7 +9,7 @@ import { type INavItemGroup } from '@/types/naviOptions'
         //- 添加 sidenav-line 类是为了方便外部做动画的
         p.side-group-title.sidenav-line {{title}}
         .side-group-content
-            SideNavItem.sidenav-line(
+            SideNavItem(
                 v-for="item in content" 
                 v-bind="item")
 </template>

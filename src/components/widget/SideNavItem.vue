@@ -1,26 +1,33 @@
 <script setup lang="ts">
 import type { INavItem } from '@/types/naviOptions'
 import IconRefresh from '@/components/icons/side/IconRefresh.vue'
+import { RouterLink } from 'vue-router'
 defineProps<INavItem>()
 </script>
 
-<template lang="pug">
-    RouterLink(v-if="linkto" :to="linkto" @click="clickCallback")
-        svg.indicator(width="4" height="23" viewBox="0 0 4 23")
-            line(x1="2" y1="2" x2="2" y2="21" stroke="currentColor" stroke-width="4" stroke-linecap="round")
+<template>
+  <component
+    :is="linkto ? RouterLink : 'a'"
+    :to="linkto"
+    @click="clickCallback"
+    :class="{ custom: !linkto, 'sidenav-line': true }"
+  >
+    <svg class="indicator" width="4" height="23" viewBox="0 0 4 23" v-if="linkto">
+      <line
+        x1="2"
+        y1="2"
+        x2="2"
+        y2="21"
+        stroke="currentColor"
+        stroke-width="4"
+        stroke-linecap="round"
+      />
+    </svg>
 
-        i.side-nav-icon(v-if="icon")
-            component(:is="icon")
-
-        p {{ text }}
-        i.refresh-icon.button-animated
-            component(:is="IconRefresh")
-    a(v-else @click="clickCallback" class="custom")
-        i.side-nav-icon(v-if="icon")
-            component(:is="icon")
-
-        p {{ text }}
-
+    <i class="side-nav-icon" v-if="icon"><icon /></i>
+    <p>{{ text }}</p>
+    <i class="refresh-icon button-animated" v-if="linkto"><IconRefresh /></i>
+  </component>
 </template>
 
 <style scoped>
