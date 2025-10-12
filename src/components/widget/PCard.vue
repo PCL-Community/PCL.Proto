@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
+import { onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 import IconUnfold from '../icons/control/IconUnfold.vue'
 
 export type FoldStatus = 'unfold' | 'fold' | 'unfoldable'
@@ -23,6 +23,7 @@ const foldState = ref<FoldStatus>(props.defaultFoldStatus)
 const cardHeight = ref<number>(40)
 
 const mycardInnerRef = useTemplateRef<HTMLElement>('mycardInner')
+const containerRef = useTemplateRef<HTMLDivElement>('container')
 
 let observer: ResizeObserver | null = null
 
@@ -50,6 +51,17 @@ onMounted(() => {
   observer.observe(mycardInnerRef.value!)
 })
 
+watch(cardHeight, (newH, oldH) => {
+  let out = newH - oldH > 0 ? 12 : -12
+  containerRef.value?.animate(
+    [{ height: oldH + 'px' }, { height: newH + out + 'px' }, { height: newH + 'px' }],
+    {
+      duration: Math.log(1 + Math.abs(newH - oldH)) * 80,
+      easing: 'ease-in-out',
+    },
+  )
+})
+
 onUnmounted(() => observer?.disconnect())
 
 // allow outside state control
@@ -57,7 +69,7 @@ defineExpose({ SwitchFoldState })
 </script>
 
 <template lang="pug">
-.mycard-container(:class="foldState")
+.mycard-container(:class="foldState" ref="container")
     .mycard(ref="mycardInner" :class="{'hide-title': hideTitle }")
         header.mycard-title(v-if="!hideTitle" @click="SwitchFoldState")
             //- 此处为兼容性设计：title插槽被设置时显示插槽内容，否则默认显示props中的title属性
@@ -84,10 +96,10 @@ defineExpose({ SwitchFoldState })
 
 .mycard-container {
   flex-shrink: 0;
-  height: v-bind("cardHeight + 'px'");
-  transition:
-    height 0.4s cubic-bezier(0.4, 1.4, 0.6, 1),
-    box-shadow 0.4s;
+  /* height: v-bind("cardHeight + 'px'"); */
+  transition: box-shadow 0.4s;
+  /* height 0.4s cubic-bezier(0.4, 1.4, 0.6, 1), */
+  /* height 0.3s ease-out, */
   border-radius: 6px;
   background: var(--color-background-soft);
   box-shadow: 0px 0px 6px rgba(0, 0, 0, 0.1);
