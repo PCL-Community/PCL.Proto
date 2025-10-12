@@ -22,6 +22,7 @@ const props = withDefaults(
 const foldState = ref<FoldStatus>(props.defaultFoldStatus)
 const cardHeight = ref<number>(40)
 const mycardInnerRef = useTemplateRef<HTMLElement>('mycardInner')
+const shouldSpring = ref<boolean>(true)
 
 let observer: ResizeObserver | null = null
 
@@ -32,6 +33,7 @@ function SwitchFoldState() {
       // 卡片折叠状态固定为高度40
       // 在此处赋值是因为卡片内容有过渡时间
       // 切换时就赋值可以让卡片高度和内容的过渡同时进行
+      shouldSpring.value = cardHeight.value < 500
       cardHeight.value = 40
       break
     case 'fold':
@@ -44,7 +46,10 @@ onMounted(() => {
   observer = new ResizeObserver(() => {
     // 若非折叠状态需要根据内容调整高度
     // 为了方便使高度动画具有回弹动效，使用observer侦测内容来赋值而非让其自动撑开
-    if (foldState.value != 'fold') cardHeight.value = mycardInnerRef.value!.offsetHeight
+    if (foldState.value != 'fold') {
+      shouldSpring.value = mycardInnerRef.value!.offsetHeight < 500
+      cardHeight.value = mycardInnerRef.value!.offsetHeight
+    }
   })
   observer.observe(mycardInnerRef.value!)
 })
@@ -60,7 +65,7 @@ defineExpose({ SwitchFoldState })
     class="mycard-container"
     :class="foldState"
     :animate="{ height: cardHeight }"
-    :transition="{ type: 'spring', stiffness: 330, damping: 25, mass: 1 }"
+    :transition="{ type: shouldSpring ? 'spring' : 'tween', stiffness: 330, damping: 25, mass: 1 }"
   >
     <div class="mycard" ref="mycardInner" :class="{ 'hide-title': hideTitle }">
       <header class="mycard-title" v-if="!hideTitle" @click="SwitchFoldState">

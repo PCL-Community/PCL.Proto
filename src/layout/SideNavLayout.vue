@@ -7,6 +7,7 @@ import { type INavItemGroup } from '@/types/naviOptions'
 import { animateCssFor } from '@/util/animateCSS'
 import { useRouter } from 'vue-router'
 import PLoading from '@/components/widget/PLoading.vue'
+import { animate, stagger } from 'motion-v'
 
 export default defineComponent({
   name: 'SideNavLayout',
@@ -41,7 +42,17 @@ export default defineComponent({
         const childrenWithoutLoading = Array.from(allChildren).filter(
           (item) => !item.classList.contains('loading-page'),
         ) as HTMLElement[]
-        animateCssFor(childrenWithoutLoading, 'fadeInDown', 30)
+        // animateCssFor(childrenWithoutLoading, 'fadeInDown', 30)
+        animate(
+          childrenWithoutLoading,
+          { y: [-20, 0], opacity: [0, 1] },
+          {
+            delay: stagger(0.06, { startDelay: 0 }),
+            type: 'spring',
+            duration: 0.6,
+            bounce: 0.49,
+          },
+        )
       }
     }
 
