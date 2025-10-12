@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import PCard from '@/components/widget/PCard.vue'
 import PInput from '@/components/widget/PInput.vue'
-import { showIconPath, type pluginType } from '@/util/gameInfo'
+import { gameInfoIcon, showIconPath, type pluginType } from '@/util/gameInfo'
 import { info } from '@tauri-apps/plugin-log'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -15,7 +15,12 @@ import type { VersionDetails } from '@/api/gameVersions'
 import type { McPluginReport } from '@/types/mcPlugin'
 
 const router = useRouter()
-const version_id = useRoute().query.version as string
+
+const { version_id, version_type } = useRoute().query as {
+  version_id: string
+  version_type: 'release' | 'snapshot' | 'old'
+}
+
 const instance_name = ref(version_id)
 const { floatButtonState, setFloatButton } = useFloatButton()
 var unlistenButton: any
@@ -25,7 +30,7 @@ const arrowLeftClicked = () => {
 }
 
 // defaults are all undefined
-const pluginVersions = ref({} as { [K in pluginType]: McPluginReport[] })
+const pluginVersions = ref({} as { [K in pluginType]: McPluginReport[] | null })
 const pluginSelectState = ref({} as { [K in pluginType]: string })
 let avaliablePlugins = ['forge', 'fabric'] satisfies pluginType[]
 
@@ -54,6 +59,7 @@ onMounted(async () => {
         })
       } catch (err) {
         console.error(`Failed to get versions for ${plugin}:`, err)
+        pluginVersions.value[plugin] = null
       }
     }),
   )
@@ -75,20 +81,22 @@ function onSelect(plugin: pluginType, versionId: string) {
 <template>
   <PCard hide-title>
     <i class="arrow-left button-animated" @click="arrowLeftClicked"> <ArrowLeft /></i>
-    <img :src="showIconPath['vanilla']" />
+    <img :src="showIconPath[gameInfoIcon[version_type]]" />
     <PInput v-model="instance_name" />
   </PCard>
   <ModifyCard
     :plugin="'vanilla'"
     :versions="[{ version: version_id, stable: null }]"
     :is-loading="false"
+    :icon-type="gameInfoIcon[version_type]"
   />
   <ModifyCard
     v-for="plugin in avaliablePlugins"
     :plugin
-    :is-loading="pluginVersions[plugin] == undefined"
+    :is-loading="pluginVersions[plugin] === undefined"
     :versions="pluginVersions[plugin]"
     @select-version="onSelect"
+    :icon-type="plugin"
   />
 </template>
 

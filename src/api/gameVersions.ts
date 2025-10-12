@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { ref } from 'vue'
 
-export type gameVersionType = 'snapshot' | 'release' | 'old_beta' | 'old_alpha'
+export type gameVersionType = 'snapshot' | 'release' | 'old_beta' | 'old_alpha' | 'old'
 
 interface IVersionManifest {
   latest: {

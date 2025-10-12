@@ -30,17 +30,17 @@ export default defineComponent({
                 title={item.id}
                 subtitle={`${t('download.published_at')} ${item.releaseTime}`}
                 isGameInfo
-                click={() => clickOnVersion(item.id)}
+                click={() => clickOnVersion(item.id, dataKey)}
               />
             )),
         }}
       </PCard>
     )
-    function clickOnVersion(version: string) {
+    function clickOnVersion(version: string, version_type: 'release' | 'snapshot' | 'old') {
       info(`clicked on version: ${version}`)
       router.push({
         path: '/download/game/inner',
-        query: { version },
+        query: { version_id: version, version_type },
       })
     }
     return () =>
@@ -52,14 +52,14 @@ export default defineComponent({
               title={versionDataRef.value.latest.release.id}
               subtitle={`${t('download.latest_stable')}, ${t('download.published_at')} ${versionDataRef.value.latest.release.releaseTime}`}
               is-game-info
-              click={() => clickOnVersion(versionDataRef.value?.latest.release.id as string)}
+              click={() => clickOnVersion(versionDataRef.value!.latest.release.id, 'release')}
             />
             <CardInfoItem
               icon={showIconPath.command}
               title={versionDataRef.value.latest.snapshot.id}
               subtitle={`${t('download.latest_snapshot')}, ${t('download.published_at')} ${versionDataRef.value.latest.snapshot.releaseTime}`}
               is-game-info
-              click={() => clickOnVersion(versionDataRef.value?.latest.snapshot.id as string)}
+              click={() => clickOnVersion(versionDataRef.value!.latest.snapshot.id, 'snapshot')}
             />
           </PCard>
 

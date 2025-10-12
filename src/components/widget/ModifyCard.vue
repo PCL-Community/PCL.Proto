@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import PCard from '@/components/widget/PCard.vue'
-import { pluginShowText, showIconPath, type pluginType } from '@/util/gameInfo'
+import { pluginShowText, showIconPath, type pluginType, type showIconType } from '@/util/gameInfo'
 import CardInfoItem from './CardInfoItem.vue'
 import { ref } from 'vue'
 import { onMounted } from 'vue'
@@ -14,9 +14,11 @@ const emit = defineEmits<{
 const cardRef = useTemplateRef('cardRef')
 const props = defineProps<{
   plugin: pluginType
-  versions?: McPluginReport[]
+  // versions为undefined时是还没加载，为null时是加载错误，为空列表时是正常得到无可用版本的结果
+  versions: McPluginReport[] | undefined | null
   notCompatibleWith?: pluginType
   isLoading: boolean
+  iconType: showIconType
 }>()
 
 function select(versionId: string) {
@@ -44,11 +46,14 @@ onMounted(() => {
         <span>加载中...</span>
       </div>
       <div v-else-if="selectedVersionId" class="version">
-        <img :src="showIconPath[plugin]" />
+        <img :src="showIconPath[iconType]" />
         <span>{{ selectedVersionId }} </span>
       </div>
       <div v-else-if="versions" class="sub">
         <span>选择版本</span>
+      </div>
+      <div v-else class="sub">
+        <span>加载错误或无可用版本</span>
       </div>
     </template>
     <template #content v-if="plugin != 'vanilla' && versions">
@@ -57,7 +62,7 @@ onMounted(() => {
         :title="version.version"
         :subtitle="version.stable == null ? undefined : version.stable ? '稳定版' : '开发版'"
         :click="() => select(version.version)"
-        :icon="showIconPath[plugin]"
+        :icon="showIconPath[iconType]"
       />
     </template>
   </PCard>

@@ -24,6 +24,7 @@ export const gameInfoIcon: Record<showGameType, showIconType> = {
   old_beta: 'stone',
   old_alpha: 'stone',
   fool: 'gold',
+  old: 'stone',
 }
 
 export const showIconPath: Record<showIconType, string> = {

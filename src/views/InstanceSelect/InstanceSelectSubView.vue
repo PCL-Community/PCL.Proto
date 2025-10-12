@@ -37,9 +37,10 @@ function select_instance(instance: GameInstance) {
     instance_id: instance.id,
   })
     .then(() => {
-      Object.assign(selectedInstance, instance)
+      selectedInstance.$patch({ instance_info: instance })
       info(`select_instance success: ${instance.id}`)
       sideTip.show(`Successfully selected ${instance.id}`, 'success')
+      console.log(selectedInstance.plugins)
       router.push('/home')
     })
     .catch((err) => {

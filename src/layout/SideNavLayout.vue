@@ -62,11 +62,11 @@ export default defineComponent({
         // console.log('[nav] afterEach', to, from)
         nextTick(() => {
           animateSubview()
-          // 均使用本组件的页面切换时本组件会复用，因此需要重新应用侧边动画
-          // 但是在同样一级页面内跳转二级页面时无需再次动画
-          if (from.matched[0]!.name !== to.matched[0]!.name) {
-            animateSidenavLines()
-          }
+          // // 均使用本组件的页面切换时本组件会复用，因此需要重新应用侧边动画
+          // // 但是在同样一级页面内跳转二级页面时无需再次动画
+          // if (from.matched[0]!.name !== to.matched[0]!.name) {
+          //   animateSidenavLines()
+          // }
         })
       })
       nextTick(() => {
@@ -93,8 +93,7 @@ export default defineComponent({
     aside(ref="asideRef")
         SideGroup(
             v-for="group in sideNavGroups"
-            :title="group.title ? $t(group.title) : undefined"
-            :content="group.content.map(item => ({ ...item, text: $t(item.text) }))"
+            v-bind="group"
 )
     article.subview(ref="subviewRef")
         RouterView()

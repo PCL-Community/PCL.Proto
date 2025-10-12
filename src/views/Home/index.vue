@@ -42,7 +42,7 @@ const launchGame = () => {
 }
 
 const gameName = computed(() => {
-  return useSelectedInstance().name
+  return useSelectedInstance().instance_info?.name || 'No Instance Selected'
 })
 </script>
 
