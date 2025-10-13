@@ -33,9 +33,9 @@ jobs:
             const { data } = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              tag_name: `app-v${process.env.PACKAGE_VERSION}`,
-              name: `Desktop App v${process.env.PACKAGE_VERSION}`,
-              body: 'Take a look at the assets to download and install this app.',
+              tag_name: `v${process.env.PACKAGE_VERSION}`,
+              name: `PCL.Proto v${process.env.PACKAGE_VERSION}`,
+              body: 'PCL.Proto builds',
               draft: true,
               prerelease: false
             })
