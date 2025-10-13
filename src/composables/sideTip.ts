@@ -10,7 +10,7 @@ const sideTip = {
         const item: ISideTipItem = { id, message: msg, colorType: type }
         tips.value.push(item)
         setTimeout(() => {
-            tips.value = tips.value.filter(t => t.id !== id)
+            tips.value.shift()
         }, 2000)
     },
     tips

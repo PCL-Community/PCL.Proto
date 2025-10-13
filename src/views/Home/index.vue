@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import PButton from '@/components/widget/PButton.vue'
 import useSideNavState from '@/stores/windowState'
-import { animateCssFor } from '@/util/animateCSS'
 import { computed, nextTick, onMounted, ref } from 'vue'
 import MinecraftAvatar from '@/components/widget/MinecraftAvatar.vue'
 import { useAccountInfo } from '@/stores/account'
@@ -10,6 +9,7 @@ import router from '@/router'
 import { invoke } from '@tauri-apps/api/core'
 import { useRepositoriesStore } from '@/stores/repositories'
 import sideTip from '@/composables/sideTip'
+import cardDropAnimate from '@/util/cardDropAnimate'
 
 const subviewRef = ref<HTMLElement>()
 const sideNavState = useSideNavState()
@@ -18,13 +18,11 @@ const selectedInstance = useSelectedInstance()
 
 onMounted(() => {
   sideNavState.setWidthOfPageDefault('home')
-  nextTick(() => {
-    animateSubview()
-  })
+  animateSubview()
   function animateSubview() {
     if (subviewRef.value) {
-      const allChildren = subviewRef.value.children
-      animateCssFor(allChildren, 'fadeInDown', 30)
+      const allChildren = Array.from(subviewRef.value.children)
+      cardDropAnimate(allChildren)
     }
   }
 })

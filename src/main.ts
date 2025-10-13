@@ -1,4 +1,3 @@
-import 'animate.css'
 import './assets/main.css'
 
 import App from './App.vue'
@@ -27,9 +26,20 @@ app.use(router)
 app.use(pinia)
 app.use(i18n)
 
+// ignore non-emit warnnings
+if (import.meta.env.DEV) {
+  app.config.warnHandler = (msg, instance, trace) => {
+    if (msg.includes('Extraneous non-emits event listeners')) {
+      return
+    }
+    console.warn(msg, trace)
+  }
+}
+
 app.mount('#app')
 
 // some async actions
 useAccountInfo().initialize()
 attachConsole()
 useSelectedInstance().fetch()
+

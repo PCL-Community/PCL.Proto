@@ -50,11 +50,10 @@ function select_instance(instance: GameInstance) {
 </script>
 
 <template>
-  <div class="loading-page" v-if="isLoading">
-    <PLoading />
-  </div>
-  <PCard title="游戏实例" v-else>
+  <PCard title="游戏实例" ref="instanceCard">
+    <PLoading v-if="isLoading" :card="false" />
     <CardInfoItem
+      v-else
       v-for="item in instances"
       :key="item.id"
       :title="item.name"

@@ -1,12 +1,11 @@
 <script lang="ts">
-import { defineComponent, onMounted, onUnmounted, useTemplateRef } from 'vue'
+import { defineComponent, nextTick, onMounted, onUnmounted, useTemplateRef } from 'vue'
 import useSideNavState from '@/stores/windowState'
-import { nextTick } from 'vue'
 import SideGroup from '@/components/widget/SideGroup.vue'
 import { type INavItemGroup } from '@/types/naviOptions'
-import { animateCssFor } from '@/util/animateCSS'
 import { useRouter } from 'vue-router'
 import PLoading from '@/components/widget/PLoading.vue'
+import cardDropAnimate from '@/util/cardDropAnimate'
 
 export default defineComponent({
   name: 'SideNavLayout',
@@ -20,7 +19,8 @@ export default defineComponent({
       required: true,
     },
   },
-  setup() {
+  setup(props, context) {
+    context.expose({ animateSubview })
     let observer: ResizeObserver | null = null
     const asideRef = useTemplateRef<HTMLElement>('asideRef')
     const subviewRef = useTemplateRef<HTMLElement>('subviewRef')
@@ -37,20 +37,8 @@ export default defineComponent({
 
     function animateSubview() {
       if (subviewRef.value) {
-        const allChildren = subviewRef.value.children
-        const childrenWithoutLoading = Array.from(allChildren).filter(
-          (item) => !item.classList.contains('loading-page'),
-        ) as HTMLElement[]
-        animateCssFor(childrenWithoutLoading, 'fadeInDown', 30)
-      }
-    }
-
-    function animateSidenavLines() {
-      if (asideRef.value) {
-        const sidenavLines = asideRef.value.querySelectorAll('.sidenav-line')
-        animateCssFor(sidenavLines, 'fadeInLeft', 20)
-      } else {
-        console.warn('[nav] asideRef is null')
+        const allChildren = Array.from(subviewRef.value.children)
+        cardDropAnimate(allChildren)
       }
     }
 
@@ -59,18 +47,20 @@ export default defineComponent({
       observer = new ResizeObserver(updateAsideBackgroundWidth)
       observer.observe(asideRef.value!)
       removeRouteGuard = router.afterEach((to, from) => {
-        // console.log('[nav] afterEach', to, from)
         nextTick(() => {
           animateSubview()
-          // // 均使用本组件的页面切换时本组件会复用，因此需要重新应用侧边动画
-          // // 但是在同样一级页面内跳转二级页面时无需再次动画
-          // if (from.matched[0]!.name !== to.matched[0]!.name) {
-          //   animateSidenavLines()
-          // }
         })
       })
+      document.querySelectorAll('.sidenav-line').forEach((el_, i) => {
+        let el = el_ as HTMLDivElement
+        el.style.animationDelay = `${i * 0.02}s`
+        el.style.animationPlayState = 'paused'
+        requestAnimationFrame(() => {
+          el.style.animationPlayState = 'running'
+        })
+      })
+
       nextTick(() => {
-        animateSidenavLines()
         animateSubview()
       })
     })
@@ -83,6 +73,7 @@ export default defineComponent({
     return {
       asideRef,
       subviewRef,
+      animateSubview,
     }
   },
 })
@@ -94,9 +85,9 @@ export default defineComponent({
         SideGroup(
             v-for="group in sideNavGroups"
             v-bind="group"
-)
+        )
     article.subview(ref="subviewRef")
-        RouterView()
+        RouterView(@animate-subview="animateSubview")
 </template>
 
 <style scoped>
@@ -112,5 +103,20 @@ aside {
   display: flex;
   flex-direction: column;
   gap: 28px;
+}
+</style>
+
+<style>
+@keyframes fadeInLeft {
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.sidenav-line {
+  opacity: 0;
+  transform: translate3d(-100%, 0, 0);
+  animation: fadeInLeft 0.4s ease forwards;
 }
 </style>

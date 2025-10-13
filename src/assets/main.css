@@ -31,9 +31,11 @@ a,
   overflow-y: auto;
 }
 
-/* animate.css的属性 */
 :root {
-  --animate-duration: 0.5s;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .option {
