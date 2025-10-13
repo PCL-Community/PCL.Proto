@@ -1,7 +1,6 @@
 <script lang="ts">
-import { defineComponent, onMounted, onUnmounted, useTemplateRef } from 'vue'
+import { defineComponent, nextTick, onMounted, onUnmounted, useTemplateRef } from 'vue'
 import useSideNavState from '@/stores/windowState'
-import { nextTick } from 'vue'
 import SideGroup from '@/components/widget/SideGroup.vue'
 import { type INavItemGroup } from '@/types/naviOptions'
 import { animateCssFor } from '@/util/animateCSS'
@@ -21,7 +20,8 @@ export default defineComponent({
       required: true,
     },
   },
-  setup() {
+  setup(props, context) {
+    context.expose({ animateSubview, animateSidenavLines })
     let observer: ResizeObserver | null = null
     const asideRef = useTemplateRef<HTMLElement>('asideRef')
     const subviewRef = useTemplateRef<HTMLElement>('subviewRef')
@@ -38,13 +38,13 @@ export default defineComponent({
 
     function animateSubview() {
       if (subviewRef.value) {
-        const allChildren = subviewRef.value.children
-        const childrenWithoutLoading = Array.from(allChildren).filter(
-          (item) => !item.classList.contains('loading-page'),
-        ) as HTMLElement[]
+        const allChildren = Array.from(subviewRef.value.children)
+        // const childrenWithoutLoading = Array.from(allChildren).filter(
+        //   (item) => !item.classList.contains('loading-page'),
+        // )
         // animateCssFor(childrenWithoutLoading, 'fadeInDown', 30)
         animate(
-          childrenWithoutLoading,
+          allChildren,
           { y: [-20, 0], opacity: [0, 1] },
           {
             delay: stagger(0.06, { startDelay: 0 }),
@@ -91,9 +91,14 @@ export default defineComponent({
       removeRouteGuard?.()
     })
 
+    // const listeners = {
+    //   animateSubview,
+    // }
+
     return {
       asideRef,
       subviewRef,
+      animateSubview,
     }
   },
 })
@@ -105,9 +110,9 @@ export default defineComponent({
         SideGroup(
             v-for="group in sideNavGroups"
             v-bind="group"
-)
+        )
     article.subview(ref="subviewRef")
-        RouterView()
+        RouterView(@animate-subview="animateSubview")
 </template>
 
 <style scoped>

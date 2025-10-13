@@ -9,10 +9,15 @@ import { useI18n } from 'vue-i18n'
 import { info } from '@tauri-apps/plugin-log'
 
 export default defineComponent({
-  setup() {
+  emits: ['animateSubview'],
+  setup(props, ctx) {
     const router = useRouter()
     const { t } = useI18n()
     const versionDataRef = useMinecraftVersions()
+
+    const onLoaded = () => {
+      ctx.emit('animateSubview')
+    }
 
     const renderVersionSection = (
       title: string,
@@ -73,7 +78,7 @@ export default defineComponent({
         </>
       ) : (
         <div class="loading-page">
-          <PLoading state="loading" />
+          <PLoading state="loading" onVnodeUnmounted={onLoaded} />
         </div>
       )
   },

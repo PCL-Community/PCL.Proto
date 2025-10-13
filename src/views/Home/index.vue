@@ -18,9 +18,7 @@ const selectedInstance = useSelectedInstance()
 
 onMounted(() => {
   sideNavState.setWidthOfPageDefault('home')
-  nextTick(() => {
-    animateSubview()
-  })
+  animateSubview()
   function animateSubview() {
     if (subviewRef.value) {
       const allChildren = Array.from(subviewRef.value.children)
