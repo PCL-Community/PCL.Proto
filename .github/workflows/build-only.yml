@@ -48,15 +48,15 @@ jobs:
           pnpm install
 
       - name: generate icons
-        run: |
-          pnpm tauri icon
+        run: pnpm tauri icon
 
       - name: build tauri app
-        run: |
-          pnpm tauri build ${{ matrix.args }}
+        run: pnpm tauri build ${{ matrix.args }}
 
-      - name: upload build artifacts
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: tauri-build-${{ matrix.platform }}
-          path: src-tauri/target/**/release/bundle/
+          path: src-tauri/target/**/release/bundle/**/*
+          if-no-files-found: error
+          retention-days: 7
