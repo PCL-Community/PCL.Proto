@@ -1,6 +1,6 @@
 [package]
 name = "pcl-proto"
-version = "0.6.1"
+version = "0.6.2"
 description = "PCL.Proto"
 authors = ["AMagicPear"]
 license = "PCL-License"
