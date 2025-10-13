@@ -1,7 +1,8 @@
-<!-- 一个自定义的按钮：传入参数tint，若为true则为高亮 -->
-
 <script setup lang="ts">
+import { motion } from 'motion-v'
+
 export type ButtonType = 'default' | 'tint' | 'warn'
+
 defineProps<{
   type?: ButtonType
   inline?: boolean
@@ -9,59 +10,60 @@ defineProps<{
   click?: () => void
   disabled?: boolean
 }>()
+
+const baseColor = {
+  default: 'rgba(52, 61, 74, 1)',
+  tint: 'var(--color-tint)',
+  warn: 'var(--color-warn)',
+}
+
+const hoverBg = {
+  default: 'var(--color-tint-lighter)',
+  tint: 'var(--color-tint-lighter)',
+  warn: 'var(--color-warn-lighter)',
+}
 </script>
 
-<template lang="pug">
-    button.mybutton(:class="[type ?? 'default', inline ? 'inline' : '']" :title="tooltip" @click="disabled? null :click?.()" :disabled="disabled")
-        slot 我的按钮
+<template>
+  <motion.button
+    :class="['mybutton', inline && 'inline', type ?? 'default']"
+    :title="tooltip"
+    :disabled="disabled"
+    :style="{
+      color: disabled ? 'var(--color-text-grey)' : baseColor[type ?? 'default'],
+      borderColor: disabled ? 'var(--color-text-grey)' : baseColor[type ?? 'default'],
+      cursor: disabled ? 'not-allowed' : 'pointer',
+    }"
+    @click="!disabled && click?.()"
+    :while-hover="!disabled ? { backgroundColor: hoverBg[type ?? 'default'] } : undefined"
+    :while-press="!disabled ? { scale: 0.95 } : undefined"
+    :transition="{
+      default: { type: 'tween', duration: 0.4 },
+      scale: { ease: 'easeOut', duration: 0.2 },
+    }"
+  >
+    <slot />
+  </motion.button>
 </template>
 
 <style scoped>
-* {
+.mybutton {
   font-size: 13px;
-}
-
-button.mybutton {
   padding: 0.5rem;
   background-color: transparent;
   border-radius: 4px;
   border: 1px solid rgba(52, 61, 74, 1);
-  transition: all 0.2s;
+  outline: none;
 }
 
-button.inline {
+.inline {
   padding-block: 5px;
   padding-inline: 10px;
 }
 
-button.tint {
-  color: var(--color-tint);
-  border-color: var(--color-tint);
-}
-
-button.warn {
-  color: var(--color-warn);
-  border-color: var(--color-warn);
-}
-
-button.mybutton:not(:disabled):hover {
-  background-color: var(--color-tint-lighter);
-  color: var(--color-tint);
-  border-color: var(--color-tint);
-}
-
-button.warn:not(:disabled):hover {
-  background-color: var(--color-warn-lighter);
-  color: var(--color-warn);
-  border-color: var(--color-warn);
-}
-
-button.mybutton:not(:disabled):active {
-  transform: scale(0.95);
-}
-
-button.mybutton:disabled {
+.mybutton:disabled {
   color: var(--color-text-grey);
   border-color: var(--color-text-grey);
+  background: transparent;
 }
 </style>
