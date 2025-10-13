@@ -89,6 +89,10 @@ jobs:
           corepack enable pnpm
           pnpm install
 
+      - name: generate icons
+        run: |
+          pnpm tauri icon
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
