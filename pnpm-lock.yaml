@@ -20,9 +20,6 @@ importers:
       '@tauri-apps/plugin-os':
         specifier: ~2.3.1
         version: 2.3.1
-      animate.css:
-        specifier: ^4.1.1
-        version: 4.1.1
       marked:
         specifier: ^16.4.0
         version: 16.4.0
@@ -761,9 +758,6 @@ packages:
 
   alien-signals@3.0.0:
     resolution: {integrity: sha512-JHoRJf18Y6HN4/KZALr3iU+0vW9LKG+8FMThQlbn4+gv8utsLIkwpomjElGPccGeNwh0FI2HN6BLnyFLo6OyLQ==}
-
-  animate.css@4.1.1:
-    resolution: {integrity: sha512-+mRmCTv6SbCmtYJCN4faJMNFVNN5EuCTTprDTAo7YzIGji2KADmakjVA3+8mVDkZ2Bf09vayB35lSQIex2+QaQ==}
 
   ansi-styles@6.2.3:
     resolution: {integrity: sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg==}
@@ -2187,8 +2181,6 @@ snapshots:
   acorn@7.4.1: {}
 
   alien-signals@3.0.0: {}
-
-  animate.css@4.1.1: {}
 
   ansi-styles@6.2.3: {}
 
