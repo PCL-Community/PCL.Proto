@@ -9,7 +9,7 @@ import router from '@/router'
 import { invoke } from '@tauri-apps/api/core'
 import { useRepositoriesStore } from '@/stores/repositories'
 import sideTip from '@/composables/sideTip'
-import { animate, stagger } from 'motion-v'
+import cardDropAnimate from '@/util/cardDropAnimate'
 
 const subviewRef = ref<HTMLElement>()
 const sideNavState = useSideNavState()
@@ -22,16 +22,7 @@ onMounted(() => {
   function animateSubview() {
     if (subviewRef.value) {
       const allChildren = Array.from(subviewRef.value.children)
-      animate(
-        allChildren,
-        { y: [-20, 0], opacity: [0, 1] },
-        {
-          delay: stagger(0.06, { startDelay: 0 }),
-          type: 'spring',
-          duration: 0.6,
-          bounce: 0.49,
-        },
-      )
+      cardDropAnimate(allChildren)
     }
   }
 })

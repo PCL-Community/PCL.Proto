@@ -60,7 +60,7 @@ const loadingState = ref<LoadingState>('loading')
 
     PButton(type="tint" :click="presentBtnClick") 点击这个按钮会有提示哦 😬
 
-    PLoading(:state='loadingState')
+    PLoading(:state='loadingState' :card="true")
 
     #loading-control
         PButton(type="tint" :click="() => loadingState = 'loading'") 设置为loading

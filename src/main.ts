@@ -1,4 +1,4 @@
-import 'animate.css'
+// import 'animate.css'
 import './assets/main.css'
 
 import App from './App.vue'

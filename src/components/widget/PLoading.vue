@@ -3,10 +3,14 @@ import { useTemplateRef, watchEffect } from 'vue'
 import PCard from './PCard.vue'
 
 export type LoadingState = 'loading' | 'error'
-const props = withDefaults(defineProps<{ state?: LoadingState; loadingText?: string }>(), {
-  state: 'loading',
-  loadingText: '正在加载中...',
-})
+const props = withDefaults(
+  defineProps<{ state?: LoadingState; loadingText?: string; card?: boolean }>(),
+  {
+    state: 'loading',
+    loadingText: '正在加载中...',
+    card: true,
+  },
+)
 const hammerRef = useTemplateRef<SVGPathElement>('hammerRef')
 const trainglesRef = useTemplateRef<SVGPathElement>('trainglesRef')
 
@@ -18,7 +22,7 @@ watchEffect(() => {
 </script>
 
 <template>
-  <PCard :hide-title="true" class="card-loading">
+  <component :is="card ? PCard : 'div'" :hide-title="true" :class="{ 'card-loading': card }">
     <div id="loading-container">
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -61,7 +65,7 @@ watchEffect(() => {
     <p class="loading-text" :class="state">
       {{ state == 'loading' ? loadingText : '网络环境不佳，请重试或尝试使用 VPN' }}
     </p>
-  </PCard>
+  </component>
 </template>
 
 <style lang="css" scoped>
