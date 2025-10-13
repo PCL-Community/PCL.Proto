@@ -11,7 +11,7 @@ watch(checked, async (value) => {
       title: '提醒',
       content: '内存优化巴拉巴拉……',
     })
-    if (result == false) {
+    if (result.confirmed == false) {
       checked.value = false
     }
   }
