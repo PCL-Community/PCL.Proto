@@ -9,21 +9,22 @@ import type GameInstance from '@/types/gameInstance'
 import { showIconPath } from '@/util/gameInfo'
 import { invoke } from '@tauri-apps/api/core'
 import { error, info } from '@tauri-apps/plugin-log'
+import { useRouteParams } from '@vueuse/router'
 import { ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
-const route = useRoute()
+const repository = useRouteParams('repository', 0, { transform: Number })
 const router = useRouter()
-const repos = useRepositoriesStore()
+const reposStore = useRepositoriesStore()
 const selectedInstance = useSelectedInstance()
 const instances = ref<GameInstance[]>([])
 const isLoading = ref(false)
 
 watch(
-  () => route.params.repository,
+  repository,
   (newRepoIndex, _) => {
     isLoading.value = true
-    repos.getInstancesInRepository(Number(newRepoIndex)).then((ins_got) => {
+    reposStore.getInstancesInRepository(newRepoIndex).then((ins_got) => {
       instances.value = ins_got
       isLoading.value = false
     })
@@ -33,7 +34,7 @@ watch(
 
 function select_instance(instance: GameInstance) {
   invoke('select_instance', {
-    repository_index: Number(route.params.repository),
+    repository_index: repository.value,
     instance_id: instance.id,
   })
     .then(() => {

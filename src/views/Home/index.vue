@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import PButton from '@/components/widget/PButton.vue'
 import useSideNavState from '@/stores/windowState'
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import MinecraftAvatar from '@/components/widget/MinecraftAvatar.vue'
 import { useAccountInfo } from '@/stores/account'
 import { useSelectedInstance } from '@/stores/gameLaunch'

@@ -44,6 +44,14 @@ export default defineComponent({
 
     onMounted(async () => {
       console.log('[nav] SideNavLayout mounted')
+      asideRef.value?.querySelectorAll('.sidenav-line').forEach((el_, i) => {
+        let el = el_ as HTMLDivElement
+        el.style.animationPlayState = 'paused'
+        el.style.animationDelay = `${i * 0.02}s`
+        requestAnimationFrame(() => {
+          el.style.animationPlayState = 'running'
+        })
+      })
       observer = new ResizeObserver(updateAsideBackgroundWidth)
       observer.observe(asideRef.value!)
       removeRouteGuard = router.afterEach((to, from) => {
@@ -51,15 +59,6 @@ export default defineComponent({
           animateSubview()
         })
       })
-      document.querySelectorAll('.sidenav-line').forEach((el_, i) => {
-        let el = el_ as HTMLDivElement
-        el.style.animationDelay = `${i * 0.02}s`
-        el.style.animationPlayState = 'paused'
-        requestAnimationFrame(() => {
-          el.style.animationPlayState = 'running'
-        })
-      })
-
       nextTick(() => {
         animateSubview()
       })
@@ -104,19 +103,18 @@ aside {
   flex-direction: column;
   gap: 28px;
 }
-</style>
 
-<style>
 @keyframes fadeInLeft {
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: translateX(0);
   }
 }
 
-.sidenav-line {
+aside :deep(.sidenav-line) {
   opacity: 0;
-  transform: translate3d(-100%, 0, 0);
+  will-change: transform, opacity;
+  transform: translateX(-100%);
   animation: fadeInLeft 0.4s ease forwards;
 }
 </style>

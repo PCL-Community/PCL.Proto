@@ -3,24 +3,24 @@ import modrinthApi, { type IProject } from '@/api/modrinthApi'
 import PCard from '@/components/widget/PCard.vue'
 import PCompItem from '@/components/widget/PCompItem.vue'
 import PLoading from '@/components/widget/PLoading.vue'
+import { useRouteQuery } from '@vueuse/router'
 import { marked } from 'marked'
-import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, onMounted, ref, type Ref } from 'vue'
 
-const route = useRoute()
+const project_id = useRouteQuery('id') as Ref<string>
 const projectData = ref<IProject>()
 const data = computed(() => {
   if (!projectData.value) return undefined
   return {
     ...projectData.value,
     date_modified: projectData.value.updated,
-    project_id: projectData.value.id,
+    project_id: project_id.value,
     body: marked.parse(projectData.value.body),
   }
 })
 
 onMounted(async () => {
-  projectData.value = await modrinthApi.getProject(route.query.id as string)
+  projectData.value = await modrinthApi.getProject(project_id.value)
 })
 </script>
 
