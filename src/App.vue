@@ -9,9 +9,7 @@ import { listen } from '@tauri-apps/api/event'
 import { useModal } from './composables/useModal'
 import FloatButton from './components/widget/FloatButton.vue'
 import { useFloatButton } from './composables/useFloatButton'
-import { motion } from 'motion-v'
-// 引入 SvgDrawer 组件
-// import SvgDrawer from './components/website/SVGDrawer.vue'
+
 const sideNavState = useSideNavState()
 const modal = useModal()
 const { floatButtonState } = useFloatButton()
@@ -35,11 +33,7 @@ listen<string>('modal-open', (event) => {
       <!-- 页面 -->
       <RouterView />
       <!-- 用作动画 -->
-      <motion.div
-        class="side-nav-background"
-        :animate="{ width: sideNavState.width }"
-        :transition="{ type: 'spring', duration: 0.7, bounce: 0.48 }"
-      />
+      <div class="side-nav-background" />
     </div>
   </div>
   <!-- 一些浮动内容 -->
@@ -47,26 +41,6 @@ listen<string>('modal-open', (event) => {
   <SideTip />
   <FloatButton v-bind="floatButtonState" />
 </template>
-
-<!-- <template lang="pug">
-
-  //- 以下为主体部分
-  #main-window
-    //- 标题框
-    WindowHeader()
-    //- 主页面
-    #page
-      //- 页面
-      RouterView()
-      //- 用作动画
-      MotionDiv.side-nav-background()
-  //- 一些浮动内容
-  Modal()
-  SideTip()
-  FloatButton(v-bind="floatButtonState")
-  //- 添加 SvgDrawer 组件
-  //- SvgDrawer()
-</template> -->
 
 <style scoped>
 #page {
@@ -81,11 +55,11 @@ listen<string>('modal-open', (event) => {
   position: absolute;
   left: 0;
   top: 0;
-  /* width: v-bind('sideNavState.sideNavWidthStr'); */
+  width: v-bind('sideNavState.sideNavWidthStr');
   height: 100%;
   background: var(--color-background-soft);
   box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.15);
-  /* transition: width 0.4s cubic-bezier(0.4, 1.8, 0.6, 1); */
+  transition: width 0.4s cubic-bezier(0.4, 1.4, 0.6, 1);
   z-index: -1;
 }
 
