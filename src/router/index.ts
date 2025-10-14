@@ -34,7 +34,7 @@ const router = createRouter({
       children: [
         {
           path: '',
-          component: HomeNew,
+          component: HomeSubView,
         },
       ],
     },

@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
 import IconUnfold from '../icons/control/IconUnfold.vue'
+import { motion } from 'motion-v'
 
 export type FoldStatus = 'unfold' | 'fold' | 'unfoldable'
 
@@ -19,10 +20,9 @@ const props = withDefaults(
 )
 
 const foldState = ref<FoldStatus>(props.defaultFoldStatus)
-
 const cardHeight = ref<number>(40)
-
 const mycardInnerRef = useTemplateRef<HTMLElement>('mycardInner')
+const shouldSpring = ref<boolean>(true)
 
 let observer: ResizeObserver | null = null
 
@@ -33,6 +33,7 @@ function SwitchFoldState() {
       // 卡片折叠状态固定为高度40
       // 在此处赋值是因为卡片内容有过渡时间
       // 切换时就赋值可以让卡片高度和内容的过渡同时进行
+      shouldSpring.value = cardHeight.value < 500
       cardHeight.value = 40
       break
     case 'fold':
@@ -45,27 +46,49 @@ onMounted(() => {
   observer = new ResizeObserver(() => {
     // 若非折叠状态需要根据内容调整高度
     // 为了方便使高度动画具有回弹动效，使用observer侦测内容来赋值而非让其自动撑开
-    if (foldState.value != 'fold') cardHeight.value = mycardInnerRef.value!.offsetHeight
+    if (foldState.value != 'fold') {
+      shouldSpring.value = mycardInnerRef.value!.offsetHeight < 500
+      cardHeight.value = mycardInnerRef.value!.offsetHeight
+    }
   })
   observer.observe(mycardInnerRef.value!)
 })
 
 onUnmounted(() => observer?.disconnect())
+
+// allow outside state control
+defineExpose({ SwitchFoldState })
 </script>
 
-<template lang="pug">
-.mycard-container(:class="foldState")
-    .mycard(ref="mycardInner" :class="{'hide-title': hideTitle }")
-        header.mycard-title(v-if="!hideTitle" @click="SwitchFoldState")
-            //- 此处为兼容性设计：title插槽被设置时显示插槽内容，否则默认显示props中的title属性
-            p: slot(name="title") {{title}}
-            .description(v-if="$slots.description"): slot(name="description")
-            i: IconUnfold()
-        Transition(name="card-content")
-            section.mycard-content(v-if="$slots.content || $slots.default" v-show="foldState == 'unfold' || foldState == 'unfoldable'")
-                //- 此处为兼容性设计：content被设置时显示content内容，否则显示默认插槽内容
-                slot(name="content"): slot
-
+<template>
+  <motion.div
+    :class="['mycard-container', foldState]"
+    :animate="{ height: cardHeight }"
+    :transition="{ type: shouldSpring ? 'spring' : 'tween', stiffness: 330, damping: 25, mass: 1 }"
+  >
+    <div class="mycard" ref="mycardInner" :class="{ 'hide-title': hideTitle }">
+      <header class="mycard-title" v-if="!hideTitle" @click="SwitchFoldState">
+        <!-- 此处为兼容性设计：title插槽被设置时显示插槽内容，否则默认显示props中的title属性 -->
+        <p>
+          <slot name="title">{{ title }}</slot>
+        </p>
+        <div class="description" v-if="$slots.description">
+          <slot name="description"></slot>
+        </div>
+        <i><IconUnfold /></i>
+      </header>
+      <Transition name="card-content">
+        <section
+          class="mycard-content"
+          v-if="$slots.content || $slots.default"
+          v-show="foldState == 'unfold' || foldState == 'unfoldable'"
+        >
+          <!-- 此处为兼容性设计：content被设置时显示content内容，否则显示默认插槽内容 -->
+          <slot name="content"><slot></slot></slot>
+        </section>
+      </Transition>
+    </div>
+  </motion.div>
 </template>
 
 <style>
@@ -81,14 +104,12 @@ onUnmounted(() => observer?.disconnect())
 
 .mycard-container {
   flex-shrink: 0;
-  height: v-bind("cardHeight + 'px'");
-  transition:
-    height 0.4s cubic-bezier(0.4, 1.4, 0.6, 1),
-    box-shadow 0.4s;
+  transition: box-shadow 0.4s;
   border-radius: 6px;
   background: var(--color-background-soft);
   box-shadow: 0px 0px 6px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  will-change: height;
 }
 
 .mycard-container:hover {

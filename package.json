@@ -1,6 +1,6 @@
 {
   "name": "@amagicpear/pcl-proto",
-  "version": "0.4.5",
+  "version": "0.4.5_patch_0.6.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,8 +13,8 @@
     "deploy": "vite build && gh-pages -d dist"
   },
   "dependencies": {
-    "animate.css": "^4.1.1",
     "marked": "^16.2.1",
+    "motion-v": "^1.7.2",
     "pinia": "^3.0.3",
     "skinview3d": "^3.4.1",
     "vue": "^3.5.21",

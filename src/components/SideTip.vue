@@ -5,7 +5,7 @@ const tips = sideTip.tips
 
 <template lang="pug">
 #sidetip-container
-    TransitionGroup(name="sidetip" tag="div")
+    TransitionGroup(name="sidetip")
         .sidetip-item(
             v-for="tip in tips"
             :key="tip.id"
@@ -16,7 +16,7 @@ const tips = sideTip.tips
 <style lang="css" scoped>
 #sidetip-container {
   position: absolute;
-  left: 0;
+  left: -8px;
   bottom: 12%;
   z-index: 2;
   display: flex;
@@ -26,7 +26,7 @@ const tips = sideTip.tips
 
 .sidetip-item {
   color: var(--color-background);
-  padding: 2px 8px;
+  padding: 2px 8px 2px 16px;
   font-size: 12px;
   border-radius: 0 6px 6px 0;
   transition: all 0.4s ease;
@@ -49,7 +49,9 @@ const tips = sideTip.tips
 .sidetip-move,
 .sidetip-enter-active,
 .sidetip-leave-active {
-  transition: all 0.4s cubic-bezier(0.4, 2, 0.4, 1);
+  transition:
+    transform 0.4s cubic-bezier(0.4, 2, 0.4, 1),
+    opacity 0.4s;
 }
 
 .sidetip-enter-from,

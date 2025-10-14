@@ -1,4 +1,4 @@
-import 'animate.css'
+// import 'animate.css'
 import './assets/main.css'
 
 import { createApp } from 'vue'

@@ -1,12 +1,11 @@
 <script lang="ts">
-import { defineComponent, onMounted, onUnmounted, useTemplateRef } from 'vue'
+import { defineComponent, nextTick, onMounted, onUnmounted, useTemplateRef } from 'vue'
 import useSideNavState from '@/stores/windowState'
-import { nextTick } from 'vue'
 import SideGroup from '@/components/widget/SideGroup.vue'
 import { type INavItemGroup } from '@/types/naviOptions'
-import { animateCssFor } from '@/util/animateCSS'
 import { useRouter } from 'vue-router'
 import PLoading from '@/components/widget/PLoading.vue'
+import cardDropAnimate from '@/util/cardDropAnimate.ts'
 
 export default defineComponent({
   name: 'SideNavLayout',
@@ -20,7 +19,8 @@ export default defineComponent({
       required: true,
     },
   },
-  setup() {
+  setup(props, context) {
+    context.expose({ animateSubview })
     let observer: ResizeObserver | null = null
     const asideRef = useTemplateRef<HTMLElement>('asideRef')
     const subviewRef = useTemplateRef<HTMLElement>('subviewRef')
@@ -37,38 +37,29 @@ export default defineComponent({
 
     function animateSubview() {
       if (subviewRef.value) {
-        // TODO)) 排除loading组件
-        const allChildren = subviewRef.value.children
-        animateCssFor(allChildren, 'fadeInDown', 30)
-      }
-    }
-
-    function animateSidenavLines() {
-      if (asideRef.value) {
-        const sidenavLines = asideRef.value.querySelectorAll('.sidenav-line')
-        animateCssFor(sidenavLines, 'fadeInLeft', 20)
-      } else {
-        console.warn('[nav] asideRef is null')
+        const allChildren = Array.from(subviewRef.value.children)
+        cardDropAnimate(allChildren)
       }
     }
 
     onMounted(async () => {
       console.log('[nav] SideNavLayout mounted')
+      asideRef.value?.querySelectorAll('.sidenav-line').forEach((el_, i) => {
+        let el = el_ as HTMLDivElement
+        el.style.animationPlayState = 'paused'
+        el.style.animationDelay = `${i * 0.02}s`
+        requestAnimationFrame(() => {
+          el.style.animationPlayState = 'running'
+        })
+      })
       observer = new ResizeObserver(updateAsideBackgroundWidth)
       observer.observe(asideRef.value!)
       removeRouteGuard = router.afterEach((to, from) => {
-        // console.log('[nav] afterEach', to, from)
         nextTick(() => {
           animateSubview()
-          // 均使用本组件的页面切换时本组件会复用，因此需要重新应用侧边动画
-          // 但是在同样一级页面内跳转二级页面时无需再次动画
-          if (from.matched[0].name !== to.matched[0].name) {
-            animateSidenavLines()
-          }
         })
       })
       nextTick(() => {
-        animateSidenavLines()
         animateSubview()
       })
     })
@@ -81,6 +72,7 @@ export default defineComponent({
     return {
       asideRef,
       subviewRef,
+      animateSubview,
     }
   },
 })
@@ -91,11 +83,10 @@ export default defineComponent({
     aside(ref="asideRef")
         SideGroup(
             v-for="group in sideNavGroups"
-            :title="group.title"
-            :content="group.content"
-)
+            v-bind="group"
+        )
     article.subview(ref="subviewRef")
-        RouterView()
+        RouterView(@animate-subview="animateSubview")
 </template>
 
 <style scoped>
@@ -108,7 +99,7 @@ export default defineComponent({
 
 article {
   flex: 1 1 auto;
-  overflow-y: auto;
+  overflow-y: scroll;
 }
 
 aside {
@@ -118,5 +109,19 @@ aside {
   display: flex;
   flex-direction: column;
   gap: 28px;
+}
+
+@keyframes fadeInLeft {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+aside :deep(.sidenav-line) {
+  opacity: 0;
+  will-change: transform, opacity;
+  transform: translateX(-100%);
+  animation: fadeInLeft 0.4s ease forwards;
 }
 </style>

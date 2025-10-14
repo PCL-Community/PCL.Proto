@@ -3,22 +3,29 @@ import { useTemplateRef, watchEffect } from 'vue'
 import PCard from './PCard.vue'
 
 export type LoadingState = 'loading' | 'error'
-const props = withDefaults(defineProps<{ state?: LoadingState; loadingText?: string }>(), {
-  state: 'loading',
-  loadingText: '正在加载中...',
-})
+const props = withDefaults(
+  defineProps<{ state?: LoadingState; loadingText?: string; card?: boolean }>(),
+  {
+    state: 'loading',
+    loadingText: '正在加载中...',
+    card: true,
+  },
+)
 const hammerRef = useTemplateRef<SVGPathElement>('hammerRef')
-const trainglesRef = useTemplateRef<SVGPathElement>('trainglesRef')
+const trainglesRef = useTemplateRef<SVGGElement>('trainglesRef')
 
 watchEffect(() => {
   const playState = props.state === 'loading' ? 'running' : 'paused'
   hammerRef.value && (hammerRef.value.style.animationPlayState = playState)
-  trainglesRef.value && (trainglesRef.value.style.animationPlayState = playState)
+  trainglesRef.value &&
+    Array.from(trainglesRef.value?.children).forEach(
+      (child) => ((child as SVGPathElement).style.animationPlayState = playState),
+    )
 })
 </script>
 
 <template>
-  <PCard :hide-title="true" class="card-loading">
+  <component :is="card ? PCard : 'div'" :hide-title="true" :class="{ 'card-loading': card }">
     <div id="loading-container">
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -42,8 +49,8 @@ watchEffect(() => {
         ></path>
         <!-- 锤子敲击后出现的三角形 -->
         <g class="triangles" fill="currentColor" ref="trainglesRef">
-          <path d="M19.7416 60.147L21.4566 62.0039L16.8852 64.5056"></path>
           <path d="M11 61.67L12.8992 60.0019L15.2859 64.6345"></path>
+          <path d="M19.7416 60.147L21.4566 62.0039L16.8852 64.5056"></path>
         </g>
         <!-- 叉叉 -->
         <g class="wrong-x" fill="currentColor">
@@ -61,7 +68,7 @@ watchEffect(() => {
     <p class="loading-text" :class="state">
       {{ state == 'loading' ? loadingText : '网络环境不佳，请重试或尝试使用 VPN' }}
     </p>
-  </PCard>
+  </component>
 </template>
 
 <style lang="css" scoped>
@@ -108,12 +115,11 @@ watchEffect(() => {
   }
 }
 
-@keyframes trianglesOpacity {
-  0% {
-    opacity: 0;
-  }
-
-  10% {
+@keyframes trianglesR {
+  0%,
+  10%,
+  50%,
+  100% {
     opacity: 0;
   }
 
@@ -121,12 +127,33 @@ watchEffect(() => {
     opacity: 1;
   }
 
-  85% {
+  20% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(6px, -6px);
+  }
+}
+
+@keyframes trianglesL {
+  0%,
+  10%,
+  50%,
+  100% {
     opacity: 0;
   }
 
-  100% {
-    opacity: 0;
+  16% {
+    opacity: 1;
+  }
+
+  20% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(-6px, -6px);
   }
 }
 
@@ -135,8 +162,12 @@ watchEffect(() => {
   animation: hammerAnim 1.6s infinite ease-in;
 }
 
-.load-svg > .triangles {
-  animation: trianglesOpacity 1.6s infinite ease-in;
+.triangles > :nth-child(1) {
+  animation: trianglesL 1.6s infinite ease-out;
+}
+
+.triangles > :nth-child(2) {
+  animation: trianglesR 1.6s infinite ease-out;
 }
 
 .load-svg > .wrong-x {
@@ -153,7 +184,6 @@ watchEffect(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* background-color: antiquewhite; */
 }
 
 .load-svg {

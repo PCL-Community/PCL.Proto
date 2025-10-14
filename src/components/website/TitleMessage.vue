@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { localApiInput } from '@/api/localApi'
+// import { localApiInput } from '@/api/localApi'
 import picPCLProto from '/PCL.Proto.svg?url'
 </script>
 
@@ -18,8 +18,9 @@ import picPCLProto from '/PCL.Proto.svg?url'
       a(href="https://js.design/f/QVPQRY?p=zX2rcVk6Cy") js.design
       | .
       br
-      p.webapi PCL.Neo.WebApi Service base URL：
-        input(type="text" v-model="localApiInput")
+      p.webapi Now the project has been a Tauri project. #[br]If you want to get full experience, please go to the repository to #[a(href="https://github.com/PCL-Community/PCL.Proto/releases") download the release].
+      //- p.webapi PCL.Neo.WebApi Service base URL：
+      //-   input(type="text" v-model="localApiInput")
 </template>
 
 <style scoped>
