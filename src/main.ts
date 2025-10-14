@@ -42,4 +42,3 @@ app.mount('#app')
 useAccountInfo().initialize()
 attachConsole()
 useSelectedInstance().fetch()
-
