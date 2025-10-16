@@ -5,7 +5,7 @@
     "name": "AMagicPear",
     "email": "AMagicPear@outlook.com"
   },
-  "version": "0.6.2",
+  "version": "0.6.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -23,6 +23,7 @@
     "@tauri-apps/plugin-dialog": "~2.4.0",
     "@tauri-apps/plugin-log": "^2.7.0",
     "@tauri-apps/plugin-os": "~2.3.1",
+    "@vueuse/router": "^13.9.0",
     "marked": "^16.4.0",
     "motion-v": "^1.7.2",
     "pinia": "^3.0.3",

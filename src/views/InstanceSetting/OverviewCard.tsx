@@ -1,6 +1,6 @@
 import CardInfoItem from '@/components/widget/CardInfoItem.vue'
 import PCard from '@/components/widget/PCard.vue'
-import { isIconPixelated, showIconPath } from '@/util/gameInfo'
+import { isIconPixelated, showIconPath } from '@/types/gameInfo'
 import { useSelectedInstance } from '@/stores/gameLaunch'
 import { computed, defineComponent } from 'vue'
 

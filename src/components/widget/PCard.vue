@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
+import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
 import IconUnfold from '../icons/control/IconUnfold.vue'
 import { motion } from 'motion-v'
 
@@ -62,8 +62,7 @@ defineExpose({ SwitchFoldState })
 
 <template>
   <motion.div
-    class="mycard-container"
-    :class="foldState"
+    :class="['mycard-container', foldState]"
     :animate="{ height: cardHeight }"
     :transition="{ type: shouldSpring ? 'spring' : 'tween', stiffness: 330, damping: 25, mass: 1 }"
   >
@@ -110,6 +109,7 @@ defineExpose({ SwitchFoldState })
   background: var(--color-background-soft);
   box-shadow: 0px 0px 6px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  will-change: height;
 }
 
 .mycard-container:hover {

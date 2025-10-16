@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import PCard from './PCard.vue'
 import PInput from './PInput.vue'
 import PButton from './PButton.vue'
-import type { McPingResult } from '@/util/mcPing'
+import type { McPingResult } from '@/types/mcPing'
 const address = ref<string>()
 const port = ref<number>(25565)
 

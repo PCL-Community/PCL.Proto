@@ -1,5 +1,5 @@
 import type GameInstance from '@/types/gameInstance'
-import type { pluginType } from '../util/gameInfo'
+import type { pluginType } from '../types/gameInfo'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'

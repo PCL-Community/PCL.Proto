@@ -1,9 +1,8 @@
 <script lang="ts">
-import { defineComponent, nextTick, onMounted, onUnmounted, useTemplateRef } from 'vue'
+import { defineComponent, onMounted, onUnmounted, useTemplateRef } from 'vue'
 import useSideNavState from '@/stores/windowState'
 import SideGroup from '@/components/widget/SideGroup.vue'
 import { type INavItemGroup } from '@/types/naviOptions'
-import { useRouter } from 'vue-router'
 import PLoading from '@/components/widget/PLoading.vue'
 import cardDropAnimate from '@/util/cardDropAnimate'
 
@@ -19,15 +18,12 @@ export default defineComponent({
       required: true,
     },
   },
-  setup(props, context) {
+  setup(_props, context) {
     context.expose({ animateSubview })
     let observer: ResizeObserver | null = null
     const asideRef = useTemplateRef<HTMLElement>('asideRef')
     const subviewRef = useTemplateRef<HTMLElement>('subviewRef')
-    const router = useRouter()
     const sideNavState = useSideNavState()
-
-    let removeRouteGuard: (() => void) | null = null
 
     function updateAsideBackgroundWidth() {
       if (asideRef.value) {
@@ -44,30 +40,20 @@ export default defineComponent({
 
     onMounted(async () => {
       console.log('[nav] SideNavLayout mounted')
-      observer = new ResizeObserver(updateAsideBackgroundWidth)
-      observer.observe(asideRef.value!)
-      removeRouteGuard = router.afterEach((to, from) => {
-        nextTick(() => {
-          animateSubview()
-        })
-      })
-      document.querySelectorAll('.sidenav-line').forEach((el_, i) => {
+      asideRef.value?.querySelectorAll('.sidenav-line').forEach((el_, i) => {
         let el = el_ as HTMLDivElement
-        el.style.animationDelay = `${i * 0.02}s`
         el.style.animationPlayState = 'paused'
+        el.style.animationDelay = `${i * 0.02}s`
         requestAnimationFrame(() => {
           el.style.animationPlayState = 'running'
         })
       })
-
-      nextTick(() => {
-        animateSubview()
-      })
+      observer = new ResizeObserver(updateAsideBackgroundWidth)
+      observer.observe(asideRef.value!)
     })
 
     onUnmounted(() => {
       observer?.disconnect()
-      removeRouteGuard?.()
     })
 
     return {
@@ -86,7 +72,7 @@ export default defineComponent({
             v-for="group in sideNavGroups"
             v-bind="group"
         )
-    article.subview(ref="subviewRef")
+    article.subview(ref="subviewRef" v-card-drop-children-animate)
         RouterView(@animate-subview="animateSubview")
 </template>
 
@@ -104,19 +90,18 @@ aside {
   flex-direction: column;
   gap: 28px;
 }
-</style>
 
-<style>
 @keyframes fadeInLeft {
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: translateX(0);
   }
 }
 
-.sidenav-line {
+aside :deep(.sidenav-line) {
   opacity: 0;
-  transform: translate3d(-100%, 0, 0);
+  will-change: transform, opacity;
+  transform: translateX(-100%);
   animation: fadeInLeft 0.4s ease forwards;
 }
 </style>

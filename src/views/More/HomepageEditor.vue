@@ -9,5 +9,6 @@ import hompageEditorContent from '/pcl-home-zx/index.html?url'
     height="100%"
     frameborder="0"
     style="border: none"
+    v-card-drop-animate
   />
 </template>
