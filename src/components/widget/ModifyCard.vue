@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import PCard from '@/components/widget/PCard.vue'
-import { pluginShowText, showIconPath, type pluginType, type showIconType } from '@/util/gameInfo'
+import { pluginShowText, showIconPath, type pluginType, type showIconType } from '@/types/gameInfo'
 import CardInfoItem from './CardInfoItem.vue'
 import { ref } from 'vue'
 import { onMounted } from 'vue'

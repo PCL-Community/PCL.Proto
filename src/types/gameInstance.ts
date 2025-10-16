@@ -1,4 +1,4 @@
-import type { pluginType } from '@/util/gameInfo'
+import type { pluginType } from '@/types/gameInfo'
 
 // export default interface GameInstance {
 //     name: string

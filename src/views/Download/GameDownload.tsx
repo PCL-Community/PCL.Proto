@@ -1,6 +1,6 @@
 import CardInfoItem from '@/components/widget/CardInfoItem.vue'
 import PCard from '@/components/widget/PCard.vue'
-import { showIconPath, type showIconType } from '@/util/gameInfo'
+import { showIconPath, type showIconType } from '@/types/gameInfo'
 import { useMinecraftVersions } from '@/api/gameVersions'
 import { defineComponent } from 'vue'
 import PLoading from '@/components/widget/PLoading.vue'

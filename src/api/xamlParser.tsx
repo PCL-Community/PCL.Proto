@@ -8,7 +8,7 @@ import PHint from '@/components/widget/PHint.vue'
 import sideTip from '@/composables/sideTip'
 import { useModal } from '@/composables/useModal'
 import router from '@/router'
-import { showIconPath, type showIconType } from '@/util/gameInfo'
+import { showIconPath, type showIconType } from '@/types/gameInfo'
 import { type Component } from 'vue'
 import { xml2js, type Element } from 'xml-js'
 

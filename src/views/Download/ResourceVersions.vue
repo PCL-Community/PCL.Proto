@@ -25,7 +25,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <article class="subview" v-if="data">
+  <article class="subview" v-if="data" v-card-drop-children-animate>
     <PCard hide-title>
       <PCompItem :data="data" :clickable="false" />
     </PCard>
@@ -43,7 +43,7 @@ onMounted(async () => {
       </menu>
     </PCard>
   </article>
-  <div v-else class="loading-page">
+  <div v-else class="loading-page" v-card-drop-animate>
     <PLoading state="loading" loading-text="正在加载资源信息……" />
   </div>
 </template>

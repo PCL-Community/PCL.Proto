@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import PCard from '@/components/widget/PCard.vue'
 import PInput from '@/components/widget/PInput.vue'
-import { gameInfoIcon, showIconPath, type pluginType } from '@/util/gameInfo'
+import { gameInfoIcon, showIconPath, type pluginType } from '@/types/gameInfo'
 import { info } from '@tauri-apps/plugin-log'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
