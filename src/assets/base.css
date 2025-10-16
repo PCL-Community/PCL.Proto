@@ -22,7 +22,7 @@
 }
 
 /* semantic color variables for this project */
-:root {
+.theme-blue {
   --color-background: var(--vt-c-white-soft);
   --color-background-soft: var(--vt-c-white-slight-transparent);
   --color-text-black: var(--vt-c-black);
@@ -39,17 +39,17 @@
 }
 
 /* 深色模式设置 */
-/* @media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: var(--vt-c-black);
+@media (prefers-color-scheme: dark) {
+  .theme-blue {
+    /* --color-background: var(--vt-c-black); */
 
     --color-border: var(--vt-c-divider-dark-2);
     --color-border-hover: var(--vt-c-divider-dark-1);
 
     --color-heading: var(--vt-c-text-dark-1);
-    --color-text: var(--vt-c-text-dark-2);
+    --color-text-black: var(--vt-c-text-dark-2);
   }
-} */
+}
 
 *,
 *::before,
