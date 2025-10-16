@@ -1,6 +1,7 @@
 import { animate, stagger, type ElementOrSelector } from "motion-v";
+import type { Directive, RendererNode } from "vue";
 
-export default (element: ElementOrSelector) => {
+const cardDropAnimate = (element: ElementOrSelector | RendererNode) => {
   animate(
     element,
     { y: [-20, 0], opacity: [0, 1] },
@@ -11,4 +12,22 @@ export default (element: ElementOrSelector) => {
       bounce: 0.49,
     },
   )
+}
+
+export default cardDropAnimate
+
+// directives that should be register at main.ts and can be used anywhere
+export const vAnimateDrop: Directive<HTMLElement, void> = {
+  mounted(el) {
+    cardDropAnimate(el)
+  }
+}
+
+export const vAnimateChildrenDrop: Directive<HTMLElement, void> = {
+  mounted(el) {
+    cardDropAnimate(Array.from(el.children))
+  },
+  updated(el) {
+    cardDropAnimate(Array.from(el.children))
+  }
 }

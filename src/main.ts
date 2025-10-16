@@ -10,6 +10,7 @@ import locales from './locales'
 import { useAccountInfo } from './stores/account'
 import { attachConsole } from '@tauri-apps/plugin-log'
 import { useSelectedInstance } from './stores/gameLaunch'
+import { vAnimateChildrenDrop, vAnimateDrop } from './util/cardDropAnimate'
 
 const pinia = createPinia()
 
@@ -35,6 +36,10 @@ if (import.meta.env.DEV) {
     console.warn(msg, trace)
   }
 }
+
+// global card drop animate
+app.directive('card-drop-animate', vAnimateDrop)
+app.directive('card-drop-children-animate', vAnimateChildrenDrop)
 
 app.mount('#app')
 

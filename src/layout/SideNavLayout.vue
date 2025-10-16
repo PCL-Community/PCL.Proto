@@ -1,9 +1,8 @@
 <script lang="ts">
-import { defineComponent, nextTick, onMounted, onUnmounted, useTemplateRef } from 'vue'
+import { defineComponent, onMounted, onUnmounted, useTemplateRef } from 'vue'
 import useSideNavState from '@/stores/windowState'
 import SideGroup from '@/components/widget/SideGroup.vue'
 import { type INavItemGroup } from '@/types/naviOptions'
-import { useRouter } from 'vue-router'
 import PLoading from '@/components/widget/PLoading.vue'
 import cardDropAnimate from '@/util/cardDropAnimate'
 
@@ -19,15 +18,12 @@ export default defineComponent({
       required: true,
     },
   },
-  setup(props, context) {
+  setup(_props, context) {
     context.expose({ animateSubview })
     let observer: ResizeObserver | null = null
     const asideRef = useTemplateRef<HTMLElement>('asideRef')
     const subviewRef = useTemplateRef<HTMLElement>('subviewRef')
-    const router = useRouter()
     const sideNavState = useSideNavState()
-
-    let removeRouteGuard: (() => void) | null = null
 
     function updateAsideBackgroundWidth() {
       if (asideRef.value) {
@@ -54,19 +50,10 @@ export default defineComponent({
       })
       observer = new ResizeObserver(updateAsideBackgroundWidth)
       observer.observe(asideRef.value!)
-      removeRouteGuard = router.afterEach((to, from) => {
-        nextTick(() => {
-          animateSubview()
-        })
-      })
-      nextTick(() => {
-        animateSubview()
-      })
     })
 
     onUnmounted(() => {
       observer?.disconnect()
-      removeRouteGuard?.()
     })
 
     return {
@@ -85,7 +72,7 @@ export default defineComponent({
             v-for="group in sideNavGroups"
             v-bind="group"
         )
-    article.subview(ref="subviewRef")
+    article.subview(ref="subviewRef" v-card-drop-children-animate)
         RouterView(@animate-subview="animateSubview")
 </template>
 
