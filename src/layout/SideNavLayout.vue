@@ -73,7 +73,7 @@ export default defineComponent({
             v-bind="group"
         )
     article.subview(ref="subviewRef" v-card-drop-children-animate)
-        RouterView(@animate-subview="animateSubview")
+        RouterView(@animate-subview="animateSubview" @vue:updated="animateSubview")
 </template>
 
 <style scoped>

@@ -48,7 +48,7 @@ watch(
         <span class="indicator">{{ taskManager.totalRemaining }}</span>
       </div>
     </aside>
-    <article class="subview">
+    <article class="subview" v-card-drop-children-animate>
       <PCard v-for="task in taskManager.tasks" :key="task.id" :title="task.name">
         <TaskItem v-for="item in task.items" :key="item.id" v-bind="item" />
       </PCard>
@@ -70,6 +70,7 @@ aside {
   justify-content: space-evenly;
   align-items: center;
   padding: 24px;
+  animation: pcl-zoom-in 0.4s ease forwards;
 }
 
 article.subview {

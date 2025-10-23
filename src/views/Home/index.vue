@@ -100,18 +100,6 @@ p.gray {
   font-size: 11px;
 }
 
-@keyframes pclZoomIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 aside.left {
   height: 100%;
   flex: 0 0 auto;
@@ -123,7 +111,7 @@ aside.left {
   justify-content: space-between;
   align-items: stretch;
 
-  animation: pclZoomIn 0.4s ease forwards;
+  animation: pcl-zoom-in 0.4s ease forwards;
 }
 
 #center {

@@ -41,6 +41,8 @@ if (import.meta.env.DEV) {
 app.directive('card-drop-animate', vAnimateDrop)
 app.directive('card-drop-children-animate', vAnimateChildrenDrop)
 
+document.documentElement.classList.add('theme-blue')
+
 app.mount('#app')
 
 // some async actions
