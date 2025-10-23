@@ -22,6 +22,7 @@ import Dowloading from '@/views/Download/Dowloading.vue'
 import InstanceNotFound from '@/views/InstanceSelect/InstanceNotFound.vue'
 import GameDownloadInner from '@/views/Download/GameDownloadInner.vue'
 import GameDownload from '@/views/Download/GameDownload'
+import Personalization from '@/views/Setup/Personalization.vue'
 
 // const selectedInstance = useSelectedInstance()
 const router = createRouter({
@@ -117,6 +118,10 @@ const router = createRouter({
           path: 'launch',
           component: LaunchSetup,
         },
+        {
+          path: 'personalization',
+          component: Personalization
+        }
       ],
     },
     {

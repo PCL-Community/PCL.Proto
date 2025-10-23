@@ -13,7 +13,7 @@ export default {
         {
           content: [
             { text: '启动', icon: IconLaunch, linkto: 'launch' },
-            { text: '个性化', icon: IconPaint },
+            { text: '个性化', icon: IconPaint, linkto: 'personalization' },
             { text: '其他', icon: IconPack },
             { text: 'Java管理', icon: IconJava, linkto: 'java' },
           ] as INavItem[],
