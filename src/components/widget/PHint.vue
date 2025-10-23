@@ -13,7 +13,7 @@ const visibility = ref(true)
 
 <template>
   <div class="hint-container" :class="severity" v-if="visibility">
-    <slot></slot>
+    <div><slot></slot></div>
     <i class="button-animated" v-if="closable" @click="visibility = false"> <icon-close /></i>
   </div>
 </template>
