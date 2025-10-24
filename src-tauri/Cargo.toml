@@ -10,7 +10,7 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-name = "app_lib"
+name = "pcl_proto_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
