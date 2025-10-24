@@ -236,6 +236,6 @@ header #main-nav a {
 
 .title-tag.dev {
   background: rgba(155, 240, 11, 1);
-  color: var(--color-text-black);
+  color: var(--vt-c-black);
 }
 </style>
