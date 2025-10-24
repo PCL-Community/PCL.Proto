@@ -74,7 +74,7 @@ a.router-link-active .indicator {
 
 i.refresh-icon {
   margin-left: auto;
-  color: var(--light-blue);
+  color: var(--color-tint-light);
   opacity: 0;
   transition: 0.4s;
   display: flex;

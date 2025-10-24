@@ -23,12 +23,15 @@
 
 /* semantic color variables for this project */
 .theme-blue {
+  /* 纯白 */
   --color-background: var(--vt-c-white-soft);
+  /* 卡片之类的背景 */
   --color-background-soft: var(--vt-c-white-slight-transparent);
   --color-text-black: var(--vt-c-black);
   --color-text-grey: var(--vt-c-gray);
-
+  /* 标题栏颜色 */
   --color-titlebar: var(--pcl-blue);
+  /* 标亮的按钮颜色 */
   --color-tint: var(--tint-blue);
   --color-tint-light: var(--light-blue);
   --color-tint-lighter: var(--lighter-blue);
@@ -36,6 +39,27 @@
   --color-tint-shadow: var(--shadow-blue);
   --color-warn: var(--warn-red);
   --color-warn-lighter: var(--lighter-red);
+  --base-background: linear-gradient(
+    137.92deg,
+    rgba(192, 196, 221, 1) 0%,
+    rgba(182, 211, 220, 1) 100%
+  );
+  /* --color-phint:  */
+}
+
+.theme-orange {
+  --color-background: var(--vt-c-white-soft);
+  --color-text-grey: var(--vt-c-gray);
+  --color-titlebar: #ff8f3a;
+  --color-background-soft: var(--vt-c-white-slight-transparent);
+  --color-tint: #ff8f3a;
+  /* --color-tint-light: var(--light-blue); */
+  --color-tint-lighter: #f3b6873b;
+  --color-tint-lightist: #f3b6873b;
+  --color-tint-shadow: #f3b68773;
+  --color-warn: rgb(237, 96, 65);
+  --color-warn-lighter: var(--lighter-red);
+  --base-background: linear-gradient(137.92deg, rgb(251, 237, 230) 0%, rgb(247, 239, 217) 100%);
 }
 
 /* 深色模式设置 */

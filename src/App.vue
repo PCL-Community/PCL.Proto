@@ -69,7 +69,7 @@ listen<string>('modal-open', (event) => {
   /* width: 814px; */
   /* height: 464px; */
   /* border-radius: 8px; */
-  background: linear-gradient(137.92deg, rgba(192, 196, 221, 1) 0%, rgba(182, 211, 220, 1) 100%);
+  background: var(--base-background);
   /* box-shadow: var(--box-shadow); */
   overflow: hidden;
   display: flex;

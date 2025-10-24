@@ -37,22 +37,28 @@ i.button-animated {
   margin-bottom: 4px;
 }
 
-.hint-container.error {
+.theme-blue .hint-container.error {
   background-color: #feeaeb;
   border-left-color: #f31628;
   color: #f31628;
 }
 
-.hint-container.warning {
+.theme-blue .hint-container.warning {
   background-color: #fff4e6;
   border-left-color: #f39c16;
   color: #f39c16;
 }
 
-.hint-container.info {
+.theme-blue .hint-container.info {
   background-color: var(--lighter-blue);
   border-left-color: var(--tint-blue);
   color: var(--tint-blue);
+}
+
+.theme-orange .hint-container.info {
+  background-color: #ed931d3d;
+  border-left-color: #ff9626;
+  color: #ff9626;
 }
 
 i.button-animated {
