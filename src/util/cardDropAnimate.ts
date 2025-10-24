@@ -27,7 +27,7 @@ export const vAnimateChildrenDrop: Directive<HTMLElement, void> = {
   mounted(el) {
     cardDropAnimate(Array.from(el.children))
   },
-  updated(el) {
-    cardDropAnimate(Array.from(el.children))
-  }
+  // updated(el) {
+  //   cardDropAnimate(Array.from(el.children))
+  // }
 }

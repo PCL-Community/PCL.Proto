@@ -73,7 +73,7 @@ export default defineComponent({
             v-bind="group"
         )
     article.subview(ref="subviewRef" v-card-drop-children-animate)
-        RouterView(@animate-subview="animateSubview")
+        RouterView(@animate-subview="animateSubview" @vue:updated="animateSubview")
 </template>
 
 <style scoped>
@@ -91,8 +91,11 @@ aside {
   gap: 28px;
 }
 
-@keyframes fadeInLeft {
-  to {
+@keyframes fade-in-left {
+  70% {
+    transform: translateX(2px);
+  }
+  100% {
     opacity: 1;
     transform: translateX(0);
   }
@@ -102,6 +105,6 @@ aside :deep(.sidenav-line) {
   opacity: 0;
   will-change: transform, opacity;
   transform: translateX(-100%);
-  animation: fadeInLeft 0.4s ease forwards;
+  animation: fade-in-left 0.45s ease-in-out forwards;
 }
 </style>

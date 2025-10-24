@@ -14,7 +14,7 @@ name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.2.0", features = [] }
+tauri-build = { version = "2.5.1", features = [] }
 
 [dependencies]
 serde_json = "1"
@@ -23,18 +23,19 @@ log = "0"
 tauri = { version = "2", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-os = "2"
-chrono = "0.4.41"
+chrono = "0.4.42"
 tauri-plugin-dialog = "2"
-regex = "1.11.2"
+regex = "1.12.2"
 tokio = { version = "1", features = ["rt", "macros"] }
 goblin = "0.10"
 directories = "6.0.0"
-reqwest = { version = "0.12.23", features = ["json", "stream"] }
-thiserror = "2.0.16"
+reqwest = { version = "0.12.24", features = ["json", "stream"] }
+thiserror = "2.0.17"
 futures-util = "0.3.31"
 serde_repr = "0.1.20"
 sha1 = "0.10.6"
 quick-xml = { version="0.38.3", features = ["serialize"] }
+# tauri-invoke-http = "0.1.0"
 
 [profile.dev]
 incremental = true

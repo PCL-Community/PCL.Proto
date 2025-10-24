@@ -33,7 +33,7 @@ listen<string>('modal-open', (event) => {
       <!-- 页面 -->
       <RouterView />
       <!-- 用作动画 -->
-      <div class="side-nav-background" />
+      <div id="side-nav-background" />
     </div>
   </div>
   <!-- 一些浮动内容 -->
@@ -42,7 +42,7 @@ listen<string>('modal-open', (event) => {
   <FloatButton v-bind="floatButtonState" />
 </template>
 
-<style scoped>
+<style>
 #page {
   position: relative;
   height: 100%;
@@ -51,7 +51,7 @@ listen<string>('modal-open', (event) => {
   overflow: hidden;
 }
 
-#page > div.side-nav-background {
+#side-nav-background {
   position: absolute;
   left: 0;
   top: 0;
@@ -69,16 +69,14 @@ listen<string>('modal-open', (event) => {
   /* width: 814px; */
   /* height: 464px; */
   /* border-radius: 8px; */
-  background: linear-gradient(137.92deg, rgba(192, 196, 221, 1) 0%, rgba(182, 211, 220, 1) 100%);
+  background: var(--base-background);
   /* box-shadow: var(--box-shadow); */
   overflow: hidden;
   display: flex;
   flex-direction: column;
   position: relative;
 }
-</style>
 
-<style>
 @supports selector(::-webkit-scrollbar) {
   ::-webkit-scrollbar {
     width: 6px;

@@ -5,7 +5,7 @@
     "name": "AMagicPear",
     "email": "AMagicPear@outlook.com"
   },
-  "version": "0.6.3",
+  "version": "0.6.4",
   "private": true,
   "type": "module",
   "scripts": {
@@ -19,24 +19,24 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/api": "^2.9.0",
     "@tauri-apps/plugin-dialog": "~2.4.0",
     "@tauri-apps/plugin-log": "^2.7.0",
     "@tauri-apps/plugin-os": "~2.3.1",
-    "@vueuse/router": "^13.9.0",
-    "marked": "^16.4.0",
-    "motion-v": "^1.7.2",
+    "@vueuse/router": "^14.0.0",
+    "marked": "^16.4.1",
+    "motion-v": "^1.7.4",
     "pinia": "^3.0.3",
     "skinview3d": "^3.4.1",
     "vue": "^3.5.22",
     "vue-i18n": "^11.1.12",
-    "vue-router": "^4.5.1",
+    "vue-router": "^4.6.3",
     "xml-js": "^1.6.11"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.8.4",
+    "@tauri-apps/cli": "^2.9.1",
     "@tsconfig/node22": "^22.0.2",
-    "@types/node": "^24.7.1",
+    "@types/node": "^24.9.1",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vitejs/plugin-vue-jsx": "^5.1.1",
     "@vue/language-plugin-pug": "^3.1.1",
@@ -46,9 +46,17 @@
     "prettier": "3.6.2",
     "pug": "^3.0.3",
     "typescript": "~5.9.3",
-    "vite": "^7.1.9",
+    "vite": "npm:rolldown-vite@latest",
     "vite-svg-loader": "^5.1.0",
     "vue-tsc": "^3.1.1"
+  },
+  "overrides": {
+    "vite": "npm:rolldown-vite@latest"
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "npm:rolldown-vite@latest"
+    }
   },
   "packageManager": "pnpm@10.18.2+sha512.9fb969fa749b3ade6035e0f109f0b8a60b5d08a1a87fdf72e337da90dcc93336e2280ca4e44f2358a649b83c17959e9993e777c2080879f3801e6f0d999ad3dd"
 }

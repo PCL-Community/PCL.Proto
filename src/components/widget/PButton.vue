@@ -12,7 +12,7 @@ defineProps<{
 }>()
 
 const baseColor = {
-  default: 'rgba(52, 61, 74, 1)',
+  default: 'var(--color-text-black)',
   tint: 'var(--color-tint)',
   warn: 'var(--color-warn)',
 }
