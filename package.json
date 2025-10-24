@@ -5,7 +5,7 @@
     "name": "AMagicPear",
     "email": "AMagicPear@outlook.com"
   },
-  "version": "0.6.3",
+  "version": "0.6.4",
   "private": true,
   "type": "module",
   "scripts": {
@@ -23,9 +23,9 @@
     "@tauri-apps/plugin-dialog": "~2.4.0",
     "@tauri-apps/plugin-log": "^2.7.0",
     "@tauri-apps/plugin-os": "~2.3.1",
-    "@vueuse/router": "^13.9.0",
+    "@vueuse/router": "^14.0.0",
     "marked": "^16.4.1",
-    "motion-v": "^1.7.3",
+    "motion-v": "^1.7.4",
     "pinia": "^3.0.3",
     "skinview3d": "^3.4.1",
     "vue": "^3.5.22",
@@ -46,7 +46,7 @@
     "prettier": "3.6.2",
     "pug": "^3.0.3",
     "typescript": "~5.9.3",
-    "vite": "npm:rolldown-vite@latest",
+    "vite": "npm:rolldown-vite@^7.1.19",
     "vite-svg-loader": "^5.1.0",
     "vue-tsc": "^3.1.1"
   },
