@@ -1,5 +1,4 @@
 //! from PCL.Core/Link/McPing.cs and PCL.Core/Utils/VarIntHelper.cs
-use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, SocketAddr};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -7,47 +6,6 @@ struct MCPing {
     endpoint: SocketAddr,
     timeout: std::time::Duration,
     host: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct McPingResult {
-    pub version: McPingVersionResult,
-    pub players: McPingPlayerResult,
-    pub description: String,
-    pub favicon: Option<String>,
-    pub latency: u128,
-    pub modinfo: Option<McPingModInfoResult>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct McPingVersionResult {
-    pub name: String,
-    pub protocol: i32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct McPingPlayerResult {
-    pub max: i32,
-    pub online: i32,
-    pub sample: Vec<McPingPlayerSampleResult>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct McPingPlayerSampleResult {
-    pub name: String,
-    pub id: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct McPingModInfoResult {
-    pub r#type: String,
-    pub mod_list: Vec<McPingModInfoModResult>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct McPingModInfoModResult {
-    pub modid: String,
-    pub version: String,
 }
 
 impl MCPing {
@@ -77,7 +35,7 @@ impl MCPing {
         })
     }
 
-    pub async fn ping(&self) -> anyhow::Result<McPingResult> {
+    pub async fn ping(&self) -> anyhow::Result<(serde_json::Value, u128)> {
         log::debug!("Connecting to {}", self.endpoint);
         let mut socket_stream = tokio::net::TcpStream::connect(&self.endpoint).await?;
         log::debug!("Connection established:{}", self.endpoint);
@@ -85,37 +43,31 @@ impl MCPing {
         tokio::time::timeout(self.timeout, async {
             socket_stream.write_all(&handshake_packet).await?;
             log::debug!("Handshake sent, packet length: {}", handshake_packet.len());
-
             // 构建并发送状态请求包
             let status_packet = self.build_status_request_packet();
             socket_stream.write_all(&status_packet).await?;
             log::debug!("Status sent, packet length: {}", status_packet.len());
-
             // 读取响应
             let start = std::time::Instant::now();
-
             // 读取包长度 (VarInt)
             let total_length = varint::read_from_stream(&mut socket_stream).await?;
             log::debug!("Total length: {}", total_length);
-
             // 读取包ID (VarInt)
             let packet_id = varint::read_from_stream(&mut socket_stream).await?;
             log::debug!("Packet ID: {}", packet_id);
-
             // 读取数据长度 (VarInt)
             let data_length = varint::read_from_stream(&mut socket_stream).await?;
             log::debug!("Data length: {}", data_length);
-
             // 读取JSON数据
             let mut json_buffer = vec![0u8; data_length as usize];
             socket_stream.read_exact(&mut json_buffer).await?;
-
             let latency = start.elapsed().as_millis();
-
             let json_str = String::from_utf8(json_buffer)?;
             log::debug!("Received JSON: {}", json_str);
-
-            self.parse_response(&json_str, latency)
+            Ok((
+                serde_json::from_str::<serde_json::Value>(&json_str)?,
+                latency,
+            ))
         })
         .await?
     }
@@ -145,192 +97,6 @@ impl MCPing {
         packet.extend_from_slice(&varint::encode(0));
         packet
     }
-
-    /// 解析收取的数据包的JSON内容
-    fn parse_response(&self, json_str: &str, latency: u128) -> anyhow::Result<McPingResult> {
-        let json: serde_json::Value = serde_json::from_str(json_str)?;
-
-        let version = json
-            .get("version")
-            .ok_or_else(|| anyhow::anyhow!("Missing version field"))?;
-
-        let players = json.get("players").unwrap_or(&serde_json::Value::Null);
-        let description = self.convert_description_to_string(
-            json.get("description").unwrap_or(&serde_json::Value::Null),
-        );
-        let favicon = json
-            .get("favicon")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
-        let modinfo = json.get("modinfo");
-
-        let version_result = McPingVersionResult {
-            name: version
-                .get("name")
-                .and_then(|v| v.as_str())
-                .unwrap_or("未知服务端版本名")
-                .to_string(),
-            protocol: version
-                .get("protocol")
-                .and_then(|v| v.as_i64())
-                .unwrap_or(-1) as i32,
-        };
-
-        let players_result = McPingPlayerResult {
-            max: players.get("max").and_then(|v| v.as_i64()).unwrap_or(0) as i32,
-            online: players.get("online").and_then(|v| v.as_i64()).unwrap_or(0) as i32,
-            sample: players
-                .get("sample")
-                .and_then(|v| v.as_array())
-                .unwrap_or(&vec![])
-                .iter()
-                .filter_map(|player| {
-                    Some(McPingPlayerSampleResult {
-                        name: player.get("name")?.as_str()?.to_string(),
-                        id: player.get("id")?.as_str()?.to_string(),
-                    })
-                })
-                .collect(),
-        };
-
-        let modinfo_result = if let Some(modinfo) = modinfo {
-            Some(McPingModInfoResult {
-                r#type: modinfo
-                    .get("type")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("未知服务端类型")
-                    .to_string(),
-                mod_list: modinfo
-                    .get("modList")
-                    .and_then(|v| v.as_array())
-                    .unwrap_or(&vec![])
-                    .iter()
-                    .filter_map(|mod_item| {
-                        if mod_item.get("modid").is_some() {
-                            Some(McPingModInfoModResult {
-                                modid: mod_item.get("modid")?.as_str()?.to_string(),
-                                version: mod_item.get("version")?.as_str()?.to_string(),
-                            })
-                        } else {
-                            None
-                        }
-                    })
-                    .collect(),
-            })
-        } else {
-            None
-        };
-
-        Ok(McPingResult {
-            version: version_result,
-            players: players_result,
-            description,
-            favicon,
-            latency,
-            modinfo: modinfo_result,
-        })
-    }
-
-    fn convert_description_to_string(&self, description: &serde_json::Value) -> String {
-        match description {
-            serde_json::Value::String(s) => s.clone(),
-            serde_json::Value::Object(obj) => self.parse_description_object(obj),
-            serde_json::Value::Array(arr) => arr
-                .iter()
-                .map(|item| self.convert_description_to_string(item))
-                .collect::<Vec<String>>()
-                .join(""),
-            _ => String::new(),
-        }
-    }
-
-    fn parse_description_object(&self, obj: &serde_json::Map<String, serde_json::Value>) -> String {
-        let mut result = String::new();
-
-        // 处理 extra 数组
-        if let Some(extra) = obj.get("extra").and_then(|v| v.as_array()) {
-            for item in extra {
-                result.push_str(&self.convert_description_to_string(item));
-            }
-        }
-
-        // 处理 text 字段
-        if let Some(text) = obj.get("text").and_then(|v| v.as_str()) {
-            let format_code = self.get_text_style_string(
-                obj.get("color").and_then(|v| v.as_str()).unwrap_or(""),
-                obj.get("bold").and_then(|v| v.as_bool()).unwrap_or(false),
-                obj.get("obfuscated")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false),
-                obj.get("strikethrough")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false),
-                obj.get("underline")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false),
-                obj.get("italic").and_then(|v| v.as_bool()).unwrap_or(false),
-            );
-            result.push_str(&format!("{}{}", format_code, text));
-        }
-        result
-    }
-
-    fn get_text_style_string(
-        &self,
-        color: &str,
-        bold: bool,
-        obfuscated: bool,
-        strikethrough: bool,
-        underline: bool,
-        italic: bool,
-    ) -> String {
-        let color_map = [
-            ("black", "0"),
-            ("dark_blue", "1"),
-            ("dark_green", "2"),
-            ("dark_aqua", "3"),
-            ("dark_red", "4"),
-            ("dark_purple", "5"),
-            ("gold", "6"),
-            ("gray", "7"),
-            ("dark_gray", "8"),
-            ("blue", "9"),
-            ("green", "a"),
-            ("aqua", "b"),
-            ("red", "c"),
-            ("light_purple", "d"),
-            ("yellow", "e"),
-            ("white", "f"),
-        ];
-
-        let mut result = String::new();
-
-        if let Some(code) =
-            color_map.iter().find_map(
-                |(name, code)| {
-                    if *name == color { Some(*code) } else { None }
-                },
-            )
-        {
-            result.push_str(&format!("§{}", code));
-        }
-
-        if bold {
-            result.push_str("§l");
-        }
-        if italic {
-            result.push_str("§o");
-        }
-        if underline {
-            result.push_str("§n");
-        }
-        if strikethrough {
-            result.push_str("§m");
-        }
-        // obfuscated 暂时不使用
-
-        result
-    }
 }
 
 mod varint {
@@ -349,7 +115,7 @@ mod varint {
     }
 
     /// 从字节数组中解码无符号长整数
-    pub fn decode(bytes: &[u8], read_length: &mut u8) -> Result<usize> {
+    pub fn _decode(bytes: &[u8], read_length: &mut u8) -> Result<usize> {
         let mut result: usize = 0;
         let mut shift = 0;
         let mut bytes_read = 0;
@@ -403,11 +169,11 @@ mod varint {
 }
 
 #[tauri::command]
-pub async fn server_query(addr_str: &str) -> Result<McPingResult, String> {
+pub async fn server_query(addr_str: &str) -> Result<(serde_json::Value, u128), String> {
     let mc_ping = MCPing::from_str(addr_str)
         .await
         .map_err(|e| e.to_string())?;
-    Ok(mc_ping.ping().await.map_err(|e| e.to_string())?)
+    mc_ping.ping().await.map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
@@ -418,10 +184,8 @@ async fn mc_ping_test() -> anyhow::Result<()> {
     dbg!(mcping.endpoint);
     match mcping.ping().await {
         Ok(result) => {
-            println!("服务器版本: {}", result.version.name);
-            println!("在线玩家: {}/{}", result.players.online, result.players.max);
-            println!("延迟: {}ms", result.latency);
-            println!("描述: {}", result.description);
+            println!("result json: {}", result.0);
+            println!("latency: {}", result.1);
         }
         Err(e) => {
             println!("failed to connet for {}", e)
