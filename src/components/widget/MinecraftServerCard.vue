@@ -82,7 +82,7 @@ const DescriptionExtra = defineComponent({
       <PButton inline :click="performQuery">查询</PButton>
     </div>
     <div class="server-card" v-if="mcPingResult">
-      <img class="server-favicon" :src="mcPingResult.favicon" />
+      <img class="server-favicon" v-if="mcPingResult.favicon" :src="mcPingResult.favicon" />
       <div class="server-title">
         <p style="font-size: 15px; font-weight: bold">
           服务器版本: {{ mcPingResult.version.name }}

@@ -19,10 +19,13 @@ impl MCPing {
         } else if let Ok(ip) = addr_str.parse::<IpAddr>() {
             SocketAddr::new(ip, Self::DEFAULT_PORT)
         } else {
+            let endpoint_raw = if !addr_str.split_once(':').is_none() {
+                addr_str
+            } else {
+                &format!("{}:{}", addr_str, Self::DEFAULT_PORT)
+            };
             let socket_addrs: Vec<SocketAddr> =
-                tokio::net::lookup_host(format!("{}:{}", addr_str, Self::DEFAULT_PORT))
-                    .await?
-                    .collect();
+                tokio::net::lookup_host(endpoint_raw).await?.collect();
             socket_addrs
                 .first()
                 .ok_or_else(|| anyhow::anyhow!("cannot parse addr: {}", addr_str))?
@@ -36,9 +39,8 @@ impl MCPing {
     }
 
     pub async fn ping(&self) -> anyhow::Result<(serde_json::Value, u128)> {
-        log::debug!("Connecting to {}", self.endpoint);
         let mut socket_stream = tokio::net::TcpStream::connect(&self.endpoint).await?;
-        log::debug!("Connection established:{}", self.endpoint);
+        log::debug!("Connection established: {}", self.endpoint);
         let handshake_packet = self.build_handshake_packet();
         tokio::time::timeout(self.timeout, async {
             socket_stream.write_all(&handshake_packet).await?;
@@ -173,6 +175,7 @@ pub async fn server_query(addr_str: &str) -> Result<(serde_json::Value, u128), S
     let mc_ping = MCPing::from_str(addr_str)
         .await
         .map_err(|e| e.to_string())?;
+    log::debug!("constructed mc_ping with endpoint: {}", mc_ping.endpoint);
     mc_ping.ping().await.map_err(|e| e.to_string())
 }
 
