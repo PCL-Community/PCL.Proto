@@ -4,43 +4,48 @@ import PCard from './PCard.vue'
 import PInput from './PInput.vue'
 import PButton from './PButton.vue'
 import type { McPingResult } from '@/types/mcPing'
-const address = ref<string>()
-const port = ref<number>(25565)
+import { invoke } from '@tauri-apps/api/core'
+import { error } from '@tauri-apps/plugin-log'
+// const address = ref<string>()
+// const port = ref<number>(25565)
 
-const serverInput = ref<string>('127.0.0.1:31415')
+const serverInput = ref<string>()
 const cardVisible = ref<boolean>(false)
 const mcPingResult = ref<McPingResult>()
 
-async function queryServer(ip: string, port: number) {
-  console.log(`Querying server at ${ip}:${port}`)
-  // 暂时没有后端连接，前端模拟结果
-  mcPingResult.value = {
-    version: {
-      name: '1.19.4',
-      protocol: 756,
-    },
-    players: {
-      max: 100,
-      online: 10,
-      samples: [],
-    },
-    description: 'A Minecraft server',
-    favicon:
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg==',
-    latency: 100,
-    modInfo: {
-      type: 'vanilla',
-      modList: [],
-    },
-  }
-  cardVisible.value = true
-}
+// async function queryServer(ip: string, port: number) {
+//   console.log(`Querying server at ${ip}:${port}`)
+//   // 暂时没有后端连接，前端模拟结果
+//   mcPingResult.value = {
+//     version: {
+//       name: '1.19.4',
+//       protocol: 756,
+//     },
+//     players: {
+//       max: 100,
+//       online: 10,
+//       samples: [],
+//     },
+//     description: 'A Minecraft server',
+//     favicon:
+//       'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg==',
+//     latency: 100,
+//     modInfo: {
+//       type: 'vanilla',
+//       modList: [],
+//     },
+//   }
+//   cardVisible.value = true
+// }
 
 async function performQuery() {
-  address.value = serverInput.value?.split(':')[0]
-  port.value = Number(serverInput.value?.split(':')[1]) || 25565
-  if (address.value && port.value) {
-    await queryServer(address.value, port.value)
+  try {
+    let result = await invoke<McPingResult>('server_query', { addrStr: serverInput.value })
+    mcPingResult.value = result
+    cardVisible.value = true
+  } catch (err) {
+    error(`server query: ${err}`)
+    cardVisible.value = false
   }
 }
 </script>

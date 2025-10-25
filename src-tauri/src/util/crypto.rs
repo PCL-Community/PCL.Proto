@@ -1,24 +1,26 @@
 use std::process::Command;
 
 #[cfg(target_os = "macos")]
-pub fn get_board_serial() -> Result<String, Box<dyn std::error::Error>> {
+pub fn get_board_serial() -> anyhow::Result<String> {
     let output = Command::new("system_profiler")
         .arg("SPHardwareDataType")
         .output()?;
     let stdout = String::from_utf8(output.stdout)?;
-    let serial = stdout
+
+    match stdout
         .lines()
         .find(|line| line.contains("Serial Number (system)"))
-        .unwrap()
-        .split_whitespace()
-        .nth(3)
-        .unwrap()
-        .to_string();
-    Ok(serial)
+        .and_then(|line| line.split_whitespace().nth(3))
+    {
+        Some(serial) => Ok(serial.to_string()),
+        None => Err(anyhow::anyhow!(
+            "Failed to extract serial number from system_profiler output"
+        )),
+    }
 }
 
 #[cfg(target_os = "linux")]
-pub fn get_board_serial() -> Result<String, Box<dyn std::error::Error>> {
+pub fn get_board_serial() -> anyhow::Result<String> {
     // 首先尝试 DMI 路径
     let dmi_paths = [
         "/sys/class/dmi/id/board_serial",
@@ -56,7 +58,7 @@ pub fn get_board_serial() -> Result<String, Box<dyn std::error::Error>> {
 }
 
 #[cfg(target_os = "windows")]
-pub fn get_board_serial() -> Result<String, Box<dyn std::error::Error>> {
+pub fn get_board_serial() -> anyhow::Result<String> {
     let output = Command::new("wmic")
         .args(["baseboard", "get", "serialnumber"])
         // .creation_flags(0x08000000) // CREATE_NO_WINDOW

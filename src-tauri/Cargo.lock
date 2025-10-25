@@ -2677,8 +2677,9 @@ dependencies = [
 
 [[package]]
 name = "pcl-proto"
-version = "0.6.3"
+version = "0.6.5"
 dependencies = [
+ "anyhow",
  "chrono",
  "directories",
  "futures-util",

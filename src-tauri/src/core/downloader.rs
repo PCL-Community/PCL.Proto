@@ -13,7 +13,6 @@ use futures_util::StreamExt;
 use reqwest::Client;
 use std::{
     collections::HashMap,
-    error::Error,
     fs,
     path::{Path, PathBuf},
     sync::Arc,
@@ -427,7 +426,7 @@ pub mod minecraft_resource {
     fn try_get_temp_json(
         version_id: &str,
         version_folder: &Path,
-    ) -> Result<VersionDetails, Box<dyn Error>> {
+    ) -> anyhow::Result<VersionDetails> {
         let temp_json = std::env::temp_dir().join(format!("pcl-proto-{0}/{0}.json", &version_id));
         let reader = fs::File::open(&temp_json)?;
         let details: VersionDetails = serde_json::from_reader(reader)?;
