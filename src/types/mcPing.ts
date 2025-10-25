@@ -1,9 +1,4 @@
-interface IPEndPoint {
-    address: string
-    port: number
-}
-
-export interface McPingResult {
+export interface MCPingResult {
     version: {
         name: string,
         protocol: number
@@ -11,19 +6,18 @@ export interface McPingResult {
     players: {
         max: number,
         online: number,
-        samples: {
+        samples?: {
             name: string,
             id: string
         }[]
     },
     description: string,
-    favicon: string,
-    latency: number,
-    modInfo: {
-        type: string,
-        modList: {
-            id: string,
-            version: string
-        }[]
-    }
+    favicon?: string,
+    // modInfo: {
+    //     type: string,
+    //     modList: {
+    //         id: string,
+    //         version: string
+    //     }[]
+    // }
 }

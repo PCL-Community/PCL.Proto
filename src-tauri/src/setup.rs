@@ -101,7 +101,7 @@ impl ConfigManager {
     /// create a new config manager every time it launches
     /// and initialize the config file, for those who never use this launcher
     fn new() -> Result<Self, ConfigManagerError> {
-        let config_dirs = directories::ProjectDirs::from("cc", "PCL Community", "PCL.Proto")
+        let config_dirs = directories::ProjectDirs::from("pcl-community", "pcl", "proto")
             .ok_or(ConfigManagerError::ConfigDirNotFound)?;
         let config_dir = config_dirs.config_dir();
         if !config_dir.exists() {

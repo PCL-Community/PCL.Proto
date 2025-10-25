@@ -3,44 +3,27 @@ import { ref } from 'vue'
 import PCard from './PCard.vue'
 import PInput from './PInput.vue'
 import PButton from './PButton.vue'
-import type { McPingResult } from '@/types/mcPing'
-const address = ref<string>()
-const port = ref<number>(25565)
+import type { MCPingResult } from '@/types/mcPing'
+import { invoke } from '@tauri-apps/api/core'
+import { error } from '@tauri-apps/plugin-log'
 
-const serverInput = ref<string>('127.0.0.1:31415')
+const serverInput = ref<string>()
 const cardVisible = ref<boolean>(false)
-const mcPingResult = ref<McPingResult>()
-
-async function queryServer(ip: string, port: number) {
-  console.log(`Querying server at ${ip}:${port}`)
-  // 暂时没有后端连接，前端模拟结果
-  mcPingResult.value = {
-    version: {
-      name: '1.19.4',
-      protocol: 756,
-    },
-    players: {
-      max: 100,
-      online: 10,
-      samples: [],
-    },
-    description: 'A Minecraft server',
-    favicon:
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg==',
-    latency: 100,
-    modInfo: {
-      type: 'vanilla',
-      modList: [],
-    },
-  }
-  cardVisible.value = true
-}
+const mcPingResult = ref<MCPingResult>()
+const latency = ref<number>()
 
 async function performQuery() {
-  address.value = serverInput.value?.split(':')[0]
-  port.value = Number(serverInput.value?.split(':')[1]) || 25565
-  if (address.value && port.value) {
-    await queryServer(address.value, port.value)
+  try {
+    let [result, latency_got] = await invoke<[MCPingResult, number]>('server_query', {
+      addrStr: serverInput.value?.trim(),
+    })
+    console.log('server_query', result)
+    mcPingResult.value = result
+    latency.value = latency_got
+    cardVisible.value = true
+  } catch (err) {
+    error(`server query: ${err}`)
+    cardVisible.value = false
   }
 }
 </script>
@@ -60,14 +43,20 @@ async function performQuery() {
       <PButton inline :click="performQuery">查询</PButton>
     </div>
     <div class="server-card" v-if="cardVisible">
-      <img class="server-favicon" :src="mcPingResult?.favicon" />
+      <img
+        class="server-favicon"
+        :src="
+          mcPingResult?.favicon ??
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg=='
+        "
+      />
       <div class="server-title">
         <p style="font-size: 15px; font-weight: bold">Minecraft 服务器</p>
         <p style="font-size: 12px">{{ mcPingResult?.description }}</p>
       </div>
       <div class="server-info">
         <p>{{ mcPingResult?.players.online }}/{{ mcPingResult?.players.max }}</p>
-        <p class="latency-text">{{ mcPingResult?.latency }}ms</p>
+        <p class="latency-text">{{ latency }}ms</p>
       </div>
     </div>
   </PCard>

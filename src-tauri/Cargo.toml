@@ -1,6 +1,6 @@
 [package]
 name = "pcl-proto"
-version = "0.6.3"
+version = "0.6.5"
 description = "PCL.Proto"
 authors = ["AMagicPear"]
 license = "PCL-License"
@@ -10,7 +10,7 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-name = "app_lib"
+name = "pcl_proto_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -34,7 +34,8 @@ thiserror = "2.0.17"
 futures-util = "0.3.31"
 serde_repr = "0.1.20"
 sha1 = "0.10.6"
-quick-xml = { version="0.38.3", features = ["serialize"] }
+quick-xml = { version = "0.38.3", features = ["serialize"] }
+anyhow = "1.0.100"
 # tauri-invoke-http = "0.1.0"
 
 [profile.dev]
@@ -42,7 +43,7 @@ incremental = true
 
 [profile.release]
 codegen-units = 1 # Allows LLVM to perform better optimization.
-lto = true # Enables link-time-optimizations.
-opt-level = "s" # Prioritizes small binary size. Use `3` if you prefer speed.
-panic = "abort" # Higher performance by disabling panic handlers.
-strip = true # Ensures debug symbols are removed.
+lto = true        # Enables link-time-optimizations.
+opt-level = "s"   # Prioritizes small binary size. Use `3` if you prefer speed.
+panic = "abort"   # Higher performance by disabling panic handlers.
+strip = true      # Ensures debug symbols are removed.

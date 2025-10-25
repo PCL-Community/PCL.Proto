@@ -23,7 +23,7 @@ pub fn run() {
                     Target::new(TargetKind::LogDir { file_name: None }),
                     Target::new(TargetKind::Webview),
                 ])
-                .level(log::LevelFilter::Info)
+                .level(log::LevelFilter::Debug)
                 .build(),
         )
         .setup(|app| {
@@ -65,7 +65,8 @@ pub fn run() {
             commands::handle_clicked_on_version,
             downloader::minecraft_resource::download_minecraft_version,
             commands::get_plugin_versions,
-            commands::get_active_instance
+            commands::get_active_instance,
+            util::server_query::server_query,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
