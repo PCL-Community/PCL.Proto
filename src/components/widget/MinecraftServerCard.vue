@@ -1,31 +1,70 @@
-<script lang="ts" setup>
-import { ref } from 'vue'
+<script lang="tsx" setup>
+import { defineComponent, ref } from 'vue'
 import PCard from './PCard.vue'
 import PInput from './PInput.vue'
 import PButton from './PButton.vue'
 import type { MCPingResult } from '@/types/mcPing'
 import { invoke } from '@tauri-apps/api/core'
 import { error } from '@tauri-apps/plugin-log'
+import sideTip from '@/composables/sideTip'
+import { type ExtraItem } from '@/types/mcPing'
 
 const serverInput = ref<string>()
-const cardVisible = ref<boolean>(false)
-const mcPingResult = ref<MCPingResult>()
+const mcPingResult = ref<MCPingResult | null>()
 const latency = ref<number>()
 
 async function performQuery() {
   try {
-    let [result, latency_got] = await invoke<[MCPingResult, number]>('server_query', {
-      addrStr: serverInput.value?.trim(),
-    })
-    console.log('server_query', result)
-    mcPingResult.value = result
-    latency.value = latency_got
-    cardVisible.value = true
+    let addrStr = serverInput.value?.trim()
+    if (addrStr) {
+      let [result, latency_got] = await invoke<[MCPingResult, number]>('server_query', {
+        addrStr,
+      })
+      console.log('server_query', result)
+      mcPingResult.value = result
+      latency.value = latency_got
+    } else {
+      mcPingResult.value = null
+      sideTip.show('请输入地址后再查询')
+    }
   } catch (err) {
     error(`server query: ${err}`)
-    cardVisible.value = false
+    mcPingResult.value = null
+    sideTip.show(`${err}`, 'warn')
   }
 }
+
+// render description recursively
+const DescriptionExtra = defineComponent({
+  name: 'DescriptionExtra',
+  props: {
+    description: {
+      type: Object as () => ExtraItem,
+      required: true,
+    },
+  },
+  setup(props) {
+    return () =>
+      typeof props.description === 'string' ? (
+        <span style={{ fontSize: '12px' }}>{props.description}</span>
+      ) : (
+        <>
+          {props.description.extra?.map((item) => (
+            <DescriptionExtra description={item} />
+          ))}
+          <span
+            style={{
+              color: props.description.color,
+              fontWeight: props.description.bold ? 'bold' : 'unset',
+              fontSize: '12px',
+            }}
+          >
+            {props.description.text}
+          </span>
+        </>
+      )
+  },
+})
 </script>
 
 <template>
@@ -42,20 +81,17 @@ async function performQuery() {
       <PInput v-model="serverInput" placeholder="输入服务器地址" style="flex: 1" />
       <PButton inline :click="performQuery">查询</PButton>
     </div>
-    <div class="server-card" v-if="cardVisible">
-      <img
-        class="server-favicon"
-        :src="
-          mcPingResult?.favicon ??
-          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg=='
-        "
-      />
+    <div class="server-card" v-if="mcPingResult">
+      <img class="server-favicon" :src="mcPingResult.favicon" />
       <div class="server-title">
-        <p style="font-size: 15px; font-weight: bold">Minecraft 服务器</p>
-        <p style="font-size: 12px">{{ mcPingResult?.description }}</p>
+        <p style="font-size: 15px; font-weight: bold">
+          服务器版本: {{ mcPingResult.version.name }}
+        </p>
+        <!-- 描述部分需要递归渲染 -->
+        <DescriptionExtra :description="mcPingResult.description" />
       </div>
       <div class="server-info">
-        <p>{{ mcPingResult?.players.online }}/{{ mcPingResult?.players.max }}</p>
+        <p>{{ mcPingResult.players.online }}/{{ mcPingResult.players.max }}</p>
         <p class="latency-text">{{ latency }}ms</p>
       </div>
     </div>
@@ -83,6 +119,7 @@ async function performQuery() {
 .server-title {
   float: left;
   margin-left: 10px;
+  max-width: 80%;
 }
 
 .server-info {

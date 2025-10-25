@@ -4,9 +4,9 @@ import IconHelp from '@/components/icons/side/IconHelp.vue'
 import IconPack from '@/components/icons/side/IconPack.vue'
 import IconVote from '@/components/icons/side/IconVote.vue'
 import SideNavLayout from '@/layout/SideNavLayout.vue'
-import { h } from 'vue'
+import { defineComponent, h } from 'vue'
 
-export default {
+export default defineComponent({
   setup() {
     return () =>
       h(SideNavLayout, {
@@ -24,4 +24,4 @@ export default {
         ],
       })
   }
-}
+})

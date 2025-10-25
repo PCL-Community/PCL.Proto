@@ -63,7 +63,7 @@ impl MCPing {
             socket_stream.read_exact(&mut json_buffer).await?;
             let latency = start.elapsed().as_millis();
             let json_str = String::from_utf8(json_buffer)?;
-            log::debug!("Received JSON: {}", json_str);
+            log::debug!("Received JSON");
             Ok((
                 serde_json::from_str::<serde_json::Value>(&json_str)?,
                 latency,

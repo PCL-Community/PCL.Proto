@@ -1,3 +1,5 @@
+export type ExtraItem = string | { text: string, extra?: ExtraItem[], bold?: boolean, color?: string }
+
 export interface MCPingResult {
     version: {
         name: string,
@@ -11,13 +13,13 @@ export interface MCPingResult {
             id: string
         }[]
     },
-    description: string,
+    description: ExtraItem,
     favicon?: string,
-    // modInfo: {
-    //     type: string,
-    //     modList: {
-    //         id: string,
-    //         version: string
-    //     }[]
-    // }
+    modInfo?: {
+        type: string,
+        modList: {
+            id: string,
+            version: string
+        }[]
+    }
 }
