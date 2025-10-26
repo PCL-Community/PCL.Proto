@@ -67,6 +67,7 @@ pub fn run() {
             commands::get_plugin_versions,
             commands::get_active_instance,
             util::server_query::server_query,
+            util::skin::fetch_username_profile,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

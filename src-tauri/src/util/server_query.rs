@@ -26,10 +26,9 @@ impl MCPing {
             };
             let socket_addrs: Vec<SocketAddr> =
                 tokio::net::lookup_host(endpoint_raw).await?.collect();
-            socket_addrs
+            *socket_addrs
                 .first()
                 .ok_or_else(|| anyhow::anyhow!("cannot parse addr: {}", addr_str))?
-                .to_owned()
         };
         Ok(Self {
             endpoint: socket_addr,
