@@ -10,11 +10,14 @@ import { invoke } from '@tauri-apps/api/core'
 import { useRepositoriesStore } from '@/stores/repositories'
 import sideTip from '@/composables/sideTip'
 import cardDropAnimate from '@/util/cardDropAnimate'
+import getSkinUrl from '@/util/skinGetter'
+import { debug } from '@tauri-apps/plugin-log'
 
 const subviewRef = ref<HTMLElement>()
 const sideNavState = useSideNavState()
 const accontInfo = useAccountInfo()
 const selectedInstance = useSelectedInstance()
+const skinUrl = ref<string>()
 
 onMounted(() => {
   sideNavState.setWidthOfPageDefault('home')
@@ -50,6 +53,18 @@ const launchGame = () => {
 const gameName = computed(() => {
   return selectedInstance.instance_info?.name || 'No Instance Selected'
 })
+
+accontInfo.$subscribe((_mutation, state) => {
+  if (state.username) {
+    getSkinUrl(state.username, 'username')
+      .then((url) => {
+        skinUrl.value = url
+      })
+      .catch((_) => {
+        debug(`failed fetching skin url of name: ${state.username}`)
+      })
+  }
+})
 </script>
 
 <template lang="pug">
@@ -58,7 +73,7 @@ const gameName = computed(() => {
       #center
         //- MinecraftAvatar(type="url", src='default-skin/Steve_(classic_texture)_JE6.png')
         //- MinecraftAvatar(type='uuid', src='31bbe537-9fea-4e68-aa4a-d7aacca23d13')
-        MinecraftAvatar(:skinUrl="accontInfo.skinUrl")
+        MinecraftAvatar(:skinUrl="skinUrl")
         input(v-model="accontInfo.username")
         p.gray 点击上方用户名可输入
       #button-grid

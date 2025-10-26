@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-defineProps<{ skinUrl: string }>()
+defineProps<{ skinUrl?: string }>()
 </script>
 
 <template>
