@@ -54,17 +54,20 @@ const gameName = computed(() => {
   return selectedInstance.instance_info?.name || 'No Instance Selected'
 })
 
-accontInfo.$subscribe((_mutation, state) => {
-  if (state.username) {
-    getSkinUrl(state.username, 'username')
-      .then((url) => {
-        skinUrl.value = url
-      })
-      .catch((_) => {
-        debug(`failed fetching skin url of name: ${state.username}`)
-      })
-  }
-})
+accontInfo.$subscribe(
+  (_mutation, state) => {
+    if (state.username) {
+      getSkinUrl(state.username, 'username')
+        .then((url) => {
+          skinUrl.value = url
+        })
+        .catch((_) => {
+          debug(`failed fetching skin url of name: ${state.username}`)
+        })
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template lang="pug">
