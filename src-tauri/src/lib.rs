@@ -11,6 +11,23 @@ mod core;
 mod setup;
 mod util;
 
+// #[cfg(not(target_os = "android"))]
+// fn toggle_window_visibility<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+//     if let Some(window) = app.get_webview_window("main") {
+//         if window.is_visible().unwrap_or_default() {
+//             if window.is_minimized().unwrap_or_default() {
+//                 let _ = window.unminimize();
+//                 let _ = window.set_focus();
+//             } else {
+//                 let _ = window.hide();
+//             }
+//         } else {
+//             let _ = window.show();
+//             let _ = window.set_focus();
+//         }
+//     }
+// }
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()

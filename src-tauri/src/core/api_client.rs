@@ -2,6 +2,7 @@ use crate::{
     core::{api_client::plugins::McPluginReport, downloader},
     setup::{ConfigManager, constants::USER_AGENT},
 };
+use dashmap::DashMap;
 use reqwest::Client;
 use serde::{
     Serialize,
@@ -240,7 +241,7 @@ pub mod plugins {
 pub struct MinecraftApiClient {
     client: Client,
     api_bases: RwLock<ApiBases>,
-    cache: RwLock<HashMap<String, (Instant, serde_json::Value)>>,
+    cache: DashMap<String, (Instant, serde_json::Value)>,
     ttl: Duration,
 }
 
@@ -250,7 +251,7 @@ impl MinecraftApiClient {
         Self {
             client,
             api_bases: RwLock::new(ApiBases::new(api_provider)),
-            cache: RwLock::new(HashMap::new()),
+            cache: DashMap::new(),
             ttl: Duration::from_secs(60 * 5),
         }
     }
@@ -288,8 +289,8 @@ impl MinecraftApiClient {
     ) -> McApiResult<T> {
         let now = Instant::now();
         if allow_from_cache {
-            let cache = self.cache.read().await;
-            if let Some((cached_at, value)) = cache.get(url) {
+            if let Some(entry) = self.cache.get(url) {
+                let (cached_at, value) = entry.value();
                 if now.duration_since(*cached_at) < self.ttl {
                     log::info!("cache hit for {}", url);
                     return Ok(serde_json::from_value(value.clone())?);
@@ -298,8 +299,7 @@ impl MinecraftApiClient {
         }
         let data = self.get_inner(url).await?;
         let value = serde_json::to_value(&data)?;
-        let mut cache = self.cache.write().await;
-        cache.insert(url.to_string(), (now, value));
+        self.cache.insert(url.to_string(), (now, value));
         Ok(data)
     }
 

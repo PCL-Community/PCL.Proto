@@ -9,10 +9,10 @@ use crate::{
     setup::{ConfigManager, constants::USER_AGENT},
     util::file,
 };
+use dashmap::DashMap;
 use futures_util::StreamExt;
 use reqwest::Client;
 use std::{
-    collections::HashMap,
     fs,
     path::{Path, PathBuf},
     sync::Arc,
@@ -324,7 +324,7 @@ impl TaskItem {
 
 #[derive(Default)]
 pub struct ProgressMonitor {
-    task_items: HashMap<i32, Arc<Mutex<TaskItem>>>,
+    task_items: DashMap<i32, Arc<Mutex<TaskItem>>>,
 }
 
 impl ProgressMonitor {
@@ -347,12 +347,11 @@ impl ProgressMonitor {
         let mut last_sent_time = tokio::time::Instant::now();
         while let Some(update) = progress_rx.recv().await {
             let item_id = update.item_id;
-            let mut task_item_to_report = self
+            let task_item_to_report = self
                 .task_items
                 .get(&item_id)
-                .expect("[progress minitor] wrong item id's got!!!")
-                .lock()
-                .await;
+                .expect("[progress minitor] wrong item id's got!!!");
+            let mut task_item_to_report = task_item_to_report.lock().await;
             let last_download_bytes = task_item_to_report.downloaded_size;
             task_item_to_report.update_file_progress(update.file_index, update.progress);
             let mut report: TaskItemReport = TaskItemReport::from(&*task_item_to_report);

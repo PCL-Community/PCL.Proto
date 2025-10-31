@@ -20,7 +20,7 @@ const handleButtonClick = async (btn: ModalButtonOption) => {
         .modal-divider
 
         .modal-body
-          p(v-if="options.content") {{ options.content }}
+          p(v-if="options.content" v-html="options.content")
 
           input.modal-input(
             v-if="options.showInput"

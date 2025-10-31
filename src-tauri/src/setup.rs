@@ -115,7 +115,7 @@ impl ConfigManager {
         } else {
             let board_serial = util::crypto::get_board_serial()
                 .map_err(|_| ConfigManagerError::IdentifierFailure)?;
-            let pcl_identifier = format!("{:x}", util::get_pcl_hash(&board_serial));
+            let pcl_identifier = format!("{:x}", util::crypto::get_pcl_hash(&board_serial));
             fs::write(identifier_path, pcl_identifier.clone())
                 .map_err(|_| ConfigManagerError::IdentifierFailure)?;
             pcl_identifier

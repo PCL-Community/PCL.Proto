@@ -1,7 +1,7 @@
 //! Referenced from PCL-Community/PCL-CE
 use crate::setup::ConfigManager;
 
-use super::get_pcl_hash;
+use super::crypto::get_pcl_hash;
 use chrono::{Datelike, Local};
 
 #[tauri::command]

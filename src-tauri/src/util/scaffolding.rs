@@ -1,4 +1,4 @@
-use easytier::proto::api::manage::NetworkConfig;
+use easytier::launcher::{NetworkConfig, NetworkInstance};
 
 #[derive(thiserror::Error, Debug)]
 enum LinkError {
@@ -79,23 +79,53 @@ impl Into<NetworkConfig> for LinkInvitation {
                 cfg.network_secret = Some(network_secret);
                 // cfg.virtual_ipv4 = Some("10.114.114.114".to_string());
                 cfg.hostname = Some("Client-".to_string());
-                cfg
             }
             LinkInvitation::Scanfolding {
                 network_name,
                 network_secret,
-            } => cfg,
+            } => {}
         }
+        cfg
     }
 }
 
 #[cfg(test)]
-#[test]
-fn test_parse_code() {
-    let invitation1 = LinkInvitation::from_invite_code("P0ABB-017LK-S1DZ1-V2").unwrap();
-    dbg!(&invitation1);
-    let config: NetworkConfig = invitation1.into();
-    dbg!(config);
-    let invitation2 = LinkInvitation::from_invite_code("U/NNNN-NNNN-SSSS-SSSS").unwrap();
-    dbg!(&invitation2);
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_code() {
+        use std::thread::sleep;
+        let invitation1 = LinkInvitation::from_invite_code("P0ABB-017LK-S1DZ1-V2").unwrap();
+        dbg!(&invitation1);
+        let config: NetworkConfig = invitation1.into();
+        let config_toml = config.gen_config().unwrap();
+        dbg!(config, &config_toml);
+        let mut net = NetworkInstance::new(config_toml, easytier::launcher::ConfigSource::FFI);
+        let _subscriber = net.start().unwrap();
+        println!("EasyTier started (programmatic).");
+        sleep(std::time::Duration::from_mins(1));
+        let invitation2 = LinkInvitation::from_invite_code("U/NNNN-NNNN-SSSS-SSSS").unwrap();
+        dbg!(&invitation2);
+    }
+
+    #[test]
+    fn instance_manage() {
+        use easytier::common::config::TomlConfigLoader;
+        use easytier::instance_manager::NetworkInstanceManager;
+        use easytier::launcher::ConfigSource;
+        // 创建 manager
+        let manager = NetworkInstanceManager::new();
+        // 配置
+        let cfg_str = r#"
+            listeners = ["tcp://0.0.0.0:12345"]
+        "#;
+        let loader = TomlConfigLoader::new_from_str(cfg_str).unwrap();
+        // 启动实例（连接）
+        let instance_id = manager
+            .run_network_instance(loader, ConfigSource::GUI)
+            .unwrap();
+        // 关闭实例
+        manager.delete_network_instance(vec![instance_id]).unwrap();
+    }
 }
