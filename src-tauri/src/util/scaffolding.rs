@@ -1,4 +1,4 @@
-use easytier::launcher::{NetworkConfig, NetworkInstance};
+use easytier::{instance_manager::NetworkInstanceManager, launcher::NetworkConfig};
 
 #[derive(thiserror::Error, Debug)]
 enum LinkError {
@@ -89,9 +89,25 @@ impl Into<NetworkConfig> for LinkInvitation {
     }
 }
 
+#[tauri::command]
+pub fn start_connection_from_code(
+    network_instance_manager: tauri::State<'_, NetworkInstanceManager>,
+    code: &str,
+) -> Result<uuid::Uuid, String> {
+    let invitation = LinkInvitation::from_invite_code(code).map_err(|err| err.to_string())?;
+    let config: NetworkConfig = invitation.into();
+    let config_loader = config.gen_config().unwrap();
+    let instance_id = network_instance_manager
+        .run_network_instance(config_loader, easytier::launcher::ConfigSource::FFI)
+        .unwrap();
+    log::debug!("connected with instance_id: {}", instance_id);
+    Ok(instance_id)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use easytier::launcher::NetworkInstance;
 
     #[test]
     fn test_parse_code() {
@@ -112,7 +128,6 @@ mod tests {
     #[test]
     fn instance_manage() {
         use easytier::common::config::TomlConfigLoader;
-        use easytier::instance_manager::NetworkInstanceManager;
         use easytier::launcher::ConfigSource;
         // 创建 manager
         let manager = NetworkInstanceManager::new();
@@ -123,7 +138,7 @@ mod tests {
         let loader = TomlConfigLoader::new_from_str(cfg_str).unwrap();
         // 启动实例（连接）
         let instance_id = manager
-            .run_network_instance(loader, ConfigSource::GUI)
+            .run_network_instance(loader, ConfigSource::FFI)
             .unwrap();
         // 关闭实例
         manager.delete_network_instance(vec![instance_id]).unwrap();

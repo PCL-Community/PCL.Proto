@@ -4,17 +4,39 @@ import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PHint from '@/components/widget/PHint.vue'
 import PInput from '@/components/widget/PInput.vue'
+import { invoke } from '@tauri-apps/api/core'
+import { ref } from 'vue'
+
+const enterLobbyCode = ref<string>()
+
+async function ConnectWithCode(code: string) {
+  let instanceId = await invoke('start_connection_from_code', { code })
+  console.log('connected with instance id', instanceId)
+}
+
+async function DropConnect() {}
 </script>
 
 <template>
   <PHint severity="info">此大厅仅为UI，无联机功能</PHint>
+  <PButton :click="DropConnect">测试断连</PButton>
   <PCard :title="$t('link.lobby.join_lobby')">
     <p v-for="line in $t('link.lobby.join_lobby_description').split('\n')">{{ line }}</p>
     <div class="hall-input">
-      <PInput :placeholder="$t('link.lobby.enter_lobby_code')" style="flex: 1" />
+      <PInput
+        :placeholder="$t('link.lobby.enter_lobby_code')"
+        style="flex: 1"
+        v-model="enterLobbyCode"
+      />
       <PButton inline>清除</PButton>
       <PButton inline>粘贴</PButton>
-      <PButton inline type="tint">{{ $t('link.lobby.join_lobby') }}</PButton>
+      <PButton
+        inline
+        type="tint"
+        :click="() => ConnectWithCode(enterLobbyCode!)"
+        :disabled="!enterLobbyCode"
+        >{{ $t('link.lobby.join_lobby') }}</PButton
+      >
     </div>
   </PCard>
   <PCard :title="$t('link.lobby.create_lobby')">

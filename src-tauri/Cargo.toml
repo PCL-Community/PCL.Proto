@@ -38,6 +38,7 @@ quick-xml = { version = "0.38.3", features = ["serialize"] }
 anyhow = "1.0.100"
 easytier = { git = "https://github.com/EasyTier/EasyTier", branch = "main" }
 dashmap = "6.1.0"
+uuid = "1.18.1"
 # tauri-invoke-http = "0.1.0"
 
 [profile.dev]

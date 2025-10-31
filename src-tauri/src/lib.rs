@@ -38,7 +38,7 @@ pub fn run() {
                 .targets([
                     Target::new(TargetKind::Stdout),
                     Target::new(TargetKind::LogDir { file_name: None }),
-                    Target::new(TargetKind::Webview),
+                    // Target::new(TargetKind::Webview),
                 ])
                 .level(log::LevelFilter::Debug)
                 .build(),
@@ -47,6 +47,7 @@ pub fn run() {
             if let Some(config_manager) = setup::CONFIG_MANAGER.as_ref() {
                 app.manage(Arc::clone(&config_manager.app_state));
                 app.manage(&config_manager.api_client);
+
                 log::debug!("app state managed");
             } else {
                 log::error!("CONFIG_MANAGER is None");
@@ -58,6 +59,8 @@ pub fn run() {
                         std::process::exit(1);
                     });
             }
+            let easytier_manager = easytier::instance_manager::NetworkInstanceManager::new();
+            app.manage(easytier_manager);
             // let window = app.get_webview_window("main").unwrap();
             // window.on_navigation(move |url| {});
             // search for Java during init
@@ -86,6 +89,7 @@ pub fn run() {
             util::server_query::server_query,
             util::skin::fetch_username_uuid,
             util::skin::fetch_uuid_profile,
+            util::scaffolding::start_connection_from_code
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

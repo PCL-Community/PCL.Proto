@@ -9,7 +9,6 @@ use serde::{
     de::{DeserializeOwned, Error},
 };
 use std::{
-    collections::HashMap,
     path::{Path, PathBuf},
     time::{Duration, Instant},
 };
