@@ -115,27 +115,6 @@ mod varint {
         result
     }
 
-    /// 从字节数组中解码无符号长整数
-    pub fn _decode(bytes: &[u8], read_length: &mut u8) -> Result<usize> {
-        let mut result: usize = 0;
-        let mut shift = 0;
-        let mut bytes_read = 0;
-
-        for &byte in bytes {
-            if bytes_read > MAX_BYTES {
-                return Err(anyhow::anyhow!("VarInt exceeds maximum length"));
-            }
-            result |= ((byte & 0x7F) as usize) << shift;
-            bytes_read += 1;
-            if (byte & 0x80) == 0 {
-                *read_length = bytes_read;
-                return Ok(result);
-            }
-            shift += 7;
-        }
-        return Err(anyhow::anyhow!("Incomplete VarInt encoding"));
-    }
-
     pub async fn read_from_stream(stream: &mut tokio::net::TcpStream) -> Result<i32> {
         use tokio::io::{AsyncReadExt, ErrorKind};
 

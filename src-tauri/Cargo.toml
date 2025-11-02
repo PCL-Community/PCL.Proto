@@ -35,8 +35,8 @@ futures-util = "0.3.31"
 serde_repr = "0.1.20"
 sha1 = "0.10.6"
 quick-xml = { version = "0.38.3", features = ["serialize"] }
-anyhow = "1.0.100"
-easytier = { git = "https://github.com/EasyTier/EasyTier", branch = "main" }
+anyhow = "1.0"
+easytier = { git = "https://github.com/EasyTier/EasyTier", branch = "main", version = "2.4" }
 dashmap = "6.1.0"
 uuid = "1.18.1"
 # tauri-invoke-http = "0.1.0"

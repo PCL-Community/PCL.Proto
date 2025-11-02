@@ -1,4 +1,7 @@
-use easytier::{instance_manager::NetworkInstanceManager, launcher::NetworkConfig};
+use easytier::{
+    instance_manager::NetworkInstanceManager,
+    launcher::{NetworkConfig, NetworkInstanceRunningInfo},
+};
 
 #[derive(thiserror::Error, Debug)]
 enum LinkError {
@@ -83,7 +86,11 @@ impl Into<NetworkConfig> for LinkInvitation {
             LinkInvitation::Scanfolding {
                 network_name,
                 network_secret,
-            } => {}
+            } => {
+                cfg.public_server_url = Some("tcp://public2.easytier.cn:54321".to_string());
+                cfg.network_name = Some(network_name);
+                cfg.network_secret = Some(network_secret);
+            }
         }
         cfg
     }
@@ -92,16 +99,31 @@ impl Into<NetworkConfig> for LinkInvitation {
 #[tauri::command]
 pub fn start_connection_from_code(
     network_instance_manager: tauri::State<'_, NetworkInstanceManager>,
+    state: tauri::State<'_, std::sync::Arc<tokio::sync::Mutex<crate::setup::AppState>>>,
     code: &str,
 ) -> Result<uuid::Uuid, String> {
     let invitation = LinkInvitation::from_invite_code(code).map_err(|err| err.to_string())?;
     let config: NetworkConfig = invitation.into();
-    let config_loader = config.gen_config().unwrap();
+    let config_loader = config.gen_config().map_err(|err| err.to_string())?;
     let instance_id = network_instance_manager
         .run_network_instance(config_loader, easytier::launcher::ConfigSource::FFI)
-        .unwrap();
+        .map_err(|err| err.to_string())?;
     log::debug!("connected with instance_id: {}", instance_id);
+    let mut guard = state.blocking_lock();
+    guard.easytier_instance_uuid = Some(instance_id);
     Ok(instance_id)
+}
+
+#[tauri::command]
+pub async fn collect_instance_info(
+    network_instance_manager: tauri::State<'_, NetworkInstanceManager>,
+    state: tauri::State<'_, std::sync::Arc<tokio::sync::Mutex<crate::setup::AppState>>>,
+) -> Result<Option<NetworkInstanceRunningInfo>, ()> {
+    let uuid = state.lock().await.easytier_instance_uuid;
+    match uuid {
+        Some(uuid) => Ok(network_instance_manager.get_network_info(&uuid).await),
+        None => Ok(None),
+    }
 }
 
 #[cfg(test)]

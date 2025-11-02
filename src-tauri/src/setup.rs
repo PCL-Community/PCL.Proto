@@ -66,6 +66,8 @@ pub struct AppState {
     pub repositories: Vec<GameRepository>,
     pub active_game_instance: Option<Arc<GameInstance>>,
     pub active_repo_path: PathBuf,
+    #[serde(skip)]
+    pub easytier_instance_uuid: Option<uuid::Uuid>,
 }
 
 /// config manager, for loading and saving config file
@@ -86,6 +88,7 @@ pub enum ConfigManagerError {
     ConfigFileNotFound,
     ConfigFileCorrupted,
     IdentifierFailure,
+    ApiClientBuildError,
 }
 
 pub static CONFIG_MANAGER: LazyLock<Option<ConfigManager>> = LazyLock::new(|| {
@@ -128,7 +131,7 @@ impl ConfigManager {
                 reqwest::Client::builder()
                     .user_agent(USER_AGENT)
                     .build()
-                    .unwrap(),
+                    .map_err(|_| ConfigManagerError::ApiClientBuildError)?,
                 &ApiProvider::default(),
             ),
             pcl_identifier,

@@ -89,7 +89,8 @@ pub fn run() {
             util::server_query::server_query,
             util::skin::fetch_username_uuid,
             util::skin::fetch_uuid_profile,
-            util::scaffolding::start_connection_from_code
+            util::scaffolding::start_connection_from_code,
+            util::scaffolding::collect_instance_info
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

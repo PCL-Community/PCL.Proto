@@ -4,22 +4,31 @@ import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PHint from '@/components/widget/PHint.vue'
 import PInput from '@/components/widget/PInput.vue'
+import type { NetworkInstanceRunningInfo } from '@/types/easytier'
 import { invoke } from '@tauri-apps/api/core'
 import { ref } from 'vue'
 
 const enterLobbyCode = ref<string>()
 
 async function ConnectWithCode(code: string) {
-  let instanceId = await invoke('start_connection_from_code', { code })
+  let instanceId = await invoke<string>('start_connection_from_code', { code })
   console.log('connected with instance id', instanceId)
 }
 
 async function DropConnect() {}
+
+async function CollectInfo() {
+  let info = await invoke<NetworkInstanceRunningInfo | null>('collect_instance_info')
+  console.log(info)
+}
 </script>
 
 <template>
   <PHint severity="info">此大厅仅为UI，无联机功能</PHint>
-  <PButton :click="DropConnect">测试断连</PButton>
+  <div class="button-grid">
+    <PButton :click="DropConnect">测试断连</PButton>
+    <PButton :click="CollectInfo">获取信息</PButton>
+  </div>
   <PCard :title="$t('link.lobby.join_lobby')">
     <p v-for="line in $t('link.lobby.join_lobby_description').split('\n')">{{ line }}</p>
     <div class="hall-input">
