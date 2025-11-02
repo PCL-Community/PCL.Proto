@@ -39,6 +39,7 @@ anyhow = "1.0"
 easytier = { git = "https://github.com/EasyTier/EasyTier", branch = "main", version = "2.4" }
 dashmap = "6.1.0"
 uuid = "1.18.1"
+trust-dns-resolver = "0.23.2"
 # tauri-invoke-http = "0.1.0"
 
 [profile.dev]

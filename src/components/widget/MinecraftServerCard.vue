@@ -145,7 +145,9 @@ const DescriptionExtra = defineComponent(
             服务器版本: {{ mcPingResult.version.name }}
           </p>
           <!-- 描述部分需要递归渲染 -->
-          <DescriptionExtra :description="mcPingResult.description" />
+          <p>
+            <DescriptionExtra :description="mcPingResult.description" />
+          </p>
         </div>
       </div>
       <div class="server-info">
