@@ -34,37 +34,94 @@ async function performQuery() {
   }
 }
 
+function parseMinecraftText(text: string) {
+  const codes: Record<string, any> = {
+    '0': { color: 'black' },
+    '1': { color: 'dark_blue' },
+    '2': { color: 'dark_green' },
+    '3': { color: 'dark_aqua' },
+    '4': { color: 'dark_red' },
+    '5': { color: 'dark_purple' },
+    '6': { color: 'gold' },
+    '7': { color: 'gray' },
+    '8': { color: 'dark_gray' },
+    '9': { color: 'blue' },
+    a: { color: 'green' },
+    b: { color: 'aqua' },
+    c: { color: 'red' },
+    d: { color: 'light_purple' },
+    e: { color: 'yellow' },
+    f: { color: 'white' },
+    l: { 'font-weight': 'bold' },
+    m: { 'text-decoration': 'line-through' },
+    n: { 'text-decoration': 'underline' },
+    o: { 'font-style': 'italic' },
+    r: {},
+  }
+
+  // 将单个样式对象转为 CSS 字符串
+  const styleObjectToCss = (styleObj: Object) =>
+    Object.entries(styleObj)
+      .map(([property, value]) => `${property}: ${value}`)
+      .join(';')
+
+  let result = ''
+  let i = 0 // scan over the whole string
+  let currentStyle = {}
+  while (i < text.length) {
+    const char = text.charAt(i)
+    // meet §
+    if (char == '§') {
+      result += '</span>'
+      let styleRead = codes[text.charAt(++i)]
+      if (styleRead) {
+        if (styleRead.color) {
+          // 遇到颜色代码，清除当前的样式，只记录颜色
+          currentStyle = styleRead
+        } else {
+          // 遇到格式代码，附加当前的样式
+          Object.assign(currentStyle, styleRead)
+        }
+        result += `<span style="${styleObjectToCss(styleRead)}">`
+      } else {
+        currentStyle = {}
+      }
+    } else {
+      result += char
+    }
+    i++
+  }
+  result += '</span>'
+  return result
+}
+
 // render description recursively
-const DescriptionExtra = defineComponent({
-  name: 'DescriptionExtra',
-  props: {
-    description: {
-      type: Object as () => ExtraItem,
-      required: true,
-    },
-  },
-  setup(props) {
+const DescriptionExtra = defineComponent(
+  (props: { description: ExtraItem }) => {
     return () =>
       typeof props.description === 'string' ? (
-        <span style={{ fontSize: '12px' }}>{props.description}</span>
+        <span style={{ fontSize: '12px' }} v-html={parseMinecraftText(props.description)} />
       ) : (
         <>
           {props.description.extra?.map((item) => (
             <DescriptionExtra description={item} />
           ))}
-          <span
-            style={{
-              color: props.description.color,
-              fontWeight: props.description.bold ? 'bold' : 'unset',
-              fontSize: '12px',
-            }}
-          >
-            {props.description.text}
-          </span>
+          {props.description.text && (
+            <span
+              style={{
+                color: props.description.color,
+                fontWeight: props.description.bold ? 'bold' : 'unset',
+                fontSize: '12px',
+              }}
+            >
+              {props.description.text}
+            </span>
+          )}
         </>
       )
   },
-})
+  { name: 'DescriptionExtra', props: ['description'] },
+)
 </script>
 
 <template>
@@ -82,13 +139,15 @@ const DescriptionExtra = defineComponent({
       <PButton inline :click="performQuery">查询</PButton>
     </div>
     <div class="server-card" v-if="mcPingResult">
-      <img class="server-favicon" v-if="mcPingResult.favicon" :src="mcPingResult.favicon" />
-      <div class="server-title">
-        <p style="font-size: 15px; font-weight: bold">
-          服务器版本: {{ mcPingResult.version.name }}
-        </p>
-        <!-- 描述部分需要递归渲染 -->
-        <DescriptionExtra :description="mcPingResult.description" />
+      <div>
+        <img class="server-favicon" v-if="mcPingResult.favicon" :src="mcPingResult.favicon" />
+        <div class="server-title">
+          <p style="font-size: 15px; font-weight: bold">
+            服务器版本: {{ mcPingResult.version.name }}
+          </p>
+          <!-- 描述部分需要递归渲染 -->
+          <DescriptionExtra :description="mcPingResult.description" />
+        </div>
       </div>
       <div class="server-info">
         <p>{{ mcPingResult.players.online }}/{{ mcPingResult.players.max }}</p>
@@ -104,22 +163,20 @@ const DescriptionExtra = defineComponent({
   background-size: auto;
   background-repeat: repeat-x;
   image-rendering: pixelated;
-  height: 60px;
   border-radius: 4px;
   padding: 6px;
   color: white;
+  display: flex;
+  flex-direction: row;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .server-favicon {
   image-rendering: pixelated;
-  height: 100%;
   float: left;
-}
-
-.server-title {
-  float: left;
-  margin-left: 10px;
-  max-width: 80%;
+  margin-right: 10px;
 }
 
 .server-info {
