@@ -8,7 +8,7 @@ import PLoading from '@/components/widget/PLoading.vue'
 import { RouterLink } from 'vue-router'
 import { invoke } from '@tauri-apps/api/core'
 import PInput from '@/components/widget/PInput.vue'
-import getSkinUrl from '@/util/skinGetter'
+import getSkinUrl from '@/api/skinGetter'
 import sideTip from '@/composables/sideTip'
 const modal = useModal()
 

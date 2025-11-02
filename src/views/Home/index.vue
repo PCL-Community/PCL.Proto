@@ -10,7 +10,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { useRepositoriesStore } from '@/stores/repositories'
 import sideTip from '@/composables/sideTip'
 import cardDropAnimate from '@/util/cardDropAnimate'
-import getSkinUrl from '@/util/skinGetter'
+import getSkinUrl from '@/api/skinGetter'
 import { debug } from '@tauri-apps/plugin-log'
 
 const subviewRef = ref<HTMLElement>()
