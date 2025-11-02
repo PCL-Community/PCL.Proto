@@ -2,11 +2,14 @@ import MinecraftServerCard from '@/components/widget/MinecraftServerCard.vue'
 import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import { useModal } from '@/composables/useModal'
-import { defineAsyncComponent, defineComponent } from 'vue'
+import { defineAsyncComponent, defineComponent, onMounted, reactive, ref, watchEffect } from 'vue'
 import { useAccountInfo } from '@/stores/account'
 import PLoading from '@/components/widget/PLoading.vue'
 import { RouterLink } from 'vue-router'
 import { invoke } from '@tauri-apps/api/core'
+import PInput from '@/components/widget/PInput.vue'
+import getSkinUrl from '@/api/skinGetter'
+import sideTip from '@/composables/sideTip'
 const modal = useModal()
 
 // const stringToRandom = (input: string) => {
@@ -70,6 +73,7 @@ export default defineComponent({
       loader: () => import('@/components/widget/SkinViewer.vue'),
       loadingComponent: PLoading,
     })
+    const player = reactive<{ name?: string; url?: string }>({ name: accountInfo.username })
     return () => (
       <>
         <PCard title="百宝箱">
@@ -81,7 +85,32 @@ export default defineComponent({
           </div>
         </PCard>
         <PCard title="下载正版玩家的皮肤">
-          <SkinViewer skinUrl={accountInfo.skinUrl} />
+          {player.url && <SkinViewer skinUrl={player.url} />}
+          <div
+            style={{
+              display: 'flex',
+              gap: '16px',
+              alignItems: 'center',
+              justifyContent: 'space-around',
+              marginBottom: '8px',
+            }}
+          >
+            <PInput placeholder="输入玩家名称" v-model={player.name} style="flex: 1" />
+            <PButton
+              inline
+              disabled={!player.name}
+              click={async () => {
+                try {
+                  player.url = await getSkinUrl(player.name!, 'username')
+                } catch (err) {
+                  sideTip.show(err, 'warn')
+                  player.url = undefined
+                }
+              }}
+            >
+              预览
+            </PButton>
+          </div>
         </PCard>
         <MinecraftServerCard />
       </>
