@@ -40,7 +40,7 @@ pub fn run() {
                     Target::new(TargetKind::LogDir { file_name: None }),
                     // Target::new(TargetKind::Webview),
                 ])
-                .level(log::LevelFilter::Debug)
+                .level(log::LevelFilter::Info)
                 .build(),
         )
         .setup(|app| {

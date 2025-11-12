@@ -11,8 +11,12 @@ import { ref } from 'vue'
 const enterLobbyCode = ref<string>()
 
 async function ConnectWithCode(code: string) {
-  let instanceId = await invoke<string>('start_connection_from_code', { code })
-  console.log('connected with instance id', instanceId)
+  try {
+    let instanceId = await invoke<string>('start_connection_from_code', { code })
+    console.log('connected with instance id', instanceId)
+  } catch (error) {
+    console.error(error)
+  }
 }
 
 async function DropConnect() {}
