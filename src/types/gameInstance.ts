@@ -16,7 +16,7 @@ export default interface GameInstance {
   natives_path: string
   // game_java: GameJava,
   global_dir: string
-  pluginsVersion: Record<pluginType, string>
+  pluginsVersion: Partial<Record<pluginType, string>>
 }
 
 export interface GameRepository {
