@@ -328,7 +328,7 @@ pub struct ProgressMonitor {
 }
 
 impl ProgressMonitor {
-    pub async fn with_item(mut self, task: Arc<Mutex<TaskItem>>) -> Self {
+    pub async fn with_item(self, task: Arc<Mutex<TaskItem>>) -> Self {
         let id = {
             let task_guard = task.lock().await;
             task_guard.id
