@@ -54,7 +54,7 @@ Then, use `pnpm run tauri icon` to automatically generate icons. You can then st
 ### Hot Reload Development
 
 ```sh
-pnpm run tauri dev
+pnpm dev
 ```
 
 ### Build Tauri App

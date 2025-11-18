@@ -52,7 +52,7 @@ pnpm install
 ### 开发时热重载
 
 ```sh
-bun run tauri dev
+pnpm dev
 ```
 
 ### 构建 Tauri 应用
