@@ -12,7 +12,7 @@ With the rapid launch of PCL branch versions, UI restoration has become a major 
 
 This project is modeled after [PCL2](https://github.com/Hex-Dragon/PCL2) and [PCL2-CE](https://github.com/PCL-Community/PCL2-CE), with a goal of providing a standardized prototype sample for each PCL branch version. The repository is built using Vue3, and if your project uses Webview as the frontend, you can directly reference this project.
 
-The project is also ready for preview at [PCL.Proto](https://www.amagicpear.sbs/PCL.Proto/).
+The project is also ready for preview at [PCL.Proto](https://amagicpear.top/PCL.Proto/).
 
 ## Prototype
 
