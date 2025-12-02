@@ -41,7 +41,7 @@ listen('float-button-click', (event) => {
   </Transition>
 </template>
 
-<style lang="css" scoped>
+<style lang="scss" scoped>
 .v-enter-from,
 .v-leave-to {
   opacity: 0;
@@ -51,6 +51,20 @@ listen('float-button-click', (event) => {
 .v-enter-active,
 .v-leave-active {
   transition: all 1s;
+}
+
+@keyframes back-scale {
+  0% {
+    background-color: transparent;
+    transform: scale(0);
+  }
+  50% {
+    background-color: var(--half-transparent-blue);
+  }
+  100% {
+    background-color: transparent;
+    transform: scale(1.1);
+  }
 }
 
 .float-button {
@@ -73,41 +87,26 @@ listen('float-button-click', (event) => {
   align-items: center;
   gap: 8px;
   justify-content: space-around;
-}
-
-.float-button > .back {
-  position: absolute;
-  height: 40vi;
-  width: 40vw;
-  z-index: -1;
-  border-radius: 50%;
-  animation: back-scale 0.8s;
-}
-
-@keyframes back-scale {
-  0% {
-    background-color: transparent;
-    transform: scale(0);
+  > .back {
+    position: absolute;
+    height: 40vi;
+    width: 40vw;
+    z-index: -1;
+    border-radius: 50%;
+    animation: back-scale 0.8s;
   }
-  50% {
-    background-color: var(--half-transparent-blue);
+
+  > span {
+    white-space: nowrap;
+    overflow: hidden;
   }
-  100% {
-    background-color: transparent;
-    transform: scale(1.1);
+
+  &:hover {
+    background-color: var(--light-blue);
   }
-}
 
-.float-button > span {
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.float-button:hover {
-  background-color: var(--light-blue);
-}
-
-.float-button:active {
-  transform: scale(0.95);
+  &:active {
+    transform: scale(0.95);
+  }
 }
 </style>
