@@ -1,22 +1,9 @@
-import USER_AGENT from "./userAgent"
-// const USER_AGENT = "PCL-Community/PCL.Proto/0.0.1"
+import { invoke } from "@tauri-apps/api/core";
 
-const MODRINTH_BASE_URL = "https://api.modrinth.com/v2/"
 
-/**
- * 通用 Modrinth API 请求
- */
-async function modrinthFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = MODRINTH_BASE_URL + endpoint;
-    const headers = {
-        "User-Agent": USER_AGENT,
-        ...(options.headers || {}),
-    };
-    const response = await fetch(url, { ...options, headers });
-    if (!response.ok) {
-        throw new Error(`Modrinth API 请求失败: ${response.status} ${response.statusText}`);
-    }
-    return response.json();
+// 通用 Modrinth API 请求
+async function modrinthFetch<T>(endpoint: string): Promise<T> {
+  return invoke<T>('fetch_with_modrinth', { endpoint });
 }
 
 export type ProjectType = 'mod' | 'modpack' | 'resourcepack' | 'shader'

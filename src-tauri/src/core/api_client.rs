@@ -30,6 +30,7 @@ pub struct ApiBases {
     pub resources_base: &'static str,
     pub forge_base: &'static str,
     pub fabric_base: &'static str,
+    pub modrinth_base: &'static str,
 }
 
 impl ApiBases {
@@ -40,12 +41,14 @@ impl ApiBases {
                 resources_base: "https://resources.download.minecraft.net",
                 forge_base: "https://maven.minecraftforge.net/net/minecraftforge/forge",
                 fabric_base: "https://meta.fabricmc.net/v2/versions/loader",
+                modrinth_base: "https://api.modrinth.com/v2",
             },
             ApiProvider::BMCLApi => ApiBases {
                 meta_base: "https://bmclapi2.bangbang93.com",
                 resources_base: "https://bmclapi2.bangbang93.com/assets",
                 forge_base: "https://bmclapi2.bangbang93.com/forge",
                 fabric_base: "https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader",
+                modrinth_base: "https://api.modrinth.com/v2",
             },
         }
     }
@@ -237,6 +240,16 @@ pub mod plugins {
     }
 }
 
+pub(super) mod modrinth {
+    pub struct SearchOptions {
+        pub(super) query: String,
+        pub(super) facets: Vec<Vec<String>>, // 二维数组，支持 AND/OR 逻辑
+        pub(super) index: String,            // 'relevance' | 'downloads' | 'follows' | 'newest' | 'updated'
+        pub(super) offset: u32,
+        pub(super) limit: u32,
+    }
+}
+
 pub struct MinecraftApiClient {
     client: Client,
     api_bases: RwLock<ApiBases>,
@@ -268,7 +281,11 @@ impl MinecraftApiClient {
     }
 
     /// Get data from a URL
-    async fn get_inner<T: DeserializeOwned>(&self, url: &str) -> McApiResult<T> {
+    async fn get_inner<T, U>(&self, url: U) -> McApiResult<T>
+    where
+        T: DeserializeOwned,
+        U: reqwest::IntoUrl + std::fmt::Debug + Copy,
+    {
         let response = self
             .client
             .get(url)
@@ -276,7 +293,7 @@ impl MinecraftApiClient {
             .send()
             .await?;
         let data: T = response.json().await?;
-        log::info!("got data from {}", url);
+        log::info!("got data from {:?}", url);
         Ok(data)
     }
 
@@ -401,25 +418,42 @@ impl MinecraftApiClient {
             .collect();
         Ok(loaders)
     }
+
+    pub async fn fetch_with_modrinth<T: DeserializeOwned + Serialize>(
+        &self,
+        endpoint: &str,
+    ) -> McApiResult<T> {
+        let modrinth_base = self.api_bases.read().await.modrinth_base;
+        let url = format!("{modrinth_base}/{endpoint}");
+        self.get(&url, true).await
+    }
 }
 
-#[tokio::test]
-async fn mc_manifest() {
-    let mc_api_client = MinecraftApiClient::new(Client::new(), &ApiProvider::Official);
-    let manifest: game::VersionManifest = mc_api_client
-        .get_with_endpoint(game::VERSION_MANIFEST_ENDPOINT, true)
-        .await
-        .unwrap();
-    println!("{:?}", manifest);
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-fn forge_test() {
-    let mc_api_client = &ConfigManager::instance().api_client;
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(async {
-        let re = mc_api_client.get_forge_versions("1.21.9").await;
-        assert!(re.is_ok());
-        println!("{re:?}");
-    });
+    #[tokio::test]
+    async fn mc_manifest() {
+        let mc_api_client = MinecraftApiClient::new(Client::new(), &ApiProvider::Official);
+        let manifest: game::VersionManifest = mc_api_client
+            .get_with_endpoint(game::VERSION_MANIFEST_ENDPOINT, true)
+            .await
+            .unwrap();
+        println!("{:?}", manifest);
+    }
+
+    #[test]
+    fn forge_test() {
+        let mc_api_client = &ConfigManager::instance().api_client;
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let re = mc_api_client.get_forge_versions("1.21.9").await;
+            assert!(re.is_ok());
+            println!("{re:?}");
+        });
+    }
+
+    #[tokio::test]
+    async fn modrinth_test() {}
 }

@@ -191,3 +191,11 @@ pub async fn get_plugin_versions(
     };
     verisons.map_err(|err| err.to_string())
 }
+
+#[tauri::command]
+pub async fn fetch_with_modrinth(
+    api_client: State<'_, &api_client::MinecraftApiClient>,
+    endpoint: &str,
+) -> Result<serde_json::Value, String> {
+    api_client.fetch_with_modrinth(endpoint).await.map_err(|err| err.to_string())
+}
