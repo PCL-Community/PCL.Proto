@@ -43,51 +43,7 @@ withDefaults(
 
 </template>
 
-<style lang="css" scoped>
-.left {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-}
-
-.left > img {
-  width: 30px;
-  height: 30px;
-  /* fix #3 图标模糊 */
-  /* image-rendering: pixelated; */
-}
-
-.round-img > .left > img {
-  border-radius: 50%;
-}
-
-.gameinfo-container.game-info > .right {
-  margin-right: 6px;
-  opacity: 0;
-  transition: opacity 0.4s ease;
-  display: flex;
-  align-items: center;
-  gap: 9.5px;
-}
-
-.right > a > i {
-  transition: color 0.4s;
-  color: var(--color-tint-light);
-}
-
-.right > a svg {
-  width: 15px;
-}
-
-.right > a > i:hover {
-  color: var(--color-tint);
-}
-
-.hover-effect:hover > .right {
-  opacity: 1;
-}
-
+<style lang="scss" scoped>
 .gameinfo-container {
   display: flex;
   flex-direction: row;
@@ -97,21 +53,69 @@ withDefaults(
   border-radius: 4px;
   gap: 6px;
   transition: background-color 0.4s ease;
-}
 
-.gameinfo-container.clickable {
-  transition:
-    scale 0.2s,
-    background-color 0.4s ease;
-}
+  &.clickable {
+    transition:
+      scale 0.2s,
+      background-color 0.4s ease;
+  }
 
-.gameinfo-container.hover-effect:hover {
-  background-color: var(--color-tint-lighter);
-}
+  &.hover-effect:hover {
+    background-color: var(--color-tint-lighter);
+  }
 
-.gameinfo-container.clickable:active {
-  scale: 0.98;
-  background-color: var(--half-transparent-blue);
+  &.clickable:active {
+    scale: 0.98;
+    background-color: var(--half-transparent-blue);
+  }
+
+  > .right {
+    > a {
+      > i {
+        transition: color 0.4s;
+        color: var(--color-tint-light);
+
+        &:hover {
+          color: var(--color-tint);
+        }
+      }
+
+      svg {
+        width: 15px;
+      }
+    }
+  }
+
+  &.game-info > .right {
+    margin-right: 6px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    display: flex;
+    align-items: center;
+    gap: 9.5px;
+  }
+
+  > .left {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+
+    > img {
+      width: 30px;
+      height: 30px;
+      /* fix #3 图标模糊 */
+      /* image-rendering: pixelated; */
+    }
+  }
+
+  &.round-img > .left > img {
+    border-radius: 50%;
+  }
+
+  &.hover-effect:hover > .right {
+    opacity: 1;
+  }
 }
 
 .title {

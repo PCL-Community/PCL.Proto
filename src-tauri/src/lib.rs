@@ -1,3 +1,9 @@
+//  ____   ____ _       ____            _
+// |  _ \ / ___| |     |  _ \ _ __ ___ | |_ ___
+// | |_) | |   | |     | |_) | '__/ _ \| __/ _ \
+// |  __/| |___| |___ _|  __/| | | (_) | || (_) |
+// |_|    \____|_____(_)_|   |_|  \___/ \__\___/
+//
 use crate::core::java::JavaRuntimeVecExt;
 use core::downloader;
 use setup::AppState;
@@ -11,6 +17,23 @@ mod core;
 mod setup;
 mod util;
 
+// #[cfg(not(target_os = "android"))]
+// fn toggle_window_visibility<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+//     if let Some(window) = app.get_webview_window("main") {
+//         if window.is_visible().unwrap_or_default() {
+//             if window.is_minimized().unwrap_or_default() {
+//                 let _ = window.unminimize();
+//                 let _ = window.set_focus();
+//             } else {
+//                 let _ = window.hide();
+//             }
+//         } else {
+//             let _ = window.show();
+//             let _ = window.set_focus();
+//         }
+//     }
+// }
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -21,15 +44,16 @@ pub fn run() {
                 .targets([
                     Target::new(TargetKind::Stdout),
                     Target::new(TargetKind::LogDir { file_name: None }),
-                    Target::new(TargetKind::Webview),
+                    // Target::new(TargetKind::Webview),
                 ])
-                .level(log::LevelFilter::Debug)
+                .level(log::LevelFilter::Info)
                 .build(),
         )
         .setup(|app| {
             if let Some(config_manager) = setup::CONFIG_MANAGER.as_ref() {
                 app.manage(Arc::clone(&config_manager.app_state));
                 app.manage(&config_manager.api_client);
+
                 log::debug!("app state managed");
             } else {
                 log::error!("CONFIG_MANAGER is None");
@@ -41,6 +65,8 @@ pub fn run() {
                         std::process::exit(1);
                     });
             }
+            let easytier_manager = easytier::instance_manager::NetworkInstanceManager::new();
+            app.manage(easytier_manager);
             // let window = app.get_webview_window("main").unwrap();
             // window.on_navigation(move |url| {});
             // search for Java during init
@@ -69,6 +95,9 @@ pub fn run() {
             util::server_query::server_query,
             util::skin::fetch_username_uuid,
             util::skin::fetch_uuid_profile,
+            util::scaffolding::start_connection_from_code,
+            util::scaffolding::collect_instance_info,
+            commands::fetch_with_modrinth,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

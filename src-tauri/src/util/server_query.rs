@@ -1,6 +1,10 @@
 //! from PCL.Core/Link/McPing.cs and PCL.Core/Utils/VarIntHelper.cs
 use std::net::{IpAddr, SocketAddr};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use trust_dns_resolver::{
+    TokioAsyncResolver,
+    config::{ResolverConfig, ResolverOpts},
+};
 
 struct MCPing {
     endpoint: SocketAddr,
@@ -19,16 +23,39 @@ impl MCPing {
         } else if let Ok(ip) = addr_str.parse::<IpAddr>() {
             SocketAddr::new(ip, Self::DEFAULT_PORT)
         } else {
-            let endpoint_raw = if !addr_str.split_once(':').is_none() {
-                addr_str
-            } else {
-                &format!("{}:{}", addr_str, Self::DEFAULT_PORT)
+            let add_str_split = addr_str.split_once(':');
+            let (host, port) = match add_str_split {
+                Some(split) => (split.0, split.1.parse()?),
+                None => (addr_str, Self::DEFAULT_PORT),
             };
-            let socket_addrs: Vec<SocketAddr> =
-                tokio::net::lookup_host(endpoint_raw).await?.collect();
-            *socket_addrs
-                .first()
-                .ok_or_else(|| anyhow::anyhow!("cannot parse addr: {}", addr_str))?
+            let resolver =
+                TokioAsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default());
+            let mut addresses = Vec::new();
+            if let Ok(ip_lookup) = resolver.lookup_ip(host).await {
+                let ip = ip_lookup.iter().collect::<Vec<_>>();
+                addresses.extend_from_slice(&ip);
+            } else {
+                log::warn!("No A/AAAA record found, falling back to SRV record");
+                let srv_name = format!("_minecraft._tcp.{}", host);
+                let srv_response = resolver.srv_lookup(&srv_name).await?;
+                for srv in srv_response.iter() {
+                    let target = srv.target().to_string().trim_end_matches('.').to_string();
+                    let srv_port = srv.port();
+                    log::debug!("SRV record found: {}:{}", target, srv_port);
+                    // 解析SRV记录中的目标主机
+                    if let Ok(ip_lookup) = resolver.lookup_ip(&target).await {
+                        for ip in ip_lookup.iter() {
+                            addresses.push(ip);
+                            log::debug!("Resolved SRV target: {}", ip);
+                        }
+                    }
+                }
+            }
+            if addresses.is_empty() {
+                return Err(anyhow::anyhow!("No addresses resolved"));
+            }
+            let ip = addresses.first().unwrap();
+            SocketAddr::new(*ip, port)
         };
         Ok(Self {
             endpoint: socket_addr,
@@ -113,27 +140,6 @@ mod varint {
         }
         result.push(value as u8);
         result
-    }
-
-    /// 从字节数组中解码无符号长整数
-    pub fn _decode(bytes: &[u8], read_length: &mut u8) -> Result<usize> {
-        let mut result: usize = 0;
-        let mut shift = 0;
-        let mut bytes_read = 0;
-
-        for &byte in bytes {
-            if bytes_read > MAX_BYTES {
-                return Err(anyhow::anyhow!("VarInt exceeds maximum length"));
-            }
-            result |= ((byte & 0x7F) as usize) << shift;
-            bytes_read += 1;
-            if (byte & 0x80) == 0 {
-                *read_length = bytes_read;
-                return Ok(result);
-            }
-            shift += 7;
-        }
-        return Err(anyhow::anyhow!("Incomplete VarInt encoding"));
     }
 
     pub async fn read_from_stream(stream: &mut tokio::net::TcpStream) -> Result<i32> {

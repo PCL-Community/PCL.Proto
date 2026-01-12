@@ -3,11 +3,10 @@ import { defineComponent, ref } from 'vue'
 import PCard from './PCard.vue'
 import PInput from './PInput.vue'
 import PButton from './PButton.vue'
-import type { MCPingResult } from '@/types/mcPing'
+import type { MCPingResult, ExtraItem } from '@/types/mcPing'
 import { invoke } from '@tauri-apps/api/core'
 import { error } from '@tauri-apps/plugin-log'
 import sideTip from '@/composables/sideTip'
-import { type ExtraItem } from '@/types/mcPing'
 
 const serverInput = ref<string>()
 const mcPingResult = ref<MCPingResult | null>()
@@ -136,7 +135,7 @@ const DescriptionExtra = defineComponent(
       "
     >
       <PInput v-model="serverInput" placeholder="输入服务器地址" style="flex: 1" />
-      <PButton inline :click="performQuery">查询</PButton>
+      <PButton inline :click="performQuery" :disabled="!serverInput">查询</PButton>
     </div>
     <div class="server-card" v-if="mcPingResult">
       <div>
@@ -146,7 +145,9 @@ const DescriptionExtra = defineComponent(
             服务器版本: {{ mcPingResult.version.name }}
           </p>
           <!-- 描述部分需要递归渲染 -->
-          <DescriptionExtra :description="mcPingResult.description" />
+          <p>
+            <DescriptionExtra :description="mcPingResult.description" />
+          </p>
         </div>
       </div>
       <div class="server-info">

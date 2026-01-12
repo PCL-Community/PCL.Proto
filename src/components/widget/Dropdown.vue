@@ -19,7 +19,7 @@ const model = defineModel<string>()
         i: IconUnfold
 </template>
 
-<style lang="css" scoped>
+<style lang="scss" scoped>
 .dropdown-wrapper {
   position: relative;
 }
@@ -52,13 +52,12 @@ select {
   -webkit-appearance: none;
   -moz-appearance: none;
   width: 100%;
-}
+  &:hover {
+    background-color: var(--color-tint-lighter);
+  }
 
-select:hover {
-  background-color: var(--color-tint-lighter);
-}
-
-select::-ms-expand {
-  display: none;
+  &::-ms-expand {
+    display: none;
+  }
 }
 </style>

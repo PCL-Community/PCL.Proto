@@ -61,7 +61,7 @@ pub fn get_board_serial() -> anyhow::Result<String> {
 pub fn get_board_serial() -> anyhow::Result<String> {
     let output = Command::new("wmic")
         .args(["baseboard", "get", "serialnumber"])
-        // .creation_flags(0x08000000) // CREATE_NO_WINDOW
+        .creation_flags(0x08000000) // CREATE_NO_WINDOW
         .output()?;
     let output = String::from_utf8(output.stdout)?;
     let mut lines = output.lines();
@@ -70,9 +70,17 @@ pub fn get_board_serial() -> anyhow::Result<String> {
     Ok(serial.ok_or("serial number not found in output")?)
 }
 
+pub fn get_pcl_hash(str: &str) -> u64 {
+    let mut result = 5381 as u64;
+    for c in str.chars() {
+        result = (result << 5) ^ result ^ c as u64;
+    }
+    result ^ 0xA98F501BC684032F as u64
+}
+
 #[test]
 fn serial_test() {
     let serial = get_board_serial().unwrap();
-    let pcl_hash = super::get_pcl_hash(&serial);
+    let pcl_hash = get_pcl_hash(&serial);
     println!("serial: {}, pcl_hash: {:?}", serial, pcl_hash);
 }

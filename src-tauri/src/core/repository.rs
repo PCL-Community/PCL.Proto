@@ -20,7 +20,7 @@ impl GameRepository {
             game_instances: OnceLock::new(),
         }
     }
-    pub fn game_instances(&self) -> &Vec<GameInstance> {
+    pub fn game_instances(&self) -> &[GameInstance] {
         self.game_instances.get_or_init(|| {
             let versions_folder = self.path.join("versions");
             let mut game_instances = Vec::new();

@@ -9,54 +9,60 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "run-p type-check \"build-only {@}\" --",
-    "preview": "vite preview",
-    "build-only": "vite build",
+    "dev": "node scripts/check-icons.js && tauri dev",
+    "build": "node scripts/check-icons.js && tauri build",
+    "ui:dev": "vite",
+    "ui:build": "run-p type-check \"build-only {@}\" --",
+    "ui:build-only": "vite build",
     "type-check": "vue-tsc --build",
     "format": "prettier --write src/",
     "deploy": "vite build && gh-pages -d dist",
     "tauri": "tauri"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.9.0",
-    "@tauri-apps/plugin-dialog": "~2.4.0",
-    "@tauri-apps/plugin-log": "^2.7.0",
-    "@tauri-apps/plugin-os": "~2.3.1",
-    "@vueuse/router": "^14.0.0",
-    "marked": "^16.4.1",
-    "motion-v": "^1.7.4",
-    "pinia": "^3.0.3",
+    "@tauri-apps/api": "^2.9.1",
+    "@tauri-apps/plugin-dialog": "~2.4.2",
+    "@tauri-apps/plugin-log": "^2.7.1",
+    "@tauri-apps/plugin-os": "~2.3.2",
+    "@vueuse/router": "^14.1.0",
+    "marked": "^17.0.1",
+    "motion-v": "^1.7.6",
+    "pinia": "^3.0.4",
     "skinview3d": "^3.4.1",
-    "vue": "^3.5.22",
-    "vue-i18n": "^11.1.12",
-    "vue-router": "^4.6.3",
+    "vue": "^3.5.26",
+    "vue-i18n": "^11.2.8",
+    "vue-router": "^4.6.4",
     "xml-js": "^1.6.11"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.9.2",
-    "@tsconfig/node22": "^22.0.2",
-    "@types/node": "^24.9.2",
-    "@vitejs/plugin-vue": "^6.0.1",
-    "@vitejs/plugin-vue-jsx": "^5.1.1",
-    "@vue/language-plugin-pug": "^3.1.2",
+    "@tauri-apps/cli": "^2.9.6",
+    "@tsconfig/node22": "^22.0.5",
+    "@types/node": "^25.0.3",
+    "@vitejs/plugin-vue": "^6.0.3",
+    "@vitejs/plugin-vue-jsx": "^5.1.3",
+    "@vue/language-plugin-pug": "^3.2.2",
     "@vue/tsconfig": "^0.8.1",
     "gh-pages": "^6.3.0",
     "npm-run-all2": "^8.0.4",
-    "prettier": "3.6.2",
+    "prettier": "3.7.4",
     "pug": "^3.0.3",
+    "sass-embedded": "^1.97.2",
     "typescript": "~5.9.3",
-    "vite": "npm:rolldown-vite@^7.1.19",
+    "vite": "npm:rolldown-vite@^7.3.0",
     "vite-svg-loader": "^5.1.0",
-    "vue-tsc": "^3.1.2"
+    "vue-tsc": "^3.2.2"
   },
   "overrides": {
-    "vite": "npm:rolldown-vite@latest"
+    "vite": "npm:rolldown-vite"
   },
   "pnpm": {
     "overrides": {
-      "vite": "npm:rolldown-vite@latest"
-    }
+      "vite": "npm:rolldown-vite"
+    },
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "esbuild"
+    ]
   },
-  "packageManager": "pnpm@10.20.0+sha512.cf9998222162dd85864d0a8102e7892e7ba4ceadebbf5a31f9c2fce48dfce317a9c53b9f6464d1ef9042cba2e02ae02a9f7c143a2b438cd93c91840f0192b9dd"
+  "packageManager": "pnpm@10.26.1+sha512.664074abc367d2c9324fdc18037097ce0a8f126034160f709928e9e9f95d98714347044e5c3164d65bd5da6c59c6be362b107546292a8eecb7999196e5ce58fa"
 }
