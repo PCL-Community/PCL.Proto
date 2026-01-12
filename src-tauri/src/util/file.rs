@@ -5,7 +5,7 @@ use std::{
 
 use sha1::Digest;
 
-/// find file of name
+/// 从一堆文件里面找到名字是目标名的那一个，用于版本JSON查找部分
 pub fn find_file_of_name(
     files_itr: &mut impl Iterator<Item = std::fs::DirEntry>,
     name: &str,

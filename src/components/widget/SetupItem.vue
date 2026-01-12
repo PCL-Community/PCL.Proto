@@ -20,7 +20,7 @@ const model = defineModel<string>()
 
 <template lang="pug">
 .setupitem-with-text-container
-    p.text-label {{ label }}
+    label.text-label {{ label }}
     Dropdown.input(
         v-if="type == 'select' && options"
         :options="options"

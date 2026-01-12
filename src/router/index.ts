@@ -86,6 +86,11 @@ const router = createRouter({
           component: PageComp,
           meta: { project_type: 'shader' },
         },
+        {
+          path: 'world',
+          component: PageComp,
+          meta: { project_type: 'world' },
+        }
       ],
     },
     {

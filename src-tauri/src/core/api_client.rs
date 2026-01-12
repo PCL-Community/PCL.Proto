@@ -250,6 +250,10 @@ pub(super) mod modrinth {
     }
 }
 
+pub(super) mod curseforge{
+    // pub struct
+}
+
 pub struct MinecraftApiClient {
     client: Client,
     api_bases: RwLock<ApiBases>,
@@ -429,6 +433,14 @@ impl MinecraftApiClient {
     }
 }
 
+#[tauri::command]
+pub async fn fetch_with_modrinth(
+    api_client: tauri::State<'_, &MinecraftApiClient>,
+    endpoint: &str,
+) -> Result<serde_json::Value, String> {
+    api_client.fetch_with_modrinth(endpoint).await.map_err(|err| err.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -453,7 +465,4 @@ mod tests {
             println!("{re:?}");
         });
     }
-
-    #[tokio::test]
-    async fn modrinth_test() {}
 }

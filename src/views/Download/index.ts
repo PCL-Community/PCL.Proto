@@ -7,6 +7,7 @@ import IconPicture from '@/components/icons/side/IconPicture.vue'
 import IconSun from '@/components/icons/side/IconSun.vue'
 import IconWrench from '@/components/icons/side/IconWrench.vue'
 import SideNavLayout from '@/layout/SideNavLayout.vue'
+import IconWorld from '@/components/icons/side/IconWorld.vue'
 import { defineComponent, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 
@@ -44,6 +45,7 @@ export default defineComponent({
                 linkto: '/download/resourcepack',
               },
               { text: t('download.nav.shader_pack'), icon: IconSun, linkto: '/download/shader' },
+              { text: t('download.nav.world'), icon: IconWorld, linkto: '/download/world' },
               { text: t('download.nav.favorites'), icon: IconFavorites },
             ],
           },

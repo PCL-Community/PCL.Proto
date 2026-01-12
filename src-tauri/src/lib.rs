@@ -17,23 +17,6 @@ mod core;
 mod setup;
 mod util;
 
-// #[cfg(not(target_os = "android"))]
-// fn toggle_window_visibility<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
-//     if let Some(window) = app.get_webview_window("main") {
-//         if window.is_visible().unwrap_or_default() {
-//             if window.is_minimized().unwrap_or_default() {
-//                 let _ = window.unminimize();
-//                 let _ = window.set_focus();
-//             } else {
-//                 let _ = window.hide();
-//             }
-//         } else {
-//             let _ = window.show();
-//             let _ = window.set_focus();
-//         }
-//     }
-// }
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -97,7 +80,7 @@ pub fn run() {
             util::skin::fetch_uuid_profile,
             util::scaffolding::start_connection_from_code,
             util::scaffolding::collect_instance_info,
-            commands::fetch_with_modrinth,
+            core::api_client::fetch_with_modrinth,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
