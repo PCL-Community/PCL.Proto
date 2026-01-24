@@ -25,7 +25,7 @@ const dateText = computed(() => {
 })
 
 const navigateToProject = () => {
-  router.push({ name: 'resouce', query: { id: props.data.project_id } })
+  router.push({ name: 'resource', query: { id: props.data.project_id, version: 'all' } })
 }
 </script>
 

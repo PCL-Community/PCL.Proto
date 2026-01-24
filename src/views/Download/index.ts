@@ -25,12 +25,7 @@ export default defineComponent({
                 text: t('download.nav.game_download'),
                 icon: IconOverview,
                 linkto: '/download/game',
-              },
-              {
-                text: t('download.nav.manual_install'),
-                icon: IconWrench,
-                linkto: '/download/manual',
-              },
+              }
             ],
           },
           {

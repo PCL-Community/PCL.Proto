@@ -6,7 +6,6 @@ async function modrinthFetch<T>(endpoint: string): Promise<T> {
   return invoke<T>('fetch_with_modrinth', { endpoint });
 }
 
-export type ProjectType = 'mod' | 'modpack' | 'resourcepack' | 'shader'
 interface SearchOptions {
     query?: string;
     facets?: string[][]; // 二维数组，支持 AND/OR 逻辑
@@ -23,7 +22,7 @@ export interface ISearchHit {
     downloads: number
     date_modified: string
     project_id: string
-    project_type: ProjectType
+    project_type: 'mod' | 'modpack' | 'resourcepack' | 'shader'
 }
 
 export interface IProject {
@@ -42,7 +41,7 @@ export interface IProject {
     source_url: string | null
     wiki_url: string | null
     donation_urls: string[]
-    project_type: ProjectType
+    project_type: 'mod' | 'modpack' | 'resourcepack' | 'shader'
     downloads: number
     published: string
     updated: string

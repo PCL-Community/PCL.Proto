@@ -6,9 +6,12 @@ import PLoading from '@/components/widget/PLoading.vue'
 import { useRouteQuery } from '@vueuse/router'
 import { marked } from 'marked'
 import { computed, onMounted, ref, type Ref } from 'vue'
+import ResouceVersionsList from './ResouceVersionsList.vue'
 
 const project_id = useRouteQuery('id') as Ref<string>
+const version = useRouteQuery('version') as Ref<string>
 const projectData = ref<IProject>()
+
 const data = computed(() => {
   if (!projectData.value) return undefined
   return {
@@ -18,6 +21,12 @@ const data = computed(() => {
     body: marked.parse(projectData.value.body),
   }
 })
+
+const specificVersions = ['1.21', '1.20', '1.19', '1.18', '1.17', '1.16', '1.15', '1.14']
+
+const switchVersion = (v: string) => {
+  version.value = v
+}
 
 onMounted(async () => {
   projectData.value = await modrinthApi.getProject(project_id.value)
@@ -34,14 +43,22 @@ onMounted(async () => {
     </PCard>
     <PCard hide-title>
       <menu>
-        <li class="active">全部</li>
-        <li>1.21</li>
-        <li>1.20</li>
-        <li>1.19</li>
-        <li>1.18</li>
-        <li>快照版本</li>
+        <li :class="{ active: version === 'all' }" @click="switchVersion('all')">全部</li>
+        <li
+          v-for="v in specificVersions"
+          :key="v"
+          :class="{ active: version === v }"
+          @click="switchVersion(v)"
+        >
+          {{ v }}
+        </li>
+        <li :class="{ active: version === 'snapshot' }" @click="switchVersion('snapshot')">
+          快照版本
+        </li>
+        <li :class="{ active: version === 'old' }" @click="switchVersion('old')">远古版本</li>
       </menu>
     </PCard>
+    <ResouceVersionsList v-card-drop-animate />
   </article>
   <div v-else class="loading-page" v-card-drop-animate>
     <PLoading state="loading" loading-text="正在加载资源信息……" />

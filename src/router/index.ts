@@ -3,7 +3,6 @@ import HomeView from '@/views/Home/index.vue'
 import LinkView from '@/views/Link'
 import SetupView from '@/views/Setup'
 import MoreView from '@/views/More'
-import ManualDownload from '@/views/Download/ManualDownload.vue'
 import HomeSubView from '@/views/Home/HomeSubView.vue'
 import DownloadView from '@/views/Download'
 import JavaManage from '@/views/Setup/JavaSetup.vue'
@@ -23,6 +22,7 @@ import InstanceNotFound from '@/views/InstanceSelect/InstanceNotFound.vue'
 import GameDownloadInner from '@/views/Download/GameDownloadInner.vue'
 import GameDownload from '@/views/Download/GameDownload'
 import Personalization from '@/views/Setup/Personalization.vue'
+import ResouceVersionsList from '@/views/Download/ResouceVersionsList.vue'
 
 // const selectedInstance = useSelectedInstance()
 const router = createRouter({
@@ -61,10 +61,6 @@ const router = createRouter({
               component: GameDownloadInner,
             },
           ],
-        },
-        {
-          path: 'manual',
-          component: ManualDownload,
         },
         {
           path: 'mod',
@@ -190,8 +186,8 @@ const router = createRouter({
       ],
     },
     {
-      path: '/resouce',
-      name: 'resouce',
+      path: '/resource',
+      name: 'resource',
       component: ResouceVersions,
       meta: { isSubPage: true, title: 'download.resource_download', fullPage: true },
     },
