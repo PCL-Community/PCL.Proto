@@ -60,7 +60,7 @@ const version = __APP_VERSION__
         CardInfoItem(title="xml-js - XML解析 用于展示PCL原版格式自定义主页" subtitle="MIT | https://www.npmjs.com/package/xml-js" icon="http://nashwaan.github.io/xml-js/images/logo.svg")
         CardInfoItem(title="Pinia - 状态管理" subtitle="MIT |https://pinia.vuejs.org/" icon="https://pinia.vuejs.org/logo.svg")
         CardInfoItem(title="skinview3d - 3D 皮肤查看器" subtitle="MIT | https://github.com/bs-community/skinview3d" icon="https://avatars.githubusercontent.com/u/37259779?s=200&v=4")
-        CardInfoItem(title="Bun" subtitle="MIT | https://bun.com/" icon="https://bun.com/logo.svg")
+        //- CardInfoItem(title="Bun" subtitle="MIT | https://bun.com/" icon="https://bun.com/logo.svg")
         CardInfoItem(title="Rust Programming Language" subtitle="Apache 2.0 & MIT | https://www.rust-lang.org/" icon="https://www.rust-lang.org/logos/rust-logo-blk.svg")
         CardInfoItem(title="Tauri" subtitle="MIT | https://tauri.app/" icon="https://tauri.app/_astro/logo_light.C7Zm2ZoX.svg")
         CardInfoItem(title="EasyTier" subtitle="LGPL-3.0 | https://github.com/EasyTier/EasyTier" icon="https://easytier.cn/easytier.png")
