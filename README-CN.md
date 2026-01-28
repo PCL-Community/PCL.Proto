@@ -24,6 +24,8 @@
 
 - 请确保你的设备上已安装`nodejs`或`bun`。如果你使用`bun`作为包管理器，可以将下面出现的所有`pnpm`命令替换为`bun`。
 - 设备应已安装可用的`rust`工具链。对于 Windows，需要使用 MSVC 版本的工具链。并确保你已经在 Visual Studio 安装器中安装了 C++ 开发工具中的 MSVC 套件以及 Windows SDK；对于 macOS，需要确保已安装 Xcode。
+- 对于 Windows 平台，还需要安装 [Npcap](https://npcap.com/#download)。
+
 
 > [!NOTE]
 > 如有疑惑，可参考 [前置要求 | Tauri](https://tauri.app/zh-cn/start/prerequisites/)。

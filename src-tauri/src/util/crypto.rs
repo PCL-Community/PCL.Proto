@@ -54,11 +54,12 @@ pub fn get_board_serial() -> anyhow::Result<String> {
         }
     }
 
-    Err("Could not retrieve board serial number".into())
+    Err(anyhow::anyhow!("Could not retrieve board serial number"))
 }
 
 #[cfg(target_os = "windows")]
 pub fn get_board_serial() -> anyhow::Result<String> {
+    use std::os::windows::process::CommandExt;
     let output = Command::new("wmic")
         .args(["baseboard", "get", "serialnumber"])
         .creation_flags(0x08000000) // CREATE_NO_WINDOW
@@ -67,7 +68,7 @@ pub fn get_board_serial() -> anyhow::Result<String> {
     let mut lines = output.lines();
     lines.next();
     let serial = lines.next().map(|x| x.trim().to_string());
-    Ok(serial.ok_or("serial number not found in output")?)
+    serial.ok_or_else(|| anyhow::anyhow!("serial number not found in output"))
 }
 
 pub fn get_pcl_hash(str: &str) -> u64 {

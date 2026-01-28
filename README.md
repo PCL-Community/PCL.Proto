@@ -25,7 +25,11 @@ In case you would like to modify the prototype design file, you are welcome to [
 ### Prerequisites
 
 - First, please ensure that `nodejs` or `bun` is installed on your device. If you use `bun` as the package manager, you can replace all `pnpm` commands below with `bun`.
-- The device should have a usable rust toolchain installed. For Windows, the MSVC version of the toolchain is required. Additionally, ensure that you have installed the MSVC suite from the C++ development tools and the Windows SDK in the Visual Studio Installer. For macOS, make sure that Xcode is installed.
+- The device should have a usable rust toolchain installed. 
+
+### Platform Specific
+- Windows: the MSVC version of the toolchain is required. Additionally, ensure that you have installed the MSVC suite from the C++ development tools and the Windows SDK in the Visual Studio Installer. [Npcap](https://npcap.com/#download) is also required by EasyTier.
+- macOS: make sure that Xcode is installed.
 
 > [!NOTE]
 > If you have any questions, please refer to [Prerequisites | Tauri](https://tauri.app/start/prerequisites/).

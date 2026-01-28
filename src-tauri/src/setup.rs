@@ -159,21 +159,21 @@ impl ConfigManager {
         }
         let mut state = self.app_state.blocking_lock();
         // [WARN] Only for Debug!!
-        // TODO: 后面去除下面的代码
+        // TODO)) 后面去除下面的代码
         state.active_repo_path = game_dir.clone();
         state
             .repositories
             .push(GameRepository::new("Default", game_dir));
-        state.repositories.push(GameRepository::new(
-            "HMCL",
-            PathBuf::from("/Users/amagicpear/HMCL/.minecraft"),
-        ));
+        // state.repositories.push(GameRepository::new(
+        //     "HMCL",
+        //     PathBuf::from("/Users/amagicpear/HMCL/.minecraft"),
+        // ));
         state.active_account = Some(Arc::new(Account::Offline {
             username: "AMagicPear".to_string(),
             uuid: "12345678-1234-1234-1234-123456789012".to_string(),
         }));
-        state.pcl_setup_info.default_java =
-            Some(Arc::new(JavaRuntime::try_from("/usr/bin/java").unwrap()));
+        // state.pcl_setup_info.default_java =
+        //     Some(Arc::new(JavaRuntime::try_from("/usr/bin/java").unwrap()));
         Ok(())
     }
 

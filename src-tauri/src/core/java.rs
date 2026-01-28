@@ -3,7 +3,7 @@
 
 use std::{
     collections::HashSet,
-    env, fs,
+    env,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -117,11 +117,11 @@ impl JavaRuntime {
     /// search java runtime in system
     pub async fn search() -> Vec<Self> {
         let mut collect_paths: HashSet<String> = HashSet::new();
-        let home_dir = env::home_dir().unwrap();
         // TODO: check java home
         // search macOS specific directory
         #[cfg(target_os = "macos")]
         {
+            let home_dir = env::home_dir().unwrap();
             pub fn search_macos(base_dir: &Path) -> HashSet<String> {
                 let mut result = HashSet::new();
                 if !base_dir.exists() || !base_dir.is_dir() {
