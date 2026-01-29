@@ -36,7 +36,7 @@ serde_repr = "0.1.20"
 sha1 = "0.10.6"
 quick-xml = { version = "0.38.4", features = ["serialize"] }
 anyhow = "1.0"
-easytier = { git = "https://github.com/EasyTier/EasyTier", branch = "main", version = "2.4" }
+easytier = { git = "https://github.com/EasyTier/EasyTier", branch = "main", version = "2.5" }
 dashmap = "6.1.0"
 uuid = "1.19.0"
 trust-dns-resolver = "0.23.2"

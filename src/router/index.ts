@@ -1,8 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '@/views/Home/index.vue'
-import LinkView from '@/views/Link'
 import SetupView from '@/views/Setup'
-import MoreView from '@/views/More'
 import HomeSubView from '@/views/Home/HomeSubView.vue'
 import DownloadView from '@/views/Download'
 import JavaManage from '@/views/Setup/JavaSetup.vue'
@@ -16,7 +14,7 @@ import InstanceOverview from '@/views/InstanceSetting/InstanceOverview.vue'
 import HomeNew from '@/views/Home/HomeNew'
 import PageComp from '@/views/Download/PageComp.vue'
 import ResouceVersions from '@/views/Download/ResourceVersions.vue'
-import WonderBox from '@/views/More/WonderBox'
+import WonderBox from '@/views/Tools/WonderBox'
 import Dowloading from '@/views/Download/Dowloading.vue'
 import InstanceNotFound from '@/views/InstanceSelect/InstanceNotFound.vue'
 import GameDownloadInner from '@/views/Download/GameDownloadInner.vue'
@@ -90,22 +88,6 @@ const router = createRouter({
       ],
     },
     {
-      path: '/link',
-      name: 'link',
-      component: LinkView,
-      redirect: '/link/lobby',
-      children: [
-        {
-          path: 'lobby',
-          component: () => import('@/views/Link/LinkLobby.vue'),
-        },
-        {
-          path: 'help',
-          component: () => import('@/views/Link/LinkHelp.vue'),
-        },
-      ],
-    },
-    {
       path: '/setup',
       name: 'setup',
       component: SetupView,
@@ -126,18 +108,22 @@ const router = createRouter({
       ],
     },
     {
-      path: '/more',
-      name: 'more',
-      component: MoreView,
-      redirect: '/more/about_and_thanks',
+      path: '/tools',
+      name: 'tools',
+      component: () => import('@/views/Tools/index.ts'),
+      redirect: '/tools/lobby',
       children: [
         {
-          path: 'about_and_thanks',
-          component: AboutAndThanks,
+          path: 'lobby',
+          component: () => import('@/views/Tools/LinkLobby.vue'),
         },
         {
-          path: 'wonder_box',
-          component: WonderBox,
+          path: 'wonderbox',
+          component: () => import('@/views/Tools/WonderBox.tsx'),
+        },
+        {
+          path: 'help',
+          component: () => import('@/views/Tools/LinkHelp.vue'),
         },
       ],
     },

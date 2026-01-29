@@ -64,6 +64,7 @@ pub fn get_board_serial() -> anyhow::Result<String> {
         .args(["baseboard", "get", "serialnumber"])
         .creation_flags(0x08000000) // CREATE_NO_WINDOW
         .output()?;
+    
     let output = String::from_utf8(output.stdout)?;
     let mut lines = output.lines();
     lines.next();
