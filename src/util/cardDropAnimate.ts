@@ -3,7 +3,7 @@ import type { Directive, RendererNode } from "vue";
 
 const cardDropAnimate = (element: ElementOrSelector | RendererNode) => {
   animate(
-    element,
+    element as ElementOrSelector,
     { y: [-20, 0], opacity: [0, 1] },
     {
       delay: stagger(0.06, { startDelay: 0 }),
