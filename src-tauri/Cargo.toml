@@ -21,24 +21,24 @@ serde_json = "1"
 serde = { version = "1", features = ["derive"] }
 log = "0"
 tauri = { version = "2", features = [] }
-tauri-plugin-log = "2"
+tauri-plugin-log = "2.8.0"
 tauri-plugin-os = "2"
-chrono = "0.4.42"
-tauri-plugin-dialog = "2"
+chrono = "0.4.43"
+tauri-plugin-dialog = "2.6.0"
 regex = "1.12.2"
 tokio = { version = "1", features = ["rt", "macros"] }
 goblin = "0.10"
 directories = "6.0.0"
-reqwest = { version = "0.12.28", features = ["json", "stream"] }
-thiserror = "2.0.17"
+reqwest = { version = "0.13.1", features = ["json", "stream"] }
+thiserror = "2.0.18"
 futures-util = "0.3.31"
 serde_repr = "0.1.20"
 sha1 = "0.10.6"
-quick-xml = { version = "0.38.4", features = ["serialize"] }
+quick-xml = { version = "0.39.0", features = ["serialize"] }
 anyhow = "1.0"
 easytier = { git = "https://github.com/EasyTier/EasyTier", branch = "main", version = "2.5" }
 dashmap = "6.1.0"
-uuid = "1.19.0"
+uuid = "1.20.0"
 trust-dns-resolver = "0.23.2"
 # tauri-invoke-http = "0.1.0"
 
