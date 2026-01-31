@@ -121,15 +121,16 @@ impl JavaRuntime {
         // search macOS specific directory
         #[cfg(target_os = "macos")]
         {
+            use tokio::fs;
             let home_dir = env::home_dir().unwrap();
-            pub fn search_macos(base_dir: &Path) -> HashSet<String> {
+            pub async fn search_macos(base_dir: &Path) -> HashSet<String> {
                 let mut result = HashSet::new();
                 if !base_dir.exists() || !base_dir.is_dir() {
                     log::warn!("macOS search path not exists: {:?}", base_dir);
                     return result;
                 }
-                if let Ok(entries) = fs::read_dir(base_dir) {
-                    for entry in entries.flatten() {
+                if let Ok(mut entries) = fs::read_dir(base_dir).await {
+                    while let Ok(Some(entry)) = entries.next_entry().await {
                         let entry_path = entry.path();
                         if entry_path.is_dir() {
                             let java_path = entry_path.join("Contents/Home/bin/java");
@@ -141,10 +142,10 @@ impl JavaRuntime {
                 }
                 result
             }
-            collect_paths.extend(search_macos(Path::new("/Library/Java/JavaVirtualMachines")));
+            collect_paths.extend(search_macos(Path::new("/Library/Java/JavaVirtualMachines")).await);
             collect_paths.extend(search_macos(Path::new(
                 &home_dir.join("Library/Java/JavaVirtualMachines"),
-            )));
+            )).await);
         }
         // search PATH
         {
