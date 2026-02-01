@@ -5,7 +5,7 @@ import IconOverview from '@/components/icons/side/IconOverview.vue'
 import IconPack from '@/components/icons/side/IconPack.vue'
 import IconPicture from '@/components/icons/side/IconPicture.vue'
 import IconSun from '@/components/icons/side/IconSun.vue'
-import IconWrench from '@/components/icons/side/IconWrench.vue'
+import IconWrench from '@/components/icons/header/IconWrench.vue'
 import SideNavLayout from '@/layout/SideNavLayout.vue'
 import IconWorld from '@/components/icons/side/IconWorld.vue'
 import { defineComponent, h } from 'vue'
@@ -19,10 +19,9 @@ export default defineComponent({
       h(SideNavLayout, {
         sideNavGroups: [
           {
-            title: t('download.nav.minecraft'),
             content: [
               {
-                text: t('download.nav.game_download'),
+                text: t('download.nav.minecraft'),
                 icon: IconOverview,
                 linkto: '/download/game',
               }

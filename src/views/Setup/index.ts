@@ -1,5 +1,7 @@
+import IconInfo from '@/components/icons/control/IconInfo.vue'
 import IconLaunch from '@/components/icons/header/IconLaunch.vue'
 import IconLink from '@/components/icons/header/IconLink.vue'
+import IconFeedback from '@/components/icons/side/IconFeedback.vue'
 import IconJava from '@/components/icons/side/IconJava.vue'
 import IconPack from '@/components/icons/side/IconPack.vue'
 import IconPaint from '@/components/icons/side/IconPaint.vue'
@@ -28,6 +30,13 @@ export default {
               { text: '联机', icon: IconLink },
             ],
           },
+          {
+            title: t('setup.nav.info'),
+            content: [
+              { text: t('setup.nav.about'), icon: IconInfo, linkto: 'about' },
+              { text: t('setup.nav.feedback'), icon: IconFeedback },
+            ],
+          }
         ],
       })
   },

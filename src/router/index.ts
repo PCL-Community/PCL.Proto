@@ -5,7 +5,7 @@ import HomeSubView from '@/views/Home/HomeSubView.vue'
 import DownloadView from '@/views/Download'
 import JavaManage from '@/views/Setup/JavaSetup.vue'
 import LaunchSetup from '@/views/Setup/LaunchSetup.vue'
-import AboutAndThanks from '@/views/More/AboutAndThanks.vue'
+import AboutAndThanks from '@/views/Setup/AboutAndThanks.vue'
 import InstanceSelect from '@/views/InstanceSelect'
 import InstanceSelectSubView from '@/views/InstanceSelect/InstanceSelectSubView.vue'
 import InstanceSetting from '@/views/InstanceSetting'
@@ -104,7 +104,11 @@ const router = createRouter({
         {
           path: 'personalization',
           component: Personalization
-        }
+        },
+        {
+          path: 'about',
+          component: AboutAndThanks,
+        },
       ],
     },
     {
@@ -180,7 +184,7 @@ const router = createRouter({
     {
       path: '/homepageeditor',
       name: 'homepageeditor',
-      component: () => import('@/views/More/HomepageEditor.vue'),
+      component: () => import('@/views/Tools/HomepageEditor.vue'),
       meta: { isSubPage: true, title: ' PCL 主页制作器', fullPage: true },
     },
     {

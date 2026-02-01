@@ -1,7 +1,7 @@
 import IconLaunch from '@/components/icons/header/IconLaunch.vue'
 import IconDownload from '@/components/icons/header/IconDownload.vue'
 import IconSetup from '@/components/icons/header/IconSetup.vue'
-import IconMore from '@/components/icons/header/IconMore.vue'
+import IconMore from '@/components/icons/header/IconWrench.vue'
 
 const navItems = [
   { to: '/home', icon: IconLaunch, label: 'main_nav.home' },

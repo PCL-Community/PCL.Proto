@@ -6,7 +6,7 @@ import IconPack from '@/components/icons/side/IconPack.vue'
 import IconPicture from '@/components/icons/side/IconPicture.vue'
 import IconSchematic from '@/components/icons/side/IconSchematic.vue'
 import IconSun from '@/components/icons/side/IconSun.vue'
-import IconWrench from '@/components/icons/side/IconWrench.vue'
+import IconWrench from '@/components/icons/header/IconWrench.vue'
 import SideNavLayout from '@/layout/SideNavLayout.vue'
 import { h } from 'vue'
 
