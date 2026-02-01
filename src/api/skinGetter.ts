@@ -35,9 +35,18 @@ export default async function getSkinUrl(
         } = JSON.parse(atob(session_data.properties[0].value))
         console.debug('textures', textures)
         const skinUrl = textures.textures.SKIN.url
-        const base64Skin = await invoke<string>('fetch_skin_from_url', { url: skinUrl, uuid: src })
-        onUpdate(base64Skin)
-        break
+        try {
+          const base64Skin = await invoke<string>('fetch_skin_from_url', {
+            url: skinUrl,
+            uuid: src,
+          })
+          onUpdate(base64Skin)
+          break
+        } catch (err) {
+          console.warn('Failed to fetch base64-skin from rust side, falling back to raw url.')
+          onUpdate(skinUrl)
+          break
+        }
       }
     default:
       onUpdate(SteveSkin)

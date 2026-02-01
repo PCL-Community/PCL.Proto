@@ -47,7 +47,7 @@ pub async fn fetch_skin_from_url(
     uuid: &str,
 ) -> Result<String, String> {
     let skin_cache_dir = app.path().app_cache_dir().unwrap().join("skins");
-    std::fs::create_dir_all(&skin_cache_dir).map_err(|err| err.to_string())?;
+    tokio::fs::create_dir_all(&skin_cache_dir).await.map_err(|err| err.to_string())?;
     let skin_bytes = api_client
         .get_bytes(url)
         .await
