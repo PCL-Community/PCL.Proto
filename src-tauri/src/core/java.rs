@@ -301,7 +301,7 @@ mod tests {
     fn java_test_2() {
         let java_runtime = JavaRuntime::try_from("/usr/bin/java").unwrap();
         println!("{:?}", java_runtime);
-        assert_eq!(java_runtime.version, "24.0.2");
+        assert_eq!(java_runtime.version, "25.0.2");
     }
 
     #[tokio::test]

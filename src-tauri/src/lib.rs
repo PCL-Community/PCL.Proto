@@ -14,6 +14,7 @@ use tauri_plugin_log::{Target, TargetKind};
 
 mod commands;
 mod core;
+mod scaffolding;
 mod setup;
 mod util;
 
@@ -48,8 +49,8 @@ pub fn run() {
                         std::process::exit(1);
                     });
             }
-            let easytier_manager = easytier::instance_manager::NetworkInstanceManager::new();
-            app.manage(easytier_manager);
+            // let easytier_manager = easytier::instance_manager::NetworkInstanceManager::new();
+            // app.manage(easytier_manager);
             // let window = app.get_webview_window("main").unwrap();
             // window.on_navigation(move |url| {});
             // search for Java during init
@@ -78,8 +79,6 @@ pub fn run() {
             util::server_query::server_query,
             util::skin::fetch_username_uuid,
             util::skin::fetch_uuid_profile,
-            util::scaffolding::start_connection_from_code,
-            util::scaffolding::collect_instance_info,
             core::api_client::fetch_with_modrinth,
             util::skin::fetch_skin_from_uuid_cached,
             util::skin::fetch_skin_from_url,

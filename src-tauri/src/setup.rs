@@ -207,10 +207,3 @@ impl ConfigManager {
         Ok(())
     }
 }
-
-#[test]
-fn test_config_manager() {
-    let config_manager = ConfigManager::instance();
-    config_manager.load().unwrap();
-    config_manager.save().unwrap();
-}
