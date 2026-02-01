@@ -14,13 +14,11 @@ import InstanceOverview from '@/views/InstanceSetting/InstanceOverview.vue'
 import HomeNew from '@/views/Home/HomeNew'
 import PageComp from '@/views/Download/PageComp.vue'
 import ResouceVersions from '@/views/Download/ResourceVersions.vue'
-import WonderBox from '@/views/Tools/WonderBox'
 import Dowloading from '@/views/Download/Dowloading.vue'
 import InstanceNotFound from '@/views/InstanceSelect/InstanceNotFound.vue'
 import GameDownloadInner from '@/views/Download/GameDownloadInner.vue'
 import GameDownload from '@/views/Download/GameDownload'
 import Personalization from '@/views/Setup/Personalization.vue'
-import ResouceVersionsList from '@/views/Download/ResouceVersionsList.vue'
 
 // const selectedInstance = useSelectedInstance()
 const router = createRouter({
@@ -84,7 +82,7 @@ const router = createRouter({
           path: 'world',
           component: PageComp,
           meta: { project_type: 'world' },
-        }
+        },
       ],
     },
     {
@@ -103,7 +101,7 @@ const router = createRouter({
         },
         {
           path: 'personalization',
-          component: Personalization
+          component: Personalization,
         },
         {
           path: 'about',

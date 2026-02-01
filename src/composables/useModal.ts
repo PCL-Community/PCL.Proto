@@ -1,7 +1,7 @@
 import { computed, ref, type Ref } from 'vue'
 import { type ModalApi, type ModalOptions, type ModalResult } from '@/types/modal'
 
-const state = ref<{ isOpen: boolean, options: ModalOptions }>({ isOpen: false, options: {} })
+const state = ref<{ isOpen: boolean; options: ModalOptions }>({ isOpen: false, options: {} })
 
 const resolvePromise: Ref<((value: ModalResult) => void) | null> = ref(null)
 const inputValue = ref<string>()

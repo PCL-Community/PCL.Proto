@@ -24,7 +24,7 @@ export default defineComponent({
                 text: t('download.nav.minecraft'),
                 icon: IconOverview,
                 linkto: '/download/game',
-              }
+              },
             ],
           },
           {

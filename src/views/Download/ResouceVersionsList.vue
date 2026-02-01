@@ -1,5 +1,3 @@
 <template>
-    <div>
-        ResourceVersionsList
-    </div>
+  <div>ResourceVersionsList</div>
 </template>

@@ -58,7 +58,15 @@ watch(
   />
   <PCard hide-title>
     <div class="page-comp-options">
-      <SetupItem label="来源" type="select" :options="[{ key: 'all', text: '全部' }, { key: 'modrinth', text: 'Modrinth' }, { key: 'curseforge', text: 'CurseForge' }]"></SetupItem>
+      <SetupItem
+        label="来源"
+        type="select"
+        :options="[
+          { key: 'all', text: '全部' },
+          { key: 'modrinth', text: 'Modrinth' },
+          { key: 'curseforge', text: 'CurseForge' },
+        ]"
+      ></SetupItem>
       <SetupItem label="标签" type="select" :options="[{ key: 'all', text: '全部' }]"></SetupItem>
       <SetupItem
         label="排序方式"

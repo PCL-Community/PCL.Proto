@@ -3,13 +3,13 @@
  * =============================================================================
  * The code in this file comes from https://github.com/PCL-Community/EasyTier
  * The original file is at easytier-web/frontend-lib/src/types/network.ts
- * 
+ *
  * @author Easytier
  */
 export interface NetworkInstanceRunningInfo {
   dev_name: string
   my_node_info: NodeInfo
-  events: Array<string>,
+  events: Array<string>
   routes: Route[]
   peers: PeerInfo[]
   peer_route_pairs: PeerRoutePair[]
@@ -38,7 +38,7 @@ export interface Url {
 }
 
 export interface NodeInfo {
-  virtual_ipv4: Ipv4Inet,
+  virtual_ipv4: Ipv4Inet
   hostname: string
   version: string
   ips: {
@@ -122,10 +122,10 @@ export interface PeerConnStats {
 }
 
 export interface PortForwardConfig {
-  bind_ip: string,
-  bind_port: number,
-  dst_ip: string,
-  dst_port: number,
+  bind_ip: string
+  bind_port: number
+  dst_ip: string
+  dst_port: number
   proto: string
 }
 

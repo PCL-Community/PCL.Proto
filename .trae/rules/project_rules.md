@@ -8,7 +8,7 @@ PCL.Proto is a Minecraft launcher prototype built with:
 
 - **Frontend**: Vue 3 + TypeScript + Vite + Pinia + Vue Router
 - **Backend**: Rust + Tauri 2
-- **UI Framework**: Custom components with Pug templates
+- **UI Framework**: Custom components
 - **Package Manager**: pnpm
 
 ## Build & Development Commands
@@ -36,15 +36,13 @@ pnpm run ui:build
 pnpm run type-check
 ```
 
-### Formatting & Linting
+### Testing
 
-```bash
-# Format code with Prettier
-pnpm run format
+**Note**: No test framework is currently configured in this project. Primary validation is through:
 
-# Type checking (also runs as part of ui:build)
-pnpm run type-check
-```
+- Type checking: `pnpm run type-check`
+- Manual testing: `pnpm run dev`
+- Rust tests can be run with: `cargo test` in `src-tauri/` directory
 
 ### Tauri Commands
 
@@ -93,6 +91,17 @@ pnpm run deploy
 - **Quotes**: Single quotes
 - **Line length**: 100 characters (Prettier config)
 - **Trailing commas**: Not used in examples
+- **Indentation**: 2 spaces (no tabs)
+
+**Prettier Configuration:**
+
+```json
+{
+  "semi": false,
+  "singleQuote": true,
+  "printWidth": 100
+}
+```
 
 **Error Handling:**
 
@@ -217,6 +226,7 @@ src-tauri/
 - No test framework detected in package.json
 - Type checking serves as primary validation: `pnpm run type-check`
 - Manual testing through development server: `pnpm run dev`
+- Rust tests can be run with: `cargo test` in `src-tauri/` directory
 
 ## Git & Workflow
 

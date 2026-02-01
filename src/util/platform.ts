@@ -1,4 +1,4 @@
-import { platform } from '@tauri-apps/plugin-os';
+import { platform } from '@tauri-apps/plugin-os'
 
 const currentPlatform = platform()
 

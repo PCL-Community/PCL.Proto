@@ -36,7 +36,7 @@ export default {
               { text: t('setup.nav.about'), icon: IconInfo, linkto: 'about' },
               { text: t('setup.nav.feedback'), icon: IconFeedback },
             ],
-          }
+          },
         ],
       })
   },

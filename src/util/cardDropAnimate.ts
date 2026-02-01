@@ -1,5 +1,5 @@
-import { animate, stagger, type ElementOrSelector } from "motion-v";
-import type { Directive, RendererNode } from "vue";
+import { animate, stagger, type ElementOrSelector } from 'motion-v'
+import type { Directive, RendererNode } from 'vue'
 
 const cardDropAnimate = (element: ElementOrSelector | RendererNode) => {
   animate(
@@ -20,7 +20,7 @@ export default cardDropAnimate
 export const vAnimateDrop: Directive<HTMLElement, void> = {
   mounted(el) {
     cardDropAnimate(el)
-  }
+  },
 }
 
 export const vAnimateChildrenDrop: Directive<HTMLElement, void> = {
