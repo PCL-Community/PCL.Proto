@@ -431,6 +431,17 @@ impl MinecraftApiClient {
         let url = format!("{modrinth_base}/{endpoint}");
         self.get(&url, true).await
     }
+
+    pub async fn get_bytes(&self, url: &str) -> McApiResult<Vec<u8>> {
+        let response = self
+            .client
+            .get(url)
+            .header(reqwest::header::USER_AGENT, USER_AGENT)
+            .send()
+            .await?;
+        let bytes = response.bytes().await?;
+        Ok(bytes.to_vec())
+    }
 }
 
 #[tauri::command]

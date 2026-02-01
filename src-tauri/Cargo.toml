@@ -40,6 +40,7 @@ easytier = { git = "https://github.com/EasyTier/EasyTier", branch = "main", vers
 dashmap = "6.1.0"
 uuid = "1.20.0"
 trust-dns-resolver = "0.23.2"
+base64 = "0.22.1"
 # tauri-invoke-http = "0.1.0"
 
 [profile.dev]

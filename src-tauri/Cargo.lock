@@ -4243,6 +4243,7 @@ name = "pcl-proto"
 version = "0.6.5"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "chrono",
  "dashmap",
  "directories",

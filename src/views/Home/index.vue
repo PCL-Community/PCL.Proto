@@ -11,7 +11,6 @@ import { useRepositoriesStore } from '@/stores/repositories'
 import sideTip from '@/composables/sideTip'
 import cardDropAnimate from '@/util/cardDropAnimate'
 import getSkinUrl from '@/api/skinGetter'
-import { debug } from '@tauri-apps/plugin-log'
 
 const subviewRef = ref<HTMLElement>()
 const sideNavState = useSideNavState()
@@ -56,14 +55,15 @@ const gameName = computed(() => {
 
 accontInfo.$subscribe(
   (_mutation, state) => {
-    if (state.username) {
-      getSkinUrl(state.username, 'username')
-        .then((url) => {
-          skinUrl.value = url
-        })
-        .catch((_) => {
-          debug(`failed fetching skin url of name: ${state.username}`)
-        })
+    if (state.uuid) {
+      getSkinUrl(
+        state.uuid,
+        (newPath) => {
+          // 当皮肤更新完成后，更新前端显示
+          skinUrl.value = newPath
+        },
+        'uuid',
+      )
     }
   },
   { immediate: true },

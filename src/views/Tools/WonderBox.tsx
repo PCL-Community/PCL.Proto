@@ -99,13 +99,14 @@ export default defineComponent({
             <PButton
               inline
               disabled={!player.name}
-              click={async () => {
-                try {
-                  player.url = await getSkinUrl(player.name!, 'username')
-                } catch (err) {
-                  sideTip.show(err, 'warn')
-                  player.url = undefined
-                }
+              click={() => {
+                getSkinUrl(
+                  player.name!,
+                  (newPath) => {
+                    player.url = newPath
+                  },
+                  'username',
+                )
               }}
             >
               预览

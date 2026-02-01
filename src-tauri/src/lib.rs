@@ -81,6 +81,8 @@ pub fn run() {
             util::scaffolding::start_connection_from_code,
             util::scaffolding::collect_instance_info,
             core::api_client::fetch_with_modrinth,
+            util::skin::fetch_skin_from_uuid_cached,
+            util::skin::fetch_skin_from_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

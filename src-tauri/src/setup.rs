@@ -170,7 +170,7 @@ impl ConfigManager {
         // ));
         state.active_account = Some(Arc::new(Account::Offline {
             username: "AMagicPear".to_string(),
-            uuid: "12345678-1234-1234-1234-123456789012".to_string(),
+            uuid: "31bbe5379fea4e68aa4ad7aacca23d13".to_string(),
         }));
         // state.pcl_setup_info.default_java =
         //     Some(Arc::new(JavaRuntime::try_from("/usr/bin/java").unwrap()));
