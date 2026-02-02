@@ -1,10 +1,12 @@
 use crate::scaffolding::{
     // easytier::EasyTierManager,
-    easytier::EasyTierHolder, mc::scanning, terracotta::{
+    mc::scanning,
+    terracotta::{
         player::PlayerProfile,
         room::{ConnectionDifficulty, RoomCode},
-    }
+    },
 };
+use easytier::launcher::NetworkInstance;
 use serde::{Deserialize, Serialize};
 
 /// 陶瓦状态
@@ -20,7 +22,7 @@ pub enum TerracottaState {
     HostOk {
         room: RoomCode,
         port: u16,
-        easytier: EasyTierHolder,
+        easytier: NetworkInstance,
         player_profiles: Vec<PlayerProfile>,
     },
     GuestConnecting {
@@ -28,12 +30,12 @@ pub enum TerracottaState {
     },
     GuestStarting {
         room: RoomCode,
-        easytier: EasyTierHolder,
+        easytier: NetworkInstance,
         difficulty: ConnectionDifficulty,
     },
     GuestOk {
         room: RoomCode,
-        easytier: EasyTierHolder,
+        easytier: NetworkInstance,
         // server: FakeServer,
         player_profiles: Vec<PlayerProfile>,
     },

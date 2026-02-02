@@ -1,7 +1,15 @@
+use std::{sync::Arc, time::Duration};
+
 use easytier::{
-    common::config::{ConfigLoader, TomlConfigLoader},
+    common::config::{
+        ConfigFileControl, ConfigLoader, NetworkIdentity, PeerConfig, TomlConfigLoader,
+        gen_default_flags,
+    },
+    launcher::NetworkInstance,
     utils::find_free_tcp_port,
 };
+
+use crate::scaffolding;
 /// 参考自 陶瓦联机: `src/controller/rooms/experimental/room.rs`
 /// 规范文档：[Scaffolding-MC/Scaffolding-MC](https://github.com/Scaffolding-MC/Scaffolding-MC/blob/main/README.md#联机房间码)
 #[derive(Clone)]
@@ -160,11 +168,16 @@ impl RoomCode {
     fn start_room_guest(&self, player: Option<&str>) {}
 
     /// 加入房间作为主机
-    fn start_room_host(&self, port: u16, player: Option<&str>, public_servers: &[&str]) {
+    fn start_room_host(
+        &self,
+        port: u16,
+        player: Option<&str>,
+        public_servers: &[&str],
+    ) -> anyhow::Result<Arc<NetworkInstance>> {
         let scaffolding_port = find_free_tcp_port(1024..65535).unwrap();
         let hostname = generate_hostname(scaffolding_port);
         let ipv4 = std::net::Ipv4Addr::new(10, 144, 144, 1);
-        // [TODO] 根据上述配置开启一个EasyTier线程
+        // 创建 EasyTier 配置
         let network_config = {
             let config = TomlConfigLoader::default();
             config.set_id(uuid::Uuid::new_v4());
@@ -172,8 +185,66 @@ impl RoomCode {
             config.set_ipv4(Some(ipv4.into()));
             config.set_tcp_whitelist(vec![scaffolding_port.to_string(), port.to_string()]);
             config.set_udp_whitelist(vec![port.to_string()]);
+            config.set_network_identity(NetworkIdentity::new(
+                self.network_name.clone(),
+                self.network_secret.clone(),
+            ));
+            let peers: Vec<PeerConfig> = public_servers
+                .iter()
+                .filter_map(|server| server.parse().ok())
+                .map(|uri| PeerConfig { uri })
+                .collect();
+            config.set_peers(peers);
+            // 设置其他必要的标志
+            let mut flags = gen_default_flags();
+            flags.no_tun = true; // 不需要 tun 设备
+            flags.multi_thread = true; // 启用多线程
+            flags.latency_first = true; // 优先考虑延迟
+            flags.enable_kcp_proxy = true; // 启用 KCP 代理
+            config.set_flags(flags);
             config
         };
+        // 根据配置创建并启动 NetWorkInstance
+        let mut instance = NetworkInstance::new(network_config, ConfigFileControl::STATIC_CONFIG);
+        instance.start()?;
+        if !instance.is_easytier_running() {
+            if let Some(error) = instance.get_latest_error_msg() {
+                return Err(anyhow::anyhow!("Failed to start EasyTier: {}", error));
+            }
+            return Err(anyhow::anyhow!("Failed to start EasyTier"));
+        }
+        // 启动后台监控线程
+        let instance_arc = Arc::new(instance);
+        let instance_clone = instance_arc.clone();
+        let player_name = player.unwrap_or("PCL.Proto Anonymous Host").to_string();
+
+        std::thread::spawn(move || {
+            let mut counter = 0;
+
+            loop {
+                std::thread::sleep(Duration::from_secs(5));
+
+                // 检查 Minecraft 服务器连接
+                if scaffolding::mc::check_mc_connection(port) {
+                    counter = 0;
+                } else {
+                    counter += 1;
+                    if counter >= 3 {
+                        // 连接失败，处理错误
+                        eprintln!("Minecraft server connection failed after 3 attempts");
+                        break;
+                    }
+                }
+
+                // 检查 EasyTier 实例状态
+                if !instance_clone.is_easytier_running() {
+                    eprintln!("EasyTier instance is not running");
+                    break;
+                }
+
+                // [TODO] 添加更多监控逻辑，比如清理超时的客户端
+            }
+        });
         // 更新状态 这个应该放到commands里去做
         // let hostOk = TerracottaState::HostOk {
         //     room: self.clone(),
@@ -181,6 +252,7 @@ impl RoomCode {
         //     easytier: easytier_manager,
         //     player_profiles: Vec::new(),
         // };
+        Ok(instance_arc)
     }
 }
 
