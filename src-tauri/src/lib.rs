@@ -52,8 +52,8 @@ pub fn run() {
             }
 
             // 初始化scaffolding全局状态
-            let scaffolding_state = ScaffoldingGlobalState::new();
-            app.manage(scaffolding_state);
+            // let scaffolding_state = ScaffoldingGlobalState::new();
+            // app.manage(scaffolding_state);
 
             // search for Java during init
             tauri::async_runtime::spawn(async move {
@@ -85,12 +85,12 @@ pub fn run() {
             util::skin::fetch_skin_from_uuid_cached,
             util::skin::fetch_skin_from_url,
             // Scaffolding commands
-            scaffolding::generate_room_code,
-            scaffolding::parse_room_code,
-            scaffolding::start_host,
-            scaffolding::join_room,
-            scaffolding::get_room_state,
-            scaffolding::leave_room,
+            // scaffolding::generate_room_code,
+            // scaffolding::parse_room_code,
+            // scaffolding::start_host,
+            // scaffolding::join_room,
+            // scaffolding::get_room_state,
+            // scaffolding::leave_room,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

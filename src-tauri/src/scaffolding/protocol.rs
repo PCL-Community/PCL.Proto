@@ -1,5 +1,4 @@
-use super::PlayerInfo;
-use serde::{Deserialize, Serialize};
+use super::terracotta::player::PlayerProfile;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
@@ -8,7 +7,7 @@ use tokio::sync::Mutex;
 /// 协议处理器
 pub struct ProtocolHandler {
     /// 玩家列表
-    players: Arc<Mutex<Vec<PlayerInfo>>>,
+    players: Arc<Mutex<Vec<PlayerProfile>>>,
     /// Minecraft服务器端口
     server_port: u16,
 }
@@ -85,7 +84,7 @@ impl ProtocolHandler {
 /// 处理客户端连接
 async fn handle_client(
     mut stream: TcpStream,
-    players: Arc<Mutex<Vec<PlayerInfo>>>,
+    players: Arc<Mutex<Vec<PlayerProfile>>>,
     server_port: u16,
 ) -> Result<(), String> {
     // 读取请求类型长度
@@ -170,9 +169,9 @@ async fn handle_server_port(server_port: u16) -> (u8, Vec<u8>) {
 }
 
 /// 处理c:player_ping请求
-async fn handle_player_ping(request_body: &[u8], players: &Arc<Mutex<Vec<PlayerInfo>>>) -> (u8, Vec<u8>) {
+async fn handle_player_ping(request_body: &[u8], players: &Arc<Mutex<Vec<PlayerProfile>>>) -> (u8, Vec<u8>) {
     // 解析请求体
-    if let Ok(player_info) = serde_json::from_slice::<PlayerInfo>(request_body) {
+    if let Ok(player_info) = serde_json::from_slice::<PlayerProfile>(request_body) {
         let mut players_lock = players.lock().await;
         
         // 检查玩家是否已存在
@@ -191,7 +190,7 @@ async fn handle_player_ping(request_body: &[u8], players: &Arc<Mutex<Vec<PlayerI
 }
 
 /// 处理c:player_profiles_list请求
-async fn handle_player_profiles_list(players: &Arc<Mutex<Vec<PlayerInfo>>>) -> (u8, Vec<u8>) {
+async fn handle_player_profiles_list(players: &Arc<Mutex<Vec<PlayerProfile>>>) -> (u8, Vec<u8>) {
     let players_lock = players.lock().await;
     
     // 构造响应体
@@ -248,7 +247,7 @@ impl ProtocolClient {
     }
 
     /// 发送玩家心跳
-    pub async fn send_player_ping(&self, player_info: &PlayerInfo) -> Result<(), String> {
+    pub async fn send_player_ping(&self, player_info: &PlayerProfile) -> Result<(), String> {
         let handler = ProtocolHandler::new(0);
         let request_body = serde_json::to_vec(player_info).map_err(|e| e.to_string())?;
         
@@ -257,7 +256,7 @@ impl ProtocolClient {
     }
 
     /// 获取玩家列表
-    pub async fn get_player_profiles(&self) -> Result<Vec<PlayerInfo>, String> {
+    pub async fn get_player_profiles(&self) -> Result<Vec<PlayerProfile>, String> {
         let handler = ProtocolHandler::new(0);
         let response = handler.send_request(&self.server_addr, "c:player_profiles_list", &[]).await?;
         
