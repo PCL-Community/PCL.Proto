@@ -66,8 +66,8 @@ pub struct AppState {
     pub repositories: Vec<GameRepository>,
     pub active_game_instance: Option<Arc<GameInstance>>,
     pub active_repo_path: PathBuf,
-    #[serde(skip)]
-    pub easytier_instance_uuid: Option<uuid::Uuid>,
+    // #[serde(skip)]
+    // pub easytier_instance_uuid: Option<uuid::Uuid>,
 }
 
 /// config manager, for loading and saving config file

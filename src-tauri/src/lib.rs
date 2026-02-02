@@ -4,8 +4,9 @@
 // |  __/| |___| |___ _|  __/| | | (_) | || (_) |
 // |_|    \____|_____(_)_|   |_|  \___/ \__\___/
 //
-use crate::core::java::JavaRuntimeVecExt;
 use core::downloader;
+use core::java::JavaRuntimeVecExt;
+use scaffolding::terracotta::states::ScaffoldingGlobalState;
 use setup::AppState;
 use std::sync::Arc;
 use tauri::Manager;
@@ -49,10 +50,11 @@ pub fn run() {
                         std::process::exit(1);
                     });
             }
-            // let easytier_manager = easytier::instance_manager::NetworkInstanceManager::new();
-            // app.manage(easytier_manager);
-            // let window = app.get_webview_window("main").unwrap();
-            // window.on_navigation(move |url| {});
+
+            // 初始化scaffolding全局状态
+            let scaffolding_state = ScaffoldingGlobalState::new();
+            app.manage(scaffolding_state);
+
             // search for Java during init
             tauri::async_runtime::spawn(async move {
                 let java_runtimes = core::java::JavaRuntime::search().await;
@@ -82,6 +84,13 @@ pub fn run() {
             core::api_client::fetch_with_modrinth,
             util::skin::fetch_skin_from_uuid_cached,
             util::skin::fetch_skin_from_url,
+            // Scaffolding commands
+            scaffolding::generate_room_code,
+            scaffolding::parse_room_code,
+            scaffolding::start_host,
+            scaffolding::join_room,
+            scaffolding::get_room_state,
+            scaffolding::leave_room,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

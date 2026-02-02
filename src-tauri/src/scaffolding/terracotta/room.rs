@@ -2,15 +2,15 @@ use crate::scaffolding::PlayerType;
 
 /// 参考自 陶瓦联机: `src/controller/rooms/experimental/room.rs`
 /// 规范文档：[Scaffolding-MC/Scaffolding-MC](https://github.com/Scaffolding-MC/Scaffolding-MC/blob/main/README.md#联机房间码)
-struct RoomCode {
+pub struct RoomCode {
     /// 房间码
-    code: String,
+    pub code: String,
     /// 网络名称
-    network_name: String,
+    pub network_name: String,
     /// 网络密钥
-    network_secret: String,
+    pub network_secret: String,
     /// 房间码种子 唯一对应一个房间码
-    seed: u128,
+    pub seed: u128,
 }
 
 /// 房间码字符集
@@ -20,12 +20,12 @@ static BASE_VAL: u128 = 34;
 
 impl RoomCode {
     /// 生成符合 Scaffolding-MC 规范的联机房间码
-    fn generate() -> Self {
+    pub fn generate() -> Self {
         let mut value = {
             let mut bytes = [0u8; 16];
             getrandom::getrandom(&mut bytes).unwrap();
             u128::from_be_bytes(bytes)
-        } % 34u128.pow(16);
+        } % BASE_VAL.pow(16);
         value -= value % 7;
         Self::from_value(value)
     }
@@ -51,7 +51,7 @@ impl RoomCode {
                         }
                     } else {
                         match Self::lookup_char(code[i]) {
-                            Some(v) => value = value * 34 + v as u128,
+                            Some(v) => value = value * BASE_VAL + v as u128,
                             None => continue 'parse_segment,
                         }
                     }
@@ -74,8 +74,8 @@ impl RoomCode {
         let mut network_secret = String::with_capacity("XXXX-XXXX".len());
 
         for i in 0..16 {
-            let v = ROOM_CODE_CHARSET[(value % 34) as usize] as char;
-            value /= 34;
+            let v = ROOM_CODE_CHARSET[(value % BASE_VAL) as usize] as char;
+            value /= BASE_VAL;
 
             if i == 4 || i == 8 || i == 12 {
                 code.push('-');
