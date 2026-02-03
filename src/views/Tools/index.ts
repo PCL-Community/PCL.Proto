@@ -14,13 +14,13 @@ export default defineComponent({
         sideNavGroups: [
           {
             title: t('tools.nav.link'),
-            content: [{ text: t('tools.nav.lobby'), icon: IconLobby, linkto: 'lobby' }],
+            content: [{ text: t('tools.nav.lobby'), icon: IconLobby, linkto: '/tools/lobby' }],
           },
           {
             title: t('tools.nav.wondertoys'),
             content: [
-              { text: t('tools.nav.wonderbox'), icon: IconPack, linkto: 'wonderbox' },
-              { text: t('tools.nav.help'), icon: IconHelp, linkto: 'help' },
+              { text: t('tools.nav.wonderbox'), icon: IconPack, linkto: '/tools/wonderbox' },
+              { text: t('tools.nav.help'), icon: IconHelp, linkto: '/tools/help' },
             ],
           },
         ],

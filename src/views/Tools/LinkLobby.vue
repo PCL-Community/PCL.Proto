@@ -3,10 +3,13 @@ import Dropdown from '@/components/widget/Dropdown.vue'
 import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PInput from '@/components/widget/PInput.vue'
+import sideTip from '@/composables/sideTip'
 // import type { NetworkInstanceRunningInfo } from '@/types/easytier'
 import { invoke } from '@tauri-apps/api/core'
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const enterLobbyCode = ref<string>()
 
 const connectWithCode = async (code: string) => {
@@ -20,6 +23,13 @@ const createLobby = async (port: number) => {
     port,
   })
   console.info('[scaffolding] created room code', roomCode)
+  sideTip.show(`已创建大厅：${roomCode}`, 'success')
+  router.push({
+    path: '/tools/lobby/inner',
+    query: {
+      code: roomCode,
+    },
+  })
 }
 </script>
 

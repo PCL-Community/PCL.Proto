@@ -5,7 +5,7 @@ const tips = sideTip.tips
 
 <template lang="pug">
 #sidetip-container
-    TransitionGroup(name="sidetip")
+    TransitionGroup(name="fade")
         .sidetip-item(
             v-for="tip in tips"
             :key="tip.id"
@@ -46,16 +46,16 @@ const tips = sideTip.tips
   background-color: var(--success-green);
 }
 
-.sidetip-move,
-.sidetip-enter-active,
-.sidetip-leave-active {
+.fade-move,
+.fade-enter-active,
+.fade-leave-active {
   transition:
     transform 0.4s cubic-bezier(0.4, 2, 0.4, 1),
     opacity 0.4s;
 }
 
-.sidetip-enter-from,
-.sidetip-leave-to {
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
   transform: translateX(-10px);
 }

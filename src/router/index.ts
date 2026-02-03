@@ -117,7 +117,16 @@ const router = createRouter({
       children: [
         {
           path: 'lobby',
-          component: () => import('@/views/Tools/LinkLobby.vue'),
+          children: [
+            {
+              path: '',
+              component: () => import('@/views/Tools/LinkLobby.vue'),
+            },
+            {
+              path: 'inner',
+              component: () => import('@/views/Tools/LinkLobbyInner.vue'),
+            },
+          ],
         },
         {
           path: 'wonderbox',
