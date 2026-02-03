@@ -4,7 +4,7 @@ use easytier::{
     common::config::{
         ConfigFileControl, ConfigLoader, NetworkIdentity, PeerConfig, TomlConfigLoader,
         gen_default_flags,
-    }, launcher::NetworkInstance, proto::common::CompressionAlgoPb, utils::find_free_tcp_port
+    }, launcher::NetworkInstance, proto::common::CompressionAlgoPb, tunnel::insecure_tls, utils::find_free_tcp_port
 };
 
 use crate::scaffolding;
@@ -156,7 +156,7 @@ impl RoomCode {
 
     /// 加入房间作为访客
     pub fn start_room_guest(&self, player: Option<&str>, public_servers: &[&str]) {
-
+        insecure_tls::init_crypto_provider();
     }
 
     /// 加入房间作为主机
@@ -166,6 +166,7 @@ impl RoomCode {
         player: Option<&str>,
         public_servers: &[&str],
     ) -> anyhow::Result<Arc<NetworkInstance>> {
+        insecure_tls::init_crypto_provider();
         let scaffolding_port = find_free_tcp_port(1024..65535).unwrap();
         let hostname = generate_hostname(scaffolding_port);
         let ipv4 = std::net::Ipv4Addr::new(10, 144, 144, 1);

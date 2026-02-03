@@ -21,9 +21,9 @@ pub async fn start_host(
         };
         drop(state);
     }
-    let network_instance = room_code
-        .start_room_host(port, Some(player_name), PUBLIC_SERVERS)
-        .map_err(|e| e.to_string())?;
+    // let network_instance = room_code
+    //     .start_room_host(port, Some(player_name), PUBLIC_SERVERS)
+    //     .map_err(|e| e.to_string())?;
     Ok(room_code.code)
 }
 

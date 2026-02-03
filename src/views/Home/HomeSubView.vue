@@ -59,7 +59,6 @@ const loadingState = ref<LoadingState>('loading')
             p 本项目以PCL2（龙腾猫跃）和PCL2-CE为蓝本。旨在为各PCL分支版本提供一个标准化的原型样本。该仓库使用 Vue3 搭建，如果你的仓库使用 Webview 作为前端，则可以直接引用该项目。
 
     PButton(type="tint" :click="presentBtnClick") 点击这个按钮会有提示哦 😬
-
     PLoading(:state='loadingState' :card="true")
 
     #loading-control
