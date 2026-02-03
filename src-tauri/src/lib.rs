@@ -6,7 +6,7 @@
 //
 use core::downloader;
 use core::java::JavaRuntimeVecExt;
-use scaffolding::terracotta::states::ScaffoldingGlobalState;
+use scaffolding::terracotta::states::TerracottaState;
 use setup::AppState;
 use std::sync::Arc;
 use tauri::Manager;
@@ -52,8 +52,8 @@ pub fn run() {
             }
 
             // 初始化scaffolding全局状态
-            // let scaffolding_state = ScaffoldingGlobalState::new();
-            // app.manage(scaffolding_state);
+            let terracotta_state = Arc::new(tokio::sync::Mutex::new(TerracottaState::default()));
+            app.manage(terracotta_state);
 
             // search for Java during init
             tauri::async_runtime::spawn(async move {
@@ -85,12 +85,8 @@ pub fn run() {
             util::skin::fetch_skin_from_uuid_cached,
             util::skin::fetch_skin_from_url,
             // Scaffolding commands
-            // scaffolding::generate_room_code,
-            // scaffolding::parse_room_code,
-            // scaffolding::start_host,
-            // scaffolding::join_room,
-            // scaffolding::get_room_state,
-            // scaffolding::leave_room,
+            scaffolding::commands::start_host,
+            scaffolding::commands::start_guest,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -2,37 +2,28 @@
 import Dropdown from '@/components/widget/Dropdown.vue'
 import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
-import PHint from '@/components/widget/PHint.vue'
 import PInput from '@/components/widget/PInput.vue'
-import type { NetworkInstanceRunningInfo } from '@/types/easytier'
+// import type { NetworkInstanceRunningInfo } from '@/types/easytier'
 import { invoke } from '@tauri-apps/api/core'
 import { ref } from 'vue'
 
 const enterLobbyCode = ref<string>()
 
-async function ConnectWithCode(code: string) {
-  try {
-    let instanceId = await invoke<string>('start_connection_from_code', { code })
-    console.log('connected with instance id', instanceId)
-  } catch (error) {
-    console.error(error)
-  }
+const connectWithCode = async (code: string) => {
+  let roomCode = await invoke<string>('parse_room_code', { code })
+  console.info('[scaffolding] connecting to room code', roomCode)
 }
 
-async function DropConnect() {}
-
-async function CollectInfo() {
-  let info = await invoke<NetworkInstanceRunningInfo | null>('collect_instance_info')
-  console.log(info)
+const createLobby = async (port: number) => {
+  let roomCode = await invoke<string>('start_host', {
+    playerName: 'PCL.Proto Anonymous Host',
+    port,
+  })
+  console.info('[scaffolding] created room code', roomCode)
 }
 </script>
 
 <template>
-  <PHint severity="info">此大厅仅为UI，无联机功能</PHint>
-  <div class="button-grid">
-    <PButton :click="DropConnect">测试断连</PButton>
-    <PButton :click="CollectInfo">获取信息</PButton>
-  </div>
   <PCard :title="$t('link.lobby.join_lobby')">
     <p v-for="line in $t('link.lobby.join_lobby_description').split('\n')">{{ line }}</p>
     <div class="hall-input">
@@ -46,7 +37,7 @@ async function CollectInfo() {
       <PButton
         inline
         type="tint"
-        :click="() => ConnectWithCode(enterLobbyCode!)"
+        :click="() => connectWithCode(enterLobbyCode!)"
         :disabled="!enterLobbyCode"
         >{{ $t('link.lobby.join_lobby') }}</PButton
       >
@@ -67,7 +58,7 @@ async function CollectInfo() {
         style="flex: 1"
       />
       <PButton inline>刷新</PButton>
-      <PButton inline type="tint" disabled>创建</PButton>
+      <PButton inline type="tint" :click="() => createLobby(25565)">创建</PButton>
     </div>
   </PCard>
 </template>

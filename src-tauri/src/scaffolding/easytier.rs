@@ -1,40 +1,34 @@
-// use easytier::{
-//     common::config::{ConfigFileControl, TomlConfigLoader},
-//     launcher::NetworkInstance,
-//     rpc_service::InstanceRpcService,
-// };
-// use std::sync::Arc;
+use easytier::proto::common::NatType;
+use std::net::Ipv4Addr;
 
-// pub struct EasyTierHolder {
-//     instance: NetworkInstance,
-// }
+/// 连接难度，根据EasyTier确定的网络结构转换而来
+pub enum ConnectionDifficulty {
+    Unknown,
+    Easiest,
+    Simple,
+    Medium,
+    Tough,
+}
 
-// impl EasyTierHolder {
-//     fn create(config: TomlConfigLoader) -> anyhow::Result<Self> {
-//         let mut instance = NetworkInstance::new(config, ConfigFileControl::STATIC_CONFIG);
-//         instance.start()?;
+impl From<(&NatType, &NatType)> for ConnectionDifficulty {
+    fn from(value: (&NatType, &NatType)) -> Self {
+        let is = |types: &[NatType]| -> bool { types.contains(value.0) || types.contains(value.1) };
+        if is(&[NatType::OpenInternet]) {
+            ConnectionDifficulty::Easiest
+        } else if is(&[NatType::NoPat, NatType::FullCone]) {
+            ConnectionDifficulty::Simple
+        } else if is(&[NatType::Restricted, NatType::PortRestricted]) {
+            ConnectionDifficulty::Medium
+        } else {
+            ConnectionDifficulty::Tough
+        }
+    }
+}
 
-//         // 简单等待实例启动
-//         std::thread::sleep(std::time::Duration::from_secs(2));
-
-//         // 检查启动状态
-//         if !instance.is_easytier_running() {
-//             if let Some(error) = instance.get_latest_error_msg() {
-//                 return Err(anyhow::anyhow!("Failed to start EasyTier: {}", error));
-//             }
-//             return Err(anyhow::anyhow!("Failed to start EasyTier"));
-//         }
-
-//         Ok(Self { instance })
-//     }
-
-//     // 获取 API 服务
-//     fn get_api_service(&self) -> Option<Arc<dyn InstanceRpcService>> {
-//         self.instance.get_api_service()
-//     }
-
-//     // 检查运行状态
-//     fn is_running(&self) -> bool {
-//         self.instance.is_easytier_running()
-//     }
-// }
+/// EasyTier 成员 不知道和PlayerProfile有什么区别
+pub struct EasyTierMember {
+    pub hostname: String,
+    pub address: Option<Ipv4Addr>,
+    pub is_local: bool,
+    pub nat: NatType,
+}

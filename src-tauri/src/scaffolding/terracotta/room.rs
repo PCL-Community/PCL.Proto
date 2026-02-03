@@ -4,9 +4,7 @@ use easytier::{
     common::config::{
         ConfigFileControl, ConfigLoader, NetworkIdentity, PeerConfig, TomlConfigLoader,
         gen_default_flags,
-    },
-    launcher::NetworkInstance,
-    utils::find_free_tcp_port,
+    }, launcher::NetworkInstance, proto::common::CompressionAlgoPb, utils::find_free_tcp_port
 };
 
 use crate::scaffolding;
@@ -22,15 +20,6 @@ pub struct RoomCode {
     pub network_secret: String,
     /// 房间码种子 唯一对应一个房间码
     pub seed: u128,
-}
-
-/// 连接难度，根据EasyTier确定的网络结构转换而来
-pub enum ConnectionDifficulty {
-    Unknown,
-    Easiest,
-    Simple,
-    Medium,
-    Tough,
 }
 
 /// scaffolding-mc 服务器主机名前缀
@@ -83,7 +72,7 @@ impl RoomCode {
         if code.len() < "U/XXXX-XXXX-XXXX-XXXX".len() {
             return None;
         }
-        let value: u128 = 'value: {
+        let seed: u128 = 'seed: {
             'parse_segment: for code in code.windows("U/XXXX-XXXX-XXXX-XXXX".len()) {
                 if code[0] != 'U' || code[1] != '/' {
                     continue 'parse_segment;
@@ -104,25 +93,26 @@ impl RoomCode {
                     }
                 }
                 if value.is_multiple_of(7) {
-                    break 'value value;
+                    break 'seed value;
                 }
             }
             return None;
         };
-        Some(Self::from_seed(value))
+        Some(Self::from_seed(seed))
     }
 
     /// 从整型值构造房间码
-    fn from_seed(mut value: u128) -> Self {
+    fn from_seed(seed: u128) -> Self {
         let mut code = String::with_capacity("U/XXXX-XXXX-XXXX-XXXX".len());
         code.push_str("U/");
         let mut network_name = String::with_capacity("scaffolding-mc-XXXX-XXXX".len());
         network_name.push_str("scaffolding-mc-");
         let mut network_secret = String::with_capacity("XXXX-XXXX".len());
+        let mut seed_copy = seed;
 
         for i in 0..16 {
-            let v = ROOM_CODE_CHARSET[(value % BASE_VAL) as usize] as char;
-            value /= BASE_VAL;
+            let v = ROOM_CODE_CHARSET[(seed_copy % BASE_VAL) as usize] as char;
+            seed_copy /= BASE_VAL;
 
             if i == 4 || i == 8 || i == 12 {
                 code.push('-');
@@ -145,7 +135,7 @@ impl RoomCode {
             code,
             network_name,
             network_secret,
-            seed: value,
+            seed,
         }
     }
 
@@ -165,10 +155,12 @@ impl RoomCode {
     }
 
     /// 加入房间作为访客
-    fn start_room_guest(&self, player: Option<&str>) {}
+    pub fn start_room_guest(&self, player: Option<&str>, public_servers: &[&str]) {
+
+    }
 
     /// 加入房间作为主机
-    fn start_room_host(
+    pub fn start_room_host(
         &self,
         port: u16,
         player: Option<&str>,
@@ -198,9 +190,11 @@ impl RoomCode {
             // 设置其他必要的标志
             let mut flags = gen_default_flags();
             flags.no_tun = true; // 不需要 tun 设备
+            flags.data_compress_algo = CompressionAlgoPb::Zstd.into();
             flags.multi_thread = true; // 启用多线程
             flags.latency_first = true; // 优先考虑延迟
             flags.enable_kcp_proxy = true; // 启用 KCP 代理
+            flags.p2p_only = true;
             config.set_flags(flags);
             config
         };
@@ -231,14 +225,14 @@ impl RoomCode {
                     counter += 1;
                     if counter >= 3 {
                         // 连接失败，处理错误
-                        eprintln!("Minecraft server connection failed after 3 attempts");
+                        log::error!("Minecraft server connection failed after 3 attempts");
                         break;
                     }
                 }
 
                 // 检查 EasyTier 实例状态
                 if !instance_clone.is_easytier_running() {
-                    eprintln!("EasyTier instance is not running");
+                    log::error!("EasyTier instance is not running");
                     break;
                 }
 
