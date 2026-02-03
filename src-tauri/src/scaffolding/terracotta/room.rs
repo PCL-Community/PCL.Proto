@@ -50,8 +50,6 @@ static BASE_VAL: u128 = 34;
 pub static PUBLIC_SERVERS: &[&str] = &[
     "tcp://public.easytier.top:11010",
     "tcp://public2.easytier.cn:54321",
-    "https://etnode.zkitefly.eu.org/node1",
-    "https://etnode.zkitefly.eu.org/node2",
 ];
 
 impl RoomCode {
@@ -173,6 +171,12 @@ impl RoomCode {
         // 创建 EasyTier 配置
         let network_config = {
             let config = TomlConfigLoader::default();
+            config.set_network_identity(NetworkIdentity {
+                network_name: self.network_name.clone(),
+                network_secret: Some(self.network_secret.clone()),
+                network_secret_digest: None,
+            });
+            config.set_dhcp(true);
             config.set_id(uuid::Uuid::new_v4());
             config.set_hostname(Some(hostname));
             config.set_ipv4(Some(ipv4.into()));
@@ -201,20 +205,33 @@ impl RoomCode {
         };
         // 根据配置创建并启动 NetWorkInstance
         let mut instance = NetworkInstance::new(network_config, ConfigFileControl::STATIC_CONFIG);
+        log::info!("Starting EasyTier instance for room: {}", self.code);
+        log::info!("Connecting to public servers: {:?}", public_servers);
+
         instance.start()?;
+
         if !instance.is_easytier_running() {
             if let Some(error) = instance.get_latest_error_msg() {
+                log::error!("Failed to start EasyTier: {}", error);
                 return Err(anyhow::anyhow!("Failed to start EasyTier: {}", error));
             }
+            log::error!("Failed to start EasyTier without specific error message");
             return Err(anyhow::anyhow!("Failed to start EasyTier"));
         }
+
+        log::info!("EasyTier instance started successfully for room: {}", self.code);
         // 启动后台监控线程
         let instance_arc = Arc::new(instance);
         let instance_clone = instance_arc.clone();
         let player_name = player.unwrap_or("PCL.Proto Anonymous Host").to_string();
+        let room_code = self.code.clone();
 
         std::thread::spawn(move || {
             let mut counter = 0;
+            let mut easytier_retry_counter = 0;
+            const MAX_EASYTIER_RETRIES: u8 = 3;
+
+            log::info!("Starting monitoring thread for room: {}", room_code);
 
             loop {
                 std::thread::sleep(Duration::from_secs(5));
@@ -222,23 +239,41 @@ impl RoomCode {
                 // 检查 Minecraft 服务器连接
                 if scaffolding::mc::check_mc_connection(port) {
                     counter = 0;
+                    log::debug!("Minecraft server connection check passed for room: {}", room_code);
                 } else {
                     counter += 1;
+                    log::warn!("Minecraft server connection check failed (attempt {}/3) for room: {}", counter, room_code);
                     if counter >= 3 {
                         // 连接失败，处理错误
-                        log::error!("Minecraft server connection failed after 3 attempts");
+                        log::error!("Minecraft server connection failed after 3 attempts for room: {}", room_code);
                         break;
                     }
                 }
 
                 // 检查 EasyTier 实例状态
                 if !instance_clone.is_easytier_running() {
-                    log::error!("EasyTier instance is not running");
-                    break;
+                    easytier_retry_counter += 1;
+                    log::error!("EasyTier instance is not running (retry {}/{}) for room: {}",
+                               easytier_retry_counter, MAX_EASYTIER_RETRIES, room_code);
+
+                    if easytier_retry_counter >= MAX_EASYTIER_RETRIES {
+                        log::error!("EasyTier instance failed after {} retries for room: {}",
+                                   MAX_EASYTIER_RETRIES, room_code);
+                        break;
+                    }
+
+                    // 尝试重新启动 EasyTier
+                    log::info!("Attempting to restart EasyTier for room: {}", room_code);
+                    // 这里可以添加重新启动逻辑
+                } else {
+                    easytier_retry_counter = 0;
+                    log::debug!("EasyTier instance is running normally for room: {}", room_code);
                 }
 
                 // [TODO] 添加更多监控逻辑，比如清理超时的客户端
             }
+
+            log::error!("Monitoring thread stopped for room: {}", room_code);
         });
         // 更新状态 这个应该放到commands里去做
         // let hostOk = TerracottaState::HostOk {
