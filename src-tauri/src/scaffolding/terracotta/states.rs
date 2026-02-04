@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 /// 陶瓦状态
+/// 其中包含的easytier仅持有一个uuid 需要通过NetworkInstanceManager来获取实际的实例
 #[derive(Default)]
 pub enum TerracottaState {
     #[default]
