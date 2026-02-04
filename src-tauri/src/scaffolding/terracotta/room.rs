@@ -1,13 +1,18 @@
-use std::{sync::Arc, time::Duration};
-
+use crate::scaffolding::easytier::EasyTierControl;
 use easytier::{
     common::config::{
         ConfigFileControl, ConfigLoader, NetworkIdentity, PeerConfig, TomlConfigLoader,
         gen_default_flags,
-    }, launcher::NetworkInstance, proto::common::CompressionAlgoPb, tunnel::insecure_tls, utils::find_free_tcp_port
+    },
+    launcher::NetworkInstance,
+    proto::common::CompressionAlgoPb,
+    tunnel::insecure_tls,
+    utils::find_free_tcp_port,
 };
-
-use crate::scaffolding;
+use std::{
+    net::{Ipv4Addr, SocketAddrV4},
+    sync::Arc,
+};
 /// 参考自 陶瓦联机: `src/controller/rooms/experimental/room.rs`
 /// 规范文档：[Scaffolding-MC/Scaffolding-MC](https://github.com/Scaffolding-MC/Scaffolding-MC/blob/main/README.md#联机房间码)
 pub struct RoomCode {
@@ -151,137 +156,65 @@ impl RoomCode {
         None
     }
 
-    /// 加入房间作为访客
-    pub fn start_room_guest(&self, player: Option<&str>, public_servers: &[&str]) {
-        insecure_tls::init_crypto_provider();
+    /// 对本房间计算 EasyTier 配置
+    /// 参考: 陶瓦 `src/controller/rooms/experimental/room.rs:595`
+    fn compute_arguments_common(&self, public_servers: &[&str]) -> TomlConfigLoader {
+        let config = TomlConfigLoader::default();
+        let mut flags = gen_default_flags();
+        flags.no_tun = true;
+        flags.data_compress_algo = CompressionAlgoPb::Zstd.into();
+        flags.multi_thread = true;
+        flags.latency_first = true;
+        flags.enable_kcp_proxy = true;
+        config.set_listeners(vec![
+            "tcp://0.0.0.0:0".parse().unwrap(),
+            "udp://0.0.0.0:0".parse().unwrap(),
+        ]);
+        flags.p2p_only = true;
+        config.set_network_identity(NetworkIdentity {
+            network_name: self.network_name.clone(),
+            network_secret: Some(self.network_secret.clone()),
+            network_secret_digest: None,
+        });
+        config.set_peers(
+            public_servers
+                .iter()
+                .filter_map(|server| server.parse().ok())
+                .map(|uri| PeerConfig { uri })
+                .collect(),
+        );
+        config.set_flags(flags);
+        config
     }
 
-    /// 加入房间作为主机
-    pub fn start_room_host(
+    /// 生成加入房间作为访客的 EasyTier 配置
+    pub fn compute_arguments_guest(&self, public_servers: &[&str]) -> TomlConfigLoader {
+        insecure_tls::init_crypto_provider();
+        let config = self.compute_arguments_common(public_servers);
+        config.set_dhcp(true);
+        config.set_tcp_whitelist(vec![0.to_string()]);
+        config.set_udp_whitelist(vec![0.to_string()]);
+        config
+    }
+
+    /// 生成加入房间作为主机的 EasyTier 配置
+    pub fn compute_arguments_host(
         &self,
         port: u16,
-        player: Option<&str>,
         public_servers: &[&str],
-    ) -> anyhow::Result<Arc<NetworkInstance>> {
+    ) -> TomlConfigLoader {
         insecure_tls::init_crypto_provider();
         let scaffolding_port = find_free_tcp_port(1024..65535).unwrap();
         let hostname = generate_hostname(scaffolding_port);
         let ipv4 = std::net::Ipv4Addr::new(10, 144, 144, 1);
         // 创建 EasyTier 配置
-        let network_config = {
-            let config = TomlConfigLoader::default();
-            config.set_network_identity(NetworkIdentity {
-                network_name: self.network_name.clone(),
-                network_secret: Some(self.network_secret.clone()),
-                network_secret_digest: None,
-            });
-            config.set_dhcp(true);
-            config.set_id(uuid::Uuid::new_v4());
-            config.set_hostname(Some(hostname));
-            config.set_ipv4(Some(ipv4.into()));
-            config.set_tcp_whitelist(vec![scaffolding_port.to_string(), port.to_string()]);
-            config.set_udp_whitelist(vec![port.to_string()]);
-            config.set_network_identity(NetworkIdentity::new(
-                self.network_name.clone(),
-                self.network_secret.clone(),
-            ));
-            let peers: Vec<PeerConfig> = public_servers
-                .iter()
-                .filter_map(|server| server.parse().ok())
-                .map(|uri| PeerConfig { uri })
-                .collect();
-            config.set_peers(peers);
-            // 设置其他必要的标志
-            let mut flags = gen_default_flags();
-            flags.no_tun = true; // 不需要 tun 设备
-            flags.data_compress_algo = CompressionAlgoPb::Zstd.into();
-            flags.multi_thread = true; // 启用多线程
-            flags.latency_first = true; // 优先考虑延迟
-            flags.enable_kcp_proxy = true; // 启用 KCP 代理
-            flags.p2p_only = true;
-            config.set_flags(flags);
-            config
-        };
+        let network_config = self.compute_arguments_common(public_servers);
+        network_config.set_hostname(Some(hostname));
+        network_config.set_ipv4(Some(ipv4.into()));
+        network_config.set_tcp_whitelist(vec![scaffolding_port.to_string(), port.to_string()]);
+        network_config.set_udp_whitelist(vec![port.to_string()]);
         // 根据配置创建并启动 NetWorkInstance
-        let mut instance = NetworkInstance::new(network_config, ConfigFileControl::STATIC_CONFIG);
-        log::info!("Starting EasyTier instance for room: {}", self.code);
-        log::info!("Connecting to public servers: {:?}", public_servers);
-
-        instance.start()?;
-
-        if !instance.is_easytier_running() {
-            if let Some(error) = instance.get_latest_error_msg() {
-                log::error!("Failed to start EasyTier: {}", error);
-                return Err(anyhow::anyhow!("Failed to start EasyTier: {}", error));
-            }
-            log::error!("Failed to start EasyTier without specific error message");
-            return Err(anyhow::anyhow!("Failed to start EasyTier"));
-        }
-
-        log::info!("EasyTier instance started successfully for room: {}", self.code);
-        // 启动后台监控线程
-        let instance_arc = Arc::new(instance);
-        let instance_clone = instance_arc.clone();
-        let player_name = player.unwrap_or("PCL.Proto Anonymous Host").to_string();
-        let room_code = self.code.clone();
-
-        std::thread::spawn(move || {
-            let mut counter = 0;
-            let mut easytier_retry_counter = 0;
-            const MAX_EASYTIER_RETRIES: u8 = 3;
-
-            log::info!("Starting monitoring thread for room: {}", room_code);
-
-            loop {
-                std::thread::sleep(Duration::from_secs(5));
-
-                // 检查 Minecraft 服务器连接
-                if scaffolding::mc::check_mc_connection(port) {
-                    counter = 0;
-                    log::debug!("Minecraft server connection check passed for room: {}", room_code);
-                } else {
-                    counter += 1;
-                    log::warn!("Minecraft server connection check failed (attempt {}/3) for room: {}", counter, room_code);
-                    if counter >= 3 {
-                        // 连接失败，处理错误
-                        log::error!("Minecraft server connection failed after 3 attempts for room: {}", room_code);
-                        break;
-                    }
-                }
-
-                // 检查 EasyTier 实例状态
-                if !instance_clone.is_easytier_running() {
-                    easytier_retry_counter += 1;
-                    log::error!("EasyTier instance is not running (retry {}/{}) for room: {}",
-                               easytier_retry_counter, MAX_EASYTIER_RETRIES, room_code);
-
-                    if easytier_retry_counter >= MAX_EASYTIER_RETRIES {
-                        log::error!("EasyTier instance failed after {} retries for room: {}",
-                                   MAX_EASYTIER_RETRIES, room_code);
-                        break;
-                    }
-
-                    // 尝试重新启动 EasyTier
-                    log::info!("Attempting to restart EasyTier for room: {}", room_code);
-                    // 这里可以添加重新启动逻辑
-                } else {
-                    easytier_retry_counter = 0;
-                    log::debug!("EasyTier instance is running normally for room: {}", room_code);
-                }
-
-                // [TODO] 添加更多监控逻辑，比如清理超时的客户端
-            }
-
-            log::error!("Monitoring thread stopped for room: {}", room_code);
-        });
-        // 更新状态 这个应该放到commands里去做
-        // let hostOk = TerracottaState::HostOk {
-        //     room: self.clone(),
-        //     port,
-        //     easytier: easytier_manager,
-        //     player_profiles: Vec::new(),
-        // };
-        Ok(instance_arc)
+        network_config
     }
 }
 

@@ -1,5 +1,4 @@
 pub mod commands;
-mod discovery;
 mod easytier;
 pub mod mc;
 mod protocol;

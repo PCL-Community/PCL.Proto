@@ -6,6 +6,7 @@
 //
 use core::downloader;
 use core::java::JavaRuntimeVecExt;
+use easytier::instance_manager::NetworkInstanceManager;
 use scaffolding::terracotta::states::TerracottaState;
 use setup::AppState;
 use std::sync::Arc;
@@ -54,6 +55,7 @@ pub fn run() {
             // 初始化scaffolding全局状态
             let terracotta_state = Arc::new(tokio::sync::Mutex::new(TerracottaState::default()));
             app.manage(terracotta_state);
+            app.manage(NetworkInstanceManager::default());
 
             // search for Java during init
             tauri::async_runtime::spawn(async move {

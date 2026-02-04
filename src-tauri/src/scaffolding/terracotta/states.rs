@@ -3,7 +3,6 @@ use crate::scaffolding::{
     mc::scanning,
     terracotta::{player::PlayerProfile, room::RoomCode},
 };
-use easytier::launcher::NetworkInstance;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -22,7 +21,7 @@ pub enum TerracottaState {
     HostOk {
         room: Arc<RoomCode>,
         port: u16,
-        easytier: Arc<NetworkInstance>,
+        easytier: uuid::Uuid,
         player_profiles: Vec<PlayerProfile>,
     },
     GuestConnecting {
@@ -30,12 +29,12 @@ pub enum TerracottaState {
     },
     GuestStarting {
         room: Arc<RoomCode>,
-        easytier: Arc<NetworkInstance>,
+        easytier: uuid::Uuid,
         difficulty: ConnectionDifficulty,
     },
     GuestOk {
         room: Arc<RoomCode>,
-        easytier: Arc<NetworkInstance>,
+        easytier: uuid::Uuid,
         // server: FakeServer,
         player_profiles: Vec<PlayerProfile>,
     },
@@ -58,20 +57,20 @@ impl TerracottaState {
         match self {
             TerracottaState::HostOk { room, easytier, .. }
             | TerracottaState::GuestOk { room, easytier, .. } => {
-                if let Some(msg) = easytier.get_latest_error_msg() {
-                    return Err(anyhow::anyhow!(
-                        "EasyTier has encountered an fatal error: {}",
-                        msg
-                    ));
-                }
-                let Some(stop_notifier) = easytier.get_stop_notifier().take() else {
-                    log::warn!("No stop notifier found for room: {}", room.code);
-                    return Err(anyhow::anyhow!(
-                        "No stop notifier found for room: {}",
-                        room.code
-                    ));
-                };
-                stop_notifier.notify_one();
+                // if let Some(msg) = easytier.get_latest_error_msg() {
+                //     return Err(anyhow::anyhow!(
+                //         "EasyTier has encountered an fatal error: {}",
+                //         msg
+                //     ));
+                // }
+                // let Some(stop_notifier) = easytier.get_stop_notifier().take() else {
+                //     log::warn!("No stop notifier found for room: {}", room.code);
+                //     return Err(anyhow::anyhow!(
+                //         "No stop notifier found for room: {}",
+                //         room.code
+                //     ));
+                // };
+                // stop_notifier.notify_one();
                 Ok(room.clone())
             }
             _ => Err(anyhow::anyhow!("No active room to stop")),

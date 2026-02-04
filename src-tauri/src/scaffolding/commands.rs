@@ -1,6 +1,8 @@
 use super::terracotta::room::RoomCode;
 use crate::scaffolding::terracotta::room::PUBLIC_SERVERS;
 use crate::scaffolding::terracotta::states::TerracottaState;
+use easytier::common::config::ConfigFileControl;
+use easytier::instance_manager::NetworkInstanceManager;
 use std::sync::Arc;
 use tauri::State;
 use tokio::sync::Mutex;
@@ -9,6 +11,7 @@ use tokio::sync::Mutex;
 #[tauri::command]
 pub async fn start_host(
     terracotta_state: State<'_, Arc<Mutex<TerracottaState>>>,
+    instance_manager: State<'_, NetworkInstanceManager>,
     player_name: &str,
     port: u16,
 ) -> Result<String, String> {
@@ -27,18 +30,17 @@ pub async fn start_host(
         "Attempting to start room host with public servers: {:?}",
         PUBLIC_SERVERS
     );
-    let network_instance = room_code
-        .start_room_host(port, Some(player_name), PUBLIC_SERVERS)
-        .map_err(|e| {
-            log::error!("Failed to start room host: {}", e);
-            e.to_string()
-        })?;
+    let config = room_code.compute_arguments_host(port, PUBLIC_SERVERS);
+    let uuid = instance_manager.run_network_instance(config, true, ConfigFileControl::STATIC_CONFIG).map_err(|e| {
+        log::error!("Failed to start room host: {}", e);
+        e.to_string()
+    })?;
     {
         let mut state = terracotta_state.lock().await;
         *state = TerracottaState::HostOk {
             room: room_code.clone(),
             port,
-            easytier: network_instance,
+            easytier: uuid,
             player_profiles: Vec::new(),
         };
     }
@@ -75,7 +77,7 @@ pub async fn start_guest(
         "Attempting to join room as guest with public servers: {:?}",
         PUBLIC_SERVERS
     );
-    room_code.start_room_guest(Some(player_name), PUBLIC_SERVERS);
+    // room_code.compute_arguments_guest(Some(player_name), PUBLIC_SERVERS);
     log::info!("Guest connection initiated successfully");
     Ok(())
 }
