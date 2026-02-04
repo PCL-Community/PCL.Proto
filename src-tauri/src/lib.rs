@@ -55,7 +55,7 @@ pub fn run() {
             // 初始化scaffolding全局状态
             let terracotta_state = Arc::new(tokio::sync::Mutex::new(TerracottaState::default()));
             app.manage(terracotta_state);
-            app.manage(NetworkInstanceManager::default());
+            // app.manage(NetworkInstanceManager::default());
 
             // search for Java during init
             tauri::async_runtime::spawn(async move {

@@ -2,7 +2,7 @@ use serde::Serialize;
 pub mod commands;
 mod easytier;
 pub mod mc;
-mod protocol;
+pub mod protocol;
 pub mod terracotta;
 
 /// 联机错误

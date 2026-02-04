@@ -40,6 +40,7 @@ impl From<(&NatType, &NatType)> for ConnectionDifficulty {
 }
 
 /// EasyTier 成员 不知道和PlayerProfile有什么区别
+#[derive(Debug)]
 pub struct EasyTierMember {
     pub hostname: String,
     pub address: Option<Ipv4Addr>,
@@ -48,9 +49,9 @@ pub struct EasyTierMember {
 }
 
 pub struct PortForward{
-    local: SocketAddr,
-    remote: SocketAddr,
-    socket_type: SocketType,
+    pub local: SocketAddr,
+    pub remote: SocketAddr,
+    pub socket_type: SocketType,
 }
 
 pub trait EasyTierControl {
@@ -70,19 +71,16 @@ pub trait EasyTierControl {
 impl EasyTierControl for std::sync::Arc<NetworkInstance> {
     async fn get_members(&self) -> Option<Vec<EasyTierMember>> {
         let api_service = self.get_api_service()?;
-        let service = api_service.get_peer_manage_service();
-        let (neighbours, this) = (
-            service
-                .list_route(BaseController::default(), ListRouteRequest::default())
-                .await
-                .ok()
-                .map(|response| response.routes)?,
-            service
-                .show_node_info(BaseController::default(), ShowNodeInfoRequest::default())
-                .await
-                .ok()
-                .map(|response| response.node_info)??,
-        );
+        let neighbours = api_service.get_peer_manage_service()
+            .list_route(BaseController::default(), ListRouteRequest::default())
+            .await
+            .ok()
+            .map(|response| response.routes)?;
+        let this = api_service.get_peer_manage_service()
+            .show_node_info(BaseController::default(), ShowNodeInfoRequest::default())
+            .await
+            .ok()
+            .map(|response| response.node_info)??;
         Some(
             neighbours
                 .into_iter()

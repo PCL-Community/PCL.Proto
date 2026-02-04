@@ -5,6 +5,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 /// 协议处理器
+#[derive(Clone)]
 pub struct ProtocolHandler {
     /// 玩家列表
     players: Arc<Mutex<Vec<PlayerProfile>>>,
@@ -19,6 +20,27 @@ impl ProtocolHandler {
             players: Arc::new(Mutex::new(Vec::new())),
             server_port,
         }
+    }
+
+    /// 添加玩家到列表
+    pub async fn add_player(&self, player: PlayerProfile) {
+        let mut players = self.players.lock().await;
+        players.push(player);
+    }
+
+    /// 清理超时玩家（超过10秒未发送心跳）
+    pub async fn cleanup_timeout_players(&self) {
+        use std::time::{SystemTime, Duration};
+        let mut players = self.players.lock().await;
+        let now = SystemTime::now();
+        players.retain(|player| {
+            if let Some(last_seen) = player.last_seen {
+                now.duration_since(last_seen).map_or(true, |dur| dur < Duration::from_secs(10))
+            } else {
+                // 如果没有最后心跳时间，保留（可能是房主）
+                true
+            }
+        });
     }
 
     /// 启动TCP服务器
@@ -170,9 +192,11 @@ async fn handle_server_port(server_port: u16) -> (u8, Vec<u8>) {
 
 /// 处理c:player_ping请求
 async fn handle_player_ping(request_body: &[u8], players: &Arc<Mutex<Vec<PlayerProfile>>>) -> (u8, Vec<u8>) {
+    use std::time::SystemTime;
     // 解析请求体
-    if let Ok(player_info) = serde_json::from_slice::<PlayerProfile>(request_body) {
+    if let Ok(mut player_info) = serde_json::from_slice::<PlayerProfile>(request_body) {
         let mut players_lock = players.lock().await;
+        player_info.last_seen = Some(SystemTime::now());
         
         // 检查玩家是否已存在
         if let Some(index) = players_lock.iter().position(|p| p.machine_id == player_info.machine_id) {

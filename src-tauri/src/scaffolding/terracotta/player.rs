@@ -19,4 +19,7 @@ pub struct PlayerProfile {
     pub vendor: String,
     /// 玩家类型
     pub kind: PlayerType,
+    /// 最后心跳时间（不序列化）
+    #[serde(skip)]
+    pub last_seen: Option<std::time::SystemTime>,
 }

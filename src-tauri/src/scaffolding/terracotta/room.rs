@@ -198,11 +198,12 @@ impl RoomCode {
     }
 
     /// 生成加入房间作为主机的 EasyTier 配置
+    /// 返回 (配置, scaffolding端口)
     pub fn compute_arguments_host(
         &self,
         port: u16,
         public_servers: &[&str],
-    ) -> TomlConfigLoader {
+    ) -> (TomlConfigLoader, u16) {
         insecure_tls::init_crypto_provider();
         let scaffolding_port = find_free_tcp_port(1024..65535).unwrap();
         let hostname = generate_hostname(scaffolding_port);
@@ -214,7 +215,7 @@ impl RoomCode {
         network_config.set_tcp_whitelist(vec![scaffolding_port.to_string(), port.to_string()]);
         network_config.set_udp_whitelist(vec![port.to_string()]);
         // 根据配置创建并启动 NetWorkInstance
-        network_config
+        (network_config, scaffolding_port)
     }
 }
 
