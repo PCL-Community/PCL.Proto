@@ -13,8 +13,15 @@ const router = useRouter()
 const enterLobbyCode = ref<string>()
 
 const connectWithCode = async (code: string) => {
-  let roomCode = await invoke<string>('parse_room_code', { code })
-  console.info('[scaffolding] connecting to room code', roomCode)
+  await invoke<string>('start_guest', { code, playerName: 'PCL.Proto Anonymous Guest' })
+  console.info('[scaffolding] connecting to room code', code)
+  router.push({
+    path: '/tools/lobby/inner',
+    query: {
+      code,
+      type: 'guest',
+    },
+  })
 }
 
 const createLobby = async (port: number) => {
@@ -28,8 +35,13 @@ const createLobby = async (port: number) => {
     path: '/tools/lobby/inner',
     query: {
       code: roomCode,
+      type: 'host',
     },
   })
+}
+
+const pasteLobbyCode = async () => {
+  enterLobbyCode.value = await navigator.clipboard.readText()
 }
 </script>
 
@@ -42,8 +54,8 @@ const createLobby = async (port: number) => {
         style="flex: 1"
         v-model="enterLobbyCode"
       />
-      <PButton inline>清除</PButton>
-      <PButton inline>粘贴</PButton>
+      <PButton inline :click="() => (enterLobbyCode = undefined)">清除</PButton>
+      <PButton inline @click="pasteLobbyCode">粘贴</PButton>
       <PButton
         inline
         type="tint"

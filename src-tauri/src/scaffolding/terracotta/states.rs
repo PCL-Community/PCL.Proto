@@ -1,14 +1,11 @@
-use std::default;
-
 use crate::scaffolding::{
-    // easytier::EasyTierManager,
-    easytier::ConnectionDifficulty, mc::scanning, terracotta::{
-        player::PlayerProfile,
-        room::RoomCode,
-    }
+    easytier::ConnectionDifficulty,
+    mc::scanning,
+    terracotta::{player::PlayerProfile, room::RoomCode},
 };
 use easytier::launcher::NetworkInstance;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 /// 陶瓦状态
 #[derive(Default)]
@@ -19,26 +16,26 @@ pub enum TerracottaState {
         scanner: scanning::MinecraftScanner,
     },
     HostStarting {
-        room: RoomCode,
+        room: Arc<RoomCode>,
         port: u16,
     },
     HostOk {
-        room: RoomCode,
+        room: Arc<RoomCode>,
         port: u16,
-        easytier: NetworkInstance,
+        easytier: Arc<NetworkInstance>,
         player_profiles: Vec<PlayerProfile>,
     },
     GuestConnecting {
-        room: RoomCode,
+        room: Arc<RoomCode>,
     },
     GuestStarting {
-        room: RoomCode,
-        easytier: NetworkInstance,
+        room: Arc<RoomCode>,
+        easytier: Arc<NetworkInstance>,
         difficulty: ConnectionDifficulty,
     },
     GuestOk {
-        room: RoomCode,
-        easytier: NetworkInstance,
+        room: Arc<RoomCode>,
+        easytier: Arc<NetworkInstance>,
         // server: FakeServer,
         player_profiles: Vec<PlayerProfile>,
     },
@@ -54,4 +51,30 @@ pub enum ExceptionType {
     HostEasytierCrash,
     PingServerRst,
     ScaffoldingInvalidResponse,
+}
+
+impl TerracottaState {
+    pub fn try_shutdown_current(&self) -> anyhow::Result<Arc<RoomCode>> {
+        match self {
+            TerracottaState::HostOk { room, easytier, .. }
+            | TerracottaState::GuestOk { room, easytier, .. } => {
+                if let Some(msg) = easytier.get_latest_error_msg() {
+                    return Err(anyhow::anyhow!(
+                        "EasyTier has encountered an fatal error: {}",
+                        msg
+                    ));
+                }
+                let Some(stop_notifier) = easytier.get_stop_notifier().take() else {
+                    log::warn!("No stop notifier found for room: {}", room.code);
+                    return Err(anyhow::anyhow!(
+                        "No stop notifier found for room: {}",
+                        room.code
+                    ));
+                };
+                stop_notifier.notify_one();
+                Ok(room.clone())
+            }
+            _ => Err(anyhow::anyhow!("No active room to stop")),
+        }
+    }
 }

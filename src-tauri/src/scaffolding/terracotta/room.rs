@@ -10,7 +10,6 @@ use easytier::{
 use crate::scaffolding;
 /// 参考自 陶瓦联机: `src/controller/rooms/experimental/room.rs`
 /// 规范文档：[Scaffolding-MC/Scaffolding-MC](https://github.com/Scaffolding-MC/Scaffolding-MC/blob/main/README.md#联机房间码)
-#[derive(Clone)]
 pub struct RoomCode {
     /// 房间码
     pub code: String,

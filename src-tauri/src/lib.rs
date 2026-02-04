@@ -87,6 +87,7 @@ pub fn run() {
             // Scaffolding commands
             scaffolding::commands::start_host,
             scaffolding::commands::start_guest,
+            scaffolding::commands::shutdown_room,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

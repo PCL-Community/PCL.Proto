@@ -2,14 +2,44 @@
 import CardInfoItem from '@/components/widget/CardInfoItem.vue'
 import PCard from '@/components/widget/PCard.vue'
 import router from '@/router'
+import { PlayerType, TerracottaState, useScaffolding } from '@/stores/scaffolding'
+import { invoke } from '@tauri-apps/api/core'
 import { useRouteQuery } from '@vueuse/router'
+import { onMounted, watch, type Ref } from 'vue'
 
-const roomCode = useRouteQuery('code')
+const roomCode = useRouteQuery('code') as Ref<string | undefined>
+const type = useRouteQuery('type') as Ref<PlayerType | undefined>
 
 const closeLobby = async () => {
-  router.back()
-  console.info('[scaffolding] closed room code', roomCode.value)
+  console.info('[scaffolding] closing room code', roomCode.value)
+  try {
+    await invoke('shutdown_room')
+    scaffolding.terracotta_state = TerracottaState.Idle
+    router.back()
+  } catch (error) {
+    console.error('[scaffolding] failed to close room code', roomCode.value, error)
+  }
 }
+
+const scaffolding = useScaffolding()
+
+onMounted(() => {
+  if (type.value) {
+    scaffolding.playerType = type.value
+  }
+  if (roomCode.value) {
+    scaffolding.roomCode = roomCode.value
+  }
+})
+
+watch(
+  () => scaffolding.terracotta_state,
+  (newState) => {
+    if (newState == TerracottaState.Exception) {
+      router.back()
+    }
+  },
+)
 </script>
 
 <template>
@@ -19,14 +49,17 @@ const closeLobby = async () => {
         <PCard hide-title>
           <div class="info-panel">
             <div class="name">UserName</div>
-            <div class="identity">Creator</div>
+            <div v-if="scaffolding.playerType === PlayerType.Host" class="identity">创建者</div>
+            <div v-else-if="scaffolding.playerType === PlayerType.Guest" class="identity">
+              加入者
+            </div>
           </div>
         </PCard>
       </div>
       <div class="block-2">
         <PCard title="大厅信息">
           <div>已连接</div>
-          <div>{{ roomCode }}</div>
+          <div>{{ scaffolding.roomCode }}</div>
         </PCard>
       </div>
       <div class="block-3">
