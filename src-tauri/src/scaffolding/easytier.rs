@@ -1,4 +1,4 @@
-use crate::scaffolding;
+use easytier::common::config::{ConfigFileControl, TomlConfigLoader};
 use easytier::launcher::NetworkInstance;
 use easytier::proto::api::config::{
     ConfigPatchAction, InstanceConfigPatch, PatchConfigRequest, PortForwardPatch,
@@ -11,7 +11,54 @@ use easytier::proto::{
 use std::iter::once;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::str::FromStr;
-use std::time::Duration;
+
+pub struct EasyTier {
+    instance: Option<NetworkInstance>,
+}
+
+impl EasyTier {
+    /// 启动 EasyTier 实例
+    pub fn launch(&mut self, config: TomlConfigLoader) -> anyhow::Result<()> {
+        let mut instance = NetworkInstance::new(config, ConfigFileControl::STATIC_CONFIG);
+        instance.start().unwrap();
+        self.instance = Some(instance);
+        Ok(())
+    }
+
+    /// 终止 EasyTier 实例
+    pub fn terminate(&mut self) -> anyhow::Result<()> {
+        if let Some(instance) = self.instance.as_ref() {
+            if let Some(msg) = instance.get_latest_error_msg() {
+                return Err(anyhow::anyhow!(
+                    "EasyTier has encountered an fatal error: {}",
+                    msg
+                ));
+            }
+            let Some(stop_notifier) = instance.get_stop_notifier() else {
+                return Err(anyhow::anyhow!("Stop notifier not found"));
+            };
+            stop_notifier.notify_one();
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("Instance not found"))
+        }
+    }
+}
+
+impl EasyTierControl for EasyTier {
+    async fn peer_list(&self) -> Option<Vec<Peer>> {
+        self.instance.as_ref()?.peer_list().await
+    }
+
+    async fn add_port_forward(&self, forwards: &[PortForward]) -> anyhow::Result<()> {
+        let instance = self
+            .instance
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("EasyTier instance not launched"))?;
+        instance.add_port_forward(forwards).await?;
+        Ok(())
+    }
+}
 
 /// 连接难度，根据EasyTier确定的网络结构转换而来
 pub enum ConnectionDifficulty {
@@ -39,44 +86,49 @@ impl From<(&NatType, &NatType)> for ConnectionDifficulty {
     }
 }
 
-/// EasyTier 成员 不知道和PlayerProfile有什么区别
 #[derive(Debug)]
-pub struct EasyTierMember {
+pub struct Peer {
     pub hostname: String,
     pub address: Option<Ipv4Addr>,
     pub is_local: bool,
     pub nat: NatType,
 }
 
-pub struct PortForward{
+pub struct PortForward {
+    /// 本地绑定地址
     pub local: SocketAddr,
+    /// 目标地址
     pub remote: SocketAddr,
+    /// 使用的协议类型 tcp/udp
     pub socket_type: SocketType,
 }
 
 pub trait EasyTierControl {
     /// 获取 EasyTier 实例的成员列表
-    async fn get_members(&self) -> Option<Vec<EasyTierMember>>;
-
-    /// 把 EasyTier 协议中的 IPv4 地址转换为 Rust 标准库中的 `Ipv4Addr` 类型
-    fn parse_address(address: Option<easytier::proto::common::Ipv4Inet>) -> Option<Ipv4Addr>;
-
-    /// 启动后台监控线程
-    fn launch_monitor_thread(&self, room_code: &str, port: u16);
+    async fn peer_list(&self) -> Option<Vec<Peer>>;
 
     /// 添加端口转发
     async fn add_port_forward(&self, forwards: &[PortForward]) -> anyhow::Result<()>;
 }
 
-impl EasyTierControl for std::sync::Arc<NetworkInstance> {
-    async fn get_members(&self) -> Option<Vec<EasyTierMember>> {
+/// 把 EasyTier 协议中的 IPv4 地址转换为 Rust 标准库中的 `Ipv4Addr` 类型
+fn parse_address(address: Option<easytier::proto::common::Ipv4Inet>) -> Option<Ipv4Addr> {
+    address
+        .and_then(|address| address.address)
+        .map(|address| Ipv4Addr::from_octets(address.addr.to_be_bytes()))
+}
+
+impl EasyTierControl for NetworkInstance {
+    async fn peer_list(&self) -> Option<Vec<Peer>> {
         let api_service = self.get_api_service()?;
-        let neighbours = api_service.get_peer_manage_service()
+        let neighbours = api_service
+            .get_peer_manage_service()
             .list_route(BaseController::default(), ListRouteRequest::default())
             .await
             .ok()
             .map(|response| response.routes)?;
-        let this = api_service.get_peer_manage_service()
+        let this = api_service
+            .get_peer_manage_service()
             .show_node_info(BaseController::default(), ShowNodeInfoRequest::default())
             .await
             .ok()
@@ -84,15 +136,15 @@ impl EasyTierControl for std::sync::Arc<NetworkInstance> {
         Some(
             neighbours
                 .into_iter()
-                .map(|route| EasyTierMember {
+                .map(|route| Peer {
                     hostname: route.hostname,
-                    address: Self::parse_address(route.ipv4_addr),
+                    address: parse_address(route.ipv4_addr),
                     nat: route
                         .stun_info
                         .map_or(NatType::Unknown, |info| info.udp_nat_type()),
                     is_local: false,
                 })
-                .chain(once(EasyTierMember {
+                .chain(once(Peer {
                     hostname: this.hostname,
                     address: Ipv4Addr::from_str(&this.ipv4_addr).ok(),
                     is_local: true,
@@ -103,87 +155,6 @@ impl EasyTierControl for std::sync::Arc<NetworkInstance> {
                 .collect::<Vec<_>>(),
         )
     }
-
-    fn parse_address(address: Option<easytier::proto::common::Ipv4Inet>) -> Option<Ipv4Addr> {
-        address
-            .and_then(|address| address.address)
-            .map(|address| Ipv4Addr::from_octets(address.addr.to_be_bytes()))
-    }
-
-    fn launch_monitor_thread(&self, room_code: &str, port: u16) {
-        let instance_arc = self.clone();
-        let room_code = room_code.to_string();
-        std::thread::spawn(move || {
-            let mut counter = 0;
-            let mut easytier_retry_counter = 0;
-            const MAX_EASYTIER_RETRIES: u8 = 3;
-
-            log::info!("Starting monitoring thread for room: {}", room_code);
-
-            loop {
-                std::thread::sleep(Duration::from_secs(5));
-
-                // 检查 Minecraft 服务器连接
-                if scaffolding::mc::check_mc_connection(port) {
-                    counter = 0;
-                    log::debug!(
-                        "Minecraft server connection check passed for room: {}",
-                        room_code
-                    );
-                } else {
-                    counter += 1;
-                    log::warn!(
-                        "Minecraft server connection check failed (attempt {}/3) for room: {}",
-                        counter,
-                        room_code
-                    );
-                    if counter >= 3 {
-                        // 连接失败，处理错误
-                        log::error!(
-                            "Minecraft server connection failed after 3 attempts for room: {}",
-                            room_code
-                        );
-                        break;
-                    }
-                }
-
-                // 检查 EasyTier 实例状态
-                if !instance_arc.is_easytier_running() {
-                    easytier_retry_counter += 1;
-                    log::error!(
-                        "EasyTier instance is not running (retry {}/{}) for room: {}",
-                        easytier_retry_counter,
-                        MAX_EASYTIER_RETRIES,
-                        room_code
-                    );
-
-                    if easytier_retry_counter >= MAX_EASYTIER_RETRIES {
-                        log::error!(
-                            "EasyTier instance failed after {} retries for room: {}",
-                            MAX_EASYTIER_RETRIES,
-                            room_code
-                        );
-                        break;
-                    }
-
-                    // 尝试重新启动 EasyTier
-                    log::info!("Attempting to restart EasyTier for room: {}", room_code);
-                    // 这里可以添加重新启动逻辑
-                } else {
-                    easytier_retry_counter = 0;
-                    log::debug!(
-                        "EasyTier instance is running normally for room: {}",
-                        room_code
-                    );
-                }
-
-                // [TODO] 添加更多监控逻辑，比如清理超时的客户端
-            }
-
-            log::error!("Monitoring thread stopped for room: {}", room_code);
-        });
-    }
-
     async fn add_port_forward(&self, forwards: &[PortForward]) -> anyhow::Result<()> {
         let service = self
             .get_api_service()

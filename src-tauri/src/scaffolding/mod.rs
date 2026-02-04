@@ -1,9 +1,15 @@
 use serde::Serialize;
+pub mod client;
 pub mod commands;
 mod easytier;
-pub mod mc;
-pub mod protocol;
-pub mod terracotta;
+pub mod room;
+pub mod server;
+pub mod util;
+
+struct Response {
+    status: u8,
+    data: Vec<u8>,
+}
 
 /// 联机错误
 #[derive(Serialize)]

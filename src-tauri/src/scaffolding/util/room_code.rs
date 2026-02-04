@@ -188,9 +188,9 @@ impl RoomCode {
     }
 
     /// 生成加入房间作为访客的 EasyTier 配置
-    pub fn compute_arguments_guest(&self, public_servers: &[&str]) -> TomlConfigLoader {
+    pub fn compute_arguments_guest(&self, public_servers: Option<&[&str]>) -> TomlConfigLoader {
         insecure_tls::init_crypto_provider();
-        let config = self.compute_arguments_common(public_servers);
+        let config = self.compute_arguments_common(public_servers.unwrap_or(PUBLIC_SERVERS));
         config.set_dhcp(true);
         config.set_tcp_whitelist(vec![0.to_string()]);
         config.set_udp_whitelist(vec![0.to_string()]);
@@ -202,14 +202,15 @@ impl RoomCode {
     pub fn compute_arguments_host(
         &self,
         port: u16,
-        public_servers: &[&str],
+        public_servers: Option<&[&str]>,
     ) -> (TomlConfigLoader, u16) {
         insecure_tls::init_crypto_provider();
         let scaffolding_port = find_free_tcp_port(1024..65535).unwrap();
         let hostname = generate_hostname(scaffolding_port);
         let ipv4 = std::net::Ipv4Addr::new(10, 144, 144, 1);
         // 创建 EasyTier 配置
-        let network_config = self.compute_arguments_common(public_servers);
+        let network_config =
+            self.compute_arguments_common(public_servers.unwrap_or(PUBLIC_SERVERS));
         network_config.set_hostname(Some(hostname));
         network_config.set_ipv4(Some(ipv4.into()));
         network_config.set_tcp_whitelist(vec![scaffolding_port.to_string(), port.to_string()]);
