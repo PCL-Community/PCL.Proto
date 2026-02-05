@@ -115,4 +115,45 @@ impl ByteBuffer {
     pub fn write_string(&mut self, string: &str) {
         self.data.extend_from_slice(string.as_bytes());
     }
+
+    /// 写入一个 VarInt。
+    /// - Parameter value: 要写入的 VarInt 值。
+    pub fn write_varint(&mut self, value: usize) {
+        let mut val = value;
+        while val > 0x7F {
+            self.data.push((val as u8) | 0x80);
+            val >>= 7;
+        }
+        self.data.push(val as u8);
+    }
+
+    /// 读取一个 VarInt。
+    /// - Returns: 读取的 VarInt 值。
+    /// - Throws: 若数据不足或 VarInt 过大，抛出错误。
+    pub fn read_varint(&mut self) -> Result<i32, ByteBufferError> {
+        let mut result = 0;
+        let mut shift = 0;
+
+        loop {
+            if self.index >= self.data.len() {
+                return Err(ByteBufferError::NotEnoughBytes);
+            }
+
+            let byte = self.data[self.index];
+            self.index += 1;
+
+            result |= ((byte & 0x7F) as i32) << shift;
+            shift += 7;
+
+            if (byte & 0x80) == 0 {
+                break;
+            }
+
+            if shift >= 32 {
+                return Err(ByteBufferError::NotEnoughBytes); // 或者创建新的错误类型
+            }
+        }
+
+        Ok(result)
+    }
 }

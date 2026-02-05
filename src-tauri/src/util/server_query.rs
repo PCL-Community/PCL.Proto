@@ -1,4 +1,5 @@
 //! from PCL.Core/Link/McPing.cs and PCL.Core/Utils/VarIntHelper.cs
+use super::byte_buffer::ByteBuffer;
 use std::net::{IpAddr, SocketAddr};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use trust_dns_resolver::{
@@ -77,18 +78,25 @@ impl MCPing {
             log::debug!("Status sent, packet length: {}", status_packet.len());
             // 读取响应
             let start = std::time::Instant::now();
-            // 读取包长度 (VarInt)
-            let total_length = varint::read_from_stream(&mut socket_stream).await?;
+
+            // 先读取包长度 (VarInt)
+            let total_length = read_varint_from_stream(&mut socket_stream).await?;
             log::debug!("Total length: {}", total_length);
+
+            // 读取剩余数据
+            let mut buffer = vec![0u8; total_length as usize];
+            socket_stream.read_exact(&mut buffer).await?;
+
+            // 使用 ByteBuffer 解析数据
+            let mut byte_buffer = ByteBuffer::new(buffer);
             // 读取包ID (VarInt)
-            let packet_id = varint::read_from_stream(&mut socket_stream).await?;
+            let packet_id = byte_buffer.read_varint()?;
             log::debug!("Packet ID: {}", packet_id);
             // 读取数据长度 (VarInt)
-            let data_length = varint::read_from_stream(&mut socket_stream).await?;
+            let data_length = byte_buffer.read_varint()?;
             log::debug!("Data length: {}", data_length);
             // 读取JSON数据
-            let mut json_buffer = vec![0u8; data_length as usize];
-            socket_stream.read_exact(&mut json_buffer).await?;
+            let json_buffer = byte_buffer.read_data(data_length as usize)?;
             let latency = start.elapsed().as_millis();
             let json_str = String::from_utf8(json_buffer)?;
             log::debug!("Received JSON");
@@ -102,77 +110,62 @@ impl MCPing {
 
     /// 构建握手包
     fn build_handshake_packet(&self) -> Vec<u8> {
-        let mut handshake = Vec::new();
-        handshake.extend_from_slice(&varint::encode(0)); // 状态头 表明这是一个握手包
-        handshake.extend_from_slice(&varint::encode(772)); // 协议头 表明请求客户端的版本
+        let mut handshake = ByteBuffer::new_empty();
+        handshake.write_varint(0); // 状态头 表明这是一个握手包
+        handshake.write_varint(772); // 协议头 表明请求客户端的版本
         let binary_ip = self.host.as_bytes();
-        handshake.extend_from_slice(&varint::encode(binary_ip.len())); //服务器地址长度
-        handshake.extend_from_slice(binary_ip); //服务器地址
-        handshake.extend_from_slice(&self.endpoint.port().to_be_bytes()); //服务器端口
-        handshake.extend_from_slice(&varint::encode(1)); //1 表明当前状态为 ping 2 表明当前的状态为连接
+        handshake.write_varint(binary_ip.len()); //服务器地址长度
+        handshake.write_data(binary_ip); //服务器地址
+        handshake.write_u16(self.endpoint.port()); //服务器端口
+        handshake.write_varint(1); //1 表明当前状态为 ping 2 表明当前的状态为连接
         // 添加包长度前缀
-        let mut packet = Vec::new();
-        packet.extend_from_slice(&varint::encode(handshake.len()));
-        packet.extend_from_slice(&handshake);
-        packet
+        let mut packet = ByteBuffer::new_empty();
+        packet.write_varint(handshake.data.len());
+        packet.write_data(&handshake.data);
+        packet.data
     }
 
     fn build_status_request_packet(&self) -> Vec<u8> {
-        let mut packet = Vec::new();
+        let mut packet = ByteBuffer::new_empty();
         // 包长度 (包ID + 数据)
-        packet.extend_from_slice(&varint::encode(1)); // 长度 = 1 (只有包ID)
+        packet.write_varint(1); // 长度 = 1 (只有包ID)
         // 包ID (0 for status request)
-        packet.extend_from_slice(&varint::encode(0));
-        packet
+        packet.write_varint(0);
+        packet.data
     }
 }
 
-mod varint {
-    use anyhow::Result;
-    const MAX_BYTES: u8 = 10;
+/// 从 TCP 流中读取 VarInt。
+async fn read_varint_from_stream(stream: &mut tokio::net::TcpStream) -> anyhow::Result<i32> {
+    use tokio::io::{AsyncReadExt, ErrorKind};
 
-    /// 将无符号长整数编码为VarInt字节序列
-    pub fn encode(mut value: usize) -> Vec<u8> {
-        let mut result = Vec::with_capacity(MAX_BYTES as usize);
-        while value > 0x7F {
-            result.push((value as u8) | 0x80);
-            value >>= 7;
-        }
-        result.push(value as u8);
-        result
-    }
+    let mut result = 0;
+    let mut shift = 0;
+    let mut buffer = [0u8; 1];
 
-    pub async fn read_from_stream(stream: &mut tokio::net::TcpStream) -> Result<i32> {
-        use tokio::io::{AsyncReadExt, ErrorKind};
+    loop {
+        match stream.read_exact(&mut buffer).await {
+            Ok(_) => {
+                let byte = buffer[0];
+                result |= ((byte & 0x7F) as i32) << shift;
+                shift += 7;
 
-        let mut result = 0;
-        let mut shift = 0;
-        let mut buffer = [0u8; 1];
-
-        loop {
-            match stream.read_exact(&mut buffer).await {
-                Ok(_) => {
-                    let byte = buffer[0];
-                    result |= ((byte & 0x7F) as i32) << shift;
-                    shift += 7;
-
-                    if (byte & 0x80) == 0 {
-                        break;
-                    }
-
-                    if shift >= 32 {
-                        return Err(anyhow::anyhow!("VarInt too large"));
-                    }
+                if (byte & 0x80) == 0 {
+                    break;
                 }
-                Err(e) if e.kind() == ErrorKind::UnexpectedEof => {
-                    return Err(anyhow::anyhow!("Unexpected EOF while reading VarInt"));
+
+                if shift >= 32 {
+                    return Err(anyhow::anyhow!("VarInt too large"));
                 }
-                Err(e) => return Err(e.into()),
             }
+            Err(e) if e.kind() == ErrorKind::UnexpectedEof => {
+                return Err(anyhow::anyhow!("Unexpected EOF while reading VarInt"));
+            }
+            Err(e) => return Err(e.into()),
         }
-
-        Ok(result)
     }
+
+    Ok(result)
 }
 
 #[tauri::command]

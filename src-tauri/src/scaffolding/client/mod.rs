@@ -1,14 +1,12 @@
 mod states;
-use std::{sync::Arc, time::Duration};
-
 use super::room;
 use crate::{
     scaffolding::{
-        ScaffoldingError, easytier::EasyTier, server::request_handler::RequestHandler,
-        util::room_code::RoomCode,
+        ScaffoldingError, easytier::EasyTier, server::request_handler, util::room_code::RoomCode,
     },
     setup::ConfigManager,
 };
+use std::{sync::Arc, time::Duration};
 
 struct ScaffoldingClient {
     room: Option<room::Room>,
@@ -32,7 +30,7 @@ impl ScaffoldingClient {
             },
             server_node_ip: None,
             client_state: states::TerracottaState::Idle,
-            protocols: RequestHandler::new().protocols(),
+            protocols: request_handler::RequestType::protocols(),
         }
     }
 

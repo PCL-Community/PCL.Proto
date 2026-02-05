@@ -155,6 +155,7 @@ impl EasyTierControl for NetworkInstance {
                 .collect::<Vec<_>>(),
         )
     }
+    
     async fn add_port_forward(&self, forwards: &[PortForward]) -> anyhow::Result<()> {
         let service = self
             .get_api_service()
