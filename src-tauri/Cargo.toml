@@ -16,6 +16,8 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2.5.3", features = [] }
+reqwest = { version = "0.13.1", features = ["blocking"] }
+zip = "0.6.6"
 
 [dependencies]
 serde_json = "1"
@@ -37,7 +39,7 @@ serde_repr = "0.1.20"
 sha1 = "0.10.6"
 quick-xml = { version = "0.39.0", features = ["serialize"] }
 anyhow = "1.0"
-terracotta = { git = "https://github.com/PCL-Community/Terracotta-lib.git", branch = "master" }
+terracotta = { git = "https://github.com/PCL-Community/Terracotta-lib.git", branch = "master", version = "2.5.0-pcl.proto" }
 dashmap = "6.1.0"
 uuid = "1.20.0"
 trust-dns-resolver = "0.23.2"
