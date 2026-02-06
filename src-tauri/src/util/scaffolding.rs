@@ -1,6 +1,37 @@
+use terracotta::controller;
+
+#[tauri::command]
+pub fn get_terracotta_meta() -> serde_json::Value {
+    todo!()
+}
+
+#[tauri::command]
+pub fn get_terracotta_state() -> serde_json::Value {
+    controller::get_state()
+}
+
+#[tauri::command]
+pub fn set_terracotta_waiting() {
+    controller::set_waiting()
+}
+
+#[tauri::command]
+pub fn set_terracotta_host_scanning(player: String) {
+    controller::set_scanning(None, Some(player));
+}
+
+#[tauri::command]
+pub fn set_terracotta_guesting(room_code: String, player: String) -> Result<(), String> {
+    let room = controller::Room::from(&room_code).ok_or("invalid room code")?;
+    if controller::set_guesting(room, Some(player)) {
+        Ok(())
+    } else {
+        Err("set guesting failed".to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::*;
     use terracotta::controller::*;
 
     #[test]

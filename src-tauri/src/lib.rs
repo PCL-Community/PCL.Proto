@@ -78,11 +78,15 @@ pub fn run() {
             util::server_query::server_query,
             util::skin::fetch_username_uuid,
             util::skin::fetch_uuid_profile,
-            // util::scaffolding::start_connection_from_code,
-            // util::scaffolding::collect_instance_info,
             core::api_client::fetch_with_modrinth,
             util::skin::fetch_skin_from_uuid_cached,
             util::skin::fetch_skin_from_url,
+            // scaffolding
+            util::scaffolding::get_terracotta_meta,
+            util::scaffolding::get_terracotta_state,
+            util::scaffolding::set_terracotta_waiting,
+            util::scaffolding::set_terracotta_host_scanning,
+            util::scaffolding::set_terracotta_guesting,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

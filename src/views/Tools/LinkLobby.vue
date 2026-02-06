@@ -31,6 +31,15 @@ const createLobby = async (port: number) => {
     },
   })
 }
+
+const test = async () => {
+  await invoke('set_terracotta_host_scanning', { player: 'PCL.Proto Anonymous Host' })
+}
+
+const getState = async () => {
+  let state = await invoke('get_terracotta_state')
+  console.info('[scaffolding] get state', state)
+}
 </script>
 
 <template>
@@ -71,6 +80,8 @@ const createLobby = async (port: number) => {
       <PButton inline type="tint" :click="() => createLobby(25565)">创建</PButton>
     </div>
   </PCard>
+  <PButton inline type="tint" :click="() => test()">测试</PButton>
+  <PButton inline type="tint" :click="() => getState()">获取状态</PButton>
 </template>
 
 <style lang="css" scoped>
