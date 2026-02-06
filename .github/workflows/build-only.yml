@@ -47,6 +47,18 @@ jobs:
         run: |
           brew install protobuf
 
+      - name: download and setup npcap sdk (windows only)
+        if: matrix.platform == 'windows-latest'
+        run: |
+          $url = "https://npcap.com/dist/npcap-sdk-1.16.zip"
+          $output = "npcap-sdk.zip"
+          Invoke-WebRequest -Uri $url -OutFile $output
+          Expand-Archive -Path $output -DestinationPath "npcap-sdk"
+          $npcapLibPath = (Resolve-Path "npcap-sdk\Lib\x64").Path
+          echo "NPCAP_SDK_LIB=$npcapLibPath" >> $env:GITHUB_ENV
+          echo "LIB=$npcapLibPath;$env:LIB" >> $env:GITHUB_ENV
+          echo "设置 LIB 环境变量为: $npcapLibPath"
+
       - name: install frontend dependencies
         run: |
           corepack enable pnpm
@@ -57,6 +69,9 @@ jobs:
 
       - name: build tauri app
         run: pnpm tauri build ${{ matrix.args }}
+        env:
+          # 对于 Windows，确保 LIB 环境变量被传递到构建过程
+          LIB: ${{ matrix.platform == 'windows-latest' && env.LIB || '' }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
