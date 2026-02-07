@@ -4,13 +4,13 @@ import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PInput from '@/components/widget/PInput.vue'
 import sideTip from '@/composables/sideTip'
-// import type { NetworkInstanceRunningInfo } from '@/types/easytier'
-import { invoke } from '@tauri-apps/api/core'
-import { ref } from 'vue'
+import useTerracottaStore from '@/stores/terracotta'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const enterLobbyCode = ref<string>()
+const terracotta = useTerracottaStore()
 
 const showNotImpledSideTip = () => {
   sideTip.show('当前版本暂不支持此功能', 'warn')
@@ -18,36 +18,33 @@ const showNotImpledSideTip = () => {
 
 const connectWithCode = async (code?: string) => {
   if (!code) return
-  let roomCode = await invoke<string>('set_terracotta_guesting', {
-    roomCode: code,
-    player: 'PCL.Proto Anonymous Guest',
-  })
-  console.info('[scaffolding] connecting to room code', roomCode)
+  terracotta.setGuesting(code, 'PCL.Proto Anonymous Guest')
+  console.info('[scaffolding] connecting to room code', code)
 }
 
-const createLobby = async (port: number) => {
-  let roomCode = await invoke<string>('start_host', {
-    playerName: 'PCL.Proto Anonymous Host',
-    port,
-  })
-  console.info('[scaffolding] created room code', roomCode)
-  sideTip.show(`已创建大厅：${roomCode}`, 'success')
-  router.push({
-    path: '/tools/lobby/inner',
-    query: {
-      code: roomCode,
-    },
-  })
+// 后端尚未实现直接根据端口创建大厅
+// const createLobby = async (port: number) => {
+//   let roomCode = await invoke<string>('start_host', {
+//     playerName: 'PCL.Proto Anonymous Host',
+//     port,
+//   })
+//   console.info('[scaffolding] created room code', roomCode)
+//   sideTip.show(`已创建大厅：${roomCode}`, 'success')
+//   router.push({
+//     path: '/tools/lobby/inner',
+//     query: {
+//       code: roomCode,
+//     },
+//   })
+// }
+
+const testHostScanning = async () => {
+  terracotta.setHostScanning('PCL.Proto Anonymous Host')
 }
 
-const test = async () => {
-  await invoke('set_terracotta_host_scanning', { player: 'PCL.Proto Anonymous Host' })
-}
-
-const getState = async () => {
-  let state = await invoke('get_terracotta_state')
-  console.info('[scaffolding] get state', state)
-}
+onMounted(() => {
+  terracotta.startAutoUpdate()
+})
 </script>
 
 <template>
@@ -77,11 +74,11 @@ const getState = async () => {
     <div class="hall-input">
       <Dropdown :options="[]" style="flex: 1" />
       <PButton inline>刷新</PButton>
-      <PButton inline type="tint" :click="() => createLobby(25565)">创建</PButton>
+      <PButton inline type="tint" :click="showNotImpledSideTip">创建</PButton>
     </div>
   </PCard>
-  <PButton inline type="tint" :click="() => test()">测试</PButton>
-  <PButton inline type="tint" :click="() => getState()">获取状态</PButton>
+  <PButton inline type="tint" :click="() => testHostScanning()">测试</PButton>
+  <PCard title="陶瓦状态">{{ terracotta.state }}</PCard>
 </template>
 
 <style lang="css" scoped>
