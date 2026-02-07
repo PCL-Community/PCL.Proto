@@ -10,6 +10,13 @@ enum ExceptionType {
   ScaffoldingInvalidResponse = 5,
 }
 
+type PlayerProfile = {
+  kind: 'LOCAL' | 'HOST' | 'GUEST'
+  machine_id: string
+  name: string
+  vendor: string
+}
+
 const useTerracottaStore = defineStore('terracotta', {
   state: () => ({
     state: 'waiting' as
@@ -25,7 +32,7 @@ const useTerracottaStore = defineStore('terracotta', {
     room: undefined as string | undefined,
     url: undefined as string | undefined,
     profile_index: undefined as number | undefined,
-    profiles: undefined as [] | undefined,
+    profiles: undefined as PlayerProfile[] | undefined,
     difficulty: undefined as string | undefined,
     type: undefined as ExceptionType | undefined,
     autoUpdateEnabled: false,
@@ -63,17 +70,27 @@ const useTerracottaStore = defineStore('terracotta', {
         this.update()
       })
     },
-    setHostScanning(player: string) {
+    async setHostScanning(player: string) {
       console.info('[terracotta] set host scanning', player)
-      invoke('set_terracotta_host_scanning', { player }).then(() => {
+      try {
+        await invoke('set_terracotta_host_scanning', { player })
         this.update()
-      })
+        return true
+      } catch (err) {
+        console.error('[terracotta] set host scanning failed', err)
+        return false
+      }
     },
-    setGuesting(roomCode: string, player: string) {
+    async setGuesting(roomCode: string, player: string) {
       console.info('[terracotta] set guesting', roomCode, player)
-      invoke('set_terracotta_guesting', { roomCode, player }).then(() => {
+      try {
+        await invoke('set_terracotta_guesting', { roomCode, player })
         this.update()
-      })
+        return true
+      } catch (err) {
+        console.error('[terracotta] set guesting failed', err)
+        return false
+      }
     },
   },
 })

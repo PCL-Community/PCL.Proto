@@ -18,8 +18,16 @@ const showNotImpledSideTip = () => {
 
 const connectWithCode = async (code?: string) => {
   if (!code) return
-  terracotta.setGuesting(code, 'PCL.Proto Anonymous Guest')
-  console.info('[scaffolding] connecting to room code', code)
+  const success = await terracotta.setGuesting(code, 'PCL.Proto Anonymous Guest')
+  if (success) {
+    console.info('[scaffolding] connecting to room code', code)
+    router.push({
+      path: '/tools/lobby/inner',
+      query: {
+        code,
+      },
+    })
+  }
 }
 
 // 后端尚未实现直接根据端口创建大厅
@@ -77,7 +85,8 @@ onMounted(() => {
       <PButton inline type="tint" :click="showNotImpledSideTip">创建</PButton>
     </div>
   </PCard>
-  <PButton inline type="tint" :click="() => testHostScanning()">测试</PButton>
+  <PButton inline type="tint" :click="testHostScanning">测试：扫描大厅</PButton>
+  <PButton inline type="tint" :click="terracotta.setWaiting">测试：清除状态</PButton>
   <PCard title="陶瓦状态">{{ terracotta.state }}</PCard>
 </template>
 

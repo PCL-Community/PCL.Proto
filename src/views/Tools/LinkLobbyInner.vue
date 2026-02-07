@@ -2,11 +2,15 @@
 import CardInfoItem from '@/components/widget/CardInfoItem.vue'
 import PCard from '@/components/widget/PCard.vue'
 import router from '@/router'
+import useTerracottaStore from '@/stores/terracotta'
 import { useRouteQuery } from '@vueuse/router'
 
+const terracotta = useTerracottaStore()
 const roomCode = useRouteQuery('code')
 
 const closeLobby = async () => {
+  if (!roomCode.value) return
+  terracotta.setWaiting()
   router.back()
   console.info('[scaffolding] closed room code', roomCode.value)
 }
@@ -37,8 +41,13 @@ const closeLobby = async () => {
       </div>
     </div>
     <div class="right-panel" v-card-drop-children-animate>
-      <PCard title="大厅成员列表（共1人）">
-        <CardInfoItem title="PlayerName" subtitle="[主机] PCL.Proto 0.5.6, EasyTier 2.5.0" />
+      <PCard :title="`大厅成员列表（共${terracotta.profiles?.length}人）`">
+        <CardInfoItem
+          v-for="profile in terracotta.profiles"
+          :key="profile.machine_id"
+          :title="profile.name"
+          :subtitle="`[${profile.kind}] ${profile.vendor}`"
+        />
       </PCard>
     </div>
   </div>
