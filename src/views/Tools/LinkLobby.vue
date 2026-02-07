@@ -13,7 +13,10 @@ const router = useRouter()
 const enterLobbyCode = ref<string>()
 
 const connectWithCode = async (code: string) => {
-  let roomCode = await invoke<string>('parse_room_code', { code })
+  let roomCode = await invoke<string>('set_terracotta_guesting', {
+    roomCode: code,
+    player: 'PCL.Proto Anonymous Guest',
+  })
   console.info('[scaffolding] connecting to room code', roomCode)
 }
 

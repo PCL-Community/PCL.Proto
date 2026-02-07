@@ -39,19 +39,11 @@ serde_repr = "0.1.20"
 sha1 = "0.10.6"
 quick-xml = { version = "0.39.0", features = ["serialize"] }
 anyhow = "1.0"
-terracotta = { git = "https://github.com/PCL-Community/Terracotta-lib.git", branch = "master", version = "2.5.0-pcl.proto" }
+terracotta = { path = "../src-terracotta", version = "2.5.0-pcl.proto" }
 dashmap = "6.1.0"
 uuid = "1.20.0"
 trust-dns-resolver = "0.23.2"
 base64 = "0.22.1"
 # tauri-invoke-http = "0.1.0"
 
-[profile.dev]
-incremental = true
 
-[profile.release]
-codegen-units = 1 # Allows LLVM to perform better optimization.
-lto = true        # Enables link-time-optimizations.
-opt-level = "s"   # Prioritizes small binary size. Use `3` if you prefer speed.
-panic = "abort"   # Higher performance by disabling panic handlers.
-strip = true      # Ensures debug symbols are removed.

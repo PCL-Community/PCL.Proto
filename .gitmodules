@@ -4,3 +4,6 @@
 [submodule "src/locales"]
 	path = src/locales
 	url = git@github.com:PCL-Community/PCL-i18n-locales.git
+[submodule "src-terracotta"]
+	path = src-terracotta
+	url = git@github.com:PCL-Community/Terracotta-lib.git
