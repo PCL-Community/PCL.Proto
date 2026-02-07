@@ -36,8 +36,7 @@ pub fn run() {
             if let Some(config_manager) = setup::CONFIG_MANAGER.as_ref() {
                 app.manage(Arc::clone(&config_manager.app_state));
                 app.manage(&config_manager.api_client);
-
-                log::debug!("app state managed");
+                terracotta::init_lib(config_manager.identifier_path());
             } else {
                 log::error!("CONFIG_MANAGER is None");
                 app.dialog()

@@ -240,20 +240,6 @@ pub mod plugins {
     }
 }
 
-pub(super) mod modrinth {
-    pub struct SearchOptions {
-        pub(super) query: String,
-        pub(super) facets: Vec<Vec<String>>, // 二维数组，支持 AND/OR 逻辑
-        pub(super) index: String,            // 'relevance' | 'downloads' | 'follows' | 'newest' | 'updated'
-        pub(super) offset: u32,
-        pub(super) limit: u32,
-    }
-}
-
-pub(super) mod curseforge{
-    // pub struct
-}
-
 pub struct MinecraftApiClient {
     client: Client,
     api_bases: RwLock<ApiBases>,

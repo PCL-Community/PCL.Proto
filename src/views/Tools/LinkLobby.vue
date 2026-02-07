@@ -12,7 +12,12 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 const enterLobbyCode = ref<string>()
 
-const connectWithCode = async (code: string) => {
+const showNotImpledSideTip = () => {
+  sideTip.show('当前版本暂不支持此功能', 'warn')
+}
+
+const connectWithCode = async (code?: string) => {
+  if (!code) return
   let roomCode = await invoke<string>('set_terracotta_guesting', {
     roomCode: code,
     player: 'PCL.Proto Anonymous Guest',
@@ -59,7 +64,7 @@ const getState = async () => {
       <PButton
         inline
         type="tint"
-        :click="() => connectWithCode(enterLobbyCode!)"
+        :click="() => connectWithCode(enterLobbyCode)"
         :disabled="!enterLobbyCode"
         >{{ $t('link.lobby.join_lobby') }}</PButton
       >
@@ -70,15 +75,7 @@ const getState = async () => {
     <p>2. 在下方选择此游戏实例，单击「创建」</p>
     <p>3. 成功创建大厅后，复制大厅编号并发送给你的朋友</p>
     <div class="hall-input">
-      <Dropdown
-        :options="[
-          {
-            key: '1',
-            text: '1',
-          },
-        ]"
-        style="flex: 1"
-      />
+      <Dropdown :options="[]" style="flex: 1" />
       <PButton inline>刷新</PButton>
       <PButton inline type="tint" :click="() => createLobby(25565)">创建</PButton>
     </div>

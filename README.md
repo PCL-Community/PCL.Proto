@@ -28,8 +28,9 @@ In case you would like to modify the prototype design file, you are welcome to [
 - The device should have a usable rust toolchain installed. 
 
 ### Platform Specific
-- Windows: the MSVC version of the toolchain is required. Additionally, ensure that you have installed the MSVC suite from the C++ development tools and the Windows SDK in the Visual Studio Installer. [Npcap](https://npcap.com/#download) is also required by EasyTier.
-- macOS: make sure that Xcode is installed.
+- Windows: the MSVC version of the toolchain is required. Additionally, ensure that you have installed the MSVC suite from the C++ development tools and the Windows SDK in the Visual Studio Installer. You also need to download and configure the [Npcap SDK](https://npcap.com/#download).
+- macOS: make sure that Xcode is installed. You also need to install protobuf via Homebrew (`brew install protobuf`).
+- Ubuntu: you need to install the following packages: `libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf protobuf-compiler`.
 
 > [!NOTE]
 > If you have any questions, please refer to [Prerequisites | Tauri](https://tauri.app/start/prerequisites/).
@@ -75,37 +76,22 @@ I want to make this project into a Vue component npm package, but I don't know h
 > —— Sir Isaac Newton
 
 ### Directed referenced projects
-
-[Vue.js](https://github.com/vuejs/core)
-
-[TypeScript](https://github.com/microsoft/TypeScript)
-
-[Pug](https://github.com/pugjs/pug)
-
-[Vite](https://github.com/vitejs/vite)
-
-[Vue Router](https://github.com/vuejs/vue-router-next)
-
-[xml-js](https://www.npmjs.com/package/xml-js)
-
-[Pinia](https://pinia.vuejs.org/)
-
-[skinview3d](https://github.com/bs-community/skinview3d)
-
-[Bun](https://bun.com/)
-
-[Rust Programming Language](https://www.rust-lang.org/)
-
-[Tauri](https://tauri.app/)
+- [Vue.js](https://github.com/vuejs/core)
+- [TypeScript](https://github.com/microsoft/TypeScript)
+- [Pug](https://github.com/pugjs/pug)
+- [Vite](https://github.com/vitejs/vite)
+- [Vue Router](https://github.com/vuejs/vue-router-next)
+- [xml-js](https://www.npmjs.com/package/xml-js)
+- [Pinia](https://pinia.vuejs.org/)
+- [skinview3d](https://github.com/bs-community/skinview3d)
+- [Bun](https://bun.com/)
+- [Rust Programming Language](https://www.rust-lang.org/)
+- [Tauri](https://tauri.app/)
+- [Terracotta](https://github.com/burningtnt/Terracotta)
 
 ### Implementation or design reference
-
-[Plain Craft Launcher](https://github.com/Meloong-Git/PCL)
-
-[PCL2-CE](https://github.com/PCL-Community/PCL2-CE)
-
-[PCL.Neo](https://github.com/PCL-Community/PCL.Neo)
-
-[xphost008/MMCLL](https://github.com/xphost008/MMCLL)
-
-[Steve-xmh/scl](https://github.com/Steve-xmh/scl)
+- [Plain Craft Launcher](https://github.com/Meloong-Git/PCL)
+- [PCL2-CE](https://github.com/PCL-Community/PCL2-CE)
+- [PCL.Neo](https://github.com/PCL-Community/PCL.Neo)
+- [xphost008/MMCLL](https://github.com/xphost008/MMCLL)
+- [Steve-xmh/scl](https://github.com/Steve-xmh/scl)
