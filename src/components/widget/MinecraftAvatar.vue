@@ -30,6 +30,12 @@ defineProps<{ skinUrl?: string }>()
   box-shadow: 0 0 1px rgba(0, 0, 0, 0.2);
 }
 
+@media (prefers-color-scheme: dark) {
+  .avatar-img {
+    box-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
+  }
+}
+
 .avatar-hat {
   grid-area: 1 / 1;
   width: 7.99px;

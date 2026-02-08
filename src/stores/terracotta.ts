@@ -66,11 +66,10 @@ const useTerracottaStore = defineStore('terracotta', {
       this.autoUpdateEnabled = false
       console.info('[terracotta] auto update stopped')
     },
-    setWaiting() {
+    async setWaiting() {
       console.info('[terracotta] set waiting')
-      invoke('set_terracotta_waiting').then(() => {
-        this.update()
-      })
+      await invoke('set_terracotta_waiting')
+      this.update()
     },
     async setHostScanning() {
       console.info('[terracotta] set host scanning')

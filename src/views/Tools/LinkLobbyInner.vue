@@ -17,7 +17,7 @@ const roomCode = useRouteQuery('code')
 const t = useI18n()
 
 const closeLobby = async () => {
-  terracotta.setWaiting()
+  await terracotta.setWaiting()
   router.back()
   console.info('[scaffolding] closed room code', roomCode.value)
 }
