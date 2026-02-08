@@ -24,7 +24,8 @@
 
 - 请确保你的设备上已安装`nodejs`或`bun`。如果你使用`bun`作为包管理器，可以将下面出现的所有`pnpm`命令替换为`bun`。
 - 设备应已安装可用的`rust`工具链。对于 Windows，需要使用 MSVC 版本的工具链。并确保你已经在 Visual Studio 安装器中安装了 C++ 开发工具中的 MSVC 套件以及 Windows SDK；对于 macOS，需要确保已安装 Xcode。
-- 对于 Windows 平台，还需要安装 [Npcap](https://npcap.com/#download)。
+
+- 对于 Windows 平台，你还需要下载并配置 [Npcap SDK](https://npcap.com/#download)；对于 macOS，你需要通过 Homebrew 安装 protobuf（`brew install protobuf`）；对于 Ubuntu，你需要安装以下软件包：`libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf protobuf-compiler`。
 
 
 > [!NOTE]
@@ -76,36 +77,23 @@ pnpm run tauri build
 > 如果我看得更远，那是因为我站在巨人的肩膀上。
 > —— Sir Isaac Newton
 
-[Vue.js](https://github.com/vuejs/core)
-
-[TypeScript](https://github.com/microsoft/TypeScript)
-
-[Pug](https://github.com/pugjs/pug)
-
-[Vite](https://github.com/vitejs/vite)
-
-[Vue Router](https://github.com/vuejs/vue-router-next)
-
-[xml-js](https://www.npmjs.com/package/xml-js)
-
-[Pinia](https://pinia.vuejs.org/)
-
-[skinview3d](https://github.com/bs-community/skinview3d)
-
-[Bun](https://bun.com/)
-
-[Rust Programming Language](https://www.rust-lang.org/)
-
-[Tauri](https://tauri.app/)
+- [Vue.js](https://github.com/vuejs/core)
+- [TypeScript](https://github.com/microsoft/TypeScript)
+- [Pug](https://github.com/pugjs/pug)
+- [Vite](https://github.com/vitejs/vite)
+- [Vue Router](https://github.com/vuejs/vue-router-next)
+- [xml-js](https://www.npmjs.com/package/xml-js)
+- [Pinia](https://pinia.vuejs.org/)
+- [skinview3d](https://github.com/bs-community/skinview3d)
+- [Bun](https://bun.com/)
+- [Rust Programming Language](https://www.rust-lang.org/)
+- [Tauri](https://tauri.app/)
+- [Terracotta](https://github.com/burningtnt/Terracotta)
 
 ### 参考项目实现
 
-[Plain Craft Launcher](https://github.com/Meloong-Git/PCL)
-
-[PCL2-CE](https://github.com/PCL-Community/PCL2-CE)
-
-[PCL.Neo](https://github.com/PCL-Community/PCL.Neo)
-
-[xphost008/MMCLL](https://github.com/xphost008/MMCLL)
-
-[Steve-xmh/scl](https://github.com/Steve-xmh/scl)
+- [Plain Craft Launcher](https://github.com/Meloong-Git/PCL)
+- [PCL2-CE](https://github.com/PCL-Community/PCL2-CE)
+- [PCL.Neo](https://github.com/PCL-Community/PCL.Neo)
+- [xphost008/MMCLL](https://github.com/xphost008/MMCLL)
+- [Steve-xmh/scl](https://github.com/Steve-xmh/scl)

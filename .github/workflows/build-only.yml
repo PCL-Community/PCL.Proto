@@ -78,10 +78,10 @@ jobs:
         with:
           name: tauri-build-${{ matrix.platform }}-${{ matrix.args == '' && 'default' || matrix.args }}
           path: |
-            ${{ matrix.platform == 'macos-latest' && 'src-tauri/target/**/release/bundle/**/*.dmg' || '' }}
-            ${{ matrix.platform == 'windows-latest' && 'src-tauri/target/**/release/bundle/**/*.exe' || '' }}
-            ${{ matrix.platform == 'windows-latest' && 'src-tauri/target/**/release/bundle/**/*.msi' || '' }}
-            ${{ matrix.platform == 'ubuntu-22.04' && 'src-tauri/target/**/release/bundle/**/*.deb' || '' }}
-            ${{ matrix.platform == 'ubuntu-22.04' && 'src-tauri/target/**/release/bundle/**/*.rpm' || '' }}
+            ${{ matrix.platform == 'macos-latest' && 'target/**/release/bundle/**/*.dmg' || '' }}
+            ${{ matrix.platform == 'windows-latest' && 'target/**/release/bundle/**/*.exe' || '' }}
+            ${{ matrix.platform == 'windows-latest' && 'target/**/release/bundle/**/*.msi' || '' }}
+            ${{ matrix.platform == 'ubuntu-22.04' && 'target/**/release/bundle/**/*.deb' || '' }}
+            ${{ matrix.platform == 'ubuntu-22.04' && 'target/**/release/bundle/**/*.rpm' || '' }}
           if-no-files-found: error
           retention-days: 7

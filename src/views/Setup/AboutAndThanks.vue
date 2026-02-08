@@ -4,6 +4,7 @@ import PCard from '@/components/widget/PCard.vue'
 import picLongTengMaoYue from '@/assets/pictures/龙腾猫跃头像.jpg'
 import picPCLProto from '/PCL.Proto.svg?url'
 import tsLogo from '@/assets/icons/ts-logo-256.svg?url'
+import terracottaLogo from '@/assets/icons/terracotta-icon.png'
 import PHint from '@/components/widget/PHint.vue'
 declare const __APP_VERSION__: string
 const version = __APP_VERSION__
@@ -63,7 +64,8 @@ const version = __APP_VERSION__
         //- CardInfoItem(title="Bun" subtitle="MIT | https://bun.com/" icon="https://bun.com/logo.svg")
         CardInfoItem(title="Rust Programming Language" subtitle="Apache 2.0 & MIT | https://www.rust-lang.org/" icon="https://www.rust-lang.org/logos/rust-logo-blk.svg")
         CardInfoItem(title="Tauri" subtitle="MIT | https://tauri.app/" icon="https://tauri.app/_astro/logo_light.C7Zm2ZoX.svg")
-        CardInfoItem(title="EasyTier" subtitle="LGPL-3.0 | https://github.com/EasyTier/EasyTier" icon="https://easytier.cn/easytier.png")
+        //- CardInfoItem(title="EasyTier" subtitle="LGPL-3.0 | https://github.com/EasyTier/EasyTier" icon="https://easytier.cn/easytier.png")
+        CardInfoItem(:icon="terracottaLogo" title="burningtnt/Terracotta" subtitle="AGPL-3.0 license | https://github.com/burningtnt/Terracotta.git")
     
     PCard(defaultFoldStatus="fold" title="参考项目实现")
         CardInfoItem(title="PCL-Community/PCL.Core" subtitle="Apache-2.0 | https://github.com/PCL-Community/PCL.Core")
@@ -71,4 +73,5 @@ const version = __APP_VERSION__
         CardInfoItem(title="xphost008/MMCLL" subtitle="MIT | https://github.com/xphost008/MMCLL")
         CardInfoItem(title="PCL-Community/PCL.Neo/PCL.Neo.Core" subtitle="MIT | https://github.com/PCL-Community/PCL.Neo")
         CardInfoItem(title="Steve-xmh/scl" subtitle="LGPL-3.0 & SCL License | https://github.com/Steve-xmh/scl" icon="https://steve-xmh.github.io/scl/assets/scl-icon.svg")
+
 </template>

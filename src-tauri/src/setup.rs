@@ -66,8 +66,6 @@ pub struct AppState {
     pub repositories: Vec<GameRepository>,
     pub active_game_instance: Option<Arc<GameInstance>>,
     pub active_repo_path: PathBuf,
-    #[serde(skip)]
-    pub easytier_instance_uuid: Option<uuid::Uuid>,
 }
 
 /// config manager, for loading and saving config file
@@ -93,8 +91,8 @@ pub enum ConfigManagerError {
 
 pub static CONFIG_MANAGER: LazyLock<Option<ConfigManager>> = LazyLock::new(|| {
     let config_manager = ConfigManager::new();
-    if config_manager.is_ok() {
-        Some(config_manager.unwrap())
+    if let Ok(config_manager) = config_manager {
+        Some(config_manager)
     } else {
         None
     }
@@ -144,6 +142,7 @@ impl ConfigManager {
             instance.init()?;
             instance.save()?;
         }
+        log::debug!("launched config at {:?}", instance.config_path);
         Ok(instance)
     }
 
@@ -205,6 +204,11 @@ impl ConfigManager {
             .flush()
             .map_err(|_| ConfigManagerError::ConfigFileCorrupted)?;
         Ok(())
+    }
+
+    #[inline]
+    pub fn identifier_path(&self) -> PathBuf {
+        self.config_dir.join("pcl_identifier.txt")
     }
 }
 
