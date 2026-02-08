@@ -36,6 +36,7 @@ const useTerracottaStore = defineStore('terracotta', {
     difficulty: undefined as string | undefined,
     type: undefined as ExceptionType | undefined,
     avaliable_mc_ports: [] as number[],
+    username: 'PCL.Proto Anonymous',
     autoUpdateEnabled: false,
     autoUpdateInterval: 2000,
     autoUpdateTimerId: null as number | null, // 自动更新定时器 ID 用于停止自动更新
@@ -87,6 +88,7 @@ const useTerracottaStore = defineStore('terracotta', {
       try {
         const roomCode = await invoke<string>('set_terracotta_host_starting', { mcPort, player })
         this.update()
+        this.username = player
         return roomCode
       } catch (err) {
         throw err
@@ -97,6 +99,7 @@ const useTerracottaStore = defineStore('terracotta', {
       try {
         await invoke('set_terracotta_guesting', { roomCode, player })
         this.update()
+        this.username = player
         return true
       } catch (err) {
         console.error('[terracotta] set guesting failed', err)
