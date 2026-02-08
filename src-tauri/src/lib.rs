@@ -85,6 +85,7 @@ pub fn run() {
             util::scaffolding::get_terracotta_state,
             util::scaffolding::set_terracotta_waiting,
             util::scaffolding::set_terracotta_host_scanning,
+            util::scaffolding::set_terracotta_host_starting,
             util::scaffolding::set_terracotta_guesting,
         ])
         .run(tauri::generate_context!())

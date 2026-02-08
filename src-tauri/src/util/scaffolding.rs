@@ -16,8 +16,17 @@ pub fn set_terracotta_waiting() {
 }
 
 #[tauri::command]
-pub fn set_terracotta_host_scanning(player: String) {
-    controller::set_scanning(None, Some(player));
+pub fn set_terracotta_host_scanning() {
+    controller::set_scanning_only();
+}
+
+#[tauri::command]
+pub fn set_terracotta_host_starting(mc_port: u16, player: String) -> Result<String, String> {
+    if let Some(room_code) = controller::set_host_starting(mc_port, Some(player)) {
+        Ok(room_code)
+    } else {
+        Err("set host starting failed".to_string())
+    }
 }
 
 #[tauri::command]

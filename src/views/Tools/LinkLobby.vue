@@ -5,7 +5,7 @@ import PCard from '@/components/widget/PCard.vue'
 import PInput from '@/components/widget/PInput.vue'
 import sideTip from '@/composables/sideTip'
 import useTerracottaStore from '@/stores/terracotta'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -30,29 +30,34 @@ const connectWithCode = async (code?: string) => {
   }
 }
 
-// 后端尚未实现直接根据端口创建大厅
-// const createLobby = async (port: number) => {
-//   let roomCode = await invoke<string>('start_host', {
-//     playerName: 'PCL.Proto Anonymous Host',
-//     port,
-//   })
-//   console.info('[scaffolding] created room code', roomCode)
-//   sideTip.show(`已创建大厅：${roomCode}`, 'success')
-//   router.push({
-//     path: '/tools/lobby/inner',
-//     query: {
-//       code: roomCode,
-//     },
-//   })
-// }
-
-const testHostScanning = async () => {
-  terracotta.setHostScanning('PCL.Proto Anonymous Host')
+const createLobbyWithSelectedPort = async () => {
+  if (!selectedPort.value) return
+  try {
+    const roomCode = await terracotta.setHostStarting(Number(selectedPort.value), 'PCL.Proto Anonymous Host')
+    sideTip.show(`已创建大厅：${roomCode}`, 'success')
+    router.push({
+      path: '/tools/lobby/inner',
+      query: {
+        code: roomCode,
+      },
+    })
+  } catch (err) {
+    console.error('[terracotta] create lobby failed', err)
+    sideTip.show('创建大厅失败', 'warn')
+    return
+  }
 }
+
+const customPortInput = () => {}
 
 onMounted(() => {
   terracotta.startAutoUpdate()
 })
+
+const selectedPort = ref<string>()
+const dropdownOptions = computed(() =>
+  terracotta.avaliable_mc_ports.map((port) => ({ key: port.toString(), text: port.toString() })),
+)
 </script>
 
 <template>
@@ -80,14 +85,16 @@ onMounted(() => {
     <p>2. 在下方选择此游戏实例，单击「创建」</p>
     <p>3. 成功创建大厅后，复制大厅编号并发送给你的朋友</p>
     <div class="hall-input">
-      <Dropdown :options="[]" style="flex: 1" />
-      <PButton inline>刷新</PButton>
-      <PButton inline type="tint" :click="showNotImpledSideTip">创建</PButton>
+      <Dropdown :options="dropdownOptions" v-model="selectedPort" style="flex: 1" />
+      <PButton inline :click="terracotta.setHostScanning">开始扫描</PButton>
+      <PButton inline type="tint" :click="createLobbyWithSelectedPort">创建</PButton>
+      <PButton inline :click="customPortInput">指定端口</PButton>
     </div>
   </PCard>
-  <PButton inline type="tint" :click="testHostScanning">测试：扫描大厅</PButton>
-  <PButton inline type="tint" :click="terracotta.setWaiting">测试：清除状态</PButton>
-  <PCard title="陶瓦状态">{{ terracotta.state }}</PCard>
+  <PCard title="陶瓦状态"
+    >{{ terracotta.state }}
+    <PButton type="tint" :click="terracotta.setWaiting">清除陶瓦状态</PButton></PCard
+  >
 </template>
 
 <style lang="css" scoped>

@@ -35,6 +35,7 @@ const useTerracottaStore = defineStore('terracotta', {
     profiles: undefined as PlayerProfile[] | undefined,
     difficulty: undefined as string | undefined,
     type: undefined as ExceptionType | undefined,
+    avaliable_mc_ports: [] as number[],
     autoUpdateEnabled: false,
     autoUpdateInterval: 2000,
     autoUpdateTimerId: null as number | null, // 自动更新定时器 ID 用于停止自动更新
@@ -70,15 +71,25 @@ const useTerracottaStore = defineStore('terracotta', {
         this.update()
       })
     },
-    async setHostScanning(player: string) {
-      console.info('[terracotta] set host scanning', player)
+    async setHostScanning() {
+      console.info('[terracotta] set host scanning')
       try {
-        await invoke('set_terracotta_host_scanning', { player })
+        await invoke('set_terracotta_host_scanning')
         this.update()
         return true
       } catch (err) {
         console.error('[terracotta] set host scanning failed', err)
         return false
+      }
+    },
+    async setHostStarting(mcPort: number, player: string) {
+      console.info('[terracotta] set host starting', mcPort, player)
+      try {
+        const roomCode = await invoke<string>('set_terracotta_host_starting', { mcPort, player })
+        this.update()
+        return roomCode
+      } catch (err) {
+        throw err
       }
     },
     async setGuesting(roomCode: string, player: string) {
