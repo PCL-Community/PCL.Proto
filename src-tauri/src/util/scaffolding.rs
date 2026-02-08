@@ -1,4 +1,4 @@
-use terracotta::controller;
+use terracotta::{controller, rooms::Room};
 
 #[tauri::command]
 pub fn get_terracotta_meta() -> serde_json::Value {
@@ -22,7 +22,7 @@ pub fn set_terracotta_host_scanning(player: String) {
 
 #[tauri::command]
 pub fn set_terracotta_guesting(room_code: String, player: String) -> Result<(), String> {
-    let room = controller::Room::from(&room_code).ok_or("invalid room code")?;
+    let room = Room::from(&room_code).ok_or("invalid room code")?;
     if controller::set_guesting(room, Some(player)) {
         Ok(())
     } else {
@@ -32,7 +32,7 @@ pub fn set_terracotta_guesting(room_code: String, player: String) -> Result<(), 
 
 #[cfg(test)]
 mod tests {
-    use terracotta::controller::*;
+    use terracotta::rooms::Room;
 
     #[test]
     fn test_parse_code() {
