@@ -65,17 +65,17 @@
 
 来源：[`PageSetupLaunch.vue`](../src/views/Setup/PageSetupLaunch.vue)、[`stores/setup.ts`](../src/stores/setup.ts)、[`commands.rs`](../src-tauri/src/commands.rs)、[`launcher.rs`](../src-tauri/src/core/launcher.rs)。
 
-| 项目                                   | 旧字段                                                                                                                                                                                                   | 实际情况                                                                                         |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| 版本隔离                               | `ComboArgumentIndieV2`                                                                                                                                                                                   | 已接入 Rust 默认策略，首次访问或修改默认值时持久化现有实例决定；旧页面草稿未自动迁移 |
-| 窗口标题、自定义信息                   | `TextArgumentTitle`, `TextArgumentInfo`                                                                                                                                                                  | 仅同步到 `useSetup().launch`，没有业务消费者；`--versionType` 仍使用启动器常量                   |
-| 启动器可见性、进程优先级               | `ComboArgumentVisibie`, `ComboArgumentPriority`                                                                                                                                                          | 可见性部分接入，依赖日志识别就绪；立即关闭和进程优先级尚不可用                                               |
-| 窗口模式与尺寸                         | `ComboArgumentWindowType`, `TextArgumentWindowWidth`, `TextArgumentWindowHeight`                                                                                                                         | 默认、自定义及同启动器尺寸已接入；全屏和最大化仍不可用                                           |
-| 微软认证方式、IP 栈                    | `ComboMsAuthType`, `ComboPreferredIpStack`                                                                                                                                                               | 登录/启动未读取                                                                                  |
-| 内存模式、最大与初始内存               | `LaunchRamType`, `SliderRamCustom`, `SliderRamInitialCustom`                                                                                                                                             | 已接入 Rust 配置及启动参数；未迁移旧值时沿用 `pcl_setup_info.max_memory` |
-| JVM/游戏参数                           | `TextAdvanceJvm`, `TextAdvanceGame`                                                                                                                                                                      | 已接入 Rust 配置与启动参数；“恢复 JVM 参数”提交 CE 默认值 |
-| 渲染器、启动前命令与等待               | `ComboAdvanceRenderer`, `TextAdvanceRun`, `CheckAdvanceRunWait`                                                                                                                                        | 尚未接入启动行为 |
-| 高级开关                               | `CheckAdvanceDisableJLW`, `CheckAdvanceDisableLF`, `CheckAdvanceGraphicCard`, `CheckAdvanceNoJavaw`, `CheckAdvanceDisableLwjglUnsafeAgent`, `CheckAdvanceDisableCrashAnalysis`, `CheckAdvanceLockMemory` | 均未消费；部分依赖尚不存在的启动包装器、代理或平台功能                                           |
+| 项目                     | 旧字段                                                                                                                                                                                                   | 实际情况                                                                             |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 版本隔离                 | `ComboArgumentIndieV2`                                                                                                                                                                                   | 已接入 Rust 默认策略，首次访问或修改默认值时持久化现有实例决定；旧页面草稿未自动迁移 |
+| 窗口标题、自定义信息     | `TextArgumentTitle`, `TextArgumentInfo`                                                                                                                                                                  | 仅同步到 `useSetup().launch`，没有业务消费者；`--versionType` 仍使用启动器常量       |
+| 启动器可见性、进程优先级 | `ComboArgumentVisibie`, `ComboArgumentPriority`                                                                                                                                                          | 可见性部分接入，依赖日志识别就绪；立即关闭和进程优先级尚不可用                       |
+| 窗口模式与尺寸           | `ComboArgumentWindowType`, `TextArgumentWindowWidth`, `TextArgumentWindowHeight`                                                                                                                         | 默认、自定义及同启动器尺寸已接入；全屏和最大化仍不可用                               |
+| 微软认证方式、IP 栈      | `ComboMsAuthType`, `ComboPreferredIpStack`                                                                                                                                                               | 登录/启动未读取                                                                      |
+| 内存模式、最大与初始内存 | `LaunchRamType`, `SliderRamCustom`, `SliderRamInitialCustom`                                                                                                                                             | 已接入 Rust 配置及启动参数；未迁移旧值时沿用 `pcl_setup_info.max_memory`             |
+| JVM/游戏参数             | `TextAdvanceJvm`, `TextAdvanceGame`                                                                                                                                                                      | 已接入 Rust 配置与启动参数；“恢复 JVM 参数”提交 CE 默认值                            |
+| 渲染器、启动前命令与等待 | `ComboAdvanceRenderer`, `TextAdvanceRun`, `CheckAdvanceRunWait`                                                                                                                                          | 尚未接入启动行为                                                                     |
+| 高级开关                 | `CheckAdvanceDisableJLW`, `CheckAdvanceDisableLF`, `CheckAdvanceGraphicCard`, `CheckAdvanceNoJavaw`, `CheckAdvanceDisableLwjglUnsafeAgent`, `CheckAdvanceDisableCrashAnalysis`, `CheckAdvanceLockMemory` | 均未消费；部分依赖尚不存在的启动包装器、代理或平台功能                               |
 
 ### 2.3 下载与管理：7 项接通，11 项未接入
 
@@ -85,7 +85,7 @@
 | ------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | 接通   | 文件源、版本列表源、HTTP 模式                      | `ComboDownloadSource`, `ComboDownloadVersion`, `ComboDownloadHttpMode`                                 |
 | 接通   | 总连接数、单文件连接数、限速                       | `SliderDownloadThread`, `SliderDownloadFileConnection`, `SliderDownloadSpeed`                          |
-| 接通   | 安装后自动选中                                     | `CheckDownloadAutoSelectVersion`                                                                      |
+| 接通   | 安装后自动选中                                     | `CheckDownloadAutoSelectVersion`                                                                       |
 | 未接入 | Authlib 修复                                       | `CheckFixAuthlib`                                                                                      |
 | 未接入 | 社区资源来源、下载文件名、Mod 显示名、快速下载行为 | `ComboDownloadMod`, `ComboDownloadTranslateV2`, `ComboModLocalNameStyle`, `ComboDownloadQuickBehavior` |
 | 未接入 | 隐藏 Quilt、自动安装依赖                           | `CheckDownloadIgnoreQuilt`, `CheckDownloadAutoInstallDependencies`                                     |
@@ -120,7 +120,7 @@
 | 项目                           | 旧字段                                                                                                                                      | 实际情况                                                                                                                       |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | 公告、最大 FPS                 | `ComboSystemActivity`, `SliderAniFPS`                                                                                                       | 未消费；WebView 没有现成的全局 FPS 设置，不能用保存一个数值模拟实现                                                            |
-| 日志行数                       | `SliderMaxLog`                                                                                                                              | 已迁移至 Rust 配置，与日志查看器共用；仅限制显示，游戏会话缓冲另有限制                      |
+| 日志行数                       | `SliderMaxLog`                                                                                                                              | 已迁移至 Rust 配置，与日志查看器共用；仅限制显示，游戏会话缓冲另有限制                                                         |
 | 硬件加速、遥测                 | `CheckSystemDisableHardwareAcceleration`, `CheckSystemTelemetry`                                                                            | 启动配置/服务未消费；未发现接入的遥测控制链，不能据此推断已在上传遥测                                                          |
 | DoH、代理模式/地址/用户名/密码 | `CheckNetDohEnable`, `SystemHttpProxyType`, `TextSystemHttpProxy`, `TextSystemHttpProxyCustomUsername`, `TextSystemHttpProxyCustomPassword` | 网络客户端未读取；“应用代理”为占位；密码被通用存储过滤，仅存当前页内存。系统环境可能影响 HTTP 客户端，但不等于此页代理设置生效 |
 | 动画倍率、调试项               | `SliderDebugAnim`, `CheckDebugSkipCopy`, `CheckDebugMode`, `CheckDebugDelay`                                                                | 未消费；Rust 日志级别固定为 Info                                                                                               |
@@ -140,21 +140,21 @@
 
 来源：[`PageInstanceSetup.vue`](../src/views/InstanceSetting/PageInstanceSetup.vue)、[`java.ts`](../src/stores/java.ts)、[`selection.rs`](../src-tauri/src/core/java/selection.rs)。
 
-| 状态   | 项目                                                   | 旧字段                                                                                                                                                                                                  |
-| ------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 接通   | Java 选择、忽略兼容性警告                              | `ComboArgumentJava`, `CheckAdvanceJava`；改走 Rust `java_preferences`，不以页面通用缓存为准                                                                                                             |
-| 接通   | 版本隔离                                               | `ComboArgumentIndieV2`；切换前警告，目录不自动搬迁                                                                                                              |
-| 未接入 | 标题、明确使用默认标题                                 | `TextArgumentTitle`, `CheckArgumentTitleEmpty`；需要 Win32 改写游戏窗口标题，暂不实现                                                                                                              |
-| 接通   | 自定义信息                                             | `TextArgumentInfo`；实例值经 Rust 保存，启动时覆盖 `${version_type}`，留空跟随全局 |
-| 接通   | 内存模式、最大/初始内存                                | `VersionRamType`, `SliderRamCustom`, `SliderRamInitialCustom`；可跟随全局，启动时解析实例覆盖                                                                                                           |
-| 未接入 | 登录限制、认证服务器/注册页/名称、自动进入服务器       | `ComboServerLoginRequire`, `TextServerAuthServer`, `TextServerAuthRegister`, `TextServerAuthName`, `TextServerEnter`                                                                                    |
-| 接通   | JVM/游戏参数、前置 classpath                           | `TextAdvanceJvm`, `TextAdvanceGame`, `TextAdvanceClasspathHead`；参数留空跟随全局，classpath 为实例专属 |
-| 接通   | 渲染器                                               | `ComboAdvanceRenderer`；仅 Windows 启用，启动补全阶段从腾讯镜像下载 mesa-loader 并生成 `-javaagent` |
-| 接通   | 启动前命令与等待                                     | `TextAdvanceRun`, `CheckAdvanceRunWait`；启动前在全局游戏目录执行，失败只记日志 |
-| 接通   | 文件验证、游戏代理                                     | `CheckAdvanceAssetsV2`, `CheckAdvanceUseProxyV2`；关闭校验复用已有文件，代理读取全局自定义代理 |
-| 接通   | 包装器、LegacyFix、Debug Log4j2、LWJGL Agent          | `CheckAdvanceDisableJLW`, `CheckAdvanceDisableLF`, `CheckUseDebugLog4j2Config`, `CheckAdvanceDisableLwjglUnsafeAgent`；资源随包，按 CE 条件启用 |
-| 未接入 | Mod 更新                                               | `CheckAdvanceDisableModUpdate`；PCL.Proto 没有模组更新检查，控件保持禁用 |
-| 未接入 | 登录限制、认证服务器/注册页/名称、自动进入服务器       | `ComboServerLoginRequire`, `TextServerAuthServer`, `TextServerAuthRegister`, `TextServerAuthName`, `TextServerEnter`；本轮不实现 |
+| 状态   | 项目                                             | 旧字段                                                                                                                                          |
+| ------ | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 接通   | Java 选择、忽略兼容性警告                        | `ComboArgumentJava`, `CheckAdvanceJava`；改走 Rust `java_preferences`，不以页面通用缓存为准                                                     |
+| 接通   | 版本隔离                                         | `ComboArgumentIndieV2`；切换前警告，目录不自动搬迁                                                                                              |
+| 未接入 | 标题、明确使用默认标题                           | `TextArgumentTitle`, `CheckArgumentTitleEmpty`；需要 Win32 改写游戏窗口标题，暂不实现                                                           |
+| 接通   | 自定义信息                                       | `TextArgumentInfo`；实例值经 Rust 保存，启动时覆盖 `${version_type}`，留空跟随全局                                                              |
+| 接通   | 内存模式、最大/初始内存                          | `VersionRamType`, `SliderRamCustom`, `SliderRamInitialCustom`；可跟随全局，启动时解析实例覆盖                                                   |
+| 未接入 | 登录限制、认证服务器/注册页/名称、自动进入服务器 | `ComboServerLoginRequire`, `TextServerAuthServer`, `TextServerAuthRegister`, `TextServerAuthName`, `TextServerEnter`                            |
+| 接通   | JVM/游戏参数、前置 classpath                     | `TextAdvanceJvm`, `TextAdvanceGame`, `TextAdvanceClasspathHead`；参数留空跟随全局，classpath 为实例专属                                         |
+| 接通   | 渲染器                                           | `ComboAdvanceRenderer`；仅 Windows 启用，启动补全阶段从腾讯镜像下载 mesa-loader 并生成 `-javaagent`                                             |
+| 接通   | 启动前命令与等待                                 | `TextAdvanceRun`, `CheckAdvanceRunWait`；启动前在全局游戏目录执行，失败只记日志                                                                 |
+| 接通   | 文件验证、游戏代理                               | `CheckAdvanceAssetsV2`, `CheckAdvanceUseProxyV2`；关闭校验复用已有文件，代理读取全局自定义代理                                                  |
+| 接通   | 包装器、LegacyFix、Debug Log4j2、LWJGL Agent     | `CheckAdvanceDisableJLW`, `CheckAdvanceDisableLF`, `CheckUseDebugLog4j2Config`, `CheckAdvanceDisableLwjglUnsafeAgent`；资源随包，按 CE 条件启用 |
+| 未接入 | Mod 更新                                         | `CheckAdvanceDisableModUpdate`；PCL.Proto 没有模组更新检查，控件保持禁用                                                                        |
+| 未接入 | 登录限制、认证服务器/注册页/名称、自动进入服务器 | `ComboServerLoginRequire`, `TextServerAuthServer`, `TextServerAuthRegister`, `TextServerAuthName`, `TextServerEnter`；本轮不实现                |
 
 LittleSkin 按钮会填写/确认覆盖表单，但没有把认证配置送入启动链；锁定登录、新建档案按钮是占位。不能标成外置登录已经支持。
 

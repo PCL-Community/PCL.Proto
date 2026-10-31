@@ -251,7 +251,10 @@ watch(() => props.projectType, reset, { immediate: true })
 }
 .filters {
   display: grid;
-  grid-template-columns: auto minmax(65px, 1fr) auto minmax(80px, 1.3fr) auto minmax(65px, 1fr) 22px;
+  grid-template-columns: auto minmax(65px, 1fr) auto minmax(80px, 1.3fr) auto minmax(
+      65px,
+      1fr
+    ) 22px;
   grid-template-rows: 28px 28px;
   align-items: center;
   gap: 12px 8px;

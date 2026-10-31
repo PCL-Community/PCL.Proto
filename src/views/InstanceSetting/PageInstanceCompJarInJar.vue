@@ -66,7 +66,7 @@ const text = pclText
       >
       <PSearchBox
         :placeholder="text('Instance.Resource.Mod.JarInJar.Search.Hint')"
-        @search="(value) => (query = value || '')"
+        @search="(value: string) => (query = value || '')"
       />
       <PCard v-if="warnings.length" :title="text('Instance.Resource.Mod.JarInJar.Section.Warnings')"
         ><div class="issues">

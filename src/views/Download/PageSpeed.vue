@@ -11,13 +11,17 @@ const router = useRouter()
 onMounted(() => (floatButtonState.visible = false))
 onUnmounted(() => (floatButtonState.visible = tasks.activeTaskCount > 0))
 onMounted(() => {
-  watch(() => tasks.activeTaskCount, (count) => {
-    if (count || tasks.tasks.some((task) => task.status === TaskStatus.Failed)) return
-    if (router.currentRoute.value.path !== '/downloading') return
-    const back = router.options.history.state.back
-    if (typeof back === 'string' && back && back !== '/downloading') router.back()
-    else void router.replace('/download/game')
-  }, { immediate: true })
+  watch(
+    () => tasks.activeTaskCount,
+    (count) => {
+      if (count || tasks.tasks.some((task) => task.status === TaskStatus.Failed)) return
+      if (router.currentRoute.value.path !== '/downloading') return
+      const back = router.options.history.state.back
+      if (typeof back === 'string' && back && back !== '/downloading') router.back()
+      else void router.replace('/download/game')
+    },
+    { immediate: true },
+  )
 })
 </script>
 <template>

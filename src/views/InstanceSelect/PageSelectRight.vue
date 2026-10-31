@@ -221,60 +221,60 @@ watch(
             @contextmenu.prevent="settings(item)"
           >
             <template #icon-actions>
-                <button
-                  class="pcl-icon-button"
-                  type="button"
-                  :title="
-                    text(
-                      favorites.includes(item.directory)
-                        ? 'Select.Instance.Unfavorite'
-                        : 'Select.Instance.Favorite',
-                    )
+              <button
+                class="pcl-icon-button"
+                type="button"
+                :title="
+                  text(
+                    favorites.includes(item.directory)
+                      ? 'Select.Instance.Unfavorite'
+                      : 'Select.Instance.Favorite',
+                  )
+                "
+                :aria-label="
+                  text(
+                    favorites.includes(item.directory)
+                      ? 'Select.Instance.Unfavorite'
+                      : 'Select.Instance.Favorite',
+                  )
+                "
+                :aria-pressed="favorites.includes(item.directory)"
+                @click="toggleFavorite(item)"
+              >
+                <PSvgIcon
+                  :name="
+                    favorites.includes(item.directory) ? 'lucide/heart-filled' : 'lucide/heart'
                   "
-                  :aria-label="
-                    text(
-                      favorites.includes(item.directory)
-                        ? 'Select.Instance.Unfavorite'
-                        : 'Select.Instance.Favorite',
-                    )
-                  "
-                  :aria-pressed="favorites.includes(item.directory)"
-                  @click="toggleFavorite(item)"
-                >
-                  <PSvgIcon
-                    :name="
-                      favorites.includes(item.directory) ? 'lucide/heart-filled' : 'lucide/heart'
-                    "
-                    :size="15"
-                  />
-                </button>
-                <button
-                  class="pcl-icon-button"
-                  type="button"
-                  :title="text('Select.Instance.OpenFolder')"
-                  :aria-label="text('Select.Instance.OpenFolder')"
-                  @click="folderAction(item, false)"
-                >
-                  <PSvgIcon name="lucide/folder-open" :size="15" />
-                </button>
-                <button
-                  class="pcl-icon-button"
-                  type="button"
-                  :title="text('Common.Action.Delete')"
-                  :aria-label="text('Common.Action.Delete')"
-                  @click="folderAction(item, true)"
-                >
-                  <PSvgIcon name="lucide/trash-2" :size="15" />
-                </button>
-                <button
-                  class="pcl-icon-button"
-                  type="button"
-                  :title="text('Select.Instance.Settings')"
-                  :aria-label="text('Select.Instance.Settings')"
-                  @click="settings(item)"
-                >
-                  <PSvgIcon name="lucide/settings" :size="15" />
-                </button>
+                  :size="15"
+                />
+              </button>
+              <button
+                class="pcl-icon-button"
+                type="button"
+                :title="text('Select.Instance.OpenFolder')"
+                :aria-label="text('Select.Instance.OpenFolder')"
+                @click="folderAction(item, false)"
+              >
+                <PSvgIcon name="lucide/folder-open" :size="15" />
+              </button>
+              <button
+                class="pcl-icon-button"
+                type="button"
+                :title="text('Common.Action.Delete')"
+                :aria-label="text('Common.Action.Delete')"
+                @click="folderAction(item, true)"
+              >
+                <PSvgIcon name="lucide/trash-2" :size="15" />
+              </button>
+              <button
+                class="pcl-icon-button"
+                type="button"
+                :title="text('Select.Instance.Settings')"
+                :aria-label="text('Select.Instance.Settings')"
+                @click="settings(item)"
+              >
+                <PSvgIcon name="lucide/settings" :size="15" />
+              </button>
             </template>
           </PListItem></div></PCard
     ></template>

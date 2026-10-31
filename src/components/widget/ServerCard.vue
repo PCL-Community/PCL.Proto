@@ -31,13 +31,24 @@ const fallback = `${import.meta.env.BASE_URL}pcl/images/Icons/NoIcon.png`
       :subtitle="`${latency == null ? '—' : `${latency} ms`} · ${players || '—'}`"
       :icon="icon || fallback"
       ><template #actions
-        ><p class="motd">{{ motd }}</p></template>
+        ><p class="motd">{{ motd }}</p></template
+      >
       <template #icon-actions>
-        <button class="pcl-icon-button" type="button" @click="() => emit('connect')" :title="name" :aria-label="name"
-          ><PSvgIcon name="lucide/play" :size="15"
-        /></button>
+        <button
+          class="pcl-icon-button"
+          type="button"
+          @click="() => emit('connect')"
+          :title="name"
+          :aria-label="name"
+        >
+          <PSvgIcon name="lucide/play" :size="15" />
+        </button>
         <details>
-          <summary class="pcl-icon-button" :title="pclText('Instance.Server.Card.Edit')" :aria-label="pclText('Instance.Server.Card.Edit')">
+          <summary
+            class="pcl-icon-button"
+            :title="pclText('Instance.Server.Card.Edit')"
+            :aria-label="pclText('Instance.Server.Card.Edit')"
+          >
             <PSvgIcon name="lucide/settings" :size="15" />
           </summary>
           <div class="server-menu">
@@ -74,8 +85,12 @@ const fallback = `${import.meta.env.BASE_URL}pcl/images/Icons/NoIcon.png`
 details {
   position: relative;
 }
-summary { list-style: none; }
-summary::-webkit-details-marker { display: none; }
+summary {
+  list-style: none;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
 .server-menu {
   position: absolute;
   z-index: 3;

@@ -31,13 +31,37 @@ const props = defineProps<{
   memoryOverLimit?: boolean
   canCreateProfile?: boolean
 }>()
-const { values } = usePageSettings('PageInstanceSetup', {}, isTauri() ? [...memorySettingKeys, ...launchArgumentKeys, 'ComboArgumentIndieV2'] : [])
+const { values } = usePageSettings(
+  'PageInstanceSetup',
+  {},
+  isTauri() ? [...memorySettingKeys, ...launchArgumentKeys, 'ComboArgumentIndieV2'] : [],
+)
 const java = useJavaStore()
 const selected = useSelectedInstance()
 const directory = computed(() => selected.instance_info?.directory)
-const { jvm: argumentJvm, game: argumentGame, classpath: argumentClasspath, ready: argumentsReady, error: argumentsError, load: loadArguments, save: saveArguments } = useLaunchArguments(directory)
-const memoryJava64 = computed(() => directory.value && java.runtimes.length ? (java.instanceIs64Bit[directory.value] ?? null) : null)
-const { mode: memoryMode, maximum: memoryMaximum, initial: memoryInitial, ready: memoryReady, error: memoryError, preview: memoryPreview, segments: memorySegments, load: loadMemory, save: saveMemory } = useMemorySettings(directory, memoryJava64)
+const {
+  jvm: argumentJvm,
+  game: argumentGame,
+  classpath: argumentClasspath,
+  ready: argumentsReady,
+  error: argumentsError,
+  load: loadArguments,
+  save: saveArguments,
+} = useLaunchArguments(directory)
+const memoryJava64 = computed(() =>
+  directory.value && java.runtimes.length ? (java.instanceIs64Bit[directory.value] ?? null) : null,
+)
+const {
+  mode: memoryMode,
+  maximum: memoryMaximum,
+  initial: memoryInitial,
+  ready: memoryReady,
+  error: memoryError,
+  preview: memoryPreview,
+  segments: memorySegments,
+  load: loadMemory,
+  save: saveMemory,
+} = useMemorySettings(directory, memoryJava64)
 const {
   settings: launchSettings,
   ready: launchSettingsReady,
@@ -202,12 +226,27 @@ async function loadIsolation(path = directory.value) {
     if (revision !== isolationRevision) return
     isolationValue.value = enabled ? '0' : '1'
     isolationReady.value = true
-  } catch (error) { if (revision === isolationRevision) isolationError.value = String(error) }
+  } catch (error) {
+    if (revision === isolationRevision) isolationError.value = String(error)
+  }
 }
-watch(directory, (path) => { void loadIsolation(path) }, { immediate: true })
+watch(
+  directory,
+  (path) => {
+    void loadIsolation(path)
+  },
+  { immediate: true },
+)
 async function changeIsolation(value: string | undefined) {
   const path = directory.value
-  if (!path || !isolationReady.value || isolationBusy.value || (value !== '0' && value !== '1') || value === isolationValue.value) return
+  if (
+    !path ||
+    !isolationReady.value ||
+    isolationBusy.value ||
+    (value !== '0' && value !== '1') ||
+    value === isolationValue.value
+  )
+    return
   isolationBusy.value = true
   const revision = isolationRevision
   try {
@@ -216,15 +255,25 @@ async function changeIsolation(value: string | undefined) {
       content: text('Instance.Setup.Options.InstanceIsolation.Message'),
       plainText: true,
       buttons: [
-        { content: text('Setup.Launch.Advanced.Renderer.Warning.Confirm'), operation: () => modal.close(true) },
+        {
+          content: text('Setup.Launch.Advanced.Renderer.Warning.Confirm'),
+          operation: () => modal.close(true),
+        },
         { content: text('Common.Action.Cancel'), operation: () => modal.close(false) },
       ],
     })
     if (!result.confirmed || revision !== isolationRevision || path !== directory.value) return
     await setInstanceIsolation(path, value === '0')
-    if (revision === isolationRevision) { isolationValue.value = value; isolationError.value = '' }
-  } catch (error) { if (revision === isolationRevision) isolationError.value = String(error) }
-  finally { isolationBusy.value = false; isolationControlRevision.value++ }
+    if (revision === isolationRevision) {
+      isolationValue.value = value
+      isolationError.value = ''
+    }
+  } catch (error) {
+    if (revision === isolationRevision) isolationError.value = String(error)
+  } finally {
+    isolationBusy.value = false
+    isolationControlRevision.value++
+  }
 }
 async function setLittleSkin() {
   if (props.loginLocked) return
@@ -255,9 +304,20 @@ const text = pclText
 <template>
   <div class="pcl-page">
     <p class="settings-unavailable">{{ text('Proto.Settings.Unavailable') }}</p>
-    <p v-if="isolationError" role="alert">{{ isolationError }} <button @click="loadIsolation()">{{ text('Launch.Homepage.LoadFailed.Retry') }}</button></p>
-    <p v-if="argumentsError" role="alert">{{ argumentsError }} <button @click="argumentsReady ? saveArguments() : loadArguments()">{{ text('Launch.Homepage.LoadFailed.Retry') }}</button></p>
-    <p v-if="launchSettingsError" role="alert">{{ launchSettingsError }} <button @click="saveLaunchSettings()">{{ text('Launch.Homepage.LoadFailed.Retry') }}</button></p>
+    <p v-if="isolationError" role="alert">
+      {{ isolationError }}
+      <button @click="loadIsolation()">{{ text('Launch.Homepage.LoadFailed.Retry') }}</button>
+    </p>
+    <p v-if="argumentsError" role="alert">
+      {{ argumentsError }}
+      <button @click="argumentsReady ? saveArguments() : loadArguments()">
+        {{ text('Launch.Homepage.LoadFailed.Retry') }}
+      </button>
+    </p>
+    <p v-if="launchSettingsError" role="alert">
+      {{ launchSettingsError }}
+      <button @click="saveLaunchSettings()">{{ text('Launch.Homepage.LoadFailed.Retry') }}</button>
+    </p>
     <div>
       <div data-control="PanBack">
         <div
@@ -275,7 +335,8 @@ const text = pclText
             <div style="margin: 0px 25px 21px 25px; display: flex; flex-direction: column">
               <div class="settings-grid">
                 <SetupItem :label="text('Instance.Setup.Options.InstanceIsolation')" v-slot="{ id }"
-                  ><PComboBox :disabled="!isolationReady || isolationBusy"
+                  ><PComboBox
+                    :disabled="!isolationReady || isolationBusy"
                     :key="isolationControlRevision"
                     :input-id="id"
                     data-control="ComboArgumentIndieV2"
@@ -295,7 +356,8 @@ const text = pclText
                     @update:model-value="changeIsolation"
                 /></SetupItem>
                 <SetupItem :label="text('Setup.Launch.Options.WindowTitle.Label')" v-slot="{ id }"
-                  ><PTextBox disabled
+                  ><PTextBox
+                    disabled
                     :input-id="id"
                     data-control="TextArgumentTitle"
                     :suggestions="[text('Setup.Launch.Options.WindowTitle.SampleFormat')]"
@@ -303,7 +365,8 @@ const text = pclText
                     :placeholder="text('')"
                     v-model="values.TextArgumentTitle"
                 /></SetupItem>
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckArgumentTitleEmpty"
                   style="margin: 0px 0px 9px 0px; grid-column: 1 / -1"
                   :title="text('Instance.Setup.Options.WindowTitle.Default.ToolTip')"
@@ -312,7 +375,8 @@ const text = pclText
                   v-model="values.CheckArgumentTitleEmpty"
                 />
                 <SetupItem :label="text('Setup.Launch.Options.CustomInfo.Label')" v-slot="{ id }"
-                  ><PTextBox :disabled="!launchSettingsReady"
+                  ><PTextBox
+                    :disabled="!launchSettingsReady"
                     :input-id="id"
                     data-control="TextArgumentInfo"
                     :title="text('Instance.Setup.Options.CustomInfo.ToolTip')"
@@ -364,9 +428,13 @@ const text = pclText
                   data-control="RadioRamType2"
                   style="margin: 0px 20px 9px 0px; grid-row: 1 / span 1; grid-column: 1 / span 2"
                   class="pcl-radio"
-                  ><input :disabled="!memoryReady" type="radio" v-model="memoryMode" value="inherit" @change="saveMemory" />{{
-                    text('Instance.Setup.FollowGlobal')
-                  }}</label
+                  ><input
+                    :disabled="!memoryReady"
+                    type="radio"
+                    v-model="memoryMode"
+                    value="inherit"
+                    @change="saveMemory"
+                  />{{ text('Instance.Setup.FollowGlobal') }}</label
                 >
                 <label
                   data-control="RadioRamType0"
@@ -379,9 +447,13 @@ const text = pclText
                   "
                   :title="text('Setup.Launch.Memory.Auto.ToolTip')"
                   class="pcl-radio"
-                  ><input :disabled="!memoryReady" type="radio" v-model="memoryMode" value="auto" @change="saveMemory" />{{
-                    text('Setup.Launch.Memory.Auto')
-                  }}</label
+                  ><input
+                    :disabled="!memoryReady"
+                    type="radio"
+                    v-model="memoryMode"
+                    value="auto"
+                    @change="saveMemory"
+                  />{{ text('Setup.Launch.Memory.Auto') }}</label
                 >
                 <label
                   data-control="RadioRamType1"
@@ -393,9 +465,13 @@ const text = pclText
                     justify-self: start;
                   "
                   class="pcl-radio"
-                  ><input :disabled="!memoryReady" type="radio" v-model="memoryMode" value="custom" @change="saveMemory" />{{
-                    text('Common.Option.Customize')
-                  }}</label
+                  ><input
+                    :disabled="!memoryReady"
+                    type="radio"
+                    v-model="memoryMode"
+                    value="custom"
+                    @change="saveMemory"
+                  />{{ text('Common.Option.Customize') }}</label
                 >
                 <span
                   style="
@@ -406,7 +482,10 @@ const text = pclText
                   "
                   :title="text('Setup.Launch.Memory.Max.ToolTip')"
                   class="pcl-text"
-                  >{{ text('Setup.Launch.Memory.Max') }}<template v-if="memoryMode === 'custom'"> ({{ memoryTickToMib(memoryMaximum) }} MiB)</template></span
+                  >{{ text('Setup.Launch.Memory.Max')
+                  }}<template v-if="memoryMode === 'custom'">
+                    ({{ memoryTickToMib(memoryMaximum) }} MiB)</template
+                  ></span
                 >
                 <input
                   data-control="SliderRamCustom"
@@ -427,7 +506,14 @@ const text = pclText
                   "
                   :title="text('Setup.Launch.Memory.Initial.ToolTip')"
                   class="pcl-text"
-                  >{{ text('Setup.Launch.Memory.Initial') }}<template v-if="memoryMode === 'custom'"> ({{ memoryInitial ? `${Math.min(memoryTickToMib(memoryInitial), memoryTickToMib(memoryMaximum))} MiB` : text('Setup.Launch.Memory.Auto') }})</template></span
+                  >{{ text('Setup.Launch.Memory.Initial')
+                  }}<template v-if="memoryMode === 'custom'">
+                    ({{
+                      memoryInitial
+                        ? `${Math.min(memoryTickToMib(memoryInitial), memoryTickToMib(memoryMaximum))} MiB`
+                        : text('Setup.Launch.Memory.Auto')
+                    }})</template
+                  ></span
                 >
                 <input
                   data-control="SliderRamInitialCustom"
@@ -441,7 +527,12 @@ const text = pclText
                   @change="saveMemory"
                 />
               </div>
-              <p v-if="memoryError" role="alert">{{ memoryError }} <button @click="memoryReady ? saveMemory() : loadMemory()">{{ text('Launch.Homepage.LoadFailed.Retry') }}</button></p>
+              <p v-if="memoryError" role="alert">
+                {{ memoryError }}
+                <button @click="memoryReady ? saveMemory() : loadMemory()">
+                  {{ text('Launch.Homepage.LoadFailed.Retry') }}
+                </button>
+              </p>
               <div
                 data-control="PanRamDisplay"
                 style="
@@ -460,13 +551,19 @@ const text = pclText
                 <div
                   data-control="RectRamGame"
                   style="opacity: 0.5; grid-row: 2; grid-column: 1 / span 2; justify-self: start"
-                  :style="{ width: `${memorySegments.game}%`, marginLeft: `${memorySegments.used}%` }"
+                  :style="{
+                    width: `${memorySegments.game}%`,
+                    marginLeft: `${memorySegments.used}%`,
+                  }"
                   class="pcl-divider"
                 />
                 <div
                   data-control="RectRamEmpty"
                   style="opacity: 0.7; grid-row: 2; grid-column: 1 / span 2; justify-self: start"
-                  :style="{ width: `${memorySegments.empty}%`, marginLeft: `${memorySegments.used + memorySegments.game}%` }"
+                  :style="{
+                    width: `${memorySegments.empty}%`,
+                    marginLeft: `${memorySegments.used + memorySegments.game}%`,
+                  }"
                   class="pcl-divider"
                 />
                 <span
@@ -509,7 +606,9 @@ const text = pclText
                   "
                 >
                   <span data-control="LabRamUsed" style="font-size: 16px" class="pcl-text">{{
-                    memoryPreview ? memoryGiB(memoryPreview.total_bytes - memoryPreview.available_bytes) : '—'
+                    memoryPreview
+                      ? memoryGiB(memoryPreview.total_bytes - memoryPreview.available_bytes)
+                      : '—'
                   }}</span>
                   <span data-control="LabRamTotal" style="font-size: 16px" class="pcl-text">{{
                     memoryPreview ? ` / ${memoryGiB(memoryPreview.total_bytes)}` : ' / —'
@@ -525,7 +624,11 @@ const text = pclText
                     justify-self: end;
                   "
                   class="pcl-text"
-                  >{{ memoryPreview?.allocation_mib != null ? memoryGiB(memoryPreview.allocation_mib * 1048576) : '—' }}</span
+                  >{{
+                    memoryPreview?.allocation_mib != null
+                      ? memoryGiB(memoryPreview.allocation_mib * 1048576)
+                      : '—'
+                  }}</span
                 >
               </div>
             </div>
@@ -637,7 +740,8 @@ const text = pclText
                   class="pcl-text"
                   >{{ text('Instance.Setup.Server.AutoJoin') }}</span
                 >
-                <PTextBox disabled
+                <PTextBox
+                  disabled
                   data-control="TextServerEnter"
                   style="grid-row: 6 / span 1; grid-column: 2 / span 2"
                   :title="text('Instance.Setup.Server.AutoJoin.ToolTip')"
@@ -686,7 +790,9 @@ const text = pclText
                   :disabled="!launchSettingsReady || rendererWindowsOnly"
                   :input-id="id"
                   data-control="ComboAdvanceRenderer"
-                  :title="rendererWindowsOnly ? text('Proto.Settings.RendererWindowsOnly') : undefined"
+                  :title="
+                    rendererWindowsOnly ? text('Proto.Settings.RendererWindowsOnly') : undefined
+                  "
                   :options="[
                     { key: '0', text: text('Instance.Setup.FollowGlobal') },
                     { key: '1', text: text('Setup.Launch.Advanced.Renderer.GameDefault') },
@@ -698,33 +804,50 @@ const text = pclText
                   @update:model-value="changeRenderer"
               /></SetupItem>
               <SetupItem :label="text('Setup.Launch.Advanced.JvmHead')" v-slot="{ id }"
-                ><PTextBox :disabled="!argumentsReady"
+                ><PTextBox
+                  :disabled="!argumentsReady"
                   :input-id="id"
                   multiline
                   data-control="TextAdvanceJvm"
                   style="height: 100px; padding: 5px 0px"
-                  :title="text('Instance.Setup.Advanced.JvmArgs.ToolTip') + '\n\n' + text('Proto.LaunchArguments.Parsing') + '\n' + text('Proto.LaunchArguments.Hint')"
+                  :title="
+                    text('Instance.Setup.Advanced.JvmArgs.ToolTip') +
+                    '\n\n' +
+                    text('Proto.LaunchArguments.Parsing') +
+                    '\n' +
+                    text('Proto.LaunchArguments.Hint')
+                  "
                   :placeholder="text('Instance.Setup.FollowGlobal')"
-                  v-model="argumentJvm" @blur="saveArguments()"
+                  v-model="argumentJvm"
+                  @blur="saveArguments()"
               /></SetupItem>
               <SetupItem :label="text('Setup.Launch.Advanced.GameTail')" v-slot="{ id }"
-                ><PTextBox :disabled="!argumentsReady"
+                ><PTextBox
+                  :disabled="!argumentsReady"
                   :input-id="id"
                   data-control="TextAdvanceGame"
-                  :title="text('Instance.Setup.Advanced.GameArgs.ToolTip') + '\n\n' + text('Proto.LaunchArguments.Parsing')"
+                  :title="
+                    text('Instance.Setup.Advanced.GameArgs.ToolTip') +
+                    '\n\n' +
+                    text('Proto.LaunchArguments.Parsing')
+                  "
                   :placeholder="text('Instance.Setup.FollowGlobal')"
-                  v-model="argumentGame" @blur="saveArguments()"
+                  v-model="argumentGame"
+                  @blur="saveArguments()"
               /></SetupItem>
               <SetupItem :label="text('Instance.Setup.Advanced.Classpath')" v-slot="{ id }"
-                ><PTextBox :disabled="!argumentsReady"
+                ><PTextBox
+                  :disabled="!argumentsReady"
                   :input-id="id"
                   data-control="TextAdvanceClasspathHead"
                   :title="text('Instance.Setup.Advanced.Classpath.ToolTip')"
                   :placeholder="text('')"
-                  v-model="argumentClasspath" @blur="saveArguments()"
+                  v-model="argumentClasspath"
+                  @blur="saveArguments()"
               /></SetupItem>
               <SetupItem :label="text('Setup.Launch.Advanced.PreLaunchCommand')" v-slot="{ id }"
-                ><PTextBox :disabled="!launchSettingsReady"
+                ><PTextBox
+                  :disabled="!launchSettingsReady"
                   :input-id="id"
                   data-control="TextAdvanceRun"
                   style="margin: 0px 0px 3px 0px"
@@ -757,7 +880,8 @@ const text = pclText
                   "
                 />
 
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckAdvanceDisableModUpdate"
                   style="height: 28px"
                   :title="text('Proto.Settings.ModUpdateUnavailable')"
@@ -868,9 +992,7 @@ const text = pclText
               </div>
             </div>
           </PCard>
-          <PPrimaryAction
-            data-control="BtnSwitch"
-            @click="() => router.push('/setup/launch')"
+          <PPrimaryAction data-control="BtnSwitch" @click="() => router.push('/setup/launch')"
             ><PSvgIcon name="lucide/arrow-right" :size="16" />{{
               text('Instance.Setup.OpenGlobalSettings')
             }}</PPrimaryAction

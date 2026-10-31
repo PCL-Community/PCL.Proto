@@ -68,7 +68,8 @@ const text = pclText
                     class="pcl-text"
                     >{{ text('Setup.Ui.Basic.Opacity') }}</span
                   >
-                  <input disabled
+                  <input
+                    disabled
                     data-control="SliderLauncherOpacity"
                     style="grid-row: 1 / span 1; grid-column: 2 / span 5"
                     type="range"
@@ -97,7 +98,8 @@ const text = pclText
                     class="pcl-text"
                     >{{ text('Setup.Ui.Theme.Title') }}</span
                   >
-                  <PComboBox disabled
+                  <PComboBox
+                    disabled
                     data-control="ComboDarkMode"
                     style="grid-row: 1 / span 1; grid-column: 2 / span 1"
                     :options="[
@@ -117,7 +119,8 @@ const text = pclText
                     class="pcl-text"
                     >{{ text('Setup.Ui.Theme.LightColor') }}</span
                   >
-                  <PComboBox disabled
+                  <PComboBox
+                    disabled
                     data-control="ComboLightColor"
                     style="grid-row: 1 / span 1; grid-column: 4 / span 1"
                     :options="
@@ -138,7 +141,8 @@ const text = pclText
                     class="pcl-text"
                     >{{ text('Setup.Ui.Theme.DarkColor') }}</span
                   >
-                  <PComboBox disabled
+                  <PComboBox
+                    disabled
                     data-control="ComboDarkColor"
                     style="grid-row: 1 / span 1; grid-column: 6 / span 1"
                     :options="
@@ -150,21 +154,24 @@ const text = pclText
                     v-model="values.ComboDarkColor"
                   />
                 </div>
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckLauncherLogo"
                   style="height: 22px; margin: 0px 0px 7px -1px"
                   id="PageSetupUI-CheckLauncherLogo"
                   :label="text('Setup.Ui.Basic.ShowLogo')"
                   v-model="values.CheckLauncherLogo"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckLockWindowSize"
                   style="height: 22px; margin: 0px 0px 7px -1px"
                   id="PageSetupUI-CheckLockWindowSize"
                   :label="text('Setup.Ui.Basic.LockWindow')"
                   v-model="values.CheckLockWindowSize"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckShowLaunchingHint"
                   style="height: 22px; margin: 0px 0px 7px -1px"
                   id="PageSetupUI-CheckShowLaunchingHint"
@@ -175,7 +182,8 @@ const text = pclText
                   data-control="PanelBlur"
                   style="margin: 0px 0px 10px 0px; display: flex; flex-direction: column"
                 >
-                  <PCheckBox disabled
+                  <PCheckBox
+                    disabled
                     data-control="CheckBlur"
                     style="height: 22px"
                     :title="text('Setup.Ui.Basic.AdvancedMaterial.ToolTip')"
@@ -203,7 +211,8 @@ const text = pclText
                       class="pcl-text"
                       >{{ text('Setup.Ui.Basic.BlurRadius') }}</span
                     >
-                    <input disabled
+                    <input
+                      disabled
                       data-control="SliderBlurValue"
                       style="grid-row: 1 / span 1; grid-column: 2 / span 3"
                       :title="text('Setup.Ui.Basic.BlurRadius.ToolTip')"
@@ -222,7 +231,8 @@ const text = pclText
                       class="pcl-text"
                       >{{ text('Setup.Ui.Basic.BlurSamplingRate') }}</span
                     >
-                    <input disabled
+                    <input
+                      disabled
                       data-control="SliderBlurSamplingRate"
                       style="grid-row: 3 / span 1; grid-column: 4 / span 1"
                       :title="text('Setup.Ui.Basic.BlurSamplingRate.ToolTip')"
@@ -241,7 +251,8 @@ const text = pclText
                       class="pcl-text"
                       >{{ text('Setup.Ui.Basic.BlurMethod') }}</span
                     >
-                    <PComboBox disabled
+                    <PComboBox
+                      disabled
                       data-control="ComboBlurType"
                       style="
                         height: 28px;
@@ -287,7 +298,8 @@ const text = pclText
                 class="pcl-text"
                 >{{ text('Setup.Ui.Font.Global') }}</span
               >
-              <PComboBox disabled
+              <PComboBox
+                disabled
                 data-control="ComboUiFont"
                 style="grid-row: 1 / span 1; grid-column: 3 / span 1"
                 :options="[
@@ -302,7 +314,8 @@ const text = pclText
                 class="pcl-text"
                 >{{ text('Setup.Ui.Font.Motd') }}</span
               >
-              <PComboBox disabled
+              <PComboBox
+                disabled
                 data-control="ComboUiMotdFont"
                 style="grid-row: 3 / span 1; grid-column: 3 / span 1"
                 :options="[
@@ -323,7 +336,8 @@ const text = pclText
               <template v-if="hasBackground">
                 <div data-control="PanBackgroundSuit" class="pcl-form-row">
                   <label>{{ text('Setup.Ui.Background.ContentAdapt') }}</label
-                  ><PComboBox disabled
+                  ><PComboBox
+                    disabled
                     data-control="ComboBackgroundSuit"
                     :options="
                       [
@@ -347,7 +361,8 @@ const text = pclText
                 </div>
                 <div data-control="PanBackgroundOpacity" class="pcl-form-row">
                   <label for="background-opacity">{{ text('Setup.Ui.Basic.Opacity2') }}</label
-                  ><input disabled
+                  ><input
+                    disabled
                     id="background-opacity"
                     type="range"
                     min="0"
@@ -357,7 +372,8 @@ const text = pclText
                 </div>
                 <div data-control="PanBackgroundBlur" class="pcl-form-row">
                   <label for="background-blur">{{ text('Setup.Ui.Background.Blur') }}</label
-                  ><input disabled
+                  ><input
+                    disabled
                     id="background-blur"
                     type="range"
                     min="0"
@@ -366,7 +382,8 @@ const text = pclText
                   />
                 </div>
               </template>
-              <PCheckBox disabled
+              <PCheckBox
+                disabled
                 data-control="CheckAutoPauseVideo"
                 style="height: 22px; margin: 0px 0px 8px -1px"
                 :title="text('Setup.Ui.Background.PauseVideo.ToolTip')"
@@ -374,7 +391,8 @@ const text = pclText
                 :label="text('Setup.Ui.Background.PauseVideo')"
                 v-model="values.CheckAutoPauseVideo"
               />
-              <PCheckBox disabled
+              <PCheckBox
+                disabled
                 data-control="CheckBackgroundColorful"
                 style="height: 22px; margin: 0px 0px 8px -1px"
                 id="PageSetupUI-CheckBackgroundColorful"
@@ -433,7 +451,8 @@ const text = pclText
               <template v-if="hasMusic">
                 <div data-control="PanMusicVolume" class="pcl-form-row">
                   <label for="music-volume">{{ text('Setup.Ui.Music.Volume') }}</label
-                  ><input disabled
+                  ><input
+                    disabled
                     id="music-volume"
                     type="range"
                     min="0"
@@ -445,7 +464,8 @@ const text = pclText
                   data-control="PanMusicDetail"
                   style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px"
                 >
-                  <PCheckBox disabled
+                  <PCheckBox
+                    disabled
                     v-for="setting in [
                       { id: 'CheckMusicRandom', key: 'Shuffle' },
                       { id: 'CheckMusicAuto', key: 'AutoStart' },
@@ -545,7 +565,8 @@ const text = pclText
                   }}</label
                 >
               </div>
-              <PCheckBox disabled
+              <PCheckBox
+                disabled
                 v-if="values.UiLogoType === '0'"
                 data-control="CheckLogoLeft"
                 style="margin: 8px 0 3px"
@@ -573,7 +594,8 @@ const text = pclText
                   class="pcl-text"
                   >{{ text('Setup.Ui.Logo.TextLabel') }}</span
                 >
-                <PTextBox disabled
+                <PTextBox
+                  disabled
                   data-control="TextLogoText"
                   style="grid-row: 1 / span 1; grid-column: 2 / span 1"
                   :placeholder="text('')"
@@ -712,9 +734,7 @@ const text = pclText
                     grid-column: 2 / span 1;
                     justify-self: start;
                   "
-                  @click="
-                    () => openExternal('https://github.com/Hex-Dragon/PCL2/wiki/自定义主页')
-                  "
+                  @click="() => openExternal('https://github.com/Hex-Dragon/PCL2/wiki/自定义主页')"
                   >{{ text('Setup.Ui.Homepage.Tutorial') }}</PButton
                 >
               </div>
@@ -738,7 +758,8 @@ const text = pclText
                   class="pcl-text"
                   >{{ text('Setup.Ui.Homepage.DownloadUrl') }}</span
                 >
-                <PTextBox disabled
+                <PTextBox
+                  disabled
                   data-control="TextCustomNet"
                   style="max-height: 28px; grid-row: 1 / span 1; grid-column: 2 / span 1"
                   :placeholder="text('')"
@@ -766,7 +787,8 @@ const text = pclText
                   class="pcl-text"
                   >{{ text('Setup.Ui.Homepage.PresetLabel') }}</span
                 >
-                <PComboBox disabled
+                <PComboBox
+                  disabled
                   data-control="ComboCustomPreset"
                   style="grid-row: 1 / span 1; grid-column: 2 / span 2"
                   :options="[
@@ -819,7 +841,8 @@ const text = pclText
                   class="pcl-text"
                   >{{ text('Setup.Ui.FeatureHide.MainPage') }}</span
                 >
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenPageDownload"
                   style="
                     height: 22px;
@@ -831,7 +854,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.Download')"
                   v-model="values.CheckHiddenPageDownload"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenPageSetup"
                   style="
                     height: 22px;
@@ -843,7 +867,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.Settings')"
                   v-model="values.CheckHiddenPageSetup"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenPageTools"
                   style="
                     height: 22px;
@@ -865,7 +890,8 @@ const text = pclText
                   class="pcl-text"
                   >{{ text('Setup.Ui.FeatureHide.SubSetup') }}</span
                 >
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenSetupLaunch"
                   style="
                     height: 22px;
@@ -877,7 +903,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.Launch')"
                   v-model="values.CheckHiddenSetupLaunch"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenSetupJava"
                   style="
                     height: 22px;
@@ -889,7 +916,8 @@ const text = pclText
                   :label="text('Java')"
                   v-model="values.CheckHiddenSetupJava"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenSetupGameManage"
                   style="
                     height: 22px;
@@ -901,7 +929,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.GameManage')"
                   v-model="values.CheckHiddenSetupGameManage"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenSetupGameLink"
                   style="
                     height: 22px;
@@ -913,7 +942,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.GameLink')"
                   v-model="values.CheckHiddenSetupGameLink"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenSetupUI"
                   style="
                     height: 22px;
@@ -925,7 +955,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.Ui')"
                   v-model="values.CheckHiddenSetupUI"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenSetupLauncherLanguage"
                   style="
                     height: 22px;
@@ -937,7 +968,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.Language')"
                   v-model="values.CheckHiddenSetupLauncherLanguage"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenLauncherMisc"
                   style="
                     height: 22px;
@@ -949,7 +981,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.Misc')"
                   v-model="values.CheckHiddenLauncherMisc"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenSetupUpdate"
                   style="
                     height: 22px;
@@ -961,7 +994,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.Update')"
                   v-model="values.CheckHiddenSetupUpdate"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenSetupAbout"
                   style="
                     height: 22px;
@@ -973,7 +1007,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.About')"
                   v-model="values.CheckHiddenSetupAbout"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenSetupFeedback"
                   style="
                     height: 22px;
@@ -985,7 +1020,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.Feedback')"
                   v-model="values.CheckHiddenSetupFeedback"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenSetupLog"
                   style="
                     height: 22px;
@@ -1007,7 +1043,8 @@ const text = pclText
                   class="pcl-text"
                   >{{ text('Setup.Ui.FeatureHide.SubTools') }}</span
                 >
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenToolsGameLink"
                   style="
                     height: 22px;
@@ -1019,7 +1056,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.Lobby')"
                   v-model="values.CheckHiddenToolsGameLink"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenToolsTest"
                   style="
                     height: 22px;
@@ -1041,7 +1079,8 @@ const text = pclText
                   class="pcl-text"
                   >{{ text('Setup.Ui.FeatureHide.SubInstance') }}</span
                 >
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenVersionEdit"
                   style="
                     height: 22px;
@@ -1053,7 +1092,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.Edit')"
                   v-model="values.CheckHiddenVersionEdit"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenVersionExport"
                   style="
                     height: 22px;
@@ -1065,7 +1105,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.Export')"
                   v-model="values.CheckHiddenVersionExport"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenVersionSave"
                   style="
                     height: 22px;
@@ -1077,7 +1118,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.Save')"
                   v-model="values.CheckHiddenVersionSave"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenVersionScreenshot"
                   style="
                     height: 22px;
@@ -1089,7 +1131,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.Screenshot')"
                   v-model="values.CheckHiddenVersionScreenshot"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenVersionMod"
                   style="
                     height: 22px;
@@ -1101,7 +1144,8 @@ const text = pclText
                   :label="text('Mod')"
                   v-model="values.CheckHiddenVersionMod"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenVersionResourcePack"
                   style="
                     height: 22px;
@@ -1113,7 +1157,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.ResourcePack')"
                   v-model="values.CheckHiddenVersionResourcePack"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenVersionShader"
                   style="
                     height: 22px;
@@ -1125,7 +1170,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.Shader')"
                   v-model="values.CheckHiddenVersionShader"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenVersionSchematic"
                   style="
                     height: 22px;
@@ -1137,7 +1183,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.Schematic')"
                   v-model="values.CheckHiddenVersionSchematic"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenVersionServer"
                   style="
                     height: 22px;
@@ -1159,7 +1206,8 @@ const text = pclText
                   class="pcl-text"
                   >{{ text('Setup.Ui.FeatureHide.SpecificFeature') }}</span
                 >
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenFunctionSelect"
                   style="
                     height: 22px;
@@ -1172,7 +1220,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.InstanceSelect')"
                   v-model="values.CheckHiddenFunctionSelect"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenFunctionModUpdate"
                   style="
                     height: 22px;
@@ -1185,7 +1234,8 @@ const text = pclText
                   :label="text('Setup.Ui.FeatureHide.Item.ModUpdate')"
                   v-model="values.CheckHiddenFunctionModUpdate"
                 />
-                <PCheckBox disabled
+                <PCheckBox
+                  disabled
                   data-control="CheckHiddenFunctionHidden"
                   style="
                     height: 22px;

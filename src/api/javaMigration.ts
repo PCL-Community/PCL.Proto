@@ -14,12 +14,15 @@ export async function migrateLegacyInstanceJava() {
       const path = value?.ComboArgumentJava
       if (typeof path !== 'string' && typeof value?.CheckAdvanceJava !== 'boolean') continue
       legacy[id] = {
-        preference: typeof path === 'string' && path !== '0' && path !== ''
-          ? { kind: 'exist', java_exe: path }
-          : { kind: 'auto' },
+        preference:
+          typeof path === 'string' && path !== '0' && path !== ''
+            ? { kind: 'exist', java_exe: path }
+            : { kind: 'auto' },
         ignore_compatibility: value?.CheckAdvanceJava === true,
       }
-    } catch { /* Keep malformed legacy data intact. */ }
+    } catch {
+      /* Keep malformed legacy data intact. */
+    }
   }
   return Object.keys(legacy).length
     ? invoke<string[]>('migrate_instance_java_settings', { legacy })

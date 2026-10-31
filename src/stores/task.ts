@@ -143,7 +143,9 @@ export const useTaskManager = defineStore('task-manager', () => {
       // Only the command result commits the overall task to a terminal state.
     }
     try {
-      const result = await invoke<string | { selected: boolean; selection_error: string | null } | void>(command, {
+      const result = await invoke<
+        string | { selected: boolean; selection_error: string | null } | void
+      >(command, {
         ...args,
         on_event: onEvent,
         version_id: versionId,
@@ -158,10 +160,14 @@ export const useTaskManager = defineStore('task-manager', () => {
         item.speed = 0
       })
       if (kind === 'install' && result && typeof result === 'object') {
-        if (result.selection_error) sideTip.show(pclText('Proto.Install.SelectionFailed', [result.selection_error]), 'warn')
-        if (result.selected) void useSelectedInstance().fetch().catch((error) =>
-          sideTip.show(pclText('Proto.Install.SelectionFailed', [String(error)]), 'warn'),
-        )
+        if (result.selection_error)
+          sideTip.show(pclText('Proto.Install.SelectionFailed', [result.selection_error]), 'warn')
+        if (result.selected)
+          void useSelectedInstance()
+            .fetch()
+            .catch((error) =>
+              sideTip.show(pclText('Proto.Install.SelectionFailed', [String(error)]), 'warn'),
+            )
       }
       return result
     } catch (error) {
@@ -174,12 +180,19 @@ export const useTaskManager = defineStore('task-manager', () => {
       throw error
     } finally {
       task.speed = 0
-      if (!activeTaskCount.value && floatButton.floatButtonState.type === FloatButtonType.TaskManage)
+      if (
+        !activeTaskCount.value &&
+        floatButton.floatButtonState.type === FloatButtonType.TaskManage
+      )
         floatButton.floatButtonState.visible = false
     }
   }
 
-  function startDownloadMCVersion(versionId: string, instanceName: string, fabric?: { family: 'fabric' | 'legacyfabric'; version: string }) {
+  function startDownloadMCVersion(
+    versionId: string,
+    instanceName: string,
+    fabric?: { family: 'fabric' | 'legacyfabric'; version: string },
+  ) {
     return runDownload(
       versionId,
       'download_minecraft_version',

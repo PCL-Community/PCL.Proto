@@ -40,7 +40,8 @@ const fallback = `${import.meta.env.BASE_URL}pcl/images/Icons/NoIcon.png`
         @click="() => emit('update')"
         :title="pclText('Instance.Resource.Filter.Updatable')"
         :aria-label="pclText('Instance.Resource.Filter.Updatable')"
-        ><PSvgIcon name="lucide/upload" :size="15" /></button
+      >
+        <PSvgIcon name="lucide/upload" :size="15" /></button
       ><button
         class="pcl-icon-button"
         type="button"
@@ -52,9 +53,16 @@ const fallback = `${import.meta.env.BASE_URL}pcl/images/Icons/NoIcon.png`
               : 'Instance.Resource.Filter.Disabled',
           )
         "
-        :aria-label="pclText(enabled === false ? 'Instance.Resource.Filter.Enabled' : 'Instance.Resource.Filter.Disabled')"
-        ><PSvgIcon :name="enabled === false ? 'lucide/check' : 'lucide/x'" :size="15" /></button
-      ></template>
+        :aria-label="
+          pclText(
+            enabled === false
+              ? 'Instance.Resource.Filter.Enabled'
+              : 'Instance.Resource.Filter.Disabled',
+          )
+        "
+      >
+        <PSvgIcon :name="enabled === false ? 'lucide/check' : 'lucide/x'" :size="15" /></button
+    ></template>
     <template #actions><slot name="actions" /></template>
   </PListItem>
 </template>

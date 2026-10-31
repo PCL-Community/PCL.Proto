@@ -50,7 +50,10 @@ export function saveLogSettings() {
   logSaveError.value = ''
   pending = pending.then(async () => {
     try {
-      await invoke('set_log_max_lines', { lines: Number.isFinite(lines) ? lines : 0, migrateOnly: false })
+      await invoke('set_log_max_lines', {
+        lines: Number.isFinite(lines) ? lines : 0,
+        migrateOnly: false,
+      })
     } catch (error) {
       if (logSlider.value === value) logSaveError.value = String(error)
     }

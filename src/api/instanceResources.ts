@@ -1,13 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 
 export type InstanceResourceKind =
-  | 'mod'
-  | 'resourcepack'
-  | 'shader'
-  | 'schematic'
-  | 'screenshot'
-  | 'save'
-  | 'datapack'
+  'mod' | 'resourcepack' | 'shader' | 'schematic' | 'screenshot' | 'save' | 'datapack'
 
 export interface InstanceResourceEntry {
   name: string

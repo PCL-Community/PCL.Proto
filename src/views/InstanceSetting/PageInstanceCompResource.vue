@@ -156,10 +156,7 @@ const text = pclText
         >
           <div data-control="PanBack" style="grid-row: 1 / span 1; grid-column: 1 / span 1">
             <div v-if="items.length && !error" class="resource-main">
-              <PSearchBox
-                v-model="query"
-                :placeholder="text('Instance.Resource.Search.Hint')"
-              />
+              <PSearchBox v-model="query" :placeholder="text('Instance.Resource.Search.Hint')" />
               <PCard hide-title
                 ><div class="resource-actions">
                   <PButton
@@ -179,16 +176,23 @@ const text = pclText
                         key: 'Instance.Resource.DownloadNew',
                         run: downloadResources,
                       },
-                      { id: 'BtnManageInfoExport', key: 'Instance.Resource.ExportInfo' },
-                      { id: 'BtnManageCheck', key: 'Instance.Resource.CheckMods' },
+                      {
+                        id: 'BtnManageInfoExport',
+                        key: 'Instance.Resource.ExportInfo',
+                        run: showUnavailable,
+                      },
+                      {
+                        id: 'BtnManageCheck',
+                        key: 'Instance.Resource.CheckMods',
+                        run: showUnavailable,
+                      },
                     ]"
                     :key="action.id"
-                    @click="(action.run || showUnavailable)()"
+                    @click="action.run()"
                     >{{ text(action.key) }}</PButton
-                  ><PButton
-                    @click="
-                      () => visibleItems.forEach((item) => selected.add(item.id))
-                    ">{{ text('Instance.Resource.SelectAll') }}</PButton
+                  ><PButton @click="() => visibleItems.forEach((item) => selected.add(item.id))">{{
+                    text('Instance.Resource.SelectAll')
+                  }}</PButton
                   ><RouterLink
                     to="/instance_setting/mod/jarinjar"
                     :title="text('Instance.Resource.Mod.JarInJar.Entry.ToolTip')"

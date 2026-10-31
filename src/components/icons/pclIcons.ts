@@ -90,7 +90,7 @@ import {
   User,
   UserPlus,
   Wrench,
-  X
+  X,
 } from '@lucide/vue'
 
 import type { Component } from 'vue'

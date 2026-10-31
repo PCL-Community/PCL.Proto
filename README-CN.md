@@ -31,7 +31,6 @@
 
 - 对于 Windows 平台，你还需要下载并配置 [Npcap SDK](https://npcap.com/#download)；对于 macOS，你需要通过 Homebrew 安装 protobuf（`brew install protobuf`）；对于 Ubuntu，你需要安装以下软件包：`libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf protobuf-compiler`。
 
-
 > [!NOTE]
 > 如有疑惑，可参考 [前置要求 | Tauri](https://tauri.app/zh-cn/start/prerequisites/)。
 

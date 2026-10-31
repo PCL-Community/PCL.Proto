@@ -73,7 +73,8 @@ const text = pclText
                   class="pcl-text"
                   >{{ text('Setup.Language.FormatCulture') }}</span
                 >
-                <PComboBox disabled
+                <PComboBox
+                  disabled
                   data-control="ComboUiFormatCulture"
                   style="grid-row: 3 / span 1; grid-column: 2 / span 2"
                   :options="[

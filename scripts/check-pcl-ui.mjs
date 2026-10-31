@@ -274,7 +274,10 @@ for (const [version, drop] of [
   assert.equal(versionDrop(version), drop)
 const selected = { Forge: '47', OptiFine: 'HD', LiteLoader: '1.12' }
 assert.equal(instanceDefaultName('1.20.1', { Forge: '47.2.0' }), '1.20.1-Forge_47.2.0')
-assert.equal(instanceDefaultName('1.12.2', { LiteLoader: '1', OptiFine: 'HD U F5' }), '1.12.2-LiteLoader-OptiFine_HD_U_F5')
+assert.equal(
+  instanceDefaultName('1.12.2', { LiteLoader: '1', OptiFine: 'HD U F5' }),
+  '1.12.2-LiteLoader-OptiFine_HD_U_F5',
+)
 assert.equal(loaderConflict('Forge', { Fabric: '0.16' }, '1.20.1'), 'Fabric')
 assert.equal(loaderConflict('LegacyFabric', { LiteLoader: '1' }, '1.12.2'), 'LiteLoader')
 assert.equal(loaderConflict('Forge', { OptiFine: 'HD' }, '1.14.3'), 'OptiFine')

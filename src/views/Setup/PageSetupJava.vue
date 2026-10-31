@@ -143,42 +143,42 @@ onMounted(() => load())
               @click="select(runtime)"
             >
               <template #icon-actions>
-                  <button
-                    class="pcl-icon-button"
-                    type="button"
-                    :title="text('Common.Action.Open')"
-                    :aria-label="text('Common.Action.Open')"
-                    @click="
-                      () => change(() => invoke('open_java_folder', { javaExe: runtime.java_exe }))
-                    "
-                    :disabled="saving || loading"
-                  >
-                    <PSvgIcon name="lucide/folder-open" :size="15" />
-                  </button>
-                  <button
-                    class="pcl-icon-button"
-                    type="button"
-                    :title="text('Setup.Java.Detail.ToolTip')"
-                    :aria-label="text('Setup.Java.Detail.ToolTip')"
-                    @click="info(runtime)"
-                  >
-                    <PSvgIcon name="lucide/info" :size="15" />
-                  </button>
-                  <button
-                    class="pcl-icon-button"
-                    type="button"
-                    :title="text(runtime.is_enabled ? 'Setup.Java.Disable' : 'Setup.Java.Enable')"
-                    :aria-label="
-                      text(runtime.is_enabled ? 'Setup.Java.Disable' : 'Setup.Java.Enable')
-                    "
-                    @click="toggle(runtime)"
-                    :disabled="saving || loading"
-                  >
-                    <PSvgIcon
-                      :name="runtime.is_enabled ? 'lucide/circle-minus' : 'lucide/circle-check'"
-                      :size="15"
-                    />
-                  </button>
+                <button
+                  class="pcl-icon-button"
+                  type="button"
+                  :title="text('Common.Action.Open')"
+                  :aria-label="text('Common.Action.Open')"
+                  @click="
+                    () => change(() => invoke('open_java_folder', { javaExe: runtime.java_exe }))
+                  "
+                  :disabled="saving || loading"
+                >
+                  <PSvgIcon name="lucide/folder-open" :size="15" />
+                </button>
+                <button
+                  class="pcl-icon-button"
+                  type="button"
+                  :title="text('Setup.Java.Detail.ToolTip')"
+                  :aria-label="text('Setup.Java.Detail.ToolTip')"
+                  @click="info(runtime)"
+                >
+                  <PSvgIcon name="lucide/info" :size="15" />
+                </button>
+                <button
+                  class="pcl-icon-button"
+                  type="button"
+                  :title="text(runtime.is_enabled ? 'Setup.Java.Disable' : 'Setup.Java.Enable')"
+                  :aria-label="
+                    text(runtime.is_enabled ? 'Setup.Java.Disable' : 'Setup.Java.Enable')
+                  "
+                  @click="toggle(runtime)"
+                  :disabled="saving || loading"
+                >
+                  <PSvgIcon
+                    :name="runtime.is_enabled ? 'lucide/circle-minus' : 'lucide/circle-check'"
+                    :size="15"
+                  />
+                </button>
               </template>
             </PListItem>
             <PHint v-if="!loading && !java.runtimes.length && !error" severity="info">{{

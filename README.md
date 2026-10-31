@@ -29,9 +29,10 @@ In case you would like to modify the prototype design file, you are welcome to [
 ### Prerequisites
 
 - First, please ensure that `nodejs` or `bun` is installed on your device. If you use `bun` as the package manager, you can replace all `pnpm` commands below with `bun`.
-- The device should have a usable rust toolchain installed. 
+- The device should have a usable rust toolchain installed.
 
 ### Platform Specific
+
 - Windows: the MSVC version of the toolchain is required. Additionally, ensure that you have installed the MSVC suite from the C++ development tools and the Windows SDK in the Visual Studio Installer. You also need to download and configure the [Npcap SDK](https://npcap.com/#download).
 - macOS: make sure that Xcode is installed. You also need to install protobuf via Homebrew (`brew install protobuf`).
 - Ubuntu: you need to install the following packages: `libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf protobuf-compiler`.
@@ -80,6 +81,7 @@ I want to make this project into a Vue component npm package, but I don't know h
 > —— Sir Isaac Newton
 
 ### Directed referenced projects
+
 - [Vue.js](https://github.com/vuejs/core)
 - [TypeScript](https://github.com/microsoft/TypeScript)
 - [Pug](https://github.com/pugjs/pug)
@@ -94,6 +96,7 @@ I want to make this project into a Vue component npm package, but I don't know h
 - [Terracotta](https://github.com/burningtnt/Terracotta)
 
 ### Implementation or design reference
+
 - [Plain Craft Launcher](https://github.com/Meloong-Git/PCL)
 - [PCL2-CE](https://github.com/PCL-Community/PCL2-CE)
 - [PCL.Neo](https://github.com/PCL-Community/PCL.Neo)

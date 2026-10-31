@@ -69,30 +69,30 @@ src-tauri/src/
 
 ## 3. 关键结构映射
 
-| PCL.Core / CE | Rust | 说明 |
-| --- | --- | --- |
-| `Minecraft.Java.JavaInstallation` | `minecraft::java::JavaInstallation` | 保存 `java_folder`/`java_exe`/`version`/`brand`/`architecture`/`is_64_bit`/`is_jre`/`compatibility`。 |
-| `Minecraft.Java.JavaEntry` | `minecraft::java::JavaEntry` | `installation` + `is_enabled` + `source`；通过 `Deref` 保留便捷字段访问。 |
-| `Minecraft.Java.JavaManager` | `minecraft::java::JavaManager` | 以可执行路径为键；排序、扫描合并、手动导入、启用状态、`SelectSuitableJava` 语义。 |
-| `Minecraft.Java.JavaSource` | `minecraft::java::JavaSource` | `AutoScanned` / `AutoInstalled` / `ManualAdded`。 |
-| `Minecraft.Java.JavaBrandType` | `minecraft::java::JavaBrandType` | 13 个品牌值与偏好排序。 |
-| `Minecraft.Java.JavaStorageItem` | `minecraft::java::JavaStorageItem` | 持久化最小记录（路径、启用、来源），供后续配置拆分复用。 |
-| `Minecraft.MavenArtifact` | `minecraft::maven::MavenArtifact` | 3/4/5 段坐标、classifier、`@ext` 覆盖与仓库相对路径。 |
-| `Minecraft.McVersionClassifier` | `minecraft::classifier::{McVersionClassifier, McVersionCategory}` | 正式版/快照/远古版/愚人节分类；不含 UI 文案。 |
-| `Minecraft.McFormatter` | `minecraft::formatter` | `format_version`、Wiki 语言前缀与搜索路径。 |
-| `McInstance`（CE） | `minecraft::instance::McInstance` | 实例目录、JAR、版本、加载器、全局目录；新增 `info()`/`state()`/`modable()`。 |
-| `McInstanceInfo` / `McInstanceState`（CE） | `minecraft::instance::{McInstanceInfo, McInstanceState}` | 加载器版本与派生状态；`McInstance::info()/state()/modable()`。 |
-| `ModFolder.McFolder`（CE） | `minecraft::instance::folder::McFolder` | 新增 `McFolderType`（Original/RenamedOriginal/Custom）。 |
-| `McInstanceFolder`（CE 快捷目录） | `minecraft::instance::McInstanceFolder` | 实例/存档/模组快捷目录。 |
-| `Profile.Models.McProfile` / `ProfileType` | `minecraft::profile::{McProfile, ProfileType}` | 统一账户档案；保留 Microsoft/Authlib/Xbox 启动所需字段。 |
-| `Profile.Models.SafeProfile` | `minecraft::profile::SafeProfile` | `get_account` 的 UI 视图，不返回 access/refresh token、xuid 或密码。 |
-| `Utils.Result` | Rust 原生 `Result` | 不重复造 `Result` 类型。 |
-| `Utils.Secret.Identify` | `utils::secret::Identify` | 设备序列号与启动器标识派生；保留 Proto 的平台实现。 |
-| `Link.McPing.Model.McPing*` | `link::mcping::model::{McPingResult, McPingPlayerResult, ...}` | 服务器状态 JSON 的类型化结果；`description` 保留原始 chat component。 |
-| `App.ConfigEnums.LauncherVisibility` | `app::visibility::LauncherVisibility` | 保留现有隐藏/最小化/保持不变行为，不启用未实现的全屏/立即退出分支。 |
-| `Utils.SemVer` / `VersionRange` | 暂未引入 | 当前版本比较由 `JavaVersion`、Maven/加载器逻辑覆盖；待有调用方时再补。 |
-| `Minecraft.Saves.SaveInfo` | 暂未引入 | 存档 NBT 尚未实现，留待后续 `minecraft/saves`。 |
-| `IO.Storage.Cache`、`App.Tasks`、`App.EventBus` | 暂未引入 | 属于后续缺失子系统，不在本轮“现有功能对齐”范围内。 |
+| PCL.Core / CE                                   | Rust                                                              | 说明                                                                                                  |
+| ----------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `Minecraft.Java.JavaInstallation`               | `minecraft::java::JavaInstallation`                               | 保存 `java_folder`/`java_exe`/`version`/`brand`/`architecture`/`is_64_bit`/`is_jre`/`compatibility`。 |
+| `Minecraft.Java.JavaEntry`                      | `minecraft::java::JavaEntry`                                      | `installation` + `is_enabled` + `source`；通过 `Deref` 保留便捷字段访问。                             |
+| `Minecraft.Java.JavaManager`                    | `minecraft::java::JavaManager`                                    | 以可执行路径为键；排序、扫描合并、手动导入、启用状态、`SelectSuitableJava` 语义。                     |
+| `Minecraft.Java.JavaSource`                     | `minecraft::java::JavaSource`                                     | `AutoScanned` / `AutoInstalled` / `ManualAdded`。                                                     |
+| `Minecraft.Java.JavaBrandType`                  | `minecraft::java::JavaBrandType`                                  | 13 个品牌值与偏好排序。                                                                               |
+| `Minecraft.Java.JavaStorageItem`                | `minecraft::java::JavaStorageItem`                                | 持久化最小记录（路径、启用、来源），供后续配置拆分复用。                                              |
+| `Minecraft.MavenArtifact`                       | `minecraft::maven::MavenArtifact`                                 | 3/4/5 段坐标、classifier、`@ext` 覆盖与仓库相对路径。                                                 |
+| `Minecraft.McVersionClassifier`                 | `minecraft::classifier::{McVersionClassifier, McVersionCategory}` | 正式版/快照/远古版/愚人节分类；不含 UI 文案。                                                         |
+| `Minecraft.McFormatter`                         | `minecraft::formatter`                                            | `format_version`、Wiki 语言前缀与搜索路径。                                                           |
+| `McInstance`（CE）                              | `minecraft::instance::McInstance`                                 | 实例目录、JAR、版本、加载器、全局目录；新增 `info()`/`state()`/`modable()`。                          |
+| `McInstanceInfo` / `McInstanceState`（CE）      | `minecraft::instance::{McInstanceInfo, McInstanceState}`          | 加载器版本与派生状态；`McInstance::info()/state()/modable()`。                                        |
+| `ModFolder.McFolder`（CE）                      | `minecraft::instance::folder::McFolder`                           | 新增 `McFolderType`（Original/RenamedOriginal/Custom）。                                              |
+| `McInstanceFolder`（CE 快捷目录）               | `minecraft::instance::McInstanceFolder`                           | 实例/存档/模组快捷目录。                                                                              |
+| `Profile.Models.McProfile` / `ProfileType`      | `minecraft::profile::{McProfile, ProfileType}`                    | 统一账户档案；保留 Microsoft/Authlib/Xbox 启动所需字段。                                              |
+| `Profile.Models.SafeProfile`                    | `minecraft::profile::SafeProfile`                                 | `get_account` 的 UI 视图，不返回 access/refresh token、xuid 或密码。                                  |
+| `Utils.Result`                                  | Rust 原生 `Result`                                                | 不重复造 `Result` 类型。                                                                              |
+| `Utils.Secret.Identify`                         | `utils::secret::Identify`                                         | 设备序列号与启动器标识派生；保留 Proto 的平台实现。                                                   |
+| `Link.McPing.Model.McPing*`                     | `link::mcping::model::{McPingResult, McPingPlayerResult, ...}`    | 服务器状态 JSON 的类型化结果；`description` 保留原始 chat component。                                 |
+| `App.ConfigEnums.LauncherVisibility`            | `app::visibility::LauncherVisibility`                             | 保留现有隐藏/最小化/保持不变行为，不启用未实现的全屏/立即退出分支。                                   |
+| `Utils.SemVer` / `VersionRange`                 | 暂未引入                                                          | 当前版本比较由 `JavaVersion`、Maven/加载器逻辑覆盖；待有调用方时再补。                                |
+| `Minecraft.Saves.SaveInfo`                      | 暂未引入                                                          | 存档 NBT 尚未实现，留待后续 `minecraft/saves`。                                                       |
+| `IO.Storage.Cache`、`App.Tasks`、`App.EventBus` | 暂未引入                                                          | 属于后续缺失子系统，不在本轮“现有功能对齐”范围内。                                                    |
 
 ## 4. 兼容与迁移
 

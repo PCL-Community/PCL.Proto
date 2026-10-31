@@ -72,9 +72,12 @@ void initializePclLocale().then(async () => {
     }
   }
   app.mount('#app')
-  if (pendingJava.length) sideTip.show(pclText('Proto.Java.LegacyMigrationPending', [pendingJava.length]), 'warn')
-  if (pendingPages) sideTip.show(pclText('Proto.Instance.LegacyPagesPending', [pendingPages]), 'warn')
-  if (pendingMemory) sideTip.show(pclText('Proto.Instance.LegacyMemoryPending', [pendingMemory]), 'warn')
+  if (pendingJava.length)
+    sideTip.show(pclText('Proto.Java.LegacyMigrationPending', [pendingJava.length]), 'warn')
+  if (pendingPages)
+    sideTip.show(pclText('Proto.Instance.LegacyPagesPending', [pendingPages]), 'warn')
+  if (pendingMemory)
+    sideTip.show(pclText('Proto.Instance.LegacyMemoryPending', [pendingMemory]), 'warn')
 })
 
 // some async actions

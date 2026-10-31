@@ -110,7 +110,9 @@ export function downloadSettings(values?: Record<string, unknown>): DownloadSett
     http_mode: integer('ComboDownloadHttpMode', 0, 2),
     file_source: integer('ComboDownloadSource', 1, 2),
     version_source: integer('ComboDownloadVersion', 1, 2),
-    auto_select_instance: typeof settings.CheckDownloadAutoSelectVersion === 'boolean'
-      ? settings.CheckDownloadAutoSelectVersion : true,
+    auto_select_instance:
+      typeof settings.CheckDownloadAutoSelectVersion === 'boolean'
+        ? settings.CheckDownloadAutoSelectVersion
+        : true,
   }
 }

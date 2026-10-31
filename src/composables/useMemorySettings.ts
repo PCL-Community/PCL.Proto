@@ -1,8 +1,19 @@
 import { ref, watch, computed, getCurrentInstance, onMounted, onUnmounted, type Ref } from 'vue'
 import { isTauri } from '@tauri-apps/api/core'
-import { memoryMibToTick, memoryTickToMib, previewMemorySettings, readMemorySettings, saveMemorySettings, type MemorySettings, type MemoryPreview } from '@/api/memorySettings'
+import {
+  memoryMibToTick,
+  memoryTickToMib,
+  previewMemorySettings,
+  readMemorySettings,
+  saveMemorySettings,
+  type MemorySettings,
+  type MemoryPreview,
+} from '@/api/memorySettings'
 
-export function useMemorySettings(directory?: Ref<string | undefined>, is64Bit?: Ref<boolean | null>) {
+export function useMemorySettings(
+  directory?: Ref<string | undefined>,
+  is64Bit?: Ref<boolean | null>,
+) {
   const mode = ref<'inherit' | 'auto' | 'custom'>(directory ? 'inherit' : 'custom')
   const maximum = ref(15)
   const initial = ref(0)
@@ -11,9 +22,13 @@ export function useMemorySettings(directory?: Ref<string | undefined>, is64Bit?:
   const preview = ref<MemoryPreview | null>(null)
   const segments = computed(() => {
     if (!preview.value) return { used: 0, game: 0, empty: 100 }
-    const { total_bytes: total, available_bytes: available, allocation_mib: allocation } = preview.value
-    const used = (total - available) / total * 100
-    const game = Math.min(available, (allocation ?? 0) * 1024 * 1024) / total * 100
+    const {
+      total_bytes: total,
+      available_bytes: available,
+      allocation_mib: allocation,
+    } = preview.value
+    const used = ((total - available) / total) * 100
+    const game = (Math.min(available, (allocation ?? 0) * 1024 * 1024) / total) * 100
     return { used, game, empty: Math.max(0, 100 - used - game) }
   })
   let generation = 0
@@ -34,7 +49,8 @@ export function useMemorySettings(directory?: Ref<string | undefined>, is64Bit?:
       if (current !== generation) return
       mode.value = result.settings?.mode || 'inherit'
       maximum.value = memoryMibToTick(result.custom.maximum_mib)
-      initial.value = result.custom.initial_mib !== null ? memoryMibToTick(result.custom.initial_mib) : 0
+      initial.value =
+        result.custom.initial_mib !== null ? memoryMibToTick(result.custom.initial_mib) : 0
       error.value = result.error
       ready.value = true
     } catch (failure) {
@@ -43,11 +59,20 @@ export function useMemorySettings(directory?: Ref<string | undefined>, is64Bit?:
   }
   function snapshot() {
     const max = memoryTickToMib(maximum.value)
-    const custom = { maximum_mib: max, initial_mib: initial.value === 0 ? null : memoryTickToMib(initial.value) }
-    const settings: MemorySettings | null = mode.value === 'inherit' ? null : mode.value === 'auto' ? { mode: 'auto' } : {
-      mode: 'custom', maximum_mib: max,
-      initial_mib: custom.initial_mib === null ? null : Math.min(max, custom.initial_mib),
+    const custom = {
+      maximum_mib: max,
+      initial_mib: initial.value === 0 ? null : memoryTickToMib(initial.value),
     }
+    const settings: MemorySettings | null =
+      mode.value === 'inherit'
+        ? null
+        : mode.value === 'auto'
+          ? { mode: 'auto' }
+          : {
+              mode: 'custom',
+              maximum_mib: max,
+              initial_mib: custom.initial_mib === null ? null : Math.min(max, custom.initial_mib),
+            }
     return { settings, custom }
   }
   function save() {
@@ -63,20 +88,36 @@ export function useMemorySettings(directory?: Ref<string | undefined>, is64Bit?:
   function refreshPreview() {
     const revision = ++previewRevision
     const path = directory ? directory.value : null
-    if (!isTauri() || !ready.value || path === undefined) { preview.value = null; return }
-    void previewMemorySettings(path, snapshot().settings, is64Bit?.value ?? null).then((result) => {
-      if (revision === previewRevision) preview.value = result
-    }).catch((failure) => {
-      if (revision === previewRevision) preview.value = null
-      console.warn('Unable to read memory preview', failure)
-    })
+    if (!isTauri() || !ready.value || path === undefined) {
+      preview.value = null
+      return
+    }
+    void previewMemorySettings(path, snapshot().settings, is64Bit?.value ?? null)
+      .then((result) => {
+        if (revision === previewRevision) preview.value = result
+      })
+      .catch((failure) => {
+        if (revision === previewRevision) preview.value = null
+        console.warn('Unable to read memory preview', failure)
+      })
   }
   if (getCurrentInstance()) {
     onMounted(() => {
-      watch([mode, maximum, initial, ready, ...(directory ? [directory] : []), ...(is64Bit ? [is64Bit] : [])], () => {
-        clearTimeout(timer)
-        timer = setTimeout(refreshPreview, 150)
-      }, { immediate: true })
+      watch(
+        [
+          mode,
+          maximum,
+          initial,
+          ready,
+          ...(directory ? [directory] : []),
+          ...(is64Bit ? [is64Bit] : []),
+        ],
+        () => {
+          clearTimeout(timer)
+          timer = setTimeout(refreshPreview, 150)
+        },
+        { immediate: true },
+      )
       interval = setInterval(refreshPreview, 5000)
     })
     onUnmounted(() => {
@@ -90,4 +131,6 @@ export function useMemorySettings(directory?: Ref<string | undefined>, is64Bit?:
   return { mode, maximum, initial, ready, error, preview, segments, load, save }
 }
 
-export function memoryGiB(bytes: number) { return `${(bytes / 1073741824).toFixed(1)} GiB` }
+export function memoryGiB(bytes: number) {
+  return `${(bytes / 1073741824).toFixed(1)} GiB`
+}

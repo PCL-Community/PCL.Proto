@@ -27,20 +27,25 @@ interface GameSession {
 const sessions = ref<GameSession[]>([])
 const selectedId = ref('')
 const selected = computed(() => sessions.value.find((session) => session.id === selectedId.value))
-const options = computed(() => sessions.value.map((session) => ({
-  key: session.id,
-  text: `${session.instance_directory.split(/[\\/]/).pop()} (${session.pid}) - ${session.running ? text('Proto.Session.Running') : session.error || text('Proto.Session.Exited', [session.exit_code ?? '?'])}`,
-})))
+const options = computed(() =>
+  sessions.value.map((session) => ({
+    key: session.id,
+    text: `${session.instance_directory.split(/[\\/]/).pop()} (${session.pid}) - ${session.running ? text('Proto.Session.Running') : session.error || text('Proto.Session.Exited', [session.exit_code ?? '?'])}`,
+  })),
+)
 let timer: ReturnType<typeof setTimeout> | undefined
 let request = 0
 let mounted = false
 async function refresh() {
   const current = ++request
   try {
-    const result = await invoke<GameSession[]>('get_game_sessions', { id: selectedId.value || null })
+    const result = await invoke<GameSession[]>('get_game_sessions', {
+      id: selectedId.value || null,
+    })
     if (!mounted || current !== request) return
     sessions.value = result
-    if (!result.some((session) => session.id === selectedId.value)) selectedId.value = result[0]?.id || ''
+    if (!result.some((session) => session.id === selectedId.value))
+      selectedId.value = result[0]?.id || ''
   } catch (error) {
     if (mounted && current === request) console.warn('Cannot read game sessions', error)
   }
@@ -53,23 +58,41 @@ onMounted(() => {
   }
   if (isTauri()) void poll()
 })
-onUnmounted(() => { mounted = false; request++; clearTimeout(timer) })
+onUnmounted(() => {
+  mounted = false
+  request++
+  clearTimeout(timer)
+})
 const maxLines = computed(() => maxLogLines(logSlider.value))
-const rawLog = computed(() => selected.value ? selected.value.lines.join('\n') : cleared.value ? '' : props.log)
-const content = computed(() =>
-  rawLog.value.split('\n').slice(-maxLines.value).join('\n'),
+const rawLog = computed(() =>
+  selected.value ? selected.value.lines.join('\n') : cleared.value ? '' : props.log,
 )
+const content = computed(() => rawLog.value.split('\n').slice(-maxLines.value).join('\n'))
 async function clearLog() {
-  if (!selected.value) { cleared.value = true; return }
-  try { await invoke('clear_game_session_log', { id: selected.value.id }); await refresh() }
-  catch (error) { sideTip.show(text('Proto.Session.Error', [String(error)]), 'warn') }
+  if (!selected.value) {
+    cleared.value = true
+    return
+  }
+  try {
+    await invoke('clear_game_session_log', { id: selected.value.id })
+    await refresh()
+  } catch (error) {
+    sideTip.show(text('Proto.Session.Error', [String(error)]), 'warn')
+  }
 }
 async function stopGame() {
   if (!selected.value?.running) return
-  try { await invoke('stop_game_session', { id: selected.value.id }); await refresh() }
-  catch (error) { sideTip.show(text('Proto.Session.Error', [String(error)]), 'warn'); await refresh() }
+  try {
+    await invoke('stop_game_session', { id: selected.value.id })
+    await refresh()
+  } catch (error) {
+    sideTip.show(text('Proto.Session.Error', [String(error)]), 'warn')
+    await refresh()
+  }
 }
-watch(selectedId, () => { if (mounted) void refresh() })
+watch(selectedId, () => {
+  if (mounted) void refresh()
+})
 watch(
   [content, autoScroll],
   () => {
@@ -93,7 +116,12 @@ function exportText(value: string, filename: string) {
 </script>
 <template>
   <article class="subview pcl-page log-page">
-    <PComboBox v-if="sessions.length" v-model="selectedId" :options="options" :title="text('Proto.Session.Select')" />
+    <PComboBox
+      v-if="sessions.length"
+      v-model="selectedId"
+      :options="options"
+      :title="text('Proto.Session.Select')"
+    />
     <PCard hide-title class="log-content">
       <pre ref="logElement">{{ content || pclText('Proto.Empty.Log') }}</pre>
     </PCard>
@@ -117,7 +145,10 @@ function exportText(value: string, filename: string) {
           ><PSvgIcon name="lucide/package" />{{ text('LogPage.Action.ExportStack') }}</PButton
         >
       </div>
-      <p v-if="logSaveError" role="alert">{{ logSaveError }} <button @click="saveLogSettings">{{ text('Launch.Homepage.LoadFailed.Retry') }}</button></p>
+      <p v-if="logSaveError" role="alert">
+        {{ logSaveError }}
+        <button @click="saveLogSettings">{{ text('Launch.Homepage.LoadFailed.Retry') }}</button>
+      </p>
       <div class="log-limit">
         <label for="SliderMaxLog">{{ text('LogPage.MaxLines.Title') }}</label
         ><input

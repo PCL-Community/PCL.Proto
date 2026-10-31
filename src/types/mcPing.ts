@@ -1,6 +1,5 @@
 export type ExtraItem =
-  | string
-  | { text: string; extra?: ExtraItem[]; bold?: boolean; color?: string }
+  string | { text: string; extra?: ExtraItem[]; bold?: boolean; color?: string }
 
 export interface MCPingResult {
   version: {

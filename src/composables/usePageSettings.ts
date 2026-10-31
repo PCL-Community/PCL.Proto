@@ -88,15 +88,19 @@ export function usePageSettings<
     },
     { deep: true, flush: 'sync' },
   )
-  watch(storageKey, () => {
-    loading = true
-    try {
-      Object.keys(values).forEach((key) => delete values[key])
-      Object.assign(values, initialDefaults, loadValues())
-    } finally {
-      loading = false
-    }
-  }, { flush: 'sync' })
+  watch(
+    storageKey,
+    () => {
+      loading = true
+      try {
+        Object.keys(values).forEach((key) => delete values[key])
+        Object.assign(values, initialDefaults, loadValues())
+      } finally {
+        loading = false
+      }
+    },
+    { flush: 'sync' },
+  )
   function reset(key?: keyof typeof values) {
     if (key) {
       Object.assign(values, { [key]: initialDefaults[String(key)] })

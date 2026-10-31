@@ -5,7 +5,9 @@ const fields: Record<string, Record<string, string | boolean>> = {
   PageInstanceOverall: { ComboDisplayLogo: '0', ComboDisplayType: '0' },
   PageInstanceSavesDatapack: { filter: 'All', SearchBox: '' },
   PageInstanceExport: {
-    TextExportName: '', TextExportVersion: '', CheckAdvancedInclude: false,
+    TextExportName: '',
+    TextExportVersion: '',
+    CheckAdvancedInclude: false,
     CheckAdvancedModrinth: false,
     ...Object.fromEntries(exportOptions.map((option) => [option.id, option.checked])),
   },
@@ -20,7 +22,11 @@ export async function migrateLegacyInstancePages(): Promise<number> {
       const prefix = `pcl-ui:${page}:`
       if (!key.startsWith(prefix)) continue
       const id = key.slice(prefix.length)
-      if (id && id !== 'none' && !localStorage.getItem(`pcl-instance-migrated:${encodeURIComponent(key)}`)) {
+      if (
+        id &&
+        id !== 'none' &&
+        !localStorage.getItem(`pcl-instance-migrated:${encodeURIComponent(key)}`)
+      ) {
         records.push({ key, page, id })
       }
     }
@@ -28,7 +34,9 @@ export async function migrateLegacyInstancePages(): Promise<number> {
   if (!records.length) return 0
   let matches: Record<string, string>
   try {
-    matches = await invoke('resolve_legacy_instance_ids', { ids: [...new Set(records.map(({ id }) => id))] })
+    matches = await invoke('resolve_legacy_instance_ids', {
+      ids: [...new Set(records.map(({ id }) => id))],
+    })
   } catch (error) {
     console.warn('Cannot verify legacy instance page settings', error)
     return records.length
@@ -36,16 +44,31 @@ export async function migrateLegacyInstancePages(): Promise<number> {
   let pending = 0
   for (const { key, page, id } of records) {
     const directory = Object.prototype.hasOwnProperty.call(matches, id) ? matches[id] : undefined
-    if (!directory) { pending++; continue }
+    if (!directory) {
+      pending++
+      continue
+    }
     let old: unknown
-    try { old = JSON.parse(localStorage.getItem(key) || '') } catch { pending++; continue }
-    if (!old || typeof old !== 'object' || Array.isArray(old)) { pending++; continue }
+    try {
+      old = JSON.parse(localStorage.getItem(key) || '')
+    } catch {
+      pending++
+      continue
+    }
+    if (!old || typeof old !== 'object' || Array.isArray(old)) {
+      pending++
+      continue
+    }
     const target = `pcl-instance-ui:${page}:${encodeURIComponent(directory)}`
     if (localStorage.getItem(target) === null) {
       const allowed = fields[page]!
-      const values = Object.fromEntries(Object.entries(old).filter(([name, value]) =>
-        Object.prototype.hasOwnProperty.call(allowed, name) && typeof value === typeof allowed[name],
-      ))
+      const values = Object.fromEntries(
+        Object.entries(old).filter(
+          ([name, value]) =>
+            Object.prototype.hasOwnProperty.call(allowed, name) &&
+            typeof value === typeof allowed[name],
+        ),
+      )
       localStorage.setItem(target, JSON.stringify(values))
     }
     localStorage.setItem(`pcl-instance-migrated:${encodeURIComponent(key)}`, directory)

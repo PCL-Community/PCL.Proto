@@ -132,7 +132,7 @@ const text = pclText
                 data-control="SearchBox"
                 style="margin: 15px 0px"
                 :placeholder="text('Instance.Resource.Search.Hint')"
-                @search="(query) => (values.SearchBox = query || '')"
+                @search="(query: string) => (values.SearchBox = query || '')"
               />
               <PCard data-control="PanManage" style="margin: 0px 0px 15px 0px" hide-title>
                 <div

@@ -71,7 +71,11 @@ export function instanceLoader(plugins: Partial<Record<pluginType, string>>) {
   return instanceLoaderOrder.find((key) => plugins[key])
 }
 
-export function instanceIcon(version: string, plugins: Partial<Record<pluginType, string>>, versionType?: string) {
+export function instanceIcon(
+  version: string,
+  plugins: Partial<Record<pluginType, string>>,
+  versionType?: string,
+) {
   const key = instanceLoader(plugins) || (plugins.optifine ? 'optifine' : undefined)
   if (key) return showIconPath[key]
   if (versionType && Object.prototype.hasOwnProperty.call(gameInfoIcon, versionType))

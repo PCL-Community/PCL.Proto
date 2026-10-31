@@ -1,6 +1,10 @@
 import { isTauri } from '@tauri-apps/api/core'
 import { getCurrentInstance, onUnmounted, ref, watch, type Ref } from 'vue'
-import { readLaunchArguments, saveLaunchArguments, stageLaunchArguments } from '@/api/launchArguments'
+import {
+  readLaunchArguments,
+  saveLaunchArguments,
+  stageLaunchArguments,
+} from '@/api/launchArguments'
 
 export function useLaunchArguments(directory?: Ref<string | undefined>) {
   const jvm = ref('')
@@ -12,7 +16,7 @@ export function useLaunchArguments(directory?: Ref<string | undefined>) {
   let hydrating = false
   let dirty = false
   let editRevision = 0
-  const currentPath = () => directory ? directory.value : null
+  const currentPath = () => (directory ? directory.value : null)
   async function load() {
     const revision = ++generation
     const path = currentPath()
@@ -31,7 +35,9 @@ export function useLaunchArguments(directory?: Ref<string | undefined>) {
       error.value = result.error
       dirty = result.dirty
       ready.value = true
-    } catch (failure) { if (revision === generation) error.value = String(failure) }
+    } catch (failure) {
+      if (revision === generation) error.value = String(failure)
+    }
   }
   function save(path = currentPath()) {
     if (path === undefined || !dirty) return
@@ -39,22 +45,38 @@ export function useLaunchArguments(directory?: Ref<string | undefined>) {
     const edit = editRevision
     dirty = false
     void saveLaunchArguments(path).catch((failure) => {
-      if (revision === generation && edit === editRevision && path === currentPath()) { error.value = String(failure); dirty = true }
+      if (revision === generation && edit === editRevision && path === currentPath()) {
+        error.value = String(failure)
+        dirty = true
+      }
     })
   }
-  watch([jvm, game, classpath], () => {
-    const path = currentPath()
-    if (hydrating || !ready.value || path === undefined) return
-    stageLaunchArguments(path, { jvm: jvm.value, game: game.value, classpath: classpath.value })
-    editRevision++
-    dirty = true
-    error.value = ''
-  }, { flush: 'sync' })
-  if (directory) watch(directory, (path, old) => {
-    if (old && dirty) save(old)
-    void load()
-  }, { immediate: true, flush: 'sync' })
+  watch(
+    [jvm, game, classpath],
+    () => {
+      const path = currentPath()
+      if (hydrating || !ready.value || path === undefined) return
+      stageLaunchArguments(path, { jvm: jvm.value, game: game.value, classpath: classpath.value })
+      editRevision++
+      dirty = true
+      error.value = ''
+    },
+    { flush: 'sync' },
+  )
+  if (directory)
+    watch(
+      directory,
+      (path, old) => {
+        if (old && dirty) save(old)
+        void load()
+      },
+      { immediate: true, flush: 'sync' },
+    )
   else void load()
-  if (getCurrentInstance()) onUnmounted(() => { save(); generation++ })
+  if (getCurrentInstance())
+    onUnmounted(() => {
+      save()
+      generation++
+    })
   return { jvm, game, classpath, ready, error, load, save }
 }
