@@ -438,12 +438,13 @@ fn extract_natives(archives: &[NativeArchive], destination: &Path) -> anyhow::Re
         let mut archive = zip::ZipArchive::new(fs::File::open(&native.path)?)?;
         for index in 0..archive.len() {
             let mut entry = archive.by_index(index)?;
+            let name = entry.name()?.into_owned();
             if entry.is_dir()
-                || entry.name().starts_with("META-INF/")
+                || name.starts_with("META-INF/")
                 || native
                     .exclude
                     .iter()
-                    .any(|exclude| entry.name().starts_with(exclude))
+                    .any(|exclude| name.starts_with(exclude))
             {
                 continue;
             }
@@ -453,7 +454,7 @@ fn extract_natives(archives: &[NativeArchive], destination: &Path) -> anyhow::Re
                     .is_none_or(|mode| mode & 0o170000 != 0o120000),
                 "Native archive contains a symbolic link"
             );
-            let path = safe_join(destination, entry.name())?;
+            let path = safe_join(destination, &name)?;
             fs::create_dir_all(path.parent().context("Missing native parent")?)?;
             let mut file = fs::File::create(&path)?;
             std::io::copy(&mut entry, &mut file)?;
@@ -506,18 +507,18 @@ fn validate_lwjgl_natives(
         let mut matched = false;
         for index in 0..archive.len() {
             let mut entry = archive.by_index(index)?;
-            let name = entry
-                .name()
+            let entry_name = entry.name()?.into_owned();
+            let name = entry_name
                 .rsplit('/')
                 .next()
                 .unwrap_or("")
                 .to_ascii_lowercase();
             if entry.is_dir()
-                || entry.name().starts_with("META-INF/")
+                || entry_name.starts_with("META-INF/")
                 || native
                     .exclude
                     .iter()
-                    .any(|exclude| entry.name().starts_with(exclude))
+                    .any(|exclude| entry_name.starts_with(exclude))
                 || !name.contains("lwjgl")
                 || ![".dll", ".so", ".dylib", ".jnilib"]
                     .iter()

@@ -2,13 +2,10 @@
 
 pub mod model;
 
+use hickory_resolver::{TokioResolver, proto::rr::RData};
 use model::McPingResult;
 use std::net::{IpAddr, SocketAddr};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use trust_dns_resolver::{
-    TokioAsyncResolver,
-    config::{ResolverConfig, ResolverOpts},
-};
 
 struct McPingClient {
     endpoint: SocketAddr,
@@ -32,8 +29,7 @@ impl McPingClient {
                 Some(split) => (split.0, split.1.parse()?),
                 None => (addr_str, Self::DEFAULT_PORT),
             };
-            let resolver =
-                TokioAsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default());
+            let resolver = TokioResolver::builder_tokio()?.build()?;
             let mut addresses = Vec::new();
             if let Ok(ip_lookup) = resolver.lookup_ip(host).await {
                 let ip = ip_lookup.iter().collect::<Vec<_>>();
@@ -42,9 +38,12 @@ impl McPingClient {
                 log::warn!("No A/AAAA record found, falling back to SRV record");
                 let srv_name = format!("_minecraft._tcp.{}", host);
                 let srv_response = resolver.srv_lookup(&srv_name).await?;
-                for srv in srv_response.iter() {
-                    let target = srv.target().to_string().trim_end_matches('.').to_string();
-                    let srv_port = srv.port();
+                for record in srv_response.answers() {
+                    let RData::SRV(srv) = &record.data else {
+                        continue;
+                    };
+                    let target = srv.target.to_string().trim_end_matches('.').to_string();
+                    let srv_port = srv.port;
                     log::debug!("SRV record found: {}:{}", target, srv_port);
                     // 解析SRV记录中的目标主机
                     if let Ok(ip_lookup) = resolver.lookup_ip(&target).await {

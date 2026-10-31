@@ -20,6 +20,11 @@ pub fn open_directory(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// Lowercase hex of a SHA-1 output; hybrid-array (sha1 0.11) no longer formats as `{:x}`.
+pub fn sha1_hex(digest: impl AsRef<[u8]>) -> String {
+    digest.as_ref().iter().map(|b| format!("{b:02x}")).collect()
+}
+
 pub fn check_sha1(file: &Path, given: &str) -> Result<bool, std::io::Error> {
     let file = std::fs::File::open(file)?;
     let mut reader = BufReader::new(file);
@@ -33,7 +38,7 @@ pub fn check_sha1(file: &Path, given: &str) -> Result<bool, std::io::Error> {
         hasher.update(&buffer[..n]);
     }
     let result = hasher.finalize();
-    let computed = format!("{:x}", result);
+    let computed = crate::io::files::sha1_hex(result);
     Ok(computed == given)
 }
 

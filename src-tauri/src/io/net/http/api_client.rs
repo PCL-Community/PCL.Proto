@@ -443,7 +443,7 @@ impl MinecraftApiClient {
             .ok_or_else(|| McApiError::VersionNotFound(version_id.into()))?;
         self.fetch_checked(&version.url, |bytes| {
             if let Some(expected) = &version.sha1 {
-                let actual = format!("{:x}", sha1::Sha1::digest(bytes));
+                let actual = crate::io::files::sha1_hex(sha1::Sha1::digest(bytes));
                 if !actual.eq_ignore_ascii_case(expected) {
                     return Err(McApiError::InvalidMetadata(
                         "Version JSON SHA-1 mismatch".into(),

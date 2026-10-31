@@ -1,6 +1,6 @@
 [package]
 name = "pcl-proto"
-version = "0.9.1"
+version = "0.9.2"
 description = "PCL.Proto"
 authors = ["AMagicPear"]
 license = "PCL-License"
@@ -15,43 +15,43 @@ name = "pcl_proto_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.5.3", features = [] }
-reqwest = { version = "0.13.1", features = ["blocking"] }
-zip = "0.6.6"
+tauri-build = { version = "2.7.4", features = [] }
+reqwest = { version = "0.13.5", features = ["blocking"] }
+zip = "9.1.3"
 
 [dependencies]
 serde_json = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-log = "0"
-tauri = { version = "2.10.0", features = [] }
-tauri-plugin-log = "2.8.0"
-tauri-plugin-os = "2.3.2"
+log = "0.4.35"
+tauri = { version = "2.12.5", features = [] }
+tauri-plugin-log = "2.10.1"
+tauri-plugin-os = "2.4.0"
 chrono = { workspace = true, features = ["serde"] }
-tauri-plugin-dialog = "2.6.0"
+tauri-plugin-dialog = "2.8.4"
 regex = { workspace = true }
-shlex = "1.3"
+shlex = "2.0"
 tokio = { workspace = true, features = ["rt", "macros"] }
-goblin = "0.10"
+goblin = "0.10.7"
 directories = "6.0.0"
 reqwest = { workspace = true, features = ["json", "stream"] }
-thiserror = "2.0.18"
-futures-util = "0.3.31"
-serde_repr = "0.1.20"
-sha1 = "0.10.6"
-zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
-quick-xml = { version = "0.39.0", features = ["serialize"] }
-anyhow = "1.0"
+thiserror = "2.0.21"
+futures-util = "0.3.34"
+serde_repr = "0.1.21"
+sha1 = "0.11.0"
+zip = { version = "9.1.3", default-features = false, features = ["deflate"] }
+quick-xml = { version = "0.42.0", features = ["serialize"] }
+anyhow = "1.0.104"
 terracotta = { path = "../src-terracotta", version = "2.5.0-pcl.proto" }
-dashmap = "6.1.0"
+dashmap = "6.2.1"
 uuid = { workspace = true, features = ["v4"] }
-trust-dns-resolver = "0.23.2"
-base64 = "0.22.1"
-sysinfo = { version = "0.39.6", default-features = false, features = ["system"] }
+hickory-resolver = "0.26.3"
+base64 = "0.23.1"
+sysinfo = { version = "0.40.1", default-features = false, features = ["system"] }
 trash = "5.2.9"
-open = { version = "5.3.3", features = ["shellexecute-on-windows"] }
+open = { version = "5.4.5", features = ["shellexecute-on-windows"] }
 # tauri-invoke-http = "0.1.0"
 
 
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.52", features = ["Win32_Globalization"] }
+windows-sys = { version = "0.61", features = ["Win32_Globalization"] }

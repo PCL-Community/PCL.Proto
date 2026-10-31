@@ -313,7 +313,7 @@ mod tests {
         let source = root.join("world.zip");
         {
             let mut zip = zip::ZipWriter::new(fs::File::create(&source).unwrap());
-            zip.start_file("world/level.dat", zip::write::FileOptions::default())
+            zip.start_file("world/level.dat", zip::write::SimpleFileOptions::default())
                 .unwrap();
             zip.write_all(b"level").unwrap();
             zip.finish().unwrap();

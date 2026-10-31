@@ -577,9 +577,13 @@ impl LaunchOption {
                     settings,
                     crate::minecraft::launch::memory::MemorySettings::Auto
                 ) {
-                    let mut system = sysinfo::System::new();
-                    system.refresh_memory();
-                    system.available_memory()
+                    match sysinfo::System::new() {
+                        Ok(mut system) => {
+                            system.refresh_memory();
+                            system.available_memory()
+                        }
+                        Err(_) => 0,
+                    }
                 } else {
                     0
                 };

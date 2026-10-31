@@ -6,7 +6,7 @@ fn legacy_assets_preserve_existing_files_and_reject_conflicts() {
     use sha1::Digest;
     let root = std::env::temp_dir().join(format!("pcl-assets-test-{}", uuid::Uuid::new_v4()));
     let instance = root.join("instance");
-    let hash = format!("{:x}", sha1::Sha1::digest(b"sound"));
+    let hash = crate::io::files::sha1_hex(sha1::Sha1::digest(b"sound"));
     let source = root.join("assets/objects").join(&hash[..2]).join(&hash);
     fs::create_dir_all(source.parent().unwrap()).unwrap();
     fs::write(&source, b"sound").unwrap();
@@ -239,7 +239,7 @@ impl Drop for MockMirror {
 #[tokio::test]
 async fn maven_libraries_are_verified_and_published_before_launch() {
     let body = b"verified fabric library";
-    let hash = format!("{:x}", sha1::Sha1::digest(body));
+    let hash = crate::io::files::sha1_hex(sha1::Sha1::digest(body));
     let artifact = "/maven/net/fabricmc/fabric-loader/0.16/fabric-loader-0.16.jar";
     let server = MockMirror::new(
         HashMap::from([
@@ -454,7 +454,7 @@ fn fixture_archive(entries: &[(&str, &[u8])]) -> Vec<u8> {
     let mut archive = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
     for (name, bytes) in entries {
         archive
-            .start_file(*name, zip::write::FileOptions::default())
+            .start_file(*name, zip::write::SimpleFileOptions::default())
             .unwrap();
         archive.write_all(bytes).unwrap();
     }
@@ -580,7 +580,7 @@ async fn launch_preparation_selects_java_classifier_and_isolates_natives() {
     let info = |name: &str, data: &[u8]| {
         json!({
             "path":format!("test/{name}.jar"), "url":format!("https://libraries.minecraft.net/test/{name}.jar"),
-            "sha1":format!("{:x}", sha1::Sha1::digest(data)), "size":data.len()
+            "sha1":crate::io::files::sha1_hex(sha1::Sha1::digest(data)), "size":data.len()
         })
     };
     fs::write(root.join("libraries/test/32.jar"), &archive32).unwrap();
@@ -636,7 +636,7 @@ async fn launch_preparation_selects_java_classifier_and_isolates_natives() {
 }
 
 fn fixture_files(bad_client_hash: bool) -> HashMap<String, Vec<u8>> {
-    let hash = |bytes: &[u8]| format!("{:x}", sha1::Sha1::digest(bytes));
+    let hash = |bytes: &[u8]| crate::io::files::sha1_hex(sha1::Sha1::digest(bytes));
     let info = |url: &str, bytes: &[u8]| json!({"sha1":hash(bytes), "size":bytes.len(), "url":url});
     let jar = b"verified client";
     let asset = b"sound";
@@ -702,7 +702,7 @@ async fn fabric_install_merges_profile_and_publishes_only_after_verified_files()
         "mainClass":"net.fabricmc.loader.impl.launch.knot.KnotClient",
         "arguments":{"jvm":["-Dfabric=true"],"game":["--fabric"]},
         "libraries":[{"name":"net.fabricmc:fabric-loader:0.16", "url":"https://libraries.minecraft.net/",
-            "sha1":format!("{:x}", sha1::Sha1::digest(body)), "size":body.len()}]});
+            "sha1":crate::io::files::sha1_hex(sha1::Sha1::digest(body)), "size":body.len()}]});
     files.insert(
         "/fabric/1.test/0.16/profile/json".into(),
         serde_json::to_vec(&profile).unwrap(),
@@ -876,14 +876,14 @@ async fn fabric_profile_rejects_wrong_game_or_loader() {
 async fn legacy_fabric_list_and_install_use_legacy_intermediary() {
     use crate::io::net::http::api_client::FabricFamily;
     let mut files = fixture_files(false);
-    let hash = format!("{:x}", sha1::Sha1::digest(b"library"));
+    let hash = crate::io::files::sha1_hex(sha1::Sha1::digest(b"library"));
     let library = |name: &str| json!({"name":name,"url":"https://libraries.minecraft.net/","sha1":hash,"size":7});
     let native = fixture_archive(&[("native.bin", b"native")]);
     let native_path = "/maven/example/platform/1/platform-1-natives-test.jar";
     files.insert(native_path.into(), native.clone());
     files.insert(
         format!("{native_path}.sha1"),
-        format!("{:x}", sha1::Sha1::digest(&native)).into_bytes(),
+        crate::io::files::sha1_hex(sha1::Sha1::digest(&native)).into_bytes(),
     );
     let profile = json!({"inheritsFrom":"1.test", "mainClass":"LegacyMain", "libraries":[
         library("net.legacyfabric:intermediary:1.test"), library("net.fabricmc:fabric-loader:0.16"),
@@ -1141,7 +1141,7 @@ async fn failed_transfers_preserve_existing_files_and_remove_partial_files() {
     assert!(downloader.download(&info, &path).await.is_err());
     assert_eq!(fs::read(&path).unwrap(), b"keep existing data");
     assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
-    info.sha1 = format!("{:x}", sha1::Sha1::digest(b"keep existing data"));
+    info.sha1 = crate::io::files::sha1_hex(sha1::Sha1::digest(b"keep existing data"));
     info.size = b"keep existing data".len() as u64;
     downloader.download(&info, &path).await.unwrap();
     assert_eq!(

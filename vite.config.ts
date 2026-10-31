@@ -2,7 +2,7 @@ import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { version } from './package.json'
+import packageJson from './package.json' with { type: 'json' }
 import svgLoader from 'vite-svg-loader'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 // import vueDevTools from 'vite-plugin-vue-devtools'
@@ -24,7 +24,7 @@ export default defineConfig({
     // Tauri 在 Windows 上使用 Chromium，在 macOS 和 Linux 上使用 WebKit
     target: process.env.TAURI_ENV_PLATFORM == 'windows' ? 'chrome105' : 'safari13',
     // 在 debug 构建中不使用 minify
-    minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
+    minify: !process.env.TAURI_ENV_DEBUG ? 'oxc' : false,
     // 在 debug 构建中生成 sourcemap
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
   },
@@ -40,6 +40,6 @@ export default defineConfig({
     },
   },
   define: {
-    __APP_VERSION__: JSON.stringify(version),
+    __APP_VERSION__: JSON.stringify(packageJson.version),
   },
 })

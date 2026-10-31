@@ -465,7 +465,7 @@ mod tests {
 
     #[tokio::test]
     async fn downloads_only_verified_files_and_rejects_http_errors() {
-        let digest = format!("{:x}", sha1::Sha1::digest(b"jar"));
+        let digest = crate::io::files::sha1_hex(sha1::Sha1::digest(b"jar"));
         checked_http_download("200 OK", b"jar", digest, 1)
             .await
             .unwrap();

@@ -539,7 +539,7 @@ pub async fn preview_memory_settings(
             )
         };
         effective.validate()?;
-        let mut system = sysinfo::System::new();
+        let mut system = sysinfo::System::new().map_err(|_| "Physical memory is unavailable")?;
         system.refresh_memory();
         let total = system.total_memory();
         if total == 0 {

@@ -551,7 +551,7 @@ echo 'sun.arch.data.model = 64' >&2
             std::env::consts::ARCH
         )
         .into_bytes();
-        let info = |path: &str, body: &[u8]| json!({"url": format!("https://piston-data.mojang.com/{path}"),"sha1":format!("{:x}",sha1::Sha1::digest(body)),"size":body.len()});
+        let info = |path: &str, body: &[u8]| json!({"url": format!("https://piston-data.mojang.com/{path}"),"sha1":crate::io::files::sha1_hex(sha1::Sha1::digest(body)),"size":body.len()});
         let mut manifest = json!({"files":{
             "bin/java":{"type":"file","executable":true,"downloads":{"raw":info("files/java",&script)}},
             "lib/NOTICE":{"type":"file","downloads":{"raw":info("files/notice",b"license")}},
@@ -561,7 +561,7 @@ echo 'sun.arch.data.model = 64' >&2
             manifest["files"]["../escape"] = json!({"type":"directory"});
         }
         let manifest = serde_json::to_vec(&manifest).unwrap();
-        let manifest_info = json!({"url":"https://piston-meta.mojang.com/manifest.json","sha1":format!("{:x}",sha1::Sha1::digest(&manifest)),"size":manifest.len()});
+        let manifest_info = json!({"url":"https://piston-meta.mojang.com/manifest.json","sha1":crate::io::files::sha1_hex(sha1::Sha1::digest(&manifest)),"size":manifest.len()});
         let platform = install::platform_key(std::env::consts::OS, std::env::consts::ARCH).unwrap();
         let index = serde_json::to_vec(&json!({platform:{"java-runtime-epsilon":[{"manifest":manifest_info,"version":{"name":"25.0.1"}}]}})).unwrap();
         let mut routes = HashMap::new();

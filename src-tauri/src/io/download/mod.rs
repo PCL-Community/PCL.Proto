@@ -309,7 +309,8 @@ impl Downloader {
                 path.display()
             )));
         }
-        if verify && !format!("{:x}", hasher.finalize()).eq_ignore_ascii_case(&info.sha1) {
+        if verify && !crate::io::files::sha1_hex(hasher.finalize()).eq_ignore_ascii_case(&info.sha1)
+        {
             return Err(McApiError::Sha1Mismatch(path.to_owned()));
         }
         output.flush().await?;

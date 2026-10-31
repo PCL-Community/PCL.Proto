@@ -180,7 +180,7 @@ mod tests {
     use super::*;
     #[test]
     fn system_memory_is_available_for_auto_allocation() {
-        let mut system = sysinfo::System::new();
+        let mut system = sysinfo::System::new().unwrap();
         system.refresh_memory();
         assert!(system.total_memory() > 0);
         let available = system.available_memory().min(system.total_memory());

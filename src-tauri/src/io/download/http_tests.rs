@@ -131,7 +131,7 @@ fn info(server: &Server, body: &[u8]) -> DownloadFile {
     DownloadFile {
         url: server.url.clone(),
         size: body.len() as u64,
-        sha1: format!("{:x}", sha1::Sha1::digest(body)),
+        sha1: crate::io::files::sha1_hex(sha1::Sha1::digest(body)),
         path: None,
     }
 }
