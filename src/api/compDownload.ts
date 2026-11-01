@@ -4,7 +4,7 @@ import { open, save } from '@tauri-apps/plugin-dialog'
 import { pclText } from './pclLocale'
 import { getCompVersions } from './compProjects'
 import { compatibleResource, latestResourceVersion } from './compResources'
-import type { CompProjectType, ISearchHit, IVersion } from './modrinthApi'
+import type { CompType, ISearchHit, IVersion } from '@/types/comp'
 import type GameInstance from '@/types/gameInstance'
 import { useSelectedInstance } from '@/stores/gameLaunch'
 import { useRepositoriesStore } from '@/stores/repositories'
@@ -13,17 +13,13 @@ import { useModal } from '@/composables/useModal'
 import sideTip from '@/composables/sideTip'
 
 type ResourceFile = IVersion['files'][number]
-const folderKinds: Partial<Record<CompProjectType, string>> = {
+const folderKinds: Partial<Record<CompType, string>> = {
   mod: 'mod',
   resourcepack: 'resourcepack',
   shader: 'shader',
 }
 
-async function instanceDestination(
-  instance: GameInstance,
-  type: CompProjectType,
-  filename: string,
-) {
+async function instanceDestination(instance: GameInstance, type: CompType, filename: string) {
   const kind = folderKinds[type]
   if (!kind) return undefined
   return invoke<string>('instance_resource_destination', {
@@ -52,7 +48,7 @@ function start(file: ResourceFile, destination: string, name: string) {
     .catch((error) => sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn'))
 }
 
-export async function saveResource(file: ResourceFile, version: IVersion, type: CompProjectType) {
+export async function saveResource(file: ResourceFile, version: IVersion, type: CompType) {
   if (!/^https:\/\//i.test(file.url)) throw new Error('Invalid resource URL')
   if (!isTauri()) {
     const link = document.createElement('a')

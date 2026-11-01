@@ -109,3 +109,5 @@ I want to make this project into a Vue component npm package, but I don't know h
 ### Localization
 
 [应用多语言方案与文案约定](docs/LOCALIZATION.md)
+
+[Code organization and maintenance boundaries](docs/ARCHITECTURE.md)

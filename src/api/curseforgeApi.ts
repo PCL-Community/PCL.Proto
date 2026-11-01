@@ -1,6 +1,6 @@
 import { invoke, isTauri } from '@tauri-apps/api/core'
 import { pclText } from './pclLocale'
-import type { IProject, ISearchHit, IVersion } from './modrinthApi'
+import type { IProject, ISearchHit, IVersion } from '@/types/comp'
 
 // CurseForge 的响应在这里归一化成 Modrinth 的字段形状（project_id / title / categories /
 // versions / loaders / files[]），列表、详情与快捷下载因此不需要区分来源。

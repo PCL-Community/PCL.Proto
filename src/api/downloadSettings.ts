@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import { ref } from 'vue'
+import { createSettingsPersistence } from '@/util/settingsPersistence'
 
 export interface DownloadSettings {
   max_connections: number
@@ -21,35 +21,18 @@ export const downloadSettingKeys = [
   'CheckDownloadAutoSelectVersion',
 ]
 
-let pending: Promise<unknown> = Promise.resolve()
-let draft: DownloadSettings | null = null
-export const downloadSaveError = ref('')
 export async function initializeDownloadSettings() {
   return invoke<DownloadSettings>('initialize_download_settings', { legacy: downloadSettings() })
 }
-export function readDownloadSettings() {
-  return pending.then(async () => {
-    const settings = draft || (await invoke<DownloadSettings | null>('get_download_settings'))
+
+export const downloadSettingsStorage = createSettingsPersistence(
+  async () => {
+    const settings = await invoke<DownloadSettings | null>('get_download_settings')
     if (!settings) throw new Error('Download settings are not initialized')
     return settings
-  })
-}
-export function saveDownloadSettings(settings: DownloadSettings) {
-  draft = settings
-  downloadSaveError.value = ''
-  const result = pending
-    .then(() => invoke<DownloadSettings>('set_download_settings', { settings }))
-    .then((saved) => {
-      if (draft === settings) draft = null
-      return saved
-    })
-    .catch((error) => {
-      if (draft === settings) downloadSaveError.value = String(error)
-      throw error
-    })
-  pending = result.catch(() => {})
-  return result
-}
+  },
+  (_, settings) => invoke<DownloadSettings>('set_download_settings', { settings }),
+)
 
 export function downloadSettingValues(settings: DownloadSettings) {
   const speed = Array.from({ length: 43 }, (_, index) => ({

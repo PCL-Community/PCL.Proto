@@ -1,14 +1,18 @@
-import modrinthApi, { type IProject, type ISearchHit, type IVersion } from './modrinthApi'
+import modrinthApi from './modrinthApi'
+import type {
+  IProject,
+  ISearchHit,
+  IVersion,
+  CompType,
+  CompSource,
+  CompSourceFilter,
+} from '@/types/comp'
 import curseforgeApi, { isCurseforgeProjectId } from './curseforgeApi'
-import { compFacets, loaderNames, type CompType } from './compResources'
+import { compFacets, loaderNames } from './compResources'
 import { pclText } from './pclLocale'
 
 // 两个来源的统一入口：界面只表达“要哪些来源”，其余差异都在这里收口。
 // 对照 CE：ModComp.CompProjectRequest（CurseForge / Modrinth 双请求 + 去重）。
-
-export type CompSource = 'modrinth' | 'curseforge'
-/// 来源筛选值：'all' 表示两个来源都要（对照 CE 的 CompSourceType.Any）。
-export type CompSourceFilter = 'all' | CompSource
 
 export interface CompFilters {
   type: CompType
@@ -46,8 +50,6 @@ const downloadWeight: Record<CompType, [number, number]> = {
   world: [1, 1],
 }
 
-const sourceOf = (hit: ISearchHit) => compSourceOf(hit.project_id)
-
 const compact = (value: string) => value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]/g, '')
 const sameSet = (a: string[], b: string[]) =>
   new Set(a).size === new Set(b).size && a.every((value) => b.includes(value))
@@ -56,9 +58,10 @@ const loadersOf = (hit: ISearchHit) =>
 
 /// 同一工程的两侧条目：类型相同、更新时间相差不到一周，且名称或简介一致（对照 CE 的 IsLike）。
 function isSameProject(a: ISearchHit, b: ISearchHit) {
-  if (a.project_id === b.project_id) return sourceOf(a) === sourceOf(b)
+  if (a.project_id === b.project_id)
+    return compSourceOf(a.project_id) === compSourceOf(b.project_id)
   if (a.project_type !== b.project_type) return false
-  if (sourceOf(a) === sourceOf(b)) return false
+  if (compSourceOf(a.project_id) === compSourceOf(b.project_id)) return false
   if (!sameSet(loadersOf(a), loadersOf(b))) return false
   if (a.project_type !== 'shader' && !sameSet(a.versions ?? [], b.versions ?? [])) return false
   const updated = Date.parse(a.date_modified) - Date.parse(b.date_modified)
@@ -82,8 +85,8 @@ export function rankCompHits(hits: ISearchHit[], type: CompType) {
   const [curseforge, modrinth] = downloadWeight[type]
   return [...hits].sort(
     (a, b) =>
-      b.downloads * (sourceOf(b) === 'curseforge' ? curseforge : modrinth) -
-      a.downloads * (sourceOf(a) === 'curseforge' ? curseforge : modrinth),
+      b.downloads * (compSourceOf(b.project_id) === 'curseforge' ? curseforge : modrinth) -
+      a.downloads * (compSourceOf(a.project_id) === 'curseforge' ? curseforge : modrinth),
   )
 }
 

@@ -107,3 +107,5 @@ pnpm run tauri build
 ### 多语言开发
 
 [应用多语言方案与文案约定](docs/LOCALIZATION.md)
+
+[代码组织与维护边界](docs/ARCHITECTURE.md)

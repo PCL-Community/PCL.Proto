@@ -4,8 +4,7 @@ import {
   memoryMibToTick,
   memoryTickToMib,
   previewMemorySettings,
-  readMemorySettings,
-  saveMemorySettings,
+  memorySettingsStorage,
   type MemorySettings,
   type MemoryPreview,
 } from '@/api/memorySettings'
@@ -45,13 +44,13 @@ export function useMemorySettings(
     error.value = ''
     if (!isTauri() || path === undefined) return
     try {
-      const result = await readMemorySettings(path)
+      const { settings: result, error: saveError } = await memorySettingsStorage.read(path)
       if (current !== generation) return
       mode.value = result.settings?.mode || 'inherit'
       maximum.value = memoryMibToTick(result.custom.maximum_mib)
       initial.value =
         result.custom.initial_mib !== null ? memoryMibToTick(result.custom.initial_mib) : 0
-      error.value = result.error
+      error.value = saveError
       ready.value = true
     } catch (failure) {
       if (current === generation) error.value = String(failure)
@@ -81,7 +80,7 @@ export function useMemorySettings(
     const current = generation
     const revision = ++saveRevision
     error.value = ''
-    void saveMemorySettings(path, snapshot()).catch((failure) => {
+    void memorySettingsStorage.write(snapshot(), path).catch((failure) => {
       if (current === generation && revision === saveRevision) error.value = String(failure)
     })
   }

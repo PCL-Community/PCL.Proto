@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { createSettingsPersistence } from '@/util/settingsPersistence'
 
 export interface InstanceLaunchSettings {
   info: string
@@ -26,14 +27,9 @@ export const emptyInstanceLaunchSettings = (): InstanceLaunchSettings => ({
   use_proxy: false,
 })
 
-export const getInstanceLaunchSettings = (instanceDirectory: string) =>
-  invoke<InstanceLaunchSettings>('get_instance_launch_settings', { instanceDirectory })
-
-export const setInstanceLaunchSettings = (
-  instanceDirectory: string,
-  settings: InstanceLaunchSettings,
-) =>
-  invoke<InstanceLaunchSettings>('set_instance_launch_settings', {
-    instanceDirectory,
-    settings,
-  })
+export const instanceLaunchSettingsStorage = createSettingsPersistence(
+  (instanceDirectory) =>
+    invoke<InstanceLaunchSettings>('get_instance_launch_settings', { instanceDirectory }),
+  (instanceDirectory, settings) =>
+    invoke<InstanceLaunchSettings>('set_instance_launch_settings', { instanceDirectory, settings }),
+)

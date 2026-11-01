@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { createSettingsPersistence } from '@/util/settingsPersistence'
 
 export type MemorySettings =
   { mode: 'auto' } | { mode: 'custom'; maximum_mib: number; initial_mib: number | null }
@@ -109,45 +110,12 @@ export async function initializeMemorySettings() {
   return invalid + pending.length
 }
 
-const queues = new Map<string, Promise<unknown>>()
-const drafts = new Map<string, MemorySnapshot>()
-const errors = new Map<string, string>()
-const revisions = new Map<string, number>()
-const keyFor = (directory: string | null) =>
-  directory === null ? 'global' : `instance:${directory}`
-export async function readMemorySettings(directory: string | null) {
-  const key = keyFor(directory)
-  await queues.get(key)
-  const snapshot = drafts.has(key)
-    ? drafts.get(key)!
-    : await invoke<MemorySnapshot>('get_memory_settings', { instanceDirectory: directory })
-  return { ...snapshot, error: errors.get(key) || '' }
-}
-export function saveMemorySettings(directory: string | null, snapshot: MemorySnapshot) {
-  const key = keyFor(directory)
-  const revision = (revisions.get(key) || 0) + 1
-  revisions.set(key, revision)
-  drafts.set(key, snapshot)
-  errors.delete(key)
-  const result = (queues.get(key) || Promise.resolve())
-    .then(() =>
-      invoke<MemorySnapshot>('set_memory_settings', {
-        instanceDirectory: directory,
-        ...snapshot,
-        migrateOnly: false,
-      }),
-    )
-    .then((saved) => {
-      if (revisions.get(key) === revision) drafts.delete(key)
-      return saved
-    })
-    .catch((error) => {
-      if (revisions.get(key) === revision) errors.set(key, String(error))
-      throw error
-    })
-  queues.set(
-    key,
-    result.catch(() => {}),
-  )
-  return result
-}
+export const memorySettingsStorage = createSettingsPersistence(
+  (instanceDirectory) => invoke<MemorySnapshot>('get_memory_settings', { instanceDirectory }),
+  (instanceDirectory, snapshot) =>
+    invoke<MemorySnapshot>('set_memory_settings', {
+      instanceDirectory,
+      ...snapshot,
+      migrateOnly: false,
+    }),
+)

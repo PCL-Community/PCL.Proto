@@ -18,7 +18,7 @@
     "format": "prettier --write src/",
     "deploy": "pnpm ui:build && gh-pages -d dist",
     "tauri": "tauri",
-    "check:ui": "node scripts/check-pcl-ui.mjs && node scripts/check-pcl-locale.mjs && node scripts/check-curseforge.mjs && node scripts/check-page-transitions.mjs && node scripts/check-page-entrance.mjs && node scripts/check-launch-state.mjs && node scripts/check-external-links.mjs"
+    "check:ui": "node scripts/check-pcl-ui.mjs && node scripts/check-pcl-locale.mjs && node scripts/check-curseforge.mjs && node scripts/check-page-transitions.mjs && node scripts/check-page-entrance.mjs && node scripts/check-launch-state.mjs && node scripts/check-external-links.mjs && node scripts/check-settings-persistence.mjs"
   },
   "dependencies": {
     "@lucide/vue": "^1.65.0",

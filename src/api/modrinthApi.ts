@@ -1,4 +1,5 @@
 import { invoke, isTauri } from '@tauri-apps/api/core'
+import type { IProject, ISearchHit, IVersion } from '@/types/comp'
 
 // 通用 Modrinth API 请求
 async function modrinthFetch<T>(endpoint: string): Promise<T> {
@@ -14,77 +15,6 @@ interface SearchOptions {
   index?: 'relevance' | 'downloads' | 'follows' | 'newest' | 'updated'
   offset?: number
   limit?: number
-}
-
-/// 归一化后的资源类型：Modrinth 只会给前四种，CurseForge 按 classId 补齐后两种。
-export type CompProjectType = 'mod' | 'modpack' | 'resourcepack' | 'shader' | 'datapack' | 'world'
-
-export interface ISearchHit {
-  slug?: string
-  title: string
-  description: string
-  icon_url: string
-  categories: string[]
-  downloads: number
-  date_modified: string
-  project_id: string
-  project_type: CompProjectType
-  versions?: string[]
-  loaders?: string[]
-}
-
-export interface IProject {
-  slug: string
-  id: string
-  title: string
-  description: string
-  categories: string[]
-  client_side: 'required' | 'optional' | 'unsupported' | 'unknown'
-  server_side: 'required' | 'optional' | 'unsupported' | 'unknown'
-  body: string
-  status:
-    | 'approved'
-    | 'archived'
-    | 'rejected'
-    | 'draft'
-    | 'unlisted'
-    | 'processing'
-    | 'withheld'
-    | 'scheduled'
-    | 'private'
-    | 'unknown'
-  requested_status: 'approved' | 'archived' | 'unlisted' | 'private' | 'draft' | null
-  additional_categories: string[]
-  issues_url: string | null
-  source_url: string | null
-  wiki_url: string | null
-  donation_urls: string[]
-  project_type: CompProjectType
-  downloads: number
-  published: string
-  updated: string
-  versions: string[]
-  loaders: string[]
-  team: string
-  organization: string | null
-  icon_url: string
-}
-
-export interface IVersion {
-  id: string
-  name: string
-  version_number: string
-  game_versions: string[]
-  loaders: string[]
-  date_published: string
-  version_type?: 'release' | 'beta' | 'alpha'
-  files: {
-    url: string
-    filename: string
-    primary: boolean
-    size: number
-    hashes?: { sha1?: string }
-  }[]
 }
 
 // 搜索项目

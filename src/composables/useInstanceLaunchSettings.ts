@@ -2,8 +2,7 @@ import { isTauri } from '@tauri-apps/api/core'
 import { getCurrentInstance, onUnmounted, reactive, ref, watch, type Ref } from 'vue'
 import {
   emptyInstanceLaunchSettings,
-  getInstanceLaunchSettings,
-  setInstanceLaunchSettings,
+  instanceLaunchSettingsStorage,
   type InstanceLaunchSettings,
 } from '@/api/instanceLaunchSettings'
 
@@ -12,7 +11,7 @@ export function useInstanceLaunchSettings(directory?: Ref<string | undefined>) {
   const ready = ref(false)
   const error = ref('')
   let generation = 0
-  let queue: Promise<unknown> = Promise.resolve()
+  let saveRevision = 0
   const currentPath = () => (directory ? directory.value : undefined)
 
   async function load() {
@@ -23,9 +22,10 @@ export function useInstanceLaunchSettings(directory?: Ref<string | undefined>) {
     Object.assign(settings, emptyInstanceLaunchSettings())
     if (!isTauri() || !path) return
     try {
-      const saved = await getInstanceLaunchSettings(path)
+      const saved = await instanceLaunchSettingsStorage.read(path)
       if (revision !== generation) return
-      Object.assign(settings, saved)
+      Object.assign(settings, saved.settings)
+      error.value = saved.error
       ready.value = true
     } catch (failure) {
       if (revision === generation) error.value = String(failure)
@@ -36,17 +36,11 @@ export function useInstanceLaunchSettings(directory?: Ref<string | undefined>) {
     const path = currentPath()
     if (!ready.value || !path) return
     const revision = generation
-    const payload: InstanceLaunchSettings = JSON.parse(JSON.stringify(settings))
-    queue = queue
-      .then(() => setInstanceLaunchSettings(path, payload))
-      .then(() => {
-        if (revision === generation) error.value = ''
-      })
-      .catch((failure) => {
-        if (revision === generation) error.value = String(failure)
-        throw failure
-      })
-      .catch(() => {})
+    const edit = ++saveRevision
+    error.value = ''
+    void instanceLaunchSettingsStorage.write({ ...settings }, path).catch((failure) => {
+      if (revision === generation && edit === saveRevision) error.value = String(failure)
+    })
   }
 
   if (directory) watch(directory, () => void load(), { immediate: true })

@@ -1,12 +1,6 @@
 <script setup lang="ts">
-import {
-  compProjectUrl,
-  compSourceOf,
-  getCompProject,
-  getCompVersions,
-  type CompSource,
-} from '@/api/compProjects'
-import type { IProject, IVersion } from '@/api/modrinthApi'
+import { compProjectUrl, compSourceOf, getCompProject, getCompVersions } from '@/api/compProjects'
+import type { IProject, IVersion, CompSource } from '@/types/comp'
 import PCard from '@/components/widget/PCard.vue'
 import PVirtualList from '@/components/widget/PVirtualList.vue'
 import {

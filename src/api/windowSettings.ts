@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import { ref } from 'vue'
+import { createSettingsPersistence } from '@/util/settingsPersistence'
 
 export interface WindowSettings {
   mode: 'default' | 'launcher' | 'custom'
@@ -12,9 +12,6 @@ export const windowSettingKeys = [
   'TextArgumentWindowWidth',
   'TextArgumentWindowHeight',
 ]
-export const windowSaveError = ref('')
-let pending: Promise<unknown> = Promise.resolve()
-let draft: WindowSettings | null = null
 
 export function legacyWindowSettings(): WindowSettings {
   let values: Record<string, unknown> = {}
@@ -50,27 +47,11 @@ export async function initializeWindowSettings() {
   )
 }
 
-export function readWindowSettings() {
-  return pending.then(async () => {
-    const settings = draft || (await invoke<WindowSettings | null>('get_window_settings'))
+export const windowSettingsStorage = createSettingsPersistence(
+  async () => {
+    const settings = await invoke<WindowSettings | null>('get_window_settings')
     if (!settings) throw new Error('Window settings are not initialized')
     return settings
-  })
-}
-
-export function saveWindowSettings(settings: WindowSettings) {
-  draft = settings
-  windowSaveError.value = ''
-  const result = pending
-    .then(() => invoke<WindowSettings>('set_window_settings', { settings, migrateOnly: false }))
-    .then((saved) => {
-      if (draft === settings) draft = null
-      return saved
-    })
-    .catch((error) => {
-      if (draft === settings) windowSaveError.value = String(error)
-      throw error
-    })
-  pending = result.catch(() => {})
-  return result
-}
+  },
+  (_, settings) => invoke<WindowSettings>('set_window_settings', { settings, migrateOnly: false }),
+)

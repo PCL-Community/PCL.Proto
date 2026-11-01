@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { searchProjects, type CompSourceFilter } from '@/api/compProjects'
+import { searchProjects } from '@/api/compProjects'
 import curseforgeApi from '@/api/curseforgeApi'
-import type { ISearchHit } from '@/api/modrinthApi'
+import type { ISearchHit, CompSourceFilter } from '@/types/comp'
 import PCompItem from '@/components/widget/PCompItem.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PVirtualList from '@/components/widget/PVirtualList.vue'

@@ -1,9 +1,7 @@
 import categories from '@/assets/download-categories.json'
 import { pclLocale, pclText } from './pclLocale'
-import type { ISearchHit, IVersion } from './modrinthApi'
+import type { ISearchHit, IVersion, CompType } from '@/types/comp'
 import type GameInstance from '@/types/gameInstance'
-
-export type CompType = keyof typeof categories
 
 const categoryKeys: Record<string, string> = Object.fromEntries(
   Object.values(categories).flatMap((items) =>

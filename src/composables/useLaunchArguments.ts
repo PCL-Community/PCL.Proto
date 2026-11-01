@@ -1,10 +1,6 @@
 import { isTauri } from '@tauri-apps/api/core'
 import { getCurrentInstance, onUnmounted, ref, watch, type Ref } from 'vue'
-import {
-  readLaunchArguments,
-  saveLaunchArguments,
-  stageLaunchArguments,
-} from '@/api/launchArguments'
+import { launchArgumentsStorage } from '@/api/launchArguments'
 
 export function useLaunchArguments(directory?: Ref<string | undefined>) {
   const jvm = ref('')
@@ -25,7 +21,7 @@ export function useLaunchArguments(directory?: Ref<string | undefined>) {
     dirty = false
     if (!isTauri() || path === undefined) return
     try {
-      const result = await readLaunchArguments(path)
+      const result = await launchArgumentsStorage.read(path)
       if (revision !== generation) return
       hydrating = true
       jvm.value = result.settings.jvm
@@ -44,7 +40,7 @@ export function useLaunchArguments(directory?: Ref<string | undefined>) {
     const revision = generation
     const edit = editRevision
     dirty = false
-    void saveLaunchArguments(path).catch((failure) => {
+    void launchArgumentsStorage.save(path).catch((failure) => {
       if (revision === generation && edit === editRevision && path === currentPath()) {
         error.value = String(failure)
         dirty = true
@@ -56,7 +52,10 @@ export function useLaunchArguments(directory?: Ref<string | undefined>) {
     () => {
       const path = currentPath()
       if (hydrating || !ready.value || path === undefined) return
-      stageLaunchArguments(path, { jvm: jvm.value, game: game.value, classpath: classpath.value })
+      launchArgumentsStorage.stage(
+        { jvm: jvm.value, game: game.value, classpath: classpath.value },
+        path,
+      )
       editRevision++
       dirty = true
       error.value = ''

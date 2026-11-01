@@ -1,7 +1,7 @@
 import { pclText } from '@/api/pclLocale'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { ISearchHit } from '@/api/modrinthApi'
+import type { ISearchHit } from '@/types/comp'
 import sideTip from '@/composables/sideTip'
 const key = 'pcl-comp-favorites'
 export const useCompFavorites = defineStore('comp-favorites', () => {

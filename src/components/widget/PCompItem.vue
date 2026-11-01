@@ -3,7 +3,7 @@ import { pclLocale, pclText } from '@/api/pclLocale'
 import { compSourceOf } from '@/api/compProjects'
 import { compLoaders, compTags, compVersions } from '@/api/compResources'
 import { quickDownload } from '@/api/compDownload'
-import type { CompProjectType, ISearchHit } from '@/api/modrinthApi'
+import type { CompType, ISearchHit } from '@/types/comp'
 import { useCompFavorites } from '@/stores/compFavorites'
 import sideTip from '@/composables/sideTip'
 import { computed, ref } from 'vue'
@@ -20,7 +20,7 @@ const props = withDefaults(
     data: ISearchHit
     gameVersion?: string
     loader?: string
-    resourceType?: CompProjectType
+    resourceType?: CompType
   }>(),
   {
     clickable: false,

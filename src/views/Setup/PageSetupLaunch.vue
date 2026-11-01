@@ -15,13 +15,7 @@ import PComboBox from '@/components/widget/PComboBox.vue'
 import PHint from '@/components/widget/PHint.vue'
 import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import PTextBox from '@/components/widget/PTextBox.vue'
-import {
-  windowSettingKeys,
-  windowSaveError,
-  readWindowSettings,
-  saveWindowSettings,
-  type WindowSettings,
-} from '@/api/windowSettings'
+import { windowSettingKeys, windowSettingsStorage, type WindowSettings } from '@/api/windowSettings'
 import { memorySettingKeys, memoryTickToMib } from '@/api/memorySettings'
 import { memoryGiB, useMemorySettings } from '@/composables/useMemorySettings'
 import sideTip from '@/composables/sideTip'
@@ -112,6 +106,10 @@ const {
   load: loadArguments,
   save: saveArguments,
 } = useLaunchArguments()
+function resetJvmArguments() {
+  argumentJvm.value = sourceDefaults.PageSetupLaunch.TextAdvanceJvm
+  saveArguments()
+}
 const isolationValue = ref('4')
 const isolationReady = ref(false)
 const isolationBusy = ref(false)
@@ -162,8 +160,9 @@ const windowReady = ref(false)
 const windowError = ref('')
 let hydratingWindow = false
 function loadWindowSettings() {
-  void readWindowSettings()
-    .then((settings) => {
+  void windowSettingsStorage
+    .read()
+    .then(({ settings }) => {
       hydratingWindow = true
       values.ComboArgumentWindowType = { default: '1', launcher: '2', custom: '3' }[settings.mode]
       values.TextArgumentWindowWidth = String(settings.width)
@@ -198,9 +197,9 @@ function applyWindowSettings() {
   )[values.ComboArgumentWindowType]
   if (!mode) return
   windowError.value = ''
-  void saveWindowSettings({ mode, width, height }).catch((error) =>
-    sideTip.show(String(error), 'warn'),
-  )
+  void windowSettingsStorage
+    .write({ mode, width, height })
+    .catch((error) => sideTip.show(String(error), 'warn'))
 }
 if (desktop) loadWindowSettings()
 watch(
@@ -241,8 +240,8 @@ const text = pclText
         {{ text('Launch.Homepage.LoadFailed.Retry') }}
       </button>
     </p>
-    <p v-if="windowError || windowSaveError" role="alert">
-      {{ windowError || windowSaveError }}
+    <p v-if="windowError || windowSettingsStorage.errors.get(null)" role="alert">
+      {{ windowError || windowSettingsStorage.errors.get(null) }}
       <button @click="windowReady ? applyWindowSettings() : loadWindowSettings()">
         {{ text('Launch.Homepage.LoadFailed.Retry') }}
       </button>
@@ -697,10 +696,7 @@ const text = pclText
                       :disabled="!desktop || !argumentsReady"
                       style="height: 23px; margin: 1px 0px 0px 0px"
                       :title="text('Setup.Launch.Advanced.JvmHead.Restore')"
-                      @click="
-                        argumentJvm = sourceDefaults.PageSetupLaunch.TextAdvanceJvm;
-                        saveArguments()
-                      "
+                      @click="resetJvmArguments"
                       inline
                       ><PSvgIcon name="lucide/rotate-ccw" :size="18"
                     /></PButton></div></template

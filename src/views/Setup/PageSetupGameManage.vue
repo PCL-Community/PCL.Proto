@@ -8,9 +8,7 @@ import {
   downloadSettingKeys,
   downloadSettings,
   downloadSettingValues,
-  readDownloadSettings,
-  saveDownloadSettings,
-  downloadSaveError,
+  downloadSettingsStorage,
 } from '@/api/downloadSettings'
 import { isTauri } from '@tauri-apps/api/core'
 import { onScopeDispose, ref, watch } from 'vue'
@@ -29,14 +27,15 @@ let hydrating = false
 let timer: ReturnType<typeof setTimeout> | undefined
 function applyDownloadSettings() {
   timer = undefined
-  void saveDownloadSettings(downloadSettings(values)).catch((error) => {
+  void downloadSettingsStorage.write(downloadSettings(values)).catch((error) => {
     console.error('Cannot apply download settings', error)
     sideTip.show(String(error), 'warn')
   })
 }
 function loadDownloadSettings() {
-  void readDownloadSettings()
-    .then((settings) => {
+  void downloadSettingsStorage
+    .read()
+    .then(({ settings }) => {
       hydrating = true
       Object.assign(values, downloadSettingValues(settings))
       hydrating = false
@@ -69,8 +68,8 @@ const text = pclText
 <template>
   <div class="pcl-page">
     <p class="settings-unavailable">{{ text('Proto.Settings.Unavailable') }}</p>
-    <p v-if="loadError || downloadSaveError" role="alert">
-      {{ loadError || downloadSaveError }}
+    <p v-if="loadError || downloadSettingsStorage.errors.get(null)" role="alert">
+      {{ loadError || downloadSettingsStorage.errors.get(null) }}
       <button @click="ready ? applyDownloadSettings() : loadDownloadSettings()">
         {{ text('Launch.Homepage.LoadFailed.Retry') }}
       </button>
