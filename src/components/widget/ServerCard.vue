@@ -78,6 +78,7 @@ const fallback = `${import.meta.env.BASE_URL}pcl/images/Icons/NoIcon.png`
   --list-icon-radius: 6px;
 }
 .motd {
+  font-family: var(--motd-font);
   width: min(350px, 30vw);
   white-space: pre-line;
   font-size: 12px;

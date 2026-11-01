@@ -99,6 +99,12 @@ function handleIcon(sourceRaw: string) {
   }
 }
 
+function xamlColor(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const match = /^\{(?:DynamicResource|StaticResource) ColorBrush([1-8])\}$/.exec(value)
+  return match ? `var(--ce-color-${match[1]})` : value.startsWith('{') ? undefined : value
+}
+
 function parseXamlElement(element: Element): Component | string | null {
   if (!element || element.type != 'element') return null
   if (element.name?.startsWith('local:')) {
@@ -181,7 +187,8 @@ function parseXamlElement(element: Element): Component | string | null {
           <p
             style={{
               fontSize: element.attributes?.FontSize + 'px',
-              color: element.attributes?.Foreground as string,
+              color: xamlColor(element.attributes?.Foreground),
+              background: xamlColor(element.attributes?.Background),
             }}
           >
             {element.attributes?.Text || element.text}
@@ -195,7 +202,10 @@ function parseXamlElement(element: Element): Component | string | null {
             height={element.attributes!.Height}
             viewBox="0 0 1024 1024"
           >
-            <path d={element.attributes!.Data as string}></path>
+            <path
+              d={element.attributes!.Data as string}
+              fill={xamlColor(element.attributes?.Fill)}
+            ></path>
           </svg>
         )
       default:

@@ -25,7 +25,7 @@ const tips = sideTip.tips
 }
 
 .sidetip-item {
-  color: var(--color-background);
+  color: white;
   padding: 2px 8px 2px 16px;
   font-size: 12px;
   border-radius: 0 6px 6px 0;

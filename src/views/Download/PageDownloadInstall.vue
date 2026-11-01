@@ -466,14 +466,12 @@ watch(versionId, (id) => {
   transform: scale(0.8);
   transition: transform 400ms cubic-bezier(0.25, 1, 0.5, 1);
 }
-@media (prefers-color-scheme: dark) {
-  .install-back {
-    color: rgba(255, 255, 255, 0.62745);
-  }
-  .install-back:hover,
-  .install-back:focus-visible {
-    color: rgba(255, 255, 255, 0.90196);
-  }
+:global(.dark) .install-back {
+  color: rgba(255, 255, 255, 0.62745);
+}
+:global(.dark) .install-back:hover,
+:global(.dark) .install-back:focus-visible {
+  color: rgba(255, 255, 255, 0.90196);
 }
 .instance-name-row > :last-child {
   flex: 1;

@@ -38,7 +38,7 @@ withDefaults(defineProps<{ icon: string; disabled?: boolean; bordered?: boolean 
 }
 /* CE 资源详情顶部的按钮额外绘制了 1px 边框（ColorBrush6），按钮本身已经是胶囊圆角。 */
 .icon-text-button.bordered {
-  border: 1px solid color-mix(in srgb, var(--color-tint) 18%, transparent);
+  border: 1px solid var(--ce-color-6);
 }
 .icon-text-button:not(:disabled):active {
   background: var(--half-transparent-blue);

@@ -2,7 +2,9 @@
 import { useRouter } from 'vue-router'
 import { showUnavailable } from '@/util/showUnavailable'
 import { pclText } from '@/api/pclLocale'
-import { usePageSettings } from '@/composables/usePageSettings'
+import { appearance } from '@/api/appearance'
+import { isTauri, invoke } from '@tauri-apps/api/core'
+import { computed, ref } from 'vue'
 import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PCheckBox from '@/components/widget/PCheckBox.vue'
@@ -14,14 +16,26 @@ withDefaults(defineProps<{ hasBackground?: boolean; hasMusic?: boolean }>(), {
   hasBackground: false,
   hasMusic: false,
 })
-const { values } = usePageSettings('PageSetupUI', {
-  ComboUiFont: 'system-ui',
-  ComboUiMotdFont: 'system-ui',
-  ComboDarkMode: '0',
-  ComboLightColor: '0',
-  ComboDarkColor: '0',
-  UiLogoType: '0',
-})
+const { values } = appearance
+const fonts = ref<string[]>([])
+const fontOptions = computed(() => [
+  { key: '', text: pclText('Common.Option.Default') },
+  ...Array.from(
+    new Set(
+      [...fonts.value, values.ComboUiFont, values.ComboUiMotdFont].filter(
+        (font) => font && font !== 'system-ui',
+      ),
+    ),
+  )
+    .sort()
+    .map((font) => ({ key: font, text: font })),
+])
+if (isTauri())
+  void invoke<string[]>('system_fonts')
+    .then((result) => {
+      fonts.value = result
+    })
+    .catch(console.error)
 
 const router = useRouter()
 const text = pclText
@@ -84,7 +98,7 @@ const text = pclText
                     margin: 0px 0px 7px 0px;
                     display: grid;
                     grid-template-columns:
-                      auto minmax(0, 1fr) 92px minmax(0, 1fr) minmax(0, 1fr)
+                      auto minmax(0, 1fr) 92px minmax(0, 1fr) 92px
                       minmax(0, 1fr);
                   "
                 >
@@ -92,6 +106,7 @@ const text = pclText
                     style="
                       grid-row: 1 / span 1;
                       grid-column: 1 / span 1;
+                      margin-right: 20px;
                       justify-self: start;
                       align-self: center;
                     "
@@ -99,7 +114,6 @@ const text = pclText
                     >{{ text('Setup.Ui.Theme.Title') }}</span
                   >
                   <PComboBox
-                    disabled
                     data-control="ComboDarkMode"
                     style="grid-row: 1 / span 1; grid-column: 2 / span 1"
                     :options="[
@@ -120,7 +134,6 @@ const text = pclText
                     >{{ text('Setup.Ui.Theme.LightColor') }}</span
                   >
                   <PComboBox
-                    disabled
                     data-control="ComboLightColor"
                     style="grid-row: 1 / span 1; grid-column: 4 / span 1"
                     :options="
@@ -142,7 +155,6 @@ const text = pclText
                     >{{ text('Setup.Ui.Theme.DarkColor') }}</span
                   >
                   <PComboBox
-                    disabled
                     data-control="ComboDarkColor"
                     style="grid-row: 1 / span 1; grid-column: 6 / span 1"
                     :options="
@@ -299,14 +311,10 @@ const text = pclText
                 >{{ text('Setup.Ui.Font.Global') }}</span
               >
               <PComboBox
-                disabled
                 data-control="ComboUiFont"
                 style="grid-row: 1 / span 1; grid-column: 3 / span 1"
-                :options="[
-                  { key: 'system-ui', text: pclText('Setup.Ui.Theme.FollowSystem') },
-                  { key: 'Microsoft YaHei UI', text: 'Microsoft YaHei UI' },
-                  { key: 'PingFang SC', text: 'PingFang SC' },
-                ]"
+                :options="fontOptions"
+                :title="text('Setup.Ui.Font.Global.ToolTip')"
                 v-model="values.ComboUiFont"
               />
               <span
@@ -315,14 +323,10 @@ const text = pclText
                 >{{ text('Setup.Ui.Font.Motd') }}</span
               >
               <PComboBox
-                disabled
                 data-control="ComboUiMotdFont"
                 style="grid-row: 3 / span 1; grid-column: 3 / span 1"
-                :options="[
-                  { key: 'system-ui', text: pclText('Setup.Ui.Theme.FollowSystem') },
-                  { key: 'Microsoft YaHei UI', text: 'Microsoft YaHei UI' },
-                  { key: 'PingFang SC', text: 'PingFang SC' },
-                ]"
+                :options="fontOptions"
+                :title="text('Setup.Ui.Font.Motd.ToolTip')"
                 v-model="values.ComboUiMotdFont"
               />
             </div>
@@ -392,7 +396,6 @@ const text = pclText
                 v-model="values.CheckAutoPauseVideo"
               />
               <PCheckBox
-                disabled
                 data-control="CheckBackgroundColorful"
                 style="height: 22px; margin: 0px 0px 8px -1px"
                 id="PageSetupUI-CheckBackgroundColorful"

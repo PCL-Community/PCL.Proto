@@ -26,6 +26,7 @@ import { useAccountInfo } from './stores/account'
 import { attachConsole } from '@tauri-apps/plugin-log'
 import { useSelectedInstance } from './stores/gameLaunch'
 import { installExternalLinkHandler } from './util/externalLink'
+import './api/appearance'
 
 const pinia = createPinia()
 

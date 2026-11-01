@@ -14,7 +14,7 @@ const emit = defineEmits<{ click: [event: MouseEvent] }>()
 
 const baseColor = {
   default: 'var(--color-text-black)',
-  tint: 'var(--color-tint)',
+  tint: 'var(--ce-color-2)',
   warn: 'var(--color-warn)',
 }
 

@@ -71,25 +71,29 @@ select:focus + i {
 }
 
 select {
-  background-color: transparent;
+  background-color: color-mix(in srgb, var(--color-background) 33.3%, transparent);
   font-size: 12px;
   padding: 0.3rem 0.8rem;
   border-radius: 4px;
-  border: 1px solid var(--color-tint-lightist);
+  border: 1px solid var(--ce-color-5);
   /* CE MyComboBox：常规 100 ms、展开 10 ms、不可用 200 ms。 */
   transition: background-color 100ms linear;
-  color: var(--color-text-black);
+  color: var(--ce-color-1);
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
   width: 100%;
   &:hover {
-    background-color: var(--color-tint-lighter);
+    border-color: var(--ce-color-4);
+    background-color: var(--ce-color-7);
   }
   &:focus {
+    border-color: var(--ce-color-3);
     transition-duration: 10ms;
   }
   &:disabled {
+    border-color: var(--color-text-grey);
+    background-color: var(--color-background);
     transition-duration: 200ms;
   }
 

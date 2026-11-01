@@ -246,7 +246,7 @@ onUnmounted(() => observer?.disconnect())
 }
 
 .mycard-container:hover > .mycard > .mycard-title {
-  color: var(--color-tint);
+  color: var(--ce-color-2);
 }
 
 .mycard > .mycard-content {

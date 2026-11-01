@@ -19,6 +19,9 @@
   --success-green: rgb(45, 189, 32);
 
   --box-shadow: 0px 0px 18px rgba(0, 0, 0, 0.15);
+  --default-font:
+    'PCL-English', 'HarmonyOS Sans SC', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
 
 /* semantic color variables for this project */
@@ -48,6 +51,33 @@
   /* --color-phint:  */
 }
 
+.theme-blue {
+  --color-titlebar: var(--ce-color-3);
+  --color-tint-dark: var(--ce-color-1);
+  --color-tint: var(--ce-color-3);
+  --color-tint-light: var(--ce-color-4);
+  --color-text: var(--ce-color-1);
+  --color-text-black: var(--ce-color-1);
+  --color-text-grey: oklch(0.5 0 0);
+  --color-background: oklch(0.995 0 0);
+  --color-background-soft: oklch(0.995 0 0 / 0.824);
+  --color-tint-lighter: var(--ce-color-7);
+  --color-tint-lightist: var(--ce-color-6);
+  --color-tint-shadow: color-mix(in srgb, var(--ce-color-4) 50%, transparent);
+  --tint-blue: var(--ce-color-3);
+  --light-blue: var(--ce-color-4);
+  --lighter-blue: var(--ce-color-7);
+  --half-transparent-blue: var(--ce-color-6);
+  --slight-transparent-blue: color-mix(in srgb, var(--ce-color-3) 80%, transparent);
+}
+
+.theme-blue.dark {
+  color-scheme: dark;
+  --color-background: oklch(0.3 0 0);
+  --color-background-soft: oklch(0.3 0 0 / 0.824);
+  --color-text-grey: oklch(0.75 0 0);
+}
+
 .theme-orange {
   --color-background: var(--vt-c-white-soft);
   --color-text-grey: var(--vt-c-gray);
@@ -61,15 +91,6 @@
   --color-warn: rgb(237, 96, 65);
   --color-warn-lighter: var(--lighter-red);
   --base-background: linear-gradient(137.92deg, rgb(251, 237, 230) 0%, rgb(247, 239, 217) 100%);
-}
-
-/* 深色模式设置 */
-@media (prefers-color-scheme: dark) {
-  .theme-blue {
-    --base-background: linear-gradient(137.92deg, rgb(34, 35, 39) 0%, rgb(5, 33, 42) 100%);
-    --color-background-soft: #07070875;
-    --color-text-black: var(--vt-c-white-soft);
-  }
 }
 
 *,
@@ -96,23 +117,16 @@ body {
     color 0.4s,
     background-color 0.4s;
   line-height: 1.6;
-  font-family:
-    'PCL-English',
-    'HarmonyOS Sans SC',
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
-    sans-serif;
+  font-family: var(--custom-font, var(--default-font));
   font-size: 15px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }

@@ -19,6 +19,18 @@ mod utils;
 
 pub use app::config::{AppState, CONFIG_MANAGER, ConfigManager};
 
+#[tauri::command]
+async fn system_fonts() -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let mut db = fontdb::Database::new();
+        db.load_system_fonts();
+        let mut names: Vec<_> = db.faces().flat_map(|face| face.families.iter().map(|(name, _)| name.clone())).collect();
+        names.sort();
+        names.dedup();
+        names
+    }).await.map_err(|error| error.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -65,6 +77,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            system_fonts,
             commands::launch::begin_launch,
             commands::launch::cancel_launch,
             commands::launch::launch_game,

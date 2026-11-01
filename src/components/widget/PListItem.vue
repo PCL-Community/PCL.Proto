@@ -158,8 +158,8 @@ const emit = defineEmits<{ click: [event: MouseEvent | KeyboardEvent] }>()
 .list-tag {
   padding: 1px 3px;
   border-radius: 3px;
-  background: rgba(0, 0, 0, 0.067);
-  color: var(--color-text-grey);
+  background: var(--ce-color-6);
+  color: var(--ce-color-2);
   font-size: 11px;
   line-height: 14px;
 }
