@@ -10,10 +10,15 @@ export interface InstanceResourceEntry {
   size: number
   /** Seconds since the Unix epoch. */
   modified: number
+  created: number
   enabled: boolean
   icon?: string
   /** Opaque token for the `pclinstance` protocol, set for entries that have a picture. */
   token?: string
+  displayName?: string
+  version?: string
+  description?: string
+  iconData?: string
 }
 
 export function listInstanceResources(

@@ -1,10 +1,11 @@
 use std::{
     fs,
-    io::Write,
+    io::{Read, Write},
     path::{Path, PathBuf},
     time::UNIX_EPOCH,
 };
 
+use base64::{Engine as _, engine::general_purpose::STANDARD};
 use serde::Serialize;
 
 /// Resource folders of one instance that the instance pages can list and modify.
@@ -44,10 +45,167 @@ pub struct Entry {
     pub size: u64,
     /// Seconds since the Unix epoch, 0 when unavailable.
     pub modified: u64,
+    pub created: u64,
     pub enabled: bool,
     pub icon: Option<PathBuf>,
     /// Filled by the command layer so the webview can load the picture via a scoped protocol.
     pub token: Option<String>,
+    pub display_name: Option<String>,
+    pub version: Option<String>,
+    pub description: Option<String>,
+    pub icon_data: Option<String>,
+}
+
+#[derive(Default)]
+struct ModDetails {
+    name: Option<String>,
+    version: Option<String>,
+    description: Option<String>,
+    icon: Option<String>,
+}
+
+fn archive_bytes(
+    archive: &mut zip::ZipArchive<fs::File>,
+    name: &str,
+    limit: u64,
+) -> Option<Vec<u8>> {
+    let mut file = archive.by_name(name).ok()?;
+    if file.size() > limit {
+        return None;
+    }
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes).ok()?;
+    Some(bytes)
+}
+
+fn mod_details(path: &Path) -> ModDetails {
+    let Some(mut archive) = fs::File::open(path)
+        .ok()
+        .and_then(|file| zip::ZipArchive::new(file).ok())
+    else {
+        return ModDetails::default();
+    };
+    let json = ["fabric.mod.json", "quilt.mod.json", "mcmod.info"]
+        .iter()
+        .find_map(|name| {
+            let bytes = archive_bytes(&mut archive, name, 1024 * 1024)?;
+            let mut value: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
+            if *name == "quilt.mod.json" {
+                value = value.get("quilt_loader")?.clone();
+            }
+            if let Some(array) = value.as_array() {
+                value = array.first()?.clone();
+            }
+            Some(value)
+        });
+    let mut details = ModDetails::default();
+    if let Some(value) = json {
+        let metadata = value.get("metadata").unwrap_or(&value);
+        let field = |v: &serde_json::Value, key: &str| {
+            v.get(key)
+                .and_then(|v| v.as_str())
+                .filter(|v| !v.is_empty())
+                .map(str::to_owned)
+        };
+        details.name = field(metadata, "name").or_else(|| field(&value, "id"));
+        details.version = field(&value, "version");
+        details.description = field(metadata, "description");
+        details.icon = field(metadata, "icon")
+            .or_else(|| {
+                metadata
+                    .get("icon")?
+                    .as_object()?
+                    .values()
+                    .filter_map(|v| v.as_str())
+                    .last()
+                    .map(str::to_owned)
+            })
+            .or_else(|| field(metadata, "logoFile"));
+    } else {
+        for name in ["META-INF/neoforge.mods.toml", "META-INF/mods.toml"] {
+            let Some(bytes) = archive_bytes(&mut archive, name, 1024 * 1024) else {
+                continue;
+            };
+            let Some(value) = std::str::from_utf8(&bytes)
+                .ok()
+                .and_then(|s| s.parse::<toml::Value>().ok())
+            else {
+                continue;
+            };
+            let Some(info) = value
+                .get("mods")
+                .and_then(|v| v.as_array())
+                .and_then(|v| v.first())
+            else {
+                continue;
+            };
+            let field = |key: &str| {
+                info.get(key)
+                    .and_then(|v| v.as_str())
+                    .filter(|v| !v.is_empty())
+                    .map(str::to_owned)
+            };
+            details.name = field("displayName").or_else(|| field("modId"));
+            details.version = field("version").filter(|v| !v.contains("${"));
+            details.description = field("description");
+            details.icon = field("logoFile");
+            break;
+        }
+    }
+    details.icon = details.icon.and_then(|name| {
+        let mime = if name.to_ascii_lowercase().ends_with(".png") {
+            "image/png"
+        } else if name.to_ascii_lowercase().ends_with(".jpg")
+            || name.to_ascii_lowercase().ends_with(".jpeg")
+        {
+            "image/jpeg"
+        } else {
+            return None;
+        };
+        let bytes = archive_bytes(&mut archive, &name, 2 * 1024 * 1024)?;
+        Some(format!("data:{mime};base64,{}", STANDARD.encode(bytes)))
+    });
+    details
+}
+
+fn pack_details(path: &Path) -> ModDetails {
+    let mut details = ModDetails::default();
+    let mut archive = fs::File::open(path)
+        .ok()
+        .and_then(|file| zip::ZipArchive::new(file).ok());
+    let mut read = |name: &str, limit: u64| {
+        if path.is_dir() {
+            let target = path.join(name);
+            if fs::symlink_metadata(&target).ok()?.file_type().is_symlink() {
+                return None;
+            }
+            let file = fs::File::open(target).ok()?;
+            if file.metadata().ok()?.len() > limit {
+                return None;
+            }
+            let mut bytes = Vec::new();
+            file.take(limit + 1).read_to_end(&mut bytes).ok()?;
+            (bytes.len() as u64 <= limit).then_some(bytes)
+        } else {
+            archive_bytes(archive.as_mut()?, name, limit)
+        }
+    };
+    if let Some(bytes) = read("pack.mcmeta", 1024 * 1024)
+        && let Ok(value) = serde_json::from_slice::<serde_json::Value>(&bytes)
+    {
+        details.description = value
+            .get("pack")
+            .and_then(|pack| pack.get("description"))
+            .and_then(|description| {
+                description
+                    .as_str()
+                    .or_else(|| description.get("text").and_then(|text| text.as_str()))
+            })
+            .map(str::to_owned);
+    }
+    details.icon = read("pack.png", 2 * 1024 * 1024)
+        .map(|bytes| format!("data:image/png;base64,{}", STANDARD.encode(bytes)));
+    details
 }
 
 pub fn directory(kind: Kind, game_directory: &Path, save: Option<&str>) -> Result<PathBuf, String> {
@@ -126,6 +284,11 @@ pub fn list(kind: Kind, directory: &Path) -> Result<Vec<Entry>, String> {
             Kind::Screenshot => Some(path.clone()),
             _ => None,
         };
+        let details = match kind {
+            Kind::Mod if metadata.is_file() => mod_details(&path),
+            Kind::ResourcePack | Kind::Datapack => pack_details(&path),
+            _ => ModDetails::default(),
+        };
         entries.push(Entry {
             name,
             path,
@@ -140,9 +303,19 @@ pub fn list(kind: Kind, directory: &Path) -> Result<Vec<Entry>, String> {
                 .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
                 .map(|duration| duration.as_secs())
                 .unwrap_or(0),
+            created: metadata
+                .created()
+                .ok()
+                .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
+                .map(|duration| duration.as_secs())
+                .unwrap_or(0),
             enabled: !disabled,
             icon,
             token: None,
+            display_name: details.name,
+            version: details.version,
+            description: details.description,
+            icon_data: details.icon,
         });
     }
     entries.sort_by_key(|entry| entry.name.to_lowercase());
@@ -163,12 +336,16 @@ pub fn set_enabled(paths: &[PathBuf], enabled: bool) -> Result<(), String> {
             return Err("Invalid resource path".into());
         };
         let lower = name.to_ascii_lowercase();
-        let disabled = lower.ends_with(".disabled");
+        let disabled = lower.ends_with(".disabled") || lower.ends_with(".old");
         if enabled == !disabled {
             continue;
         }
         let target = if enabled {
-            path.with_file_name(strip_suffix(name, ".disabled").ok_or("Resource is not disabled")?)
+            path.with_file_name(
+                strip_suffix(name, ".disabled")
+                    .or_else(|| strip_suffix(name, ".old"))
+                    .ok_or("Resource is not disabled")?,
+            )
         } else {
             path.with_file_name(format!("{name}.disabled"))
         };
@@ -301,6 +478,62 @@ mod tests {
         assert!(root.join("mods/a.jar.disabled").is_file());
         set_enabled(&[root.join("mods/a.jar.disabled")], true).unwrap();
         assert!(root.join("mods/a.jar").is_file());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn reads_mod_metadata_and_icons_from_archives() {
+        let root = root();
+        fs::create_dir_all(&root).unwrap();
+        let path = root.join("fabric.jar");
+        let mut zip = zip::ZipWriter::new(fs::File::create(&path).unwrap());
+        zip.start_file("fabric.mod.json", zip::write::SimpleFileOptions::default())
+            .unwrap();
+        zip.write_all(
+            br#"{"name":"Example","version":"1.2","description":"Hello","icon":"assets/icon.png"}"#,
+        )
+        .unwrap();
+        zip.start_file("assets/icon.png", zip::write::SimpleFileOptions::default())
+            .unwrap();
+        zip.write_all(b"image").unwrap();
+        zip.finish().unwrap();
+        let entries = list(Kind::Mod, &root).unwrap();
+        assert_eq!(entries[0].display_name.as_deref(), Some("Example"));
+        assert_eq!(entries[0].version.as_deref(), Some("1.2"));
+        assert_eq!(entries[0].description.as_deref(), Some("Hello"));
+        assert!(
+            entries[0]
+                .icon_data
+                .as_deref()
+                .unwrap()
+                .starts_with("data:image/png;base64,")
+        );
+        let forge_path = root.join("forge.jar");
+        let mut zip = zip::ZipWriter::new(fs::File::create(&forge_path).unwrap());
+        zip.start_file(
+            "META-INF/mods.toml",
+            zip::write::SimpleFileOptions::default(),
+        )
+        .unwrap();
+        zip.write_all(b"[[mods]]\nmodId = 'example'\ndisplayName = 'Forge Example'\nversion = '2.0'\ndescription = 'Forge description'\n").unwrap();
+        zip.finish().unwrap();
+        let details = mod_details(&forge_path);
+        assert_eq!(details.name.as_deref(), Some("Forge Example"));
+        assert_eq!(details.version.as_deref(), Some("2.0"));
+        assert_eq!(details.description.as_deref(), Some("Forge description"));
+        let pack = root.join("pack.zip");
+        let mut zip = zip::ZipWriter::new(fs::File::create(&pack).unwrap());
+        zip.start_file("pack.mcmeta", zip::write::SimpleFileOptions::default())
+            .unwrap();
+        zip.write_all(br#"{"pack":{"description":"Example pack"}}"#)
+            .unwrap();
+        zip.start_file("pack.png", zip::write::SimpleFileOptions::default())
+            .unwrap();
+        zip.write_all(b"image").unwrap();
+        zip.finish().unwrap();
+        let details = pack_details(&pack);
+        assert_eq!(details.description.as_deref(), Some("Example pack"));
+        assert!(details.icon.unwrap().starts_with("data:image/png;base64,"));
         fs::remove_dir_all(root).unwrap();
     }
 

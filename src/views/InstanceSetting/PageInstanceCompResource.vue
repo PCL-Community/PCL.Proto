@@ -4,12 +4,15 @@ import { showUnavailable } from '@/util/showUnavailable'
 import { pclText } from '@/api/pclLocale'
 import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import PLocalModItem from '@/components/widget/PLocalModItem.vue'
 import PSearchBox from '@/components/widget/PSearchBox.vue'
 import PLoading from '@/components/widget/PLoading.vue'
 import PHint from '@/components/widget/PHint.vue'
-import PSvgIcon from '@/components/widget/PSvgIcon.vue'
+import PIconTextButton from '@/components/widget/PIconTextButton.vue'
+import PSelectionToolbar from '@/components/widget/PSelectionToolbar.vue'
+import { popupNativeMenu } from '@/util/nativeMenu'
+import { useModal } from '@/composables/useModal'
 import { resourceUrl, useInstanceResources } from '@/composables/useInstanceResources'
 import type { InstanceResourceKind } from '@/api/instanceResources'
 
@@ -33,7 +36,23 @@ const schematicAvailable = true
 const query = ref('')
 const filter = ref('All')
 const selected = ref(new Set<string>())
-const sorted = ref(false)
+const sort = ref('ResourceName')
+watch(kind, () => {
+  selected.value.clear()
+  filter.value = 'All'
+  query.value = ''
+})
+watch(resources.items, (entries, previous) => {
+  const paths = new Set(entries.map((entry) => entry.path))
+  for (const path of selected.value) {
+    if (paths.has(path)) continue
+    const old = previous.find((entry) => entry.path === path)
+    const renamed =
+      old && entries.find((entry) => entry.name === old.name && entry.enabled !== old.enabled)
+    selected.value.delete(path)
+    if (renamed) selected.value.add(renamed.path)
+  }
+})
 
 function formatSize(size: number) {
   if (!size) return ''
@@ -48,13 +67,21 @@ function formatDate(seconds: number) {
 
 const items = computed(() =>
   resources.items.value.map((entry) => {
-    const detail = [formatSize(entry.size), formatDate(entry.modified)].filter(Boolean).join(' · ')
+    const fileName = entry.name.replace(/\.(jar|zip|litemod)$/i, '')
+    const detail =
+      entry.displayName || entry.description
+        ? [fileName, entry.description?.replace(/\s+/g, ' ')].filter(Boolean).join(': ')
+        : [formatSize(entry.size), formatDate(entry.modified)].filter(Boolean).join(' · ')
     return {
       id: entry.path,
-      title: entry.name,
+      title: entry.displayName || fileName,
       description: detail,
       enabled: entry.enabled,
-      icon: resourceUrl(entry.token),
+      icon: entry.iconData || resourceUrl(entry.token),
+      version: entry.version,
+      fileName: entry.name,
+      size: entry.size,
+      created: entry.created,
     }
   }),
 )
@@ -87,8 +114,26 @@ const visibleItems = computed(() => {
       (filter.value === 'Enabled' && item.enabled !== false) ||
       (filter.value === 'Disabled' && item.enabled === false),
   )
-  return sorted.value ? [...matched].sort((a, b) => a.title.localeCompare(b.title)) : matched
+  return [...matched].sort((a, b) => {
+    if (sort.value === 'FileSize') return b.size - a.size || a.title.localeCompare(b.title)
+    if (sort.value === 'AddTime') return b.created - a.created || a.title.localeCompare(b.title)
+    return (sort.value === 'FileName' ? a.fileName : a.title).localeCompare(
+      sort.value === 'FileName' ? b.fileName : b.title,
+    )
+  })
 })
+
+function chooseSort(event: MouseEvent) {
+  void popupNativeMenu(
+    event.currentTarget as Element,
+    ['ResourceName', 'FileName', 'AddTime', 'FileSize'].map((key) => ({
+      text: text(`Instance.Resource.Sort.${key}`),
+      action: () => {
+        sort.value = key
+      },
+    })),
+  )
+}
 
 function select(id: string, value: boolean) {
   if (value) selected.value.add(id)
@@ -98,6 +143,26 @@ function select(id: string, value: boolean) {
 function toggleItem(id: string) {
   const entry = resources.items.value.find((item) => item.path === id)
   if (entry) void resources.toggle(entry)
+}
+function removeItem(id: string) {
+  const entry = resources.items.value.find((item) => item.path === id)
+  if (entry) {
+    selected.value.delete(id)
+    void resources.remove([entry])
+  }
+}
+function showInfo(id: string) {
+  const entry = resources.items.value.find((item) => item.path === id)
+  if (!entry) return
+  const modal = useModal()
+  void modal.open({
+    title: entry.displayName || entry.name,
+    plainText: true,
+    content: [entry.version, entry.description, entry.name, formatSize(entry.size)]
+      .filter(Boolean)
+      .join('\n'),
+    buttons: [{ content: text('Common.Action.Close'), operation: () => modal.close() }],
+  })
 }
 
 function runSelection(action: string) {
@@ -120,6 +185,14 @@ const selectionActions = [
   { id: 'Share', key: 'Instance.Resource.ShareSelected', icon: 'share-2' },
   { id: 'Delete', key: 'Common.Action.Delete', icon: 'trash-2' },
 ]
+const selectedEntries = computed(() =>
+  resources.items.value.filter((entry) => selected.value.has(entry.path)),
+)
+function selectionDisabled(action: string) {
+  if (action === 'Enable') return !selectedEntries.value.some((entry) => !entry.enabled)
+  if (action === 'Disable') return !selectedEntries.value.some((entry) => entry.enabled)
+  return ['Update', 'Favorites', 'Share'].includes(action)
+}
 function downloadResources() {
   const category = String(route.meta.downloadType || 'mod')
   return router.push({
@@ -160,7 +233,7 @@ const text = pclText
           <div data-control="PanBack" style="grid-row: 1 / span 1; grid-column: 1 / span 1">
             <div v-if="items.length && !error" class="resource-main">
               <PSearchBox v-model="query" :placeholder="text('Instance.Resource.Search.Hint')" />
-              <PCard hide-title
+              <PCard hide-title class="resource-manage"
                 ><div class="resource-actions">
                   <PButton
                     v-for="action in [
@@ -180,26 +253,25 @@ const text = pclText
                         run: downloadResources,
                       },
                       {
+                        id: 'BtnManageSelectAll',
+                        key: 'Instance.Resource.SelectAll',
+                        run: () => visibleItems.forEach((item) => selected.add(item.id)),
+                      },
+                      {
                         id: 'BtnManageInfoExport',
                         key: 'Instance.Resource.ExportInfo',
                         run: showUnavailable,
                       },
-                      {
-                        id: 'BtnManageCheck',
-                        key: 'Instance.Resource.CheckMods',
-                        run: showUnavailable,
-                      },
                     ]"
                     :key="action.id"
+                    :type="action.id === 'BtnManageOpen' ? 'tint' : 'default'"
                     @click="action.run()"
                     >{{ text(action.key) }}</PButton
-                  ><PButton @click="() => visibleItems.forEach((item) => selected.add(item.id))">{{
-                    text('Instance.Resource.SelectAll')
-                  }}</PButton
-                  ><RouterLink
-                    to="/instance_setting/mod/jarinjar"
+                  ><PButton
+                    v-if="kind === 'mod'"
                     :title="text('Instance.Resource.Mod.JarInJar.Entry.ToolTip')"
-                    >{{ text('Instance.Resource.Mod.JarInJar.Entry') }}</RouterLink
+                    @click="router.push('/instance_setting/mod/jarinjar')"
+                    >{{ text('Instance.Resource.Mod.JarInJar.Entry') }}</PButton
                   >
                 </div></PCard
               >
@@ -218,19 +290,23 @@ const text = pclText
                       {{ filterLabel(option) }}
                     </button>
                   </div>
-                  <PButton inline @click="() => (sorted = !sorted)">{{
-                    text('Instance.Resource.Sort.Text')
-                  }}</PButton>
+                  <PIconTextButton icon="lucide/arrow-up-down" @click="chooseSort">{{
+                    text('Instance.Resource.Sort.Text', [text(`Instance.Resource.Sort.${sort}`)])
+                  }}</PIconTextButton>
                 </div>
                 <div class="resource-list">
                   <PLocalModItem
                     v-for="item in visibleItems"
                     :key="item.id"
                     v-bind="item"
+                    :togglable="kind === 'mod'"
                     :selected="selected.has(item.id)"
                     @select="(value) => select(item.id, value)"
                     @toggle="toggleItem(item.id)"
                     @update="showUnavailable()"
+                    @info="showInfo(item.id)"
+                    @open="resources.openFolder()"
+                    @remove="removeItem(item.id)"
                   />
                   <p v-if="!visibleItems.length" class="pcl-empty">
                     {{ pclText('Download.Comp.List.NoMatchingResults') }}
@@ -305,22 +381,22 @@ const text = pclText
         </div>
       </div>
     </div>
-    <PCard v-if="selected.size" hide-title class="pcl-selection-toolbar"
-      ><p>{{ text('Instance.Resource.SelectedCount', [selected.size]) }}</p>
-      <div>
-        <PButton
-          v-for="action in selectionActions"
-          :key="action.id"
-          inline
-          @click="runSelection(action.id)"
-          ><PSvgIcon :name="`lucide/${action.icon}`" :size="18" />{{ text(action.key) }}</PButton
-        ><PButton inline @click="() => selected.clear()"
-          ><PSvgIcon name="lucide/x" :size="18" />{{
-            text('Instance.Resource.CancelSelection')
-          }}</PButton
-        >
-      </div></PCard
-    >
+    <PSelectionToolbar :count="selected.size">
+      <PIconTextButton
+        v-for="action in selectionActions.filter(
+          (action) =>
+            (kind === 'mod' || !['Enable', 'Disable'].includes(action.id)) &&
+            (kind !== 'schematic' || !['Update', 'Favorites', 'Share'].includes(action.id)),
+        )"
+        :key="action.id"
+        :icon="`lucide/${action.icon}`"
+        :disabled="selectionDisabled(action.id)"
+        @click="runSelection(action.id)"
+        >{{ text(action.key) }}</PIconTextButton
+      ><PIconTextButton icon="lucide/x" @click="() => selected.clear()">{{
+        text('Instance.Resource.CancelSelection')
+      }}</PIconTextButton>
+    </PSelectionToolbar>
   </div>
 </template>
 
@@ -342,6 +418,10 @@ const text = pclText
   align-items: center;
   gap: 15px;
   padding: 15px;
+}
+.resource-manage .resource-actions :deep(button) {
+  min-width: 110px;
+  min-height: 34px;
 }
 .resource-filter {
   display: flex;

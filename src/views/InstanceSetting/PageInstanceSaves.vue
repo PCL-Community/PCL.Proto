@@ -5,9 +5,12 @@ import PCard from '@/components/widget/PCard.vue'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PListItem from '@/components/widget/PListItem.vue'
-import PComboBox from '@/components/widget/PComboBox.vue'
 import PSearchBox from '@/components/widget/PSearchBox.vue'
 import PSvgIcon from '@/components/widget/PSvgIcon.vue'
+import PIconTextButton from '@/components/widget/PIconTextButton.vue'
+import PLoading from '@/components/widget/PLoading.vue'
+import PHint from '@/components/widget/PHint.vue'
+import { popupNativeMenu } from '@/util/nativeMenu'
 import { resourceUrl, useInstanceResources } from '@/composables/useInstanceResources'
 import { openInstancePath } from '@/api/instanceResources'
 import { useSelectedInstance } from '@/stores/gameLaunch'
@@ -18,6 +21,13 @@ const router = useRouter()
 const instance = useSelectedInstance()
 const sort = ref('name')
 const query = ref('')
+
+function chooseSort(event: MouseEvent) {
+  void popupNativeMenu(event.currentTarget as Element, [
+    { text: text('Instance.Saves.SortFileName'), action: () => (sort.value = 'name') },
+    { text: text('Instance.Saves.SortModifyTime'), action: () => (sort.value = 'modified') },
+  ])
+}
 
 const resources = useInstanceResources({
   kind: () => 'save',
@@ -37,6 +47,7 @@ const saves = computed(() =>
     id: entry.path,
     name: entry.name,
     description: formatDate(entry.modified),
+    modified: entry.modified,
     icon: resourceUrl(entry.token),
   })),
 )
@@ -48,7 +59,7 @@ const matching = computed(() =>
 const savesSorted = computed(() =>
   sort.value === 'name'
     ? [...matching.value].sort((a, b) => a.name.localeCompare(b.name))
-    : matching.value,
+    : [...matching.value].sort((a, b) => b.modified - a.modified),
 )
 
 function removeSave(id: string) {
@@ -73,11 +84,18 @@ const text = pclText
     <div>
       <div data-control="PanBack">
         <div style="display: grid">
-          <div v-if="saves.length" class="saves-list">
+          <PLoading
+            v-if="resources.loading.value"
+            :loading-text="text('Instance.Saves.Status.Refreshing')"
+          />
+          <PHint v-else-if="resources.error.value" severity="error">{{
+            resources.error.value
+          }}</PHint>
+          <div v-else-if="saves.length" class="saves-list">
             <PSearchBox v-model="query" :placeholder="text('Instance.Saves.SearchHint')" />
             <PCard :title="text('Instance.Saves.QuickActions')"
               ><div class="saves-actions">
-                <PButton @click="resources.openFolder()">{{
+                <PButton type="tint" @click="resources.openFolder()">{{
                   text('Instance.Saves.OpenFolder')
                 }}</PButton
                 ><PButton
@@ -90,17 +108,26 @@ const text = pclText
                 }}</PButton>
               </div></PCard
             >
-            <PCard :title="text('Instance.Saves.ListTitle')"
-              ><div class="saves-actions">
-                <label>{{ text('Instance.Saves.SortBy') }}</label
-                ><PComboBox
-                  v-model="sort"
-                  :options="[
-                    { key: 'name', text: pclText('Proto.Label.Name') },
-                    { key: 'default', text: text('Common.Option.Default') },
-                  ]"
-                />
-              </div>
+            <PCard
+              :title="
+                text(query ? 'Instance.Saves.SearchResultTitle' : 'Instance.Saves.SaveListTitle', [
+                  savesSorted.length,
+                ])
+              "
+            >
+              <template #header-actions>
+                <PIconTextButton icon="lucide/arrow-up-down" @click="chooseSort">
+                  {{
+                    text('Instance.Saves.SortBy', [
+                      text(
+                        sort === 'name'
+                          ? 'Instance.Saves.SortFileName'
+                          : 'Instance.Saves.SortModifyTime',
+                      ),
+                    ])
+                  }}
+                </PIconTextButton>
+              </template>
               <div class="save-items">
                 <PListItem
                   v-for="save in savesSorted"
@@ -108,11 +135,19 @@ const text = pclText
                   :title="save.name"
                   :subtitle="save.description"
                   :icon="save.icon"
-                  round-img
                   clickable
                   @click="() => openSave(save.id)"
                 >
-                  <template #actions>
+                  <template #icon-actions>
+                    <button
+                      class="pcl-icon-button"
+                      type="button"
+                      :title="text('Common.Action.OpenFolder')"
+                      :aria-label="text('Common.Action.OpenFolder')"
+                      @click="openSave(save.id)"
+                    >
+                      <PSvgIcon name="lucide/folder-open" :size="15" />
+                    </button>
                     <button
                       class="pcl-icon-button"
                       type="button"
@@ -127,7 +162,7 @@ const text = pclText
             ></PCard>
           </div>
           <PCard
-            v-if="!saves.length"
+            v-else
             data-control="PanNoWorld"
             style="
               margin: 40px;
@@ -229,7 +264,7 @@ const text = pclText
 
 <style scoped>
 .saves-list {
-  padding: 25px;
+  padding: 25px 25px 10px;
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -239,7 +274,11 @@ const text = pclText
   flex-wrap: wrap;
   align-items: center;
   gap: 15px;
-  padding: 0 25px 15px;
+  padding: 0 25px 20px;
+}
+.saves-actions :deep(button) {
+  min-width: 140px;
+  min-height: 35px;
 }
 .save-items {
   padding: 0 20px 20px;

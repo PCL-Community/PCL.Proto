@@ -5,6 +5,13 @@ import PCard from '@/components/widget/PCard.vue'
 import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import { computed } from 'vue'
 import { resourceUrl, useInstanceResources } from '@/composables/useInstanceResources'
+import { openInstancePath } from '@/api/instanceResources'
+import { useSelectedInstance } from '@/stores/gameLaunch'
+import sideTip from '@/composables/sideTip'
+import PLoading from '@/components/widget/PLoading.vue'
+import PHint from '@/components/widget/PHint.vue'
+
+const instance = useSelectedInstance()
 
 const resources = useInstanceResources({
   kind: () => 'screenshot',
@@ -27,6 +34,16 @@ function remove(id: string) {
   if (entry) void resources.remove([entry])
 }
 
+async function openScreenshot(id: string) {
+  const directory = instance.instance_info?.directory
+  if (!directory) return
+  try {
+    await openInstancePath(directory, id)
+  } catch (failure) {
+    sideTip.show(`${text('Instance.Screenshot.OpenFailed')} ${failure}`, 'warn')
+  }
+}
+
 const text = pclText
 </script>
 <template>
@@ -34,7 +51,14 @@ const text = pclText
     <div>
       <div data-control="PanBack">
         <div style="display: grid">
-          <div v-if="screenshots.length" class="screenshots-content">
+          <PLoading
+            v-if="resources.loading.value"
+            :loading-text="text('Instance.Saves.Status.Refreshing')"
+          />
+          <PHint v-else-if="resources.error.value" severity="error">{{
+            resources.error.value
+          }}</PHint>
+          <div v-else-if="screenshots.length" class="screenshots-content">
             <PCard :title="text('Instance.Screenshot.QuickActions')"
               ><div class="screenshot-actions">
                 <PButton type="tint" @click="resources.openFolder()">{{
@@ -43,25 +67,38 @@ const text = pclText
               </div></PCard
             >
             <div class="screenshots">
-              <figure v-for="screenshot in screenshots" :key="screenshot.id">
-                <img :src="screenshot.url" :alt="screenshot.name" loading="lazy" />
-                <figcaption>
-                  <span>{{ screenshot.name }}</span>
-                  <button
-                    class="pcl-icon-button"
-                    type="button"
-                    :title="text('Common.Action.Delete')"
-                    :aria-label="text('Common.Action.Delete')"
-                    @click="remove(screenshot.id)"
+              <PCard
+                v-for="screenshot in screenshots"
+                :key="screenshot.id"
+                hide-title
+                class="screenshot-card"
+                :title="screenshot.name"
+              >
+                <button
+                  class="screenshot-preview"
+                  type="button"
+                  :aria-label="screenshot.name"
+                  @click="openScreenshot(screenshot.id)"
+                >
+                  <img :src="screenshot.url" :alt="screenshot.name" loading="lazy" />
+                </button>
+                <div class="screenshot-card-actions">
+                  <PButton inline @click="openScreenshot(screenshot.id)"
+                    ><PSvgIcon name="lucide/folder-open" :size="15" />{{
+                      text('Common.Action.Open')
+                    }}</PButton
                   >
-                    <PSvgIcon name="lucide/trash-2" :size="15" />
-                  </button>
-                </figcaption>
-              </figure>
+                  <PButton inline @click="remove(screenshot.id)"
+                    ><PSvgIcon name="lucide/trash-2" :size="15" />{{
+                      text('Common.Action.Delete')
+                    }}</PButton
+                  >
+                </div>
+              </PCard>
             </div>
           </div>
           <PCard
-            v-if="!screenshots.length"
+            v-else
             data-control="PanNoPic"
             style="
               margin: 40px;
@@ -137,27 +174,43 @@ const text = pclText
   gap: 15px;
 }
 .screenshot-actions {
-  padding: 0 25px 15px;
+  padding: 0 25px 20px;
+}
+.screenshot-actions :deep(button) {
+  min-width: 140px;
+  min-height: 35px;
 }
 .screenshots {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 15px;
-}
-.screenshots figure {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  padding: 0 8px 25px;
 }
-.screenshots figcaption {
+.screenshot-card {
+  width: 220px;
+}
+.screenshot-preview {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  width: 100%;
+  height: 129px;
+  padding: 9px 8px 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.screenshot-card-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 3px;
 }
 .screenshots img {
-  width: 100%;
-  border-radius: 6px;
+  max-width: 100%;
+  max-height: 120px;
+  object-fit: contain;
 }
 </style>

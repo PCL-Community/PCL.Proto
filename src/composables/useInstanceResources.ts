@@ -56,13 +56,13 @@ export function useInstanceResources(options: {
   // Datapacks need the owning save folder; nothing can be listed or changed without one.
   const missingSave = () => Boolean(options.save) && !save()
 
-  async function refresh() {
+  async function refresh(silent = false) {
     const path = directory()
     const revision = ++generation
-    items.value = []
+    if (!silent) items.value = []
     error.value = ''
     if (!isTauri() || !path || missingSave()) return
-    loading.value = true
+    if (!silent) loading.value = true
     try {
       const result = await listInstanceResources(path, options.kind(), save())
       if (revision === generation) items.value = result
@@ -96,7 +96,7 @@ export function useInstanceResources(options: {
       const sources = Array.isArray(picked) ? picked : [picked]
       if (!sources.length) return
       await importInstanceResources(path, options.kind(), sources, save())
-      await refresh()
+      await refresh(true)
     } catch (failure) {
       sideTip.show(`${pclText('Instance.Resource.Error.OperationFailed')} ${failure}`, 'warn')
     }
@@ -111,7 +111,7 @@ export function useInstanceResources(options: {
         entries.map((entry) => entry.path),
         enabled,
       )
-      await refresh()
+      await refresh(true)
     } catch (failure) {
       sideTip.show(`${pclText(messages.toggleFailed)} ${failure}`, 'warn')
     }
@@ -131,7 +131,7 @@ export function useInstanceResources(options: {
           : pclText(messages.deletedMultiple, [entries.length]),
         'success',
       )
-      await refresh()
+      await refresh(true)
     } catch (failure) {
       sideTip.show(`${pclText(messages.deleteFailed)} ${failure}`, 'warn')
     }

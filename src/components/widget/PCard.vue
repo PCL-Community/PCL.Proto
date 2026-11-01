@@ -126,7 +126,7 @@ onUnmounted(() => observer?.disconnect())
         </div>
         <div class="mycard-title-actions">
           <slot name="header-actions" />
-          <i v-if="!disabled"><IconUnfold /></i>
+          <i v-if="!disabled && foldState !== 'unfoldable'"><IconUnfold /></i>
         </div>
       </header>
       <Transition name="card-content">
@@ -181,10 +181,6 @@ onUnmounted(() => observer?.disconnect())
 
 .mycard-container:not(.unfoldable):not(.fold-disabled) .mycard-title {
   cursor: pointer;
-}
-
-.mycard-container.unfoldable .mycard-title-actions > i {
-  visibility: hidden;
 }
 
 .mycard {

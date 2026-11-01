@@ -7,10 +7,11 @@ import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PLoading from '@/components/widget/PLoading.vue'
 import PSearchBox from '@/components/widget/PSearchBox.vue'
-import PSvgIcon from '@/components/widget/PSvgIcon.vue'
+import PIconTextButton from '@/components/widget/PIconTextButton.vue'
+import PSelectionToolbar from '@/components/widget/PSelectionToolbar.vue'
+import PLocalModItem from '@/components/widget/PLocalModItem.vue'
+import { popupNativeMenu } from '@/util/nativeMenu'
 import { computed, ref, watch } from 'vue'
-import PListItem from '@/components/widget/PListItem.vue'
-import PCheckBox from '@/components/widget/PCheckBox.vue'
 import PComboBox from '@/components/widget/PComboBox.vue'
 import { useInstanceResources } from '@/composables/useInstanceResources'
 
@@ -48,14 +49,41 @@ const datapacks = computed(() =>
   resources.items.value.map((entry) => ({
     id: entry.path,
     name: entry.name,
-    description: entry.size ? `${Math.round(entry.size / 1024)} KB` : '',
+    description: entry.description || (entry.size ? `${Math.round(entry.size / 1024)} KB` : ''),
+    icon: entry.iconData,
     enabled: entry.enabled,
+    size: entry.size,
+    created: entry.created,
     updatable: false,
     error: false,
   })),
 )
 
 const selected = ref(new Set<string>())
+const sort = ref('ResourceName')
+watch(selectedSave, () => selected.value.clear())
+watch(resources.items, (entries, previous) => {
+  const paths = new Set(entries.map((entry) => entry.path))
+  for (const path of selected.value) {
+    if (paths.has(path)) continue
+    const old = previous.find((entry) => entry.path === path)
+    const renamed =
+      old && entries.find((entry) => entry.name === old.name && entry.enabled !== old.enabled)
+    selected.value.delete(path)
+    if (renamed) selected.value.add(renamed.path)
+  }
+})
+function chooseSort(event: MouseEvent) {
+  void popupNativeMenu(
+    event.currentTarget as Element,
+    ['ResourceName', 'FileName', 'AddTime', 'FileSize'].map((key) => ({
+      text: text(`Instance.Resource.Sort.${key}`),
+      action: () => {
+        sort.value = key
+      },
+    })),
+  )
+}
 function select(id: string, checked: boolean) {
   if (checked) selected.value.add(id)
   else selected.value.delete(id)
@@ -83,19 +111,35 @@ const selectionActions = [
   { id: 'Share', key: 'Instance.Resource.ShareSelected', icon: 'share-2' },
   { id: 'Delete', key: 'Common.Action.Delete', icon: 'trash-2' },
 ]
+const selectedEntries = computed(() =>
+  resources.items.value.filter((entry) => selected.value.has(entry.path)),
+)
+function selectionDisabled(action: string) {
+  if (action === 'Enable') return !selectedEntries.value.some((entry) => !entry.enabled)
+  if (action === 'Disable') return !selectedEntries.value.some((entry) => entry.enabled)
+  return ['Update', 'Favorites', 'Share'].includes(action)
+}
 const visibleDatapacks = computed(() =>
-  datapacks.value.filter((pack) => {
-    const matches = `${pack.name} ${pack.description || ''}`
-      .toLowerCase()
-      .includes(String(values.SearchBox).toLowerCase())
-    const filter = values.filter
-    return (
-      matches &&
-      (filter === 'All' ||
-        (filter === 'Enabled' && pack.enabled) ||
-        (filter === 'Disabled' && !pack.enabled))
-    )
-  }),
+  datapacks.value
+    .filter((pack) => {
+      const matches = `${pack.name} ${pack.description || ''}`
+        .toLowerCase()
+        .includes(String(values.SearchBox).toLowerCase())
+      const filter = values.filter
+      return (
+        matches &&
+        (filter === 'All' ||
+          (filter === 'Enabled' && pack.enabled) ||
+          (filter === 'Disabled' && !pack.enabled))
+      )
+    })
+    .sort((a, b) =>
+      sort.value === 'FileSize'
+        ? b.size - a.size || a.name.localeCompare(b.name)
+        : sort.value === 'AddTime'
+          ? b.created - a.created || a.name.localeCompare(b.name)
+          : a.name.localeCompare(b.name),
+    ),
 )
 
 const text = pclText
@@ -184,98 +228,55 @@ const text = pclText
               <PCard
                 data-control="PanListBack"
                 style="min-height: 55px; margin: 0px 0px 14px 0px"
-                :title="text(' ')"
+                hide-title
               >
-                <div
-                  data-control="PanFilter"
-                  style="
-                    height: 28px;
-                    margin: 0px 0px 0px 15px;
-                    display: flex;
-                    flex-direction: row;
-                    align-items: center;
-                  "
-                >
-                  <label data-control="BtnFilterAll" style="margin: 0px 2px" class="pcl-radio"
-                    ><input type="radio" v-model="values.filter" value="All" />{{
-                      text('Instance.Resource.Filter.All')
-                    }}</label
-                  >
-                  <label data-control="BtnFilterEnabled" style="margin: 0px 2px" class="pcl-radio"
-                    ><input type="radio" v-model="values.filter" value="Enabled" />{{
-                      text('Instance.Resource.Filter.Enabled')
-                    }}</label
-                  >
-                  <label data-control="BtnFilterDisabled" style="margin: 0px 2px" class="pcl-radio"
-                    ><input type="radio" v-model="values.filter" value="Disabled" />{{
-                      text('Instance.Resource.Filter.Disabled')
-                    }}</label
-                  >
-                  <label data-control="BtnFilterCanUpdate" style="margin: 0px 2px" class="pcl-radio"
-                    ><input type="radio" v-model="values.filter" value="CanUpdate" />{{
-                      text('Instance.Resource.Filter.Updatable')
-                    }}</label
-                  >
-                  <label data-control="BtnFilterError" style="margin: 0px 2px" class="pcl-radio"
-                    ><input type="radio" v-model="values.filter" value="Error" />{{
-                      text('Instance.Resource.Filter.Error')
-                    }}</label
-                  >
-                </div>
-                <div
-                  style="
-                    height: 28px;
-                    margin: 0px 15px 0px 0px;
-                    display: flex;
-                    flex-direction: row;
-                    align-items: center;
-                  "
-                >
-                  <PButton data-control="BtnSort" @click="showUnavailable" inline
-                    ><PSvgIcon name="lucide/arrow-up-down" :size="18" />{{
-                      text('Instance.Resource.Sort.Text')
-                    }}</PButton
+                <div data-control="PanFilter" class="datapack-filter">
+                  <div>
+                    <button
+                      v-for="filter in ['All', 'Enabled', 'Disabled']"
+                      :key="filter"
+                      type="button"
+                      class="pcl-chip"
+                      :class="{ active: values.filter === filter }"
+                      @click="values.filter = filter"
+                    >
+                      {{ text(`Instance.Resource.Filter.${filter}`) }}
+                    </button>
+                  </div>
+                  <PIconTextButton
+                    data-control="BtnSort"
+                    icon="lucide/arrow-up-down"
+                    @click="chooseSort"
+                    >{{
+                      text('Instance.Resource.Sort.Text', [text(`Instance.Resource.Sort.${sort}`)])
+                    }}</PIconTextButton
                   >
                 </div>
                 <div
                   data-control="PanList"
                   style="margin: 8px 18px 22px 20px; display: flex; flex-direction: column"
                 >
-                  <PListItem
+                  <PLocalModItem
                     v-for="pack in visibleDatapacks"
                     :key="pack.id"
+                    :id="pack.id"
                     :title="pack.name"
-                    :subtitle="pack.description"
-                    ><template #actions
-                      ><button
-                        class="pcl-icon-button"
-                        type="button"
-                        :title="
-                          text(
-                            pack.enabled
-                              ? 'Instance.Resource.Filter.Disabled'
-                              : 'Instance.Resource.Filter.Enabled',
-                          )
-                        "
-                        :aria-label="
-                          text(
-                            pack.enabled
-                              ? 'Instance.Resource.Filter.Disabled'
-                              : 'Instance.Resource.Filter.Enabled',
-                          )
-                        "
-                        @click="toggleItem(pack.id)"
-                      >
-                        <PSvgIcon
-                          :name="pack.enabled ? 'lucide/x' : 'lucide/check'"
-                          :size="15"
-                        /></button
-                      ><PCheckBox
-                        :id="`datapack-${pack.id}`"
-                        :label="pclText('Proto.Label.Select', [pack.name])"
-                        :model-value="selected.has(pack.id)"
-                        @update:model-value="(checked) => select(pack.id, checked)" /></template
-                  ></PListItem>
+                    :description="pack.description"
+                    :icon="pack.icon"
+                    :enabled="pack.enabled"
+                    :selected="selected.has(pack.id)"
+                    togglable
+                    @select="(checked) => select(pack.id, checked)"
+                    @toggle="toggleItem(pack.id)"
+                    @open="resources.openFolder()"
+                    @info="showUnavailable()"
+                    @remove="
+                      () => {
+                        const entry = resources.items.value.find((item) => item.path === pack.id)
+                        if (entry) void resources.remove([entry])
+                      }
+                    "
+                  />
                   <p v-if="!visibleDatapacks.length" class="pcl-empty">
                     {{ pclText('Download.Comp.List.NoMatchingResults') }}
                   </p>
@@ -346,22 +347,18 @@ const text = pclText
         </div>
       </div>
     </div>
-    <PCard v-if="selected.size" hide-title class="pcl-selection-toolbar"
-      ><p>{{ text('Instance.Resource.SelectedCount', [selected.size]) }}</p>
-      <div>
-        <PButton
-          v-for="action in selectionActions"
-          :key="action.id"
-          inline
-          @click="runSelection(action.id)"
-          ><PSvgIcon :name="`lucide/${action.icon}`" :size="18" />{{ text(action.key) }}</PButton
-        ><PButton inline @click="() => selected.clear()"
-          ><PSvgIcon name="lucide/x" :size="18" />{{
-            text('Instance.Resource.CancelSelection')
-          }}</PButton
-        >
-      </div></PCard
-    >
+    <PSelectionToolbar :count="selected.size">
+      <PIconTextButton
+        v-for="action in selectionActions"
+        :key="action.id"
+        :icon="`lucide/${action.icon}`"
+        :disabled="selectionDisabled(action.id)"
+        @click="runSelection(action.id)"
+        >{{ text(action.key) }}</PIconTextButton
+      ><PIconTextButton icon="lucide/x" @click="() => selected.clear()">{{
+        text('Instance.Resource.CancelSelection')
+      }}</PIconTextButton>
+    </PSelectionToolbar>
   </div>
 </template>
 
@@ -369,5 +366,13 @@ const text = pclText
 .datapack-page {
   display: flex;
   flex-direction: column;
+}
+.datapack-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 15px 15px 0;
 }
 </style>

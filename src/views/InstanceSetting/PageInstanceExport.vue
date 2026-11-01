@@ -1,18 +1,32 @@
 <script setup lang="ts">
 import { showUnavailable } from '@/util/showUnavailable'
 import { pclText } from '@/api/pclLocale'
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import exportOptions from '@/assets/export-options.json'
 import { useSelectedInstance } from '@/stores/gameLaunch'
 import { usePageSettings } from '@/composables/usePageSettings'
 import PButton from '@/components/widget/PButton.vue'
-import PPrimaryAction from '@/components/widget/PPrimaryAction.vue'
+import { FloatButtonType, useFloatButton } from '@/composables/useFloatButton'
+import { useTaskManager } from '@/stores/task'
 import PCard from '@/components/widget/PCard.vue'
 import PCheckBox from '@/components/widget/PCheckBox.vue'
 import PHint from '@/components/widget/PHint.vue'
 import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import PTextBox from '@/components/widget/PTextBox.vue'
 const instance = useSelectedInstance()
+const { floatButtonState, setFloatButton } = useFloatButton()
+onMounted(() => {
+  floatButtonState.action = showUnavailable
+  setFloatButton(FloatButtonType.ExportInstance)
+  floatButtonState.visible = true
+})
+onUnmounted(() => {
+  if (floatButtonState.action !== showUnavailable) return
+  floatButtonState.action = undefined
+  const hasTasks = useTaskManager().activeTaskCount > 0
+  if (hasTasks) setFloatButton(FloatButtonType.TaskManage)
+  floatButtonState.visible = hasTasks
+})
 const defaults = {
   TextExportName: '',
   TextExportVersion: '',
@@ -198,19 +212,6 @@ const text = pclText
             </PCard>
           </div>
         </div>
-        <PPrimaryAction
-          data-control="BtnExport"
-          style="
-            grid-row: 1 / span 1;
-            grid-column: 1 / span 1;
-            justify-self: center;
-            align-self: end;
-          "
-          @click="showUnavailable"
-          ><PSvgIcon name="lucide/package" :size="16" />{{
-            text('Instance.Export.StartExport')
-          }}</PPrimaryAction
-        >
       </div>
     </div>
   </div>

@@ -8,7 +8,6 @@ import PListItem from '@/components/widget/PListItem.vue'
 import PVersionActions from '@/components/widget/PVersionActions.vue'
 import PLoaderVersionActions from '@/components/widget/PLoaderVersionActions.vue'
 import PButton from '@/components/widget/PButton.vue'
-import PPrimaryAction from '@/components/widget/PPrimaryAction.vue'
 import PTextBox from '@/components/widget/PTextBox.vue'
 import PHint from '@/components/widget/PHint.vue'
 import PLoading from '@/components/widget/PLoading.vue'
@@ -211,9 +210,9 @@ onMounted(() => {
   watch(
     versionId,
     (id) => {
-      if (id && !props.modify && !props.manual) {
+      if (id && !props.manual) {
         floatButtonState.action = install
-        setFloatButton(FloatButtonType.DownloadGame)
+        setFloatButton(props.modify ? FloatButtonType.ModifyInstance : FloatButtonType.DownloadGame)
         floatButtonState.visible = true
       } else if (floatButtonState.action === install) {
         floatButtonState.action = undefined
@@ -413,17 +412,12 @@ watch(versionId, (id) => {
           </p>
         </div>
       </PCard>
-      <PPrimaryAction v-if="modify" class="install-start" :disabled="installing" @click="install"
-        ><PSvgIcon name="lucide/download" :size="16" />{{
-          text(modify ? 'Instance.Install.Action.StartModify' : 'Download.Install.StartDownload')
-        }}</PPrimaryAction
-      >
     </template>
   </section>
 </template>
 <style scoped>
 .install-page {
-  padding: 25px;
+  padding: 25px 25px 80px;
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -536,11 +530,5 @@ watch(versionId, (id) => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-.install-start {
-  align-self: center;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 </style>

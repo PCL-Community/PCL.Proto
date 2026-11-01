@@ -79,6 +79,7 @@
 .pcl-selection-toolbar p {
   padding: 9px;
   text-align: center;
+  color: var(--color-tint);
 }
 .pcl-selection-toolbar .mycard-content > div {
   display: flex;

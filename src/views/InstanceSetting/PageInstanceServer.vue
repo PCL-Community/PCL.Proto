@@ -113,7 +113,9 @@ const text = pclText
           >
             <PCard :title="text('Instance.Server.QuickActions')"
               ><div class="server-actions">
-                <PButton @click="showUnavailable">{{ text('Instance.Server.RefreshAll') }}</PButton
+                <PButton type="tint" @click="showUnavailable">{{
+                  text('Instance.Server.RefreshAll')
+                }}</PButton
                 ><PButton @click="showUnavailable">{{ text('Instance.Server.AddServer') }}</PButton>
               </div></PCard
             >
@@ -139,5 +141,9 @@ const text = pclText
   flex-wrap: wrap;
   gap: 15px;
   padding: 0 25px 15px;
+}
+.server-actions :deep(button) {
+  min-width: 140px;
+  min-height: 35px;
 }
 </style>

@@ -1,10 +1,13 @@
 import { pclText } from '@/api/pclLocale'
 import IconDownload from '@/components/icons/header/IconDownload.vue'
-import { shallowReactive, type Component } from 'vue'
+import PSvgIcon from '@/components/widget/PSvgIcon.vue'
+import { h, shallowReactive, type Component } from 'vue'
 
 export enum FloatButtonType {
   DownloadGame,
   TaskManage,
+  ModifyInstance,
+  ExportInstance,
 }
 
 export interface FloatButtonState {
@@ -19,11 +22,22 @@ export interface FloatButtonState {
 const floatButtonState = shallowReactive<FloatButtonState>({
   visible: false,
   get text() {
-    return this.type === FloatButtonType.DownloadGame
-      ? pclText('Download.Install.StartDownload')
-      : undefined
+    switch (this.type) {
+      case FloatButtonType.DownloadGame:
+        return pclText('Download.Install.StartDownload')
+      case FloatButtonType.ModifyInstance:
+        return pclText('Instance.Install.Action.StartModify')
+      case FloatButtonType.ExportInstance:
+        return pclText('Instance.Export.StartExport')
+      default:
+        return undefined
+    }
   },
-  icon: IconDownload,
+  get icon() {
+    return this.type === FloatButtonType.ExportInstance
+      ? () => h(PSvgIcon, { name: 'lucide/package', size: 16 })
+      : IconDownload
+  },
   get title() {
     return this.type === FloatButtonType.TaskManage ? pclText('Main.Title.TaskManager') : undefined
   },
