@@ -122,7 +122,10 @@ const selectionActions = [
 ]
 function downloadResources() {
   const category = String(route.meta.downloadType || 'mod')
-  return router.push(`/download/${category === 'schematic' ? 'mod' : category}`)
+  return router.push({
+    path: `/download/${category === 'schematic' ? 'mod' : category}`,
+    query: { instance: 'selected' },
+  })
 }
 
 const loading = computed(() => resources.loading.value)

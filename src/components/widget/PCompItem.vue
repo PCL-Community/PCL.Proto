@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { pclLocale, pclText } from '@/api/pclLocale'
-import { compLoaders, compTags, compVersions, latestCompFile } from '@/api/compResources'
-import modrinthApi, { type ISearchHit } from '@/api/modrinthApi'
+import { compSourceOf } from '@/api/compProjects'
+import { compLoaders, compTags, compVersions } from '@/api/compResources'
+import { quickDownload } from '@/api/compDownload'
+import type { CompProjectType, ISearchHit } from '@/api/modrinthApi'
 import { useCompFavorites } from '@/stores/compFavorites'
 import sideTip from '@/composables/sideTip'
-import { isTauri } from '@tauri-apps/api/core'
-import { openExternal } from '@/util/externalLink'
 import { computed, ref } from 'vue'
 import PSvgIcon from './PSvgIcon.vue'
 import PListActions from './PListActions.vue'
@@ -15,12 +15,21 @@ const router = useRouter()
 const base = import.meta.env.BASE_URL
 const favorites = useCompFavorites()
 const props = withDefaults(
-  defineProps<{ clickable?: boolean; data: ISearchHit; gameVersion?: string; loader?: string }>(),
+  defineProps<{
+    clickable?: boolean
+    data: ISearchHit
+    gameVersion?: string
+    loader?: string
+    resourceType?: CompProjectType
+  }>(),
   {
     clickable: false,
   },
 )
 const downloading = ref(false)
+const sourceName = computed(() =>
+  compSourceOf(props.data.project_id) === 'curseforge' ? 'CurseForge' : 'Modrinth',
+)
 const tags = computed(() => compTags(props.data))
 const versionText = computed(() =>
   [compLoaders(props.data), compVersions(props.data.versions)].filter(Boolean).join(' '),
@@ -56,8 +65,12 @@ function navigateToProject() {
       name: 'resource',
       query: {
         id: props.data.project_id,
+        type: props.resourceType || (props.loader === 'datapack' ? 'datapack' : undefined),
         version: props.gameVersion || 'all',
-        loader: props.loader || undefined,
+        loader:
+          props.data.project_type === 'mod' && props.loader !== 'datapack'
+            ? props.loader || undefined
+            : undefined,
       },
     })
 }
@@ -66,23 +79,11 @@ async function download() {
   if (downloading.value) return
   downloading.value = true
   try {
-    const versions = await modrinthApi.getProjectVersions(props.data.project_id)
-    const file = latestCompFile(versions, props.gameVersion, props.loader)
-    if (!file) {
-      sideTip.show(pclText('Download.Comp.QuickDownload.Hint.NoFile'), 'warn')
-      return
-    }
-    // The Tauri WebView cannot save remote files itself; hand the link to the system browser.
-    if (isTauri()) {
-      await openExternal(file.url)
-      return
-    }
-    const link = document.createElement('a')
-    link.href = file.url
-    link.download = file.filename
-    link.target = '_blank'
-    link.rel = 'noopener noreferrer'
-    link.click()
+    await quickDownload({
+      ...props.data,
+      project_type:
+        props.resourceType || (props.loader === 'datapack' ? 'datapack' : props.data.project_type),
+    })
   } catch (error) {
     sideTip.show(pclText('Proto.Error.Resource', [String(error)]), 'warn')
   } finally {
@@ -121,7 +122,7 @@ async function download() {
           ><PSvgIcon name="lucide/arrow-up-from-line" :size="12" /><span>{{ dateText }}</span></span
         >
         <span class="inline-icon"
-          ><PSvgIcon name="lucide/globe" :size="12" /><span>Modrinth</span></span
+          ><PSvgIcon name="lucide/globe" :size="12" /><span>{{ sourceName }}</span></span
         >
       </div>
     </div>

@@ -1,6 +1,7 @@
 import categories from '@/assets/download-categories.json'
 import { pclLocale, pclText } from './pclLocale'
 import type { ISearchHit, IVersion } from './modrinthApi'
+import type GameInstance from '@/types/gameInstance'
 
 export type CompType = keyof typeof categories
 
@@ -11,6 +12,12 @@ const categoryKeys: Record<string, string> = Object.fromEntries(
       .map((item) => [item.tag.split('/')[1], item.text]),
   ),
 )
+// tag 的前半段是 CurseForge 分类 ID（例如 "406/worldgen"），归一化后的分类同样按这张表取文案。
+for (const items of Object.values(categories))
+  for (const item of items) {
+    const id = item.tag.split('/')[0]
+    if (id && !categoryKeys[id]) categoryKeys[id] = item.text
+  }
 Object.assign(categoryKeys, {
   iris: 'Download.Comp.Category.Iris',
   optifine: 'Download.Comp.Category.Optifine',
@@ -25,8 +32,9 @@ export const loaderNames: Record<string, string> = {
 }
 
 export function compTagOptions(type: CompType) {
+  // 只要有一侧能映射就保留：CF 独有的分类（如 "407/"）也要可选。
   return categories[type]
-    .filter((item) => !item.tag || item.tag.split('/')[1])
+    .filter((item) => !item.tag || item.tag.replace('/', ''))
     .map((item) => ({
       key: item.tag || (item.text === 'Common.Option.All' ? '' : item.text),
       text: pclText(item.text),
@@ -114,6 +122,71 @@ export function latestCompFile(versions: IVersion[], gameVersion = '', loader = 
   const files = compatible[0]?.files || []
   const file = files.find((file) => file.primary) || files[0]
   return file && /^https:\/\//i.test(file.url) ? file : undefined
+}
+
+export function compatibleResource(version: IVersion, instance: GameInstance, type: CompType) {
+  if (
+    ['mod', 'datapack', 'world'].includes(type) &&
+    version.game_versions.some((v) => v.includes('.')) &&
+    !version.game_versions.includes(instance.version)
+  )
+    return false
+  const loaders = version.loaders.filter((value) =>
+    ['forge', 'fabric', 'neoforge', 'quilt', 'liteloader'].includes(value),
+  )
+  if (!loaders.length) return true
+  const plugins = instance.pluginsVersion || {}
+  return loaders.some(
+    (loader) =>
+      loader in plugins ||
+      (loader === 'forge' && 'cleanroom' in plugins) ||
+      (loader === 'fabric' && 'legacyfabric' in plugins),
+  )
+}
+
+export function latestResourceVersion(
+  versions: IVersion[],
+  instance?: GameInstance,
+  type?: CompType,
+) {
+  return [...versions]
+    .filter((version) => !instance || compatibleResource(version, instance, type!))
+    .sort(
+      (a, b) =>
+        Number(b.version_type === 'release') - Number(a.version_type === 'release') ||
+        Date.parse(b.date_published) - Date.parse(a.date_published),
+    )
+    .find((version) => version.files.some((file) => file.url && file.filename))
+}
+
+export function instanceCompFilter(instance: GameInstance | null, type: CompType) {
+  const loader = ['forge', 'fabric', 'neoforge', 'quilt'].find(
+    (name) => name in (instance?.pluginsVersion ?? {}),
+  )
+  return {
+    version: instance?.version ?? '',
+    loader: type === 'mod' || type === 'modpack' ? (loader ?? '') : '',
+  }
+}
+
+export function selectedCompVersions(
+  versions: readonly IVersion[],
+  targetVersion: string,
+  targetLoader: string,
+  gameVersion: string,
+  loader: string,
+  byDrop: boolean,
+  foldOld: boolean,
+) {
+  if (!targetVersion || (loader && loader !== targetLoader)) return []
+  if (gameVersion && groupedVersionName(targetVersion, byDrop, foldOld) !== gameVersion) return []
+  return versions
+    .filter(
+      (version) =>
+        version.game_versions.includes(targetVersion) &&
+        (!targetLoader || version.loaders.includes(targetLoader)),
+    )
+    .sort((a, b) => Date.parse(b.date_published) - Date.parse(a.date_published))
 }
 
 /// 版本名 → Drop 序数（1.21 → 121，快照按年份估算），无法识别时为 -1。对照 CE 的 McInstanceInfo.VersionToDrop。

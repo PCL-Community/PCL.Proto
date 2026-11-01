@@ -1449,6 +1449,33 @@ fn instance_game_directory(
     Ok(crate::minecraft::instance::isolation::directory(&state, instance).to_path_buf())
 }
 
+#[tauri::command]
+pub async fn instance_resource_destination(
+    instance_directory: std::path::PathBuf,
+    kind: String,
+    filename: String,
+) -> Result<std::path::PathBuf, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::io::files::validate_file_name(&filename).map_err(|e| e.to_string())?;
+        let kind = crate::minecraft::instance::files::Kind::parse(&kind)?;
+        if !matches!(
+            kind,
+            crate::minecraft::instance::files::Kind::Mod
+                | crate::minecraft::instance::files::Kind::ResourcePack
+                | crate::minecraft::instance::files::Kind::Shader
+                | crate::minecraft::instance::files::Kind::Save
+        ) {
+            return Err("Select a destination for this resource type".into());
+        }
+        let root = instance_game_directory(&instance_directory)?;
+        let folder = crate::minecraft::instance::files::directory(kind, &root, None)?;
+        std::fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
+        Ok(folder.join(filename))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Resource mutations must stay inside the instance game directory.
 fn ensure_inside_instance(root: &std::path::Path, path: &std::path::Path) -> Result<(), String> {
     let root = root.canonicalize().map_err(|error| error.to_string())?;

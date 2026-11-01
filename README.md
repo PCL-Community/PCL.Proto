@@ -67,6 +67,9 @@ Then, use `pnpm run tauri icon` to automatically generate icons. You can then st
 pnpm dev
 ```
 
+> [!NOTE]
+> The CurseForge resource source needs an API key: set `CURSEFORGE_API_KEY` in the environment or in the git-ignored root `.env` before building. The key is embedded in the desktop binary, with a runtime environment fallback. Without it CurseForge is unavailable; the web preview cannot use it.
+
 ### Build Tauri App
 
 If only `bun` is installed on your device but `nodejs` is not installed, please change the`build/foreBuildCommand` content in `src-auri/tauri.conf.json `from `pnpm run build` to `bun run build-only`.

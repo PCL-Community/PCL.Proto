@@ -80,9 +80,11 @@ const text = pclText
                 <PButton @click="resources.openFolder()">{{
                   text('Instance.Saves.OpenFolder')
                 }}</PButton
-                ><PButton @click="() => router.push('/download/world')">{{
-                  text('Instance.Resource.DownloadNew')
-                }}</PButton
+                ><PButton
+                  @click="
+                    () => router.push({ path: '/download/world', query: { instance: 'selected' } })
+                  "
+                  >{{ text('Instance.Resource.DownloadNew') }}</PButton
                 ><PButton @click="resources.importFiles()">{{
                   text('Instance.Resource.InstallFromFiles')
                 }}</PButton>
@@ -199,7 +201,9 @@ const text = pclText
                   grid-column: 3 / span 1;
                   justify-self: center;
                 "
-                @click="() => router.push('/download/world')"
+                @click="
+                  () => router.push({ path: '/download/world', query: { instance: 'selected' } })
+                "
                 >{{ text('Instance.Resource.DownloadNew') }}</PButton
               >
               <PButton

@@ -67,8 +67,20 @@ impl Downloader {
         url: &str,
         progress: ProgressSink<'_>,
     ) -> Result<(), McApiError> {
+        self.download_ranges_inner(info, path, url, progress, true)
+            .await
+    }
+
+    pub(super) async fn download_ranges_inner(
+        &self,
+        info: &DownloadFile,
+        path: &Path,
+        url: &str,
+        progress: ProgressSink<'_>,
+        probe: bool,
+    ) -> Result<(), McApiError> {
         // A one-byte probe avoids opening eight full responses on non-Range servers.
-        {
+        if probe {
             let _lease = self.resources.acquire().await;
             let response = send_request(
                 self.resources.settings().http_mode,

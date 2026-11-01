@@ -30,6 +30,7 @@ pub struct ApiBases {
     pub fabric_base: &'static str,
     pub legacy_fabric_base: &'static str,
     pub modrinth_base: &'static str,
+    pub curseforge_base: &'static str,
 }
 
 impl ApiBases {
@@ -42,6 +43,7 @@ impl ApiBases {
                 fabric_base: "https://meta.fabricmc.net/v2/versions/loader",
                 legacy_fabric_base: "https://meta.legacyfabric.net/v2/versions/loader",
                 modrinth_base: "https://api.modrinth.com/v2",
+                curseforge_base: "https://api.curseforge.com/v1",
             },
             ApiProvider::BMCLApi => ApiBases {
                 meta_base: "https://bmclapi2.bangbang93.com",
@@ -50,6 +52,7 @@ impl ApiBases {
                 fabric_base: "https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader",
                 legacy_fabric_base: "https://meta.legacyfabric.net/v2/versions/loader",
                 modrinth_base: "https://api.modrinth.com/v2",
+                curseforge_base: "https://api.curseforge.com/v1",
             },
         }
     }
@@ -149,6 +152,9 @@ pub enum McApiError {
 
     #[error("Invalid Minecraft metadata: {0}")]
     InvalidMetadata(String),
+
+    #[error("API key for {0} is not configured")]
+    MissingApiKey(&'static str),
 
     #[error("Download source does not support reliable HTTP Range")]
     RangeUnsupported,
@@ -387,18 +393,30 @@ impl MinecraftApiClient {
     ) -> McApiResult<T> {
         let now = Instant::now();
         if allow_from_cache {
-            if let Some(entry) = self.cache.get(url) {
-                let (cached_at, value) = entry.value();
-                if now.duration_since(*cached_at) < self.ttl {
-                    log::info!("cache hit for {}", url);
-                    return Ok(serde_json::from_value(value.clone())?);
-                }
+            if let Some(data) = self.cache_hit(url) {
+                return Ok(data);
             }
         }
         let data = self.get_inner(url).await?;
-        let value = serde_json::to_value(&data)?;
-        self.cache.insert(url.to_string(), (now, value));
+        self.cache_store(url, now, &data);
         Ok(data)
+    }
+
+    /// 取回仍在 TTL 内的缓存，并反序列化为目标类型。
+    fn cache_hit<T: DeserializeOwned>(&self, url: &str) -> Option<T> {
+        let entry = self.cache.get(url)?;
+        if Instant::now().duration_since(entry.value().0) >= self.ttl {
+            return None;
+        }
+        let data = serde_json::from_value(entry.value().1.clone()).ok()?;
+        log::info!("cache hit for {}", url);
+        Some(data)
+    }
+
+    fn cache_store<T: Serialize>(&self, url: &str, at: Instant, data: &T) {
+        if let Ok(value) = serde_json::to_value(data) {
+            self.cache.insert(url.to_string(), (at, value));
+        }
     }
 
     /// Get data from a endpoint with embedded base_url
@@ -667,6 +685,34 @@ impl MinecraftApiClient {
         self.get(&url, true).await
     }
 
+    /// CurseForge 要求 `x-api-key` 请求头，而 `send_request` 不携带自定义头，
+    /// 因此走代理策略一致的专用客户端；缓存与 Modrinth 保持一致。
+    pub async fn fetch_with_curseforge<T: DeserializeOwned + Serialize>(
+        &self,
+        endpoint: &str,
+    ) -> McApiResult<T> {
+        let api_key = crate::app::secrets::curseforge_api_key()
+            .ok_or(McApiError::MissingApiKey("CurseForge"))?;
+        let curseforge_base = self.api_bases.read().await.curseforge_base;
+        let url = format!("{curseforge_base}/{endpoint}");
+        let now = Instant::now();
+        if let Some(data) = self.cache_hit(&url) {
+            return Ok(data);
+        }
+        let client = self.client.read().unwrap().clone();
+        let data: T = client
+            .get(&url)
+            .header("x-api-key", api_key)
+            .timeout(Duration::from_secs(15))
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        self.cache_store(&url, now, &data);
+        Ok(data)
+    }
+
     pub async fn get_bytes(&self, url: &str) -> McApiResult<Vec<u8>> {
         self.fetch_checked(url, |bytes| Ok(bytes.to_vec())).await
     }
@@ -681,6 +727,23 @@ pub async fn fetch_with_modrinth(
         .fetch_with_modrinth(endpoint)
         .await
         .map_err(|err| err.to_string())
+}
+
+#[tauri::command]
+pub async fn fetch_with_curseforge(
+    api_client: tauri::State<'_, &MinecraftApiClient>,
+    endpoint: &str,
+) -> Result<serde_json::Value, String> {
+    api_client
+        .fetch_with_curseforge(endpoint)
+        .await
+        .map_err(|err| err.to_string())
+}
+
+/// 未配置密钥时界面需要隐藏 CurseForge 选项（对照 CE 的 SupportCurseForge）。
+#[tauri::command]
+pub fn curseforge_available() -> bool {
+    crate::app::secrets::curseforge_available()
 }
 
 #[cfg(test)]

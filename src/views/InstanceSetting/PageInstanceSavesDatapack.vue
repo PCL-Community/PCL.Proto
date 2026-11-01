@@ -160,7 +160,10 @@ const text = pclText
                   <PButton
                     data-control="BtnManageDownload"
                     style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
-                    @click="() => router.push('/download/datapack')"
+                    @click="
+                      () =>
+                        router.push({ path: '/download/datapack', query: { instance: 'selected' } })
+                    "
                     >{{ text('Instance.Resource.Datapack.DownloadNew') }}</PButton
                   >
                   <PButton
@@ -325,7 +328,10 @@ const text = pclText
                 <PButton
                   data-control="BtnHintDownload"
                   style="height: 35px; min-width: 130px; margin: 0px 5px; padding: 0px 12px"
-                  @click="() => router.push('/download/datapack')"
+                  @click="
+                    () =>
+                      router.push({ path: '/download/datapack', query: { instance: 'selected' } })
+                  "
                   >{{ text('Instance.Resource.Datapack.DownloadNew') }}</PButton
                 >
                 <PButton

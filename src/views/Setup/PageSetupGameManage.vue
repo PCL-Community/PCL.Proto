@@ -389,7 +389,6 @@ const text = pclText
                   >{{ text('Setup.GameManage.Community.QuickDownload') }}</span
                 >
                 <PComboBox
-                  disabled
                   data-control="ComboDownloadQuickBehavior"
                   style="grid-row: 7 / span 1; grid-column: 2 / span 2"
                   :title="text('Setup.GameManage.Community.QuickDownload.ToolTip')"

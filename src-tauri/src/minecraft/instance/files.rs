@@ -150,11 +150,10 @@ pub fn list(kind: Kind, directory: &Path) -> Result<Vec<Entry>, String> {
 }
 
 fn strip_suffix<'a>(name: &'a str, suffix: &str) -> Option<&'a str> {
-    if name.len() > suffix.len() && name[name.len() - suffix.len()..].eq_ignore_ascii_case(suffix) {
-        Some(&name[..name.len() - suffix.len()])
-    } else {
-        None
-    }
+    let start = name.len().checked_sub(suffix.len())?;
+    (start > 0 && name.get(start..)?.eq_ignore_ascii_case(suffix))
+        .then(|| name.get(..start))
+        .flatten()
 }
 
 /// Enable or disable files by toggling the CE-compatible `.disabled` suffix.
@@ -302,6 +301,28 @@ mod tests {
         assert!(root.join("mods/a.jar.disabled").is_file());
         set_enabled(&[root.join("mods/a.jar.disabled")], true).unwrap();
         assert!(root.join("mods/a.jar").is_file());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn lists_and_toggles_unicode_resource_names() {
+        let root = root();
+        let saves = root.join("saves");
+        let mods = root.join("mods");
+        fs::create_dir_all(saves.join("我的世界")).unwrap();
+        fs::write(saves.join("我的世界/level.dat"), b"level").unwrap();
+        fs::create_dir_all(&mods).unwrap();
+        fs::write(mods.join("世界.jar.DISABLED"), b"mod").unwrap();
+
+        let worlds = list(Kind::Save, &saves).unwrap();
+        assert_eq!(worlds[0].name, "我的世界");
+        let entries = list(Kind::Mod, &mods).unwrap();
+        assert_eq!(entries[0].name, "世界.jar");
+        assert!(!entries[0].enabled);
+        set_enabled(&[entries[0].path.clone()], true).unwrap();
+        assert!(mods.join("世界.jar").is_file());
+        set_enabled(&[mods.join("世界.jar")], false).unwrap();
+        assert!(mods.join("世界.jar.disabled").is_file());
         fs::remove_dir_all(root).unwrap();
     }
 

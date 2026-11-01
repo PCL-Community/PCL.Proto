@@ -127,6 +127,173 @@ impl Drop for Temp {
 fn payload(size: usize) -> Arc<Vec<u8>> {
     Arc::new((0..size).map(|i| (i % 251) as u8).collect())
 }
+
+#[tokio::test]
+async fn custom_download_saves_known_length_response() {
+    let body = payload(4096);
+    let server = Server::new(body.clone(), Behavior::Ignore, Duration::ZERO).await;
+    let temp = Temp::new();
+    custom_transfer(&server.url, &temp.file(), |_, _, _| {})
+        .await
+        .unwrap();
+    assert_eq!(std::fs::read(temp.file()).unwrap(), *body);
+    temp.assert_clean();
+}
+
+#[tokio::test]
+async fn custom_download_parallelizes_and_recovers_interrupted_ranges() {
+    let body = payload(24 * 1024 * 1024);
+    let server = Server::new(
+        body.clone(),
+        Behavior::DisconnectOnce,
+        Duration::from_millis(1),
+    )
+    .await;
+    let temp = Temp::new();
+    let downloader = downloader(2, 3);
+    custom_attempt(&downloader, &server.url, &temp.file(), &|_, _, _| {})
+        .await
+        .unwrap();
+    assert_eq!(std::fs::read(temp.file()).unwrap(), *body);
+    assert_eq!(server.peak.load(Ordering::SeqCst), 2);
+    assert!(
+        server
+            .requests
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|range| range.is_some_and(|(start, _)| start > 0 && start < 8 * 1024 * 1024))
+    );
+    assert_eq!(downloader.resources.stats().active_connections, 0);
+}
+
+#[tokio::test]
+async fn custom_download_falls_back_when_ranges_are_unreliable() {
+    let body = payload(4 * 1024 * 1024);
+    for behavior in [
+        Behavior::Ignore,
+        Behavior::BadRange,
+        Behavior::RejectRange,
+        Behavior::BadSegment,
+    ] {
+        let server = Server::new(body.clone(), behavior, Duration::ZERO).await;
+        let temp = Temp::new();
+        let downloader = downloader(2, 2);
+        custom_attempt(&downloader, &server.url, &temp.file(), &|_, _, _| {})
+            .await
+            .unwrap();
+        assert_eq!(std::fs::read(temp.file()).unwrap(), *body);
+        assert_eq!(server.requests.lock().unwrap().last(), Some(&None));
+    }
+}
+
+#[tokio::test]
+async fn custom_download_handles_unknown_length_and_preserves_existing_files() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}/file", listener.local_addr().unwrap());
+    let server = tokio::spawn(async move {
+        for _ in 0..2 {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = [0; 4096];
+            let _ = socket.read(&mut request).await.unwrap();
+            let _ = socket
+                .write_all(b"HTTP/1.1 200 OK\r\nConnection: close\r\n\r\nhello")
+                .await;
+        }
+    });
+    let temp = Temp::new();
+    custom_transfer(&url, &temp.file(), |_, _, _| {})
+        .await
+        .unwrap();
+    server.await.unwrap();
+    assert_eq!(std::fs::read(temp.file()).unwrap(), b"hello");
+    assert!(
+        custom_transfer(&url, &temp.file(), |_, _, _| {})
+            .await
+            .is_err()
+    );
+    assert_eq!(std::fs::read(temp.file()).unwrap(), b"hello");
+    temp.assert_clean();
+}
+
+#[tokio::test]
+async fn custom_download_cleans_up_after_truncated_response() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}/file", listener.local_addr().unwrap());
+    let server = tokio::spawn(async move {
+        for _ in 0..2 {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = [0; 4096];
+            let _ = socket.read(&mut request).await.unwrap();
+            let _ = socket
+                .write_all(
+                    b"HTTP/1.1 200 OK\r\nContent-Length: 20\r\nConnection: close\r\n\r\nshort",
+                )
+                .await;
+        }
+    });
+    let temp = Temp::new();
+    assert!(
+        custom_transfer(&url, &temp.file(), |_, _, _| {})
+            .await
+            .is_err()
+    );
+    server.await.unwrap();
+    assert!(!temp.file().exists());
+    temp.assert_clean();
+}
+
+#[tokio::test]
+async fn custom_download_retries_transient_http_failures() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}/file", listener.local_addr().unwrap());
+    let server = tokio::spawn(async move {
+        for attempt in 0..4 {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = [0; 4096];
+            let _ = socket.read(&mut request).await.unwrap();
+            let response: &[u8] = if attempt < 2 {
+                b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+            } else {
+                b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nhello"
+            };
+            let _ = socket.write_all(response).await;
+        }
+    });
+    let temp = Temp::new();
+    custom_transfer(&url, &temp.file(), |_, _, _| {})
+        .await
+        .unwrap();
+    server.await.unwrap();
+    assert_eq!(std::fs::read(temp.file()).unwrap(), b"hello");
+    temp.assert_clean();
+}
+
+#[test]
+fn custom_download_ipc_accepts_task_argument_names() {
+    let app = tauri::test::mock_builder()
+        .invoke_handler(tauri::generate_handler![download_custom_file])
+        .build(tauri::test::mock_context(tauri::test::noop_assets()))
+        .unwrap();
+    let window = tauri::WebviewWindowBuilder::new(&app, "custom", Default::default())
+        .build()
+        .unwrap();
+    let result = tauri::test::get_ipc_response(
+        &window,
+        tauri::webview::InvokeRequest {
+            cmd: "download_custom_file".into(),
+            callback: tauri::ipc::CallbackFn(0),
+            error: tauri::ipc::CallbackFn(1),
+            url: "tauri://localhost".parse().unwrap(),
+            body: tauri::ipc::InvokeBody::Json(
+                serde_json::json!({"url":"file:///bad", "destination":"/tmp/test", "task_id":1, "on_event":"__CHANNEL__:1"}),
+            ),
+            headers: Default::default(),
+            invoke_key: tauri::test::INVOKE_KEY.to_string(),
+        },
+    );
+    assert_eq!(result.unwrap_err(), "Invalid external URL");
+}
 fn info(server: &Server, body: &[u8]) -> DownloadFile {
     DownloadFile {
         url: server.url.clone(),
@@ -147,6 +314,40 @@ fn downloader(max: usize, file: usize) -> Downloader {
         })
         .unwrap();
     downloader
+}
+
+#[tokio::test]
+async fn resource_without_hash_still_checks_size_and_cleans_failed_transfers() {
+    let body = payload(1024);
+    let server = Server::new(body.clone(), Behavior::Ignore, Duration::ZERO).await;
+    let mut metadata = info(&server, &body);
+    metadata.sha1.clear();
+    let dir = Temp::new();
+    let downloader = downloader(2, 1);
+    let (tx, mut rx) = mpsc::channel(100);
+    let config = |info| DownloadConfig {
+        file_index: 0,
+        out_path: dir.file(),
+        task_item_id: 0,
+        info,
+    };
+    downloader
+        .start_resource_download(config(metadata.clone()), tx)
+        .await
+        .unwrap();
+    while rx.try_recv().is_ok() {}
+    assert_eq!(std::fs::read(dir.file()).unwrap(), *body);
+    std::fs::remove_file(dir.file()).unwrap();
+    metadata.size += 1;
+    let (tx, _rx) = mpsc::channel(100);
+    assert!(
+        downloader
+            .start_resource_download(config(metadata), tx)
+            .await
+            .is_err()
+    );
+    assert!(!dir.file().exists());
+    dir.assert_clean();
 }
 
 #[tokio::test]
@@ -311,6 +512,27 @@ async fn controlled_range_benchmark() {
             "32 MiB per-request-limited server: file_connections={connections}, elapsed={:.3}s, network_bytes={}",
             started.elapsed().as_secs_f64(),
             downloader.resources.stats().downloaded_bytes
+        );
+    }
+}
+
+#[tokio::test]
+#[ignore = "Controlled custom-download bandwidth benchmark"]
+async fn controlled_custom_download_benchmark() {
+    let body = payload(32 * 1024 * 1024);
+    let server = Server::new(body.clone(), Behavior::Range, Duration::from_millis(4)).await;
+    for connections in [1, 8] {
+        let output = Temp::new();
+        let downloader = downloader(64, connections);
+        let started = std::time::Instant::now();
+        custom_attempt(&downloader, &server.url, &output.file(), &|_, _, _| {})
+            .await
+            .unwrap();
+        let elapsed = started.elapsed();
+        assert_eq!(std::fs::read(output.file()).unwrap(), *body);
+        eprintln!(
+            "Custom 32 MiB: connections={connections}, elapsed={:.3}s",
+            elapsed.as_secs_f64()
         );
     }
 }

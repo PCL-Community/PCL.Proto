@@ -49,6 +49,9 @@ base64 = "0.23.1"
 sysinfo = { version = "0.40.1", default-features = false, features = ["system"] }
 trash = "5.2.9"
 open = { version = "5.4.5", features = ["shellexecute-on-windows"] }
+
+[dev-dependencies]
+tauri = { version = "2.12.5", features = ["test"] }
 # tauri-invoke-http = "0.1.0"
 
 

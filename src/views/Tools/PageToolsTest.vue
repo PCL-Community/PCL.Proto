@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { showUnavailable } from '@/util/showUnavailable'
 import { pclText } from '@/api/pclLocale'
-import { ref, defineAsyncComponent } from 'vue'
+import { ref, defineAsyncComponent, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke, isTauri } from '@tauri-apps/api/core'
+import { basename, dirname, join } from '@tauri-apps/api/path'
+import { open, save } from '@tauri-apps/plugin-dialog'
+import { useTaskManager } from '@/stores/task'
 import { usePageSettings } from '@/composables/usePageSettings'
 import { useModal } from '@/composables/useModal'
 import sideTip from '@/composables/sideTip'
@@ -63,6 +66,51 @@ async function saveSkin() {
 }
 
 const text = pclText
+watch(() => values.TextDownloadUrl, (value) => {
+  if (values.TextDownloadName || !value) return
+  try {
+    const name = new URL(String(value)).pathname.split('/').pop()
+    if (name) values.TextDownloadName = decodeURIComponent(name)
+  } catch { /* Wait for a complete URL. */ }
+})
+
+async function chooseDownloadFolder() {
+  if (!isTauri()) return sideTip.show(pclText('Proto.Desktop.Download'), 'warn')
+  try {
+    const folder = await open({ directory: true, defaultPath: String(values.TextDownloadFolder || '') || undefined })
+    if (folder) values.TextDownloadFolder = folder
+  } catch (error) { sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn') }
+}
+
+async function startCustomDownload() {
+  if (!isTauri()) return sideTip.show(pclText('Proto.Desktop.Download'), 'warn')
+  try {
+    const url = new URL(String(values.TextDownloadUrl || '').trim())
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('Invalid download URL')
+    let name = String(values.TextDownloadName || '').trim()
+    if (!name || /[\\/:*?"<>|\x00-\x1f]/.test(name) || name === '.' || name === '..') throw new Error('Invalid filename')
+    const folder = String(values.TextDownloadFolder || '').trim()
+    const destination = folder ? await join(folder, name) : await save({ defaultPath: name, title: text('Tools.Test.CustomDownload.SelectLocation') })
+    if (!destination) return
+    if (!folder) {
+      values.TextDownloadFolder = await dirname(destination)
+      name = await basename(destination)
+    }
+    const task = useTaskManager().downloadCustom(name, url.href, destination)
+    values.TextDownloadUrl = ''
+    values.TextDownloadName = ''
+    sideTip.show(pclText('Download.Comp.QuickDownload.Hint.DownloadStarted', [name]), 'success')
+    void task.then(() => sideTip.show(text('Tools.Test.CustomDownload.Finished', [name]), 'success'))
+      .catch((error) => sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn'))
+  } catch (error) { sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn') }
+}
+
+async function openDownloadFolder() {
+  if (!isTauri()) return sideTip.show(pclText('Proto.Desktop.Download'), 'warn')
+  try {
+    await invoke('open_custom_download_folder', { directory: String(values.TextDownloadFolder || '').trim() })
+  } catch (error) { sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn') }
+}
 </script>
 <template>
   <section class="pcl-page">
@@ -112,7 +160,7 @@ const text = pclText
           </PCard>
           <PCard style="margin: 0px 0px 15px 0px" :title="text('Tools.Test.CustomDownload.Title')">
             <div style="margin: 0px 25px 20px 25px; display: flex; flex-direction: column">
-              <span class="pcl-text">{{ text('Tools.Test.CustomDownload.Description') }}</span>
+              <span class="pcl-text">{{ pclText('Proto.Tools.CustomDownloadDescription') }}</span>
               <div
                 style="
                   margin: 10px 0px 0px 0px;
@@ -133,6 +181,7 @@ const text = pclText
                 >
                 <PTextBox
                   data-control="TextDownloadUrl"
+                  :aria-label="text('Tools.Test.CustomDownload.Url')"
                   style="grid-row: 1 / span 1; grid-column: 2 / span 2"
                   :placeholder="text('')"
                   v-model="values.TextDownloadUrl"
@@ -149,6 +198,7 @@ const text = pclText
                 >
                 <PTextBox
                   data-control="TextDownloadFolder"
+                  :aria-label="text('Tools.Test.CustomDownload.SaveTo')"
                   style="margin: 10px 0px; grid-row: 3 / span 1; grid-column: 2 / span 1"
                   :placeholder="text('')"
                   v-model="values.TextDownloadFolder"
@@ -160,7 +210,7 @@ const text = pclText
                     grid-column: 3 / span 1;
                     align-self: center;
                   "
-                  @click="showUnavailable"
+                  @click="chooseDownloadFolder"
                   inline
                   >{{ text('Tools.Test.CustomDownload.Select') }}</PButton
                 >
@@ -176,6 +226,7 @@ const text = pclText
                 >
                 <PTextBox
                   data-control="TextDownloadName"
+                  :aria-label="text('Tools.Test.CustomDownload.FileName')"
                   style="grid-row: 4 / span 1; grid-column: 2 / span 2"
                   :placeholder="text('')"
                   v-model="values.TextDownloadName"
@@ -198,7 +249,7 @@ const text = pclText
                     grid-column: 1 / span 1;
                     justify-self: end;
                   "
-                  @click="showUnavailable"
+                  @click="startCustomDownload"
                   type="tint"
                   >{{ text('Tools.Test.CustomDownload.Start') }}</PButton
                 >
@@ -211,7 +262,7 @@ const text = pclText
                     grid-column: 2 / span 1;
                     justify-self: start;
                   "
-                  @click="showUnavailable"
+                  @click="openDownloadFolder"
                   >{{ text('Common.Action.OpenFolder') }}</PButton
                 >
               </div>

@@ -12,7 +12,7 @@ export enum TaskStatus {
   Completed = 2,
   Failed = 3,
 }
-type DownloadKind = 'install' | 'client' | 'server'
+type DownloadKind = 'install' | 'client' | 'server' | 'resource' | 'custom'
 
 export interface ITaskItem {
   id: number
@@ -46,12 +46,15 @@ interface TaskItemReport {
 }
 
 function createTask(id: number, versionId: string, kind: DownloadKind): Task {
-  const keys = [
-    'Minecraft.Download.Stage.VanillaJsonDownload',
-    kind === 'server'
-      ? 'Minecraft.Download.Stage.DownloadServerFile'
-      : 'Minecraft.Download.Stage.DownloadCoreJar',
-  ]
+  const keys =
+    kind === 'resource' || kind === 'custom'
+      ? ['Download.Comp.Detail.DownloadFile']
+      : [
+          'Minecraft.Download.Stage.VanillaJsonDownload',
+          kind === 'server'
+            ? 'Minecraft.Download.Stage.DownloadServerFile'
+            : 'Minecraft.Download.Stage.DownloadCoreJar',
+        ]
   if (kind === 'install')
     keys.push(
       'Minecraft.Download.Stage.VanillaLibrariesDownload',
@@ -62,6 +65,9 @@ function createTask(id: number, versionId: string, kind: DownloadKind): Task {
     versionId,
     kind,
     get name() {
+      if (kind === 'custom') return pclText('Tools.Test.CustomDownload.LoaderName', [versionId])
+      if (kind === 'resource')
+        return pclText('Download.Comp.Detail.DownloadResource', ['', versionId])
       return pclText(
         kind === 'server'
           ? 'Minecraft.Download.Stage.MinecraftServerDownload'
@@ -214,6 +220,23 @@ export const useTaskManager = defineStore('task-manager', () => {
     return runDownload(versionId, 'export_minecraft_version', { directory, server }, kind)
   }
 
+  function downloadResource(
+    name: string,
+    info: { url: string; size: number; sha1: string },
+    destination: string,
+  ) {
+    return runDownload(
+      name,
+      'download_resource',
+      { info: { ...info, path: null }, destination },
+      'resource',
+    )
+  }
+
+  function downloadCustom(name: string, url: string, destination: string) {
+    return runDownload(name, 'download_custom_file', { url, destination }, 'custom')
+  }
+
   return {
     tasks,
     totalProgress,
@@ -222,5 +245,7 @@ export const useTaskManager = defineStore('task-manager', () => {
     activeTaskCount,
     startDownloadMCVersion,
     exportMinecraftVersion,
+    downloadResource,
+    downloadCustom,
   }
 })

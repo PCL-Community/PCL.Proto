@@ -16,7 +16,11 @@ interface SearchOptions {
   limit?: number
 }
 
+/// 归一化后的资源类型：Modrinth 只会给前四种，CurseForge 按 classId 补齐后两种。
+export type CompProjectType = 'mod' | 'modpack' | 'resourcepack' | 'shader' | 'datapack' | 'world'
+
 export interface ISearchHit {
+  slug?: string
   title: string
   description: string
   icon_url: string
@@ -24,7 +28,7 @@ export interface ISearchHit {
   downloads: number
   date_modified: string
   project_id: string
-  project_type: 'mod' | 'modpack' | 'resourcepack' | 'shader'
+  project_type: CompProjectType
   versions?: string[]
   loaders?: string[]
 }
@@ -55,7 +59,7 @@ export interface IProject {
   source_url: string | null
   wiki_url: string | null
   donation_urls: string[]
-  project_type: 'mod' | 'modpack' | 'resourcepack' | 'shader'
+  project_type: CompProjectType
   downloads: number
   published: string
   updated: string
@@ -73,7 +77,14 @@ export interface IVersion {
   game_versions: string[]
   loaders: string[]
   date_published: string
-  files: { url: string; filename: string; primary: boolean; size: number }[]
+  version_type?: 'release' | 'beta' | 'alpha'
+  files: {
+    url: string
+    filename: string
+    primary: boolean
+    size: number
+    hashes?: { sha1?: string }
+  }[]
 }
 
 // 搜索项目

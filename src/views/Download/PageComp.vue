@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import modrinthApi, { type ISearchHit } from '@/api/modrinthApi'
+import { searchProjects, type CompSourceFilter } from '@/api/compProjects'
+import curseforgeApi from '@/api/curseforgeApi'
+import type { ISearchHit } from '@/api/modrinthApi'
 import PCompItem from '@/components/widget/PCompItem.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PVirtualList from '@/components/widget/PVirtualList.vue'
@@ -10,14 +12,18 @@ import PSearchBox from '@/components/widget/PSearchBox.vue'
 import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import PHint from '@/components/widget/PHint.vue'
 import PLoading from '@/components/widget/PLoading.vue'
-import { compFacets, compTagOptions } from '@/api/compResources'
+import { compTagOptions, instanceCompFilter } from '@/api/compResources'
 import { computed, reactive, ref, watch } from 'vue'
 import { pclText } from '@/api/pclLocale'
+import { useSelectedInstance } from '@/stores/gameLaunch'
+import { useRoute } from 'vue-router'
 
 const props = defineProps<{
   projectType: 'mod' | 'modpack' | 'resourcepack' | 'shader' | 'datapack' | 'world'
 }>()
 const text = pclText
+const route = useRoute()
+const instance = useSelectedInstance()
 const searchHint = computed(() =>
   text('Proto.Resource.Search', [
     text(
@@ -25,15 +31,41 @@ const searchHint = computed(() =>
     ),
   ]),
 )
-const values = reactive({ source: '0', sort: '0', loader: '', version: '', query: '', tag: '' })
+const values = reactive({
+  source: 'all' as CompSourceFilter,
+  sort: '0',
+  loader: '',
+  version: '',
+  query: '',
+  tag: '',
+})
 const hits = ref<ISearchHit[]>([])
 const error = ref('')
+const warning = ref('')
+/// 未配置 API Key 时收起 CurseForge 选项（对照 CE 的 SupportCurseForge）。
+const curseforgeReady = ref(true)
 const loading = ref(false)
 const page = ref(0)
 const total = ref(0)
 let request = 0
 const limit = 40
 const tagOptions = computed(() => compTagOptions(props.projectType))
+/// 世界只有 CurseForge 有（对照 CE 的 PageDownloadWorld: SupportModrinth=False）。
+const modrinthUnsupported = computed(() => props.projectType === 'world')
+const sourceOptions = computed(() => [
+  {
+    key: 'all',
+    text: text('Common.Option.All'),
+    disabled: !curseforgeReady.value || modrinthUnsupported.value,
+  },
+  {
+    key: 'curseforge',
+    text: 'CurseForge',
+    disabled: !curseforgeReady.value,
+    title: curseforgeReady.value ? undefined : text('Proto.Resource.CurseForgeUnavailable'),
+  },
+  { key: 'modrinth', text: 'Modrinth', disabled: modrinthUnsupported.value },
+])
 const loaderOptions = computed(() =>
   (props.projectType === 'shader'
     ? ['', 'vanilla', 'iris', 'optifine']
@@ -53,24 +85,33 @@ const loaderOptions = computed(() =>
 async function search() {
   const current = ++request
   error.value = ''
+  warning.value = ''
   loading.value = true
   try {
-    if (values.source === '1') throw new Error(pclText('Proto.Resource.CurseForgeUnavailable'))
-    if (props.projectType === 'world') throw new Error(pclText('Proto.Resource.WorldUnavailable'))
-    const sort =
-      (['relevance', 'downloads', 'follows', 'newest', 'updated'] as const)[
-        Number(values.sort) - 1
-      ] || (values.query.trim() ? 'relevance' : 'downloads')
-    const data = await modrinthApi.searchProjects({
-      query: values.query,
-      facets: compFacets(props.projectType, values),
-      index: sort,
-      offset: page.value * limit,
+    curseforgeReady.value = await curseforgeApi.available()
+    let source = values.source
+    if (modrinthUnsupported.value) source = 'curseforge'
+    if (!curseforgeReady.value) {
+      if (source === 'curseforge') throw new Error(pclText('Proto.Resource.CurseForgeUnavailable'))
+      source = 'modrinth'
+    }
+    const data = await searchProjects(
+      source,
+      {
+        type: props.projectType,
+        query: values.query,
+        loader: values.loader,
+        version: values.version,
+        tag: values.tag,
+        sort: values.sort,
+      },
+      page.value * limit,
       limit,
-    })
+    )
     if (current !== request) return
     hits.value = data.hits
-    total.value = data.total_hits
+    total.value = data.total
+    warning.value = data.warning
   } catch (err) {
     if (current !== request) return
     hits.value = []
@@ -81,8 +122,18 @@ async function search() {
     if (current === request) loading.value = false
   }
 }
-function reset() {
-  Object.assign(values, { source: '0', sort: '0', loader: '', version: '', query: '', tag: '' })
+function reset(useInstance = false) {
+  Object.assign(values, {
+    source: 'all' as CompSourceFilter,
+    sort: '0',
+    loader: '',
+    version: '',
+    query: '',
+    tag: '',
+  })
+  if (props.projectType === 'world') values.source = 'curseforge'
+  if (useInstance && route.query.instance === 'selected')
+    Object.assign(values, instanceCompFilter(instance.instance_info, props.projectType))
   page.value = 0
   void search()
 }
@@ -94,7 +145,15 @@ function turn(next: number) {
   page.value = Math.max(0, next)
   void search()
 }
-watch(() => props.projectType, reset, { immediate: true })
+watch(
+  () => [
+    props.projectType,
+    route.query.instance,
+    route.query.instance === 'selected' ? instance.instance_info : null,
+  ],
+  () => reset(true),
+  { immediate: true },
+)
 </script>
 <template>
   <section class="pcl-page comp-page">
@@ -110,15 +169,7 @@ watch(() => props.projectType, reset, { immediate: true })
         <PComboBox
           v-model="values.source"
           input-id="comp-source"
-          :options="[
-            { key: '0', text: 'Modrinth' },
-            {
-              key: '1',
-              text: 'CurseForge',
-              disabled: true,
-              title: text('Proto.Resource.CurseForgeUnavailable'),
-            },
-          ]"
+          :options="sourceOptions"
           @update:model-value="firstSearch"
         />
         <label for="comp-tag">{{ text('Download.Comp.Filter.Tag') }}</label>
@@ -144,7 +195,7 @@ watch(() => props.projectType, reset, { immediate: true })
         <button
           type="button"
           class="pcl-icon-button reset"
-          @click="reset"
+          @click="() => reset()"
           :title="text('Download.Comp.Filter.Reset')"
           :aria-label="text('Download.Comp.Filter.Reset')"
         >
@@ -190,6 +241,7 @@ watch(() => props.projectType, reset, { immediate: true })
       }}</PButton></PHint
     >
     <template v-else>
+      <PHint v-if="warning" severity="warning" closable>{{ warning }}</PHint>
       <PCard hide-title
         ><div class="projects">
           <PVirtualList
@@ -200,6 +252,7 @@ watch(() => props.projectType, reset, { immediate: true })
           >
             <PCompItem
               :data="project"
+              :resource-type="projectType"
               :game-version="values.version.trim()"
               :loader="projectType === 'datapack' ? 'datapack' : values.loader"
               clickable
@@ -251,10 +304,9 @@ watch(() => props.projectType, reset, { immediate: true })
 }
 .filters {
   display: grid;
-  grid-template-columns: auto minmax(65px, 1fr) auto minmax(80px, 1.3fr) auto minmax(
-      65px,
-      1fr
-    ) 22px;
+  grid-template-columns:
+    auto minmax(65px, 1fr) auto minmax(80px, 1.3fr) auto minmax(65px, 1fr)
+    22px;
   grid-template-rows: 28px 28px;
   align-items: center;
   gap: 12px 8px;

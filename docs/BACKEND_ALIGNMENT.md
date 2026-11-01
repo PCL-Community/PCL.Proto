@@ -165,6 +165,37 @@ cargo test -p pcl-proto --lib native_java_discovery_smoke -- --ignored --nocaptu
 cargo test -p pcl-proto --lib official_native_java25_install_smoke -- --ignored --nocapture
 ```
 
+## 资源来源：接入 CurseForge（2026-10-31）
+
+对应 CE 源文件：`Modules/Minecraft/ModComp.cs` 的 `CompProjectRequest.GetCurseForgeAddress`、`_BuildFromCurseForge`、`CompFile`、`CompFilesGet`、`CompProjectsGet`（双请求 + 去重 + 默认排序权重），以及 `PCL.Core/App/Secrets.cs` 的 `CurseForgeAPIKey`。
+
+| 文件                                      | 职责                                                                                                                |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `src-tauri/src/app/secrets.rs`            | 编译期 `CURSEFORGE_API_KEY` 优先、运行环境变量兜底；构建脚本可读取根目录 `.env`，空白值按未配置处理                 |
+| `src-tauri/src/io/net/http/api_client.rs` | `curseforge_base`、带 `x-api-key` 的 `fetch_with_curseforge` / `curseforge_available` 命令，复用同一 TTL 缓存       |
+| `src/api/curseforgeApi.ts`                | CF 响应归一化成 Modrinth 的 `ISearchHit` / `IProject` / `IVersion` 形状；参数构造、分类 ID、文件分页与 CDN 地址改写 |
+| `src/api/compProjects.ts`                 | 来源派发（工程 ID 纯数字即 CF，对照 CE 的 `IsFromCurseForge`）、双来源合并去重、默认顺序的来源下载量权重            |
+| `src/api/compResources.ts`                | `tag` 的 `CFid/MRslug` 双前缀映射到同一份标签文案；可选标签不再要求 Modrinth 侧有值                                 |
+
+已改变的行为：
+
+1. 来源筛选改成「全部 / CurseForge / Modrinth」，默认全部：并发请求两个来源，Modrinth 条目在前；跨来源去重比较类型、加载器、游戏版本、更新时间及名称、简介或 slug。数据来自搜索结果，可能与 CE 的完整工程元数据不同。
+2. 「全部」的默认排序按 CE 的来源权重折算下载量（模组/整合包 MR×7、数据包 CF×10、资源包与光影 MR×5），避免单一来源的下载量口径压倒另一个来源。
+3. 世界资源页不再被阻止：CF `classId=17` 提供，且该页收起 Modrinth 选项（对照 CE 的 `SupportModrinth=False`）。
+4. 只存在 CF 侧的分类（如 `407/` 生物群系）现在可选；某一侧缺少映射时该侧不请求，而不是发出一个无过滤的请求。
+5. CF 分页用 `index`（结果偏移量），并按上游规则把 `index + pageSize` 钳在 10000 内；`totalCount` 也钳在 10000，不当作目录总量展示。
+6. 只有一个来源失败而另一个来源仍有结果时，列表继续展示并给出 CE 的 `Download.Comp.List.Source.*Unavailable` 警告，不再整页报错。
+7. 桌面端文件由启动器下载并显示任务进度；详情页选择保存路径，快捷下载可选择实例或文件夹。CF 缺 `downloadUrl` 时按 `files/{id/1000}/{id%1000}/{文件名}` 补全并把 `media*` 域名改写成 `edge.forgecdn.net`。
+8. 未配置密钥（`curseforge_available` 为 false）时禁用 CurseForge 选项并给出提示；网页预览没有可用的密钥通道，因此该来源在预览版始终不可用。
+
+已知边界：没有接 CF 的镜像源（CE 的 `mod.mcimirror.top/curseforge`）、Mod 依赖解析、本地文件指纹更新、存档解压与整合包安装；数据包需手动选择存档文件夹，实例选择目前为单选；已有同名文件不会覆盖。CF 的光影加载器筛选按 CE 同样被忽略；详情页最多取 8 页共 400 个文件；CF 的 `-snapshot` 版本标记不进入版本徒章（CE 会拼上「预览版」后缀）。
+
+验证记录：
+
+- `node scripts/check-curseforge.mjs`（已加入 `pnpm check:ui`）用假 invoke 覆盖归一化、参数构造、分页停止条件、双来源合并与只一侧失败时的警告。
+- 字段名与枚举值对照 2026-10-31 的真实响应核实（`pagination.totalCount/index/pageSize/resultCount`、`latestFilesIndexes[].modLoader` 无 `loaderName`、`File.fileLength`、`gameVersions` 混有 `Client`/`Server`/`Forge`、classId 6/4471/12/6552/17/6945、`index + pageSize > 10000` 直接报错）。
+- 带 `.env` 密钥的只读搜索请求返回 HTTP 403（响应服务器标识为 Kestrel），尚不能判定是网络代理还是 API 拒绝；真实搜索及 CF 文件下载尚未验收。
+
 ## 当前边界与下一批
 
 2026-10-30 启动参数进展：原版启动读取版本 JSON 的现代 JVM/游戏参数及旧版 `minecraftArguments`，按规则筛选并替换占位符，参数作为 argv 直接交给进程。受控假 Java 测试验证路径与用户名中的空格、条件参数、旧版参数和工作目录；Rust 核心离线回归 48 项通过、7 项跳过。六个不同时代官方版本的元数据可继续生成安装计划，但该检查不运行游戏。这还不是完整启动链路：全部继承格式、所选 Java 架构与 native 联动、游戏进程生命周期以及真实游戏启动均未验证或实现。
@@ -204,6 +235,6 @@ cargo test -p pcl-proto --lib official_native_java25_install_smoke -- --ignored 
 1. **启动链路**：统一解析继承后的版本、Mojang 参数与占位符、所选 Java 的版本/架构、日志与进程状态；在真实桌面环境验收新旧原版启动，再做缺失依赖修复。
 2. **加载器安装**：新建 Fabric 和 LegacyFabric Loader 实例已接入；继续完成 Forge / NeoForge 的 installer/processor，OptiFine、其他加载器和 API 附加项分别按 CE 的兼容与互斥规则接入。当前 UI 仍明确阻止尚未实现的加载器安装。
 3. **配置和账户**：将前端偏好映射到 Rust 配置、处理持久化和重置，分离账户展示数据与凭据，再接微软 OAuth/令牌刷新及外置登录。
-4. **资源与整合包**：将 Modrinth/其他来源的检索接到真实文件安装、依赖解析、更新及收藏批量操作，之后接整合包导入/导出和存档操作。
+4. **资源与整合包**：Modrinth 与 CurseForge 的检索已接通（含双来源合并）；继续接真实文件安装、依赖解析、更新及收藏批量操作，之后接整合包导入/导出和存档操作。
 
 Windows/Linux 真实桌面行为与 Java 扫描、macOS WebView 安装交互、账户认证和联机仍需各自验收，不能用本批 Rust 服务测试代替。

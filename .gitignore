@@ -12,6 +12,9 @@ node_modules
 dist
 dist-ssr
 coverage
+.env
+.env.*
+!.env.example
 *.local
 # package-lock.json
 # bun.lock

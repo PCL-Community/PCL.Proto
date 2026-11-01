@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import modrinthApi, { type IProject, type IVersion } from '@/api/modrinthApi'
+import {
+  compProjectUrl,
+  compSourceOf,
+  getCompProject,
+  getCompVersions,
+  type CompSource,
+} from '@/api/compProjects'
+import type { IProject, IVersion } from '@/api/modrinthApi'
 import PCard from '@/components/widget/PCard.vue'
 import PVirtualList from '@/components/widget/PVirtualList.vue'
 import {
@@ -7,6 +14,7 @@ import {
   groupCompVersions,
   groupedVersionName,
   loaderNames,
+  selectedCompVersions,
 } from '@/api/compResources'
 import PCompItem from '@/components/widget/PCompItem.vue'
 import PListItem from '@/components/widget/PListItem.vue'
@@ -16,21 +24,24 @@ import PLoading from '@/components/widget/PLoading.vue'
 import PHint from '@/components/widget/PHint.vue'
 import { useRoute } from 'vue-router'
 import { computed, onScopeDispose, ref, shallowRef, watch } from 'vue'
-import { isTauri } from '@tauri-apps/api/core'
 import { pclText } from '@/api/pclLocale'
 import sideTip from '@/composables/sideTip'
 import { useCompFavorites } from '@/stores/compFavorites'
 import { openExternal } from '@/util/externalLink'
+import { saveResource } from '@/api/compDownload'
 const favorites = useCompFavorites()
 
 const route = useRoute()
 const text = pclText
 const project = shallowRef<IProject>()
 const versions = shallowRef<IVersion[]>([])
+/// 当前详情的来源：CF 的工程 ID 是纯数字。
+const source = ref<CompSource>('modrinth')
 const loading = ref(false)
 const error = ref('')
 const versionFilter = ref('')
 const requestedVersion = ref('')
+const requestedLoader = ref('')
 const loaderFilter = ref('')
 const item = computed(
   () =>
@@ -47,22 +58,41 @@ const versionFilters = computed(() =>
 )
 const loaders = computed(() => [...new Set(versions.value.flatMap((version) => version.loaders))])
 const isMod = computed(() => project.value?.project_type === 'mod')
-const groups = computed(() =>
-  groupCompVersions(
+const groups = computed(() => {
+  const normal = groupCompVersions(
     versions.value,
     versionFilter.value,
     loaderFilter.value,
     isMod.value && loaders.value.length > 1,
     versionFilters.value.byDrop,
     versionFilters.value.foldOld,
-  ),
-)
-const projectUrl = computed(() =>
-  project.value ? `https://modrinth.com/${project.value.project_type}/${project.value.slug}` : '',
-)
-function safeUrl(value: string) {
-  return /^https:\/\//i.test(value) ? value : undefined
-}
+  )
+  const selected = selectedCompVersions(
+    versions.value,
+    requestedVersion.value,
+    requestedLoader.value,
+    versionFilter.value,
+    loaderFilter.value,
+    versionFilters.value.byDrop,
+    versionFilters.value.foldOld,
+  )
+  if (!selected.length) return normal
+  const loader = loaderNames[requestedLoader.value] || requestedLoader.value
+  return [
+    {
+      key: 'selected',
+      name: text('Download.Comp.Detail.SelectedVersion', [
+        loader ? `${loader} ` : '',
+        requestedVersion.value,
+      ]),
+      gameVersion: requestedVersion.value,
+      versions: selected,
+    },
+    ...normal,
+  ]
+})
+const sourceName = computed(() => (source.value === 'curseforge' ? 'CurseForge' : 'Modrinth'))
+const projectUrl = computed(() => (project.value ? compProjectUrl(project.value) : ''))
 let request = 0
 onScopeDispose(() => {
   request++
@@ -76,20 +106,29 @@ async function load() {
   try {
     const id = String(route.query.id || '')
     if (!/^[a-zA-Z0-9_-]+$/.test(id)) throw new Error(pclText('Proto.Resource.InvalidId'))
-    const [data, files] = await Promise.all([
-      modrinthApi.getProject(id),
-      modrinthApi.getProjectVersions(id),
-    ])
+    source.value = compSourceOf(id)
+    const [data, files] = await Promise.all([getCompProject(id), getCompVersions(id)])
     if (current !== request) return
     project.value = data
     versions.value = files
     // 路由带入的是实例的具体版本号，需要归到筛选选项上
-    if (requestedVersion.value)
+    if (
+      versionFilters.value.list.length >= 2 &&
+      requestedVersion.value &&
+      files.some((file) => file.game_versions.includes(requestedVersion.value))
+    )
       versionFilter.value = groupedVersionName(
         requestedVersion.value,
         versionFilters.value.byDrop,
         versionFilters.value.foldOld,
       )
+    else versionFilter.value = ''
+    loaderFilter.value =
+      versionFilters.value.list.length >= 2 &&
+      isMod.value &&
+      loaders.value.includes(requestedLoader.value)
+        ? requestedLoader.value
+        : ''
   } catch (err) {
     if (current === request) error.value = pclText('Proto.Error.Resource', [String(err)])
   } finally {
@@ -104,28 +143,25 @@ async function copy(value: string) {
     sideTip.show(pclText('Proto.Clipboard.Unavailable'), 'warn')
   }
 }
-function download(file: IVersion['files'][number]) {
-  if (!safeUrl(file.url)) return
-  // The Tauri WebView cannot save remote files itself; hand the link to the system browser.
-  if (isTauri()) {
-    void openExternal(file.url)
-    return
+async function download(file: IVersion['files'][number], version: IVersion) {
+  if (!project.value) return
+  try {
+    await saveResource(
+      file,
+      version,
+      route.query.type === 'datapack' ? 'datapack' : project.value.project_type,
+    )
+  } catch (error) {
+    sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn')
   }
-  const link = document.createElement('a')
-  link.href = file.url
-  link.download = file.filename
-  link.target = '_blank'
-  link.rel = 'noopener noreferrer'
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
 }
 watch(
-  () => route.query.id,
+  () => [route.query.id, route.query.version, route.query.loader],
   () => {
     requestedVersion.value = route.query.version === 'all' ? '' : String(route.query.version || '')
-    versionFilter.value = requestedVersion.value
-    loaderFilter.value = String(route.query.loader || '')
+    requestedLoader.value = String(route.query.loader || '')
+    versionFilter.value = ''
+    loaderFilter.value = ''
     void load()
   },
   { immediate: true },
@@ -145,9 +181,9 @@ watch(
         <div class="intro">
           <PCompItem :data="item" />
           <div class="actions">
-            <PIconTextButton bordered icon="lucide/globe" @click="() => openExternal(projectUrl)"
-              >Modrinth</PIconTextButton
-            >
+            <PIconTextButton bordered icon="lucide/globe" @click="() => openExternal(projectUrl)">{{
+              sourceName
+            }}</PIconTextButton>
             <PIconTextButton
               bordered
               icon="lucide/globe"
@@ -243,7 +279,7 @@ watch(
         v-for="group in groups"
         :key="`${versionFilter}:${loaderFilter}:${group.key}`"
         :title="group.name"
-        :default-fold-status="groups.length === 1 ? 'unfold' : 'fold'"
+        :default-fold-status="group.key === 'selected' || groups.length === 1 ? 'unfold' : 'fold'"
       >
         <div class="version-files">
           <PVirtualList
@@ -257,7 +293,7 @@ watch(
               :title="version.name"
               :subtitle="`${file.filename} · ${version.loaders.join(', ')} · ${new Date(version.date_published).toLocaleString()}`"
               clickable
-              @click="() => download(file)"
+              @click="() => download(file, version)"
             />
           </PVirtualList>
         </div>

@@ -61,6 +61,9 @@ pnpm install
 pnpm dev
 ```
 
+> [!NOTE]
+> 资源下载的 CurseForge 来源需要 API Key：构建前将 `CURSEFORGE_API_KEY` 填入环境变量或项目根目录下被 Git 忽略的 `.env`。密钥会嵌入桌面程序，运行环境变量可作为兜底；未配置时无法使用 CurseForge，网页预览版也不支持。
+
 ### 构建 Tauri 应用
 
 如果你的设备上只安装了`bun`但没有安装`nodejs`，那么请将`src-tauri/tauri.conf.json`中的`build/beforeBuildCommand`内容从`pnpm run build`更改为`bun run build-only`。
