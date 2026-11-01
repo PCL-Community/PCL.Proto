@@ -60,7 +60,7 @@ Proto 实现：
 - `cargo check -p pcl-proto --lib` 通过。
 - 与本轮相关的 Rust 核心回归 19 项通过；另有路径边界测试。旧有依赖个人 Java、配置、游戏目录或外部服务的测试不作为离线回归运行。
 - 本地 HTTP 模拟服务覆盖完整安装：503 重试、缺失 server 元数据、classifier-only 库、native 排除与 Zip Slip 拒绝、资源去重/旧布局、共享缓存复用、自定义实例名与重新扫描、已有目录保护、版本 JSON 篡改、文件大小/SHA-1 错误、失败不发布实例、关闭 UI 通道后继续完成安装。
-- `scripts/check-components.mjs` 扩展了真实 Pinia store 的边界回归：下载阶段全部完成但发布失败、终态后的迟到 IPC、并行任务、速度清零、IPC ID 隔离、导出防重复。
+- 组件回归检查扩展了真实 Pinia store 的边界回归：下载阶段全部完成但发布失败、终态后的迟到 IPC、并行任务、速度清零、IPC ID 隔离、导出防重复。
 - `pnpm ui:build` 通过，包含 UI/语言/组件/页面切换契约、Vue 类型检查和生产构建。
 - 官方服务验证通过：manifest v2 的真实元数据与资源索引能够为 `rd-132211`、`b1.7.3`、`1.2.5`、`1.16.5`、`1.21.1` 和本次官方最新正式版 `26.3` 生成安装计划。这里没有下载这六个版本的全部文件。
 - 官方 `1.2.5` 的自定义命名完整安装通过：实际下载并校验客户端、支持库、native 与资源，完成旧资源映射，再通过实例扫描确认实例名、原版版本号与 JAR。
@@ -192,7 +192,7 @@ cargo test -p pcl-proto --lib official_native_java25_install_smoke -- --ignored 
 
 验证记录：
 
-- `node scripts/check-curseforge.mjs`（已加入 `pnpm check:ui`）用假 invoke 覆盖归一化、参数构造、分页停止条件、双来源合并与只一侧失败时的警告。
+- `node tests/ui/curseforge.test.mjs`（已加入 `pnpm check:ui`）用假 invoke 覆盖归一化、参数构造、分页停止条件、双来源合并与只一侧失败时的警告。
 - 字段名与枚举值对照 2026-10-31 的真实响应核实（`pagination.totalCount/index/pageSize/resultCount`、`latestFilesIndexes[].modLoader` 无 `loaderName`、`File.fileLength`、`gameVersions` 混有 `Client`/`Server`/`Forge`、classId 6/4471/12/6552/17/6945、`index + pageSize > 10000` 直接报错）。
 - 带 `.env` 密钥的只读搜索请求返回 HTTP 403（响应服务器标识为 Kestrel），尚不能判定是网络代理还是 API 拒绝；真实搜索及 CF 文件下载尚未验收。
 

@@ -7,7 +7,6 @@ import { useJavaStore } from '@/stores/java'
 import { useRouter } from 'vue-router'
 import { pclText } from '@/api/pclLocale'
 import { usePageSettings } from '@/composables/usePageSettings'
-import PButton from '@/components/widget/PButton.vue'
 import PPrimaryAction from '@/components/widget/PPrimaryAction.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PCheckBox from '@/components/widget/PCheckBox.vue'
@@ -16,8 +15,9 @@ import PHint from '@/components/widget/PHint.vue'
 import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import PTextBox from '@/components/widget/PTextBox.vue'
 import { windowSettingKeys, windowSettingsStorage, type WindowSettings } from '@/api/windowSettings'
-import { memorySettingKeys, memoryTickToMib } from '@/api/memorySettings'
-import { memoryGiB, useMemorySettings } from '@/composables/useMemorySettings'
+import { memorySettingKeys } from '@/api/memorySettings'
+import PMemorySettings from '@/components/widget/PMemorySettings.vue'
+import PErrorRetry from '@/components/widget/PErrorRetry.vue'
 import sideTip from '@/composables/sideTip'
 import { getIsolationDefault, setIsolationDefault, isolationChoices } from '@/api/isolationSettings'
 import { launchArgumentKeys } from '@/api/launchArguments'
@@ -144,17 +144,6 @@ async function changeIsolation(value: string | undefined) {
 }
 if (desktop) void loadIsolation()
 const memoryJava64 = computed(() => (java.runtimes.length ? java.globalIs64Bit : null))
-const {
-  mode: memoryMode,
-  maximum: memoryMaximum,
-  initial: memoryInitial,
-  ready: memoryReady,
-  error: memoryError,
-  preview: memoryPreview,
-  segments: memorySegments,
-  load: loadMemory,
-  save: saveMemory,
-} = useMemorySettings(undefined, memoryJava64)
 
 const windowReady = ref(false)
 const windowError = ref('')
@@ -224,28 +213,19 @@ const text = pclText
 <template>
   <div class="pcl-page">
     <p class="settings-unavailable">{{ text('Proto.Settings.Unavailable') }}</p>
-    <p v-if="visibilityError" role="alert">
-      {{ visibilityError }}
-      <button @click="visibilityReady ? changeVisibility(visibilityDraft) : loadVisibility()">
-        {{ text('Launch.Homepage.LoadFailed.Retry') }}
-      </button>
-    </p>
-    <p v-if="isolationError" role="alert">
-      {{ isolationError }}
-      <button @click="loadIsolation">{{ text('Launch.Homepage.LoadFailed.Retry') }}</button>
-    </p>
-    <p v-if="argumentsError" role="alert">
-      {{ argumentsError }}
-      <button @click="argumentsReady ? saveArguments() : loadArguments()">
-        {{ text('Launch.Homepage.LoadFailed.Retry') }}
-      </button>
-    </p>
-    <p v-if="windowError || windowSettingsStorage.errors.get(null)" role="alert">
-      {{ windowError || windowSettingsStorage.errors.get(null) }}
-      <button @click="windowReady ? applyWindowSettings() : loadWindowSettings()">
-        {{ text('Launch.Homepage.LoadFailed.Retry') }}
-      </button>
-    </p>
+    <PErrorRetry
+      :error="visibilityError"
+      @retry="visibilityReady ? changeVisibility(visibilityDraft) : loadVisibility()"
+    />
+    <PErrorRetry :error="isolationError" @retry="loadIsolation" />
+    <PErrorRetry
+      :error="argumentsError"
+      @retry="argumentsReady ? saveArguments() : loadArguments()"
+    />
+    <PErrorRetry
+      :error="windowError || windowSettingsStorage.errors.get(null)"
+      @retry="windowReady ? applyWindowSettings() : loadWindowSettings()"
+    />
     <div>
       <div data-control="PanBack">
         <div
@@ -466,205 +446,7 @@ const text = pclText
             <PHint v-if="memoryOverLimit" severity="warning">{{
               text('Setup.Launch.Memory.Warning.TooMuch')
             }}</PHint>
-            <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
-              <div
-                style="
-                  margin: 0px 0px 3px 0px;
-                  display: grid;
-                  grid-template-columns: auto minmax(0, 1fr);
-                  grid-template-rows: auto auto auto auto;
-                "
-              >
-                <label
-                  data-control="RadioRamType0"
-                  style="
-                    width: 110px;
-                    margin: 0px 20px 9px 0px;
-                    grid-row: 1 / span 1;
-                    grid-column: 1 / span 1;
-                    justify-self: start;
-                  "
-                  :title="text('Setup.Launch.Memory.Auto.ToolTip')"
-                  class="pcl-radio"
-                  ><input
-                    :disabled="!memoryReady"
-                    type="radio"
-                    v-model="memoryMode"
-                    value="auto"
-                    @change="saveMemory"
-                  />{{ text('Setup.Launch.Memory.Auto') }}</label
-                >
-                <label
-                  data-control="RadioRamType1"
-                  style="margin: 0px 20px 9px 0px; grid-row: 2 / span 1; grid-column: 1 / span 1"
-                  class="pcl-radio"
-                  ><input
-                    :disabled="!memoryReady"
-                    type="radio"
-                    v-model="memoryMode"
-                    value="custom"
-                    @change="saveMemory"
-                  />{{ text('Common.Option.Customize') }}</label
-                >
-                <span
-                  style="
-                    margin: 0px 20px 9px 0px;
-                    grid-row: 3 / span 1;
-                    grid-column: 1 / span 1;
-                    align-self: center;
-                  "
-                  :title="text('Setup.Launch.Memory.Max.ToolTip')"
-                  class="pcl-text"
-                  >{{ text('Setup.Launch.Memory.Max')
-                  }}<template v-if="memoryMode === 'custom'">
-                    ({{ memoryTickToMib(memoryMaximum) }} MiB)</template
-                  ></span
-                >
-                <input
-                  data-control="SliderRamCustom"
-                  :disabled="!memoryReady || memoryMode !== 'custom'"
-                  style="margin: 0px 12px 9px 0px; grid-row: 3 / span 1; grid-column: 2 / span 1"
-                  type="range"
-                  min="0"
-                  max="49"
-                  v-model.number="memoryMaximum"
-                  @change="saveMemory"
-                />
-                <span
-                  style="
-                    margin: 0px 20px 0px 0px;
-                    grid-row: 4 / span 1;
-                    grid-column: 1 / span 1;
-                    align-self: center;
-                  "
-                  :title="text('Setup.Launch.Memory.Initial.ToolTip')"
-                  class="pcl-text"
-                  >{{ text('Setup.Launch.Memory.Initial')
-                  }}<template v-if="memoryMode === 'custom'">
-                    ({{
-                      memoryInitial
-                        ? `${Math.min(memoryTickToMib(memoryInitial), memoryTickToMib(memoryMaximum))} MiB`
-                        : text('Setup.Launch.Memory.Auto')
-                    }})</template
-                  ></span
-                >
-                <input
-                  data-control="SliderRamInitialCustom"
-                  :disabled="!memoryReady || memoryMode !== 'custom'"
-                  style="grid-row: 4 / span 1; grid-column: 2 / span 1"
-                  :title="text('Setup.Launch.Memory.Initial.ToolTip')"
-                  type="range"
-                  min="0"
-                  max="49"
-                  v-model.number="memoryInitial"
-                  @change="saveMemory"
-                />
-              </div>
-              <p v-if="memoryError" role="alert">
-                {{ memoryError }}
-                <button @click="memoryReady ? saveMemory() : loadMemory()">
-                  {{ text('Launch.Homepage.LoadFailed.Retry') }}
-                </button>
-              </p>
-              <div
-                data-control="PanRamDisplay"
-                style="
-                  margin: 11px 2px 0px 0px;
-                  display: grid;
-                  grid-template-columns: minmax(0, 1fr) auto;
-                  grid-template-rows: minmax(0, 1fr) 4px minmax(0, 1fr);
-                "
-              >
-                <div
-                  data-control="RectRamUsed"
-                  style="grid-row: 2; grid-column: 1 / span 2; justify-self: start"
-                  :style="{ width: `${memorySegments.used}%` }"
-                  class="pcl-divider"
-                />
-                <div
-                  data-control="RectRamGame"
-                  style="opacity: 0.5; grid-row: 2; grid-column: 1 / span 2; justify-self: start"
-                  :style="{
-                    width: `${memorySegments.game}%`,
-                    marginLeft: `${memorySegments.used}%`,
-                  }"
-                  class="pcl-divider"
-                />
-                <div
-                  data-control="RectRamEmpty"
-                  style="opacity: 0.7; grid-row: 2; grid-column: 1 / span 2; justify-self: start"
-                  :style="{
-                    width: `${memorySegments.empty}%`,
-                    marginLeft: `${memorySegments.used + memorySegments.game}%`,
-                  }"
-                  class="pcl-divider"
-                />
-                <span
-                  data-control="LabRamUsedTitle"
-                  style="
-                    margin: 0px 0px 5px 2px;
-                    font-size: 11px;
-                    opacity: 0.7;
-                    grid-row: 1 / span 1;
-                    grid-column: 1 / span 1;
-                    justify-self: start;
-                  "
-                  class="pcl-text"
-                  >{{ text('Setup.Launch.Memory.UsedTotal') }}</span
-                >
-                <span
-                  data-control="LabRamGameTitle"
-                  style="
-                    margin: 0px 0px 5px 2px;
-                    font-size: 11px;
-                    opacity: 0.7;
-                    grid-row: 1 / span 1;
-                    grid-column: 2 / span 1;
-                    justify-self: end;
-                  "
-                  class="pcl-text"
-                  >{{ text('Proto.Settings.MemoryEstimate') }}</span
-                >
-                <div
-                  style="
-                    margin: 3px 0px 0px 2px;
-                    grid-row: 3 / span 1;
-                    grid-column: 1 / span 1;
-                    justify-self: start;
-                    display: flex;
-                    flex-direction: row;
-                    flex-wrap: wrap;
-                    min-width: 0;
-                    align-items: center;
-                  "
-                >
-                  <span data-control="LabRamUsed" style="font-size: 16px" class="pcl-text">{{
-                    memoryPreview
-                      ? memoryGiB(memoryPreview.total_bytes - memoryPreview.available_bytes)
-                      : '—'
-                  }}</span>
-                  <span data-control="LabRamTotal" style="font-size: 16px" class="pcl-text">{{
-                    memoryPreview ? ` / ${memoryGiB(memoryPreview.total_bytes)}` : ' / —'
-                  }}</span>
-                </div>
-                <span
-                  data-control="LabRamGame"
-                  style="
-                    margin: 3px 0px 0px 2px;
-                    font-size: 16px;
-                    grid-row: 3 / span 1;
-                    grid-column: 2 / span 1;
-                    justify-self: end;
-                  "
-                  class="pcl-text"
-                  >{{
-                    memoryPreview?.allocation_mib != null
-                      ? memoryGiB(memoryPreview.allocation_mib * 1048576)
-                      : '—'
-                  }}</span
-                >
-              </div>
-            </div>
+            <PMemorySettings :java64="memoryJava64" />
           </PCard>
           <PCard
             style="margin: 0px 0px 15px 0px"
@@ -691,15 +473,18 @@ const text = pclText
                     <label :for="id" class="pcl-text">{{
                       text('Setup.Launch.Advanced.JvmHead')
                     }}</label>
-                    <PButton
+                    <button
                       data-control="BtnAdvanceJvmReset"
+                      type="button"
+                      class="pcl-icon-button"
                       :disabled="!desktop || !argumentsReady"
-                      style="height: 23px; margin: 1px 0px 0px 0px"
+                      style="margin: 1px 0px 0px 0px"
                       :title="text('Setup.Launch.Advanced.JvmHead.Restore')"
+                      :aria-label="text('Setup.Launch.Advanced.JvmHead.Restore')"
                       @click="resetJvmArguments"
-                      inline
-                      ><PSvgIcon name="lucide/rotate-ccw" :size="18"
-                    /></PButton></div></template
+                    >
+                      <PSvgIcon name="lucide/rotate-ccw" :size="18" />
+                    </button></div></template
                 ><template #default="{ id }"
                   ><PTextBox
                     :disabled="!desktop || !argumentsReady"

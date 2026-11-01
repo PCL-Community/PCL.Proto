@@ -22,7 +22,7 @@ withDefaults(defineProps<{ icon: string; disabled?: boolean; bordered?: boolean 
   padding: 0 12px;
   border: 0;
   border-radius: 13.5px;
-  background: transparent;
+  background: var(--color-tint-rest);
   color: var(--color-text-black);
   font: inherit;
   cursor: pointer;

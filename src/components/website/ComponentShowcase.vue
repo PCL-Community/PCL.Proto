@@ -6,8 +6,8 @@ import PCard from '@/components/widget/PCard.vue'
 import PCheckBox from '@/components/widget/PCheckBox.vue'
 import PComboBox from '@/components/widget/PComboBox.vue'
 import PHint from '@/components/widget/PHint.vue'
+import PIconTextButton from '@/components/widget/PIconTextButton.vue'
 import PLoading, { type LoadingState } from '@/components/widget/PLoading.vue'
-import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import PTextBox from '@/components/widget/PTextBox.vue'
 import sideTip from '@/composables/sideTip'
 import { useModal } from '@/composables/useModal'
@@ -73,13 +73,11 @@ async function showDialog(withInput: boolean) {
             pclText('Proto.Demo.ButtonWarning')
           }}</PButton>
           <PButton disabled>{{ pclText('Proto.Demo.ButtonDisabled') }}</PButton>
-          <PButton
-            inline
-            :tooltip="pclText('Proto.Demo.Tooltip')"
+          <PIconTextButton
+            icon="lucide/heart"
+            :title="pclText('Proto.Demo.Tooltip')"
             @click="() => sideTip.show(pclText('Proto.Demo.IconHint'))"
-            ><PSvgIcon name="lucide/heart" :size="16" />{{
-              pclText('Proto.Demo.IconButton')
-            }}</PButton
+            >{{ pclText('Proto.Demo.IconButton') }}</PIconTextButton
           >
         </div>
       </div>

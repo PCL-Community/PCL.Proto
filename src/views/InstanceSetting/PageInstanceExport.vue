@@ -6,12 +6,12 @@ import exportOptions from '@/assets/export-options.json'
 import { useSelectedInstance } from '@/stores/gameLaunch'
 import { usePageSettings } from '@/composables/usePageSettings'
 import PButton from '@/components/widget/PButton.vue'
+import PIconTextButton from '@/components/widget/PIconTextButton.vue'
 import { FloatButtonType, useFloatButton } from '@/composables/useFloatButton'
 import { useTaskManager } from '@/stores/task'
 import PCard from '@/components/widget/PCard.vue'
 import PCheckBox from '@/components/widget/PCheckBox.vue'
 import PHint from '@/components/widget/PHint.vue'
-import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import PTextBox from '@/components/widget/PTextBox.vue'
 const instance = useSelectedInstance()
 const { floatButtonState, setFloatButton } = useFloatButton()
@@ -124,9 +124,9 @@ const text = pclText
             >
               <div class="export-options-heading">
                 <h2>{{ text('Instance.Export.OptionListTitle') }}</h2>
-                <PButton inline @click="() => reset()"
-                  ><PSvgIcon name="lucide/rotate-ccw" />{{ text('Common.Action.Reset') }}</PButton
-                >
+                <PIconTextButton icon="lucide/rotate-ccw" @click="() => reset()">{{
+                  text('Common.Action.Reset')
+                }}</PIconTextButton>
               </div>
               <div
                 data-control="PanOptions"

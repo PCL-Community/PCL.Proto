@@ -4,6 +4,7 @@ import { usePageSettings } from '@/composables/usePageSettings'
 import PCard from '@/components/widget/PCard.vue'
 import PCheckBox from '@/components/widget/PCheckBox.vue'
 import PComboBox from '@/components/widget/PComboBox.vue'
+import PErrorRetry from '@/components/widget/PErrorRetry.vue'
 import {
   downloadSettingKeys,
   downloadSettings,
@@ -68,12 +69,10 @@ const text = pclText
 <template>
   <div class="pcl-page">
     <p class="settings-unavailable">{{ text('Proto.Settings.Unavailable') }}</p>
-    <p v-if="loadError || downloadSettingsStorage.errors.get(null)" role="alert">
-      {{ loadError || downloadSettingsStorage.errors.get(null) }}
-      <button @click="ready ? applyDownloadSettings() : loadDownloadSettings()">
-        {{ text('Launch.Homepage.LoadFailed.Retry') }}
-      </button>
-    </p>
+    <PErrorRetry
+      :error="loadError || downloadSettingsStorage.errors.get(null)"
+      @retry="ready ? applyDownloadSettings() : loadDownloadSettings()"
+    />
     <div>
       <div data-control="PanBack">
         <div

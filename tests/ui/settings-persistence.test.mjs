@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
 import { computed, effectScope, nextTick, ref } from 'vue'
 
-const root = fileURLToPath(new URL('../', import.meta.url))
+const root = fileURLToPath(new URL('../../', import.meta.url))
 const outfile = path.join(root, 'node_modules/.tmp/settings-persistence.mjs')
 await fs.mkdir(path.dirname(outfile), { recursive: true })
 await build({

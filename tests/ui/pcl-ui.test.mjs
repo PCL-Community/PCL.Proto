@@ -3,14 +3,14 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import crypto from 'node:crypto'
-import { pclIcons } from '../src/components/icons/pclIcons.ts'
+import { pclIcons } from '../../src/components/icons/pclIcons.ts'
 import {
   classifyVersion,
   getMinecraftVersions,
   getMinecraftChangelogUrl,
-} from '../src/api/gameVersions.ts'
-import modrinthApi from '../src/api/modrinthApi.ts'
-import { pclImagePath } from '../src/api/pclAssets.ts'
+} from '../../src/api/gameVersions.ts'
+import modrinthApi from '../../src/api/modrinthApi.ts'
+import { pclImagePath } from '../../src/api/pclAssets.ts'
 import {
   installWarnings,
   loaderVisible,
@@ -19,20 +19,20 @@ import {
   instanceDefaultName,
   loaderConflict,
   versionDrop,
-} from '../src/api/installSelection.ts'
-import { maxLogLines } from '../src/util/logLines.ts'
+} from '../../src/api/installSelection.ts'
+import { maxLogLines } from '../../src/util/logLines.ts'
 const read = (path) => JSON.parse(fs.readFileSync(new URL(path, import.meta.url), 'utf8'))
 const findNode = (node, name) =>
   node.attrs.Name === name
     ? node
     : node.children?.map((child) => findNode(child, name)).find(Boolean)
-const manifest = read('../src/assets/pcl-manifest.json')
+const manifest = read('../../src/assets/pcl-manifest.json')
 const strings = {
-  ...read('../src/assets/languages/zh-CN.json'),
-  ...read('../src/assets/messages/zh-CN.json'),
+  ...read('../../src/assets/languages/zh-CN.json'),
+  ...read('../../src/assets/messages/zh-CN.json'),
 }
-const iconNames = new Set(read('../src/assets/icon-names.json'))
-const navActions = read('../src/assets/nav-actions.json')
+const iconNames = new Set(read('../../src/assets/icon-names.json'))
+const navActions = read('../../src/assets/nav-actions.json')
 assert.equal(navActions.PageSetupLeft.ItemLaunch.kind, 'initialize')
 assert.equal(navActions.PageSetupLeft.ItemFeedback.kind, 'refresh')
 assert.equal(navActions.PageDownloadLeft.ItemMod.icon, 'lucide/refresh-cw')
@@ -42,7 +42,7 @@ const used = new Set()
 const icons = new Set()
 const types = new Set()
 for (const page of Object.keys(manifest.pages)) {
-  const tree = read(`../src/assets/layouts/${page}.json`)
+  const tree = read(`../../src/assets/layouts/${page}.json`)
   const visit = (node) => {
     types.add(node.type)
     for (const [key, value] of Object.entries(node.attrs)) {
@@ -68,17 +68,17 @@ for (const page of Object.keys(manifest.pages)) {
   }
   visit(tree)
 }
-const exportPage = read('../src/assets/layouts/PageInstanceExport.json')
+const exportPage = read('../../src/assets/layouts/PageInstanceExport.json')
 assert.equal(
   findNode(exportPage, 'CheckOptionsBasic').children[0].children[0].attrs.DefaultChecked,
   'True',
 )
-assert.ok(findNode(read('../src/assets/layouts/PageSetupLaunch.json'), 'ComboArgumentPriority'))
-assert.ok(findNode(read('../src/assets/layouts/PageSetupUI.json'), 'CardSwitch'))
-const paths = read('../src/assets/vector-paths.json')
+assert.ok(findNode(read('../../src/assets/layouts/PageSetupLaunch.json'), 'ComboArgumentPriority'))
+assert.ok(findNode(read('../../src/assets/layouts/PageSetupUI.json'), 'CardSwitch'))
+const paths = read('../../src/assets/vector-paths.json')
 for (const [name, item] of Object.entries(paths)) {
   const svg = fs.readFileSync(
-    new URL(`../public/pcl/geometry/${name}.svg`, import.meta.url),
+    new URL(`../../public/pcl/geometry/${name}.svg`, import.meta.url),
     'utf8',
   )
   assert.ok(svg.includes(item.viewBox), `wrong geometry bounds: ${name}`)
@@ -90,14 +90,14 @@ for (const [name, item] of Object.entries(paths)) {
   if (item.style.stroke)
     assert.ok(svg.includes(`stroke="${item.style.stroke}"`), `lost stroke: ${name}`)
 }
-const sourcePaths = read('../src/assets/control-geometry.json')
+const sourcePaths = read('../../src/assets/control-geometry.json')
 const logo = Object.values(paths).find(
   (item) => item.data === sourcePaths['FormMain.ShapeTitleLogo'],
 )
 assert.equal(logo.style.fill, 'none')
 assert.equal(logo.style['stroke-width'], '2.2')
 const titleLogo = fs.readFileSync(
-  new URL('../src/assets/icons/TitleLogo.svg', import.meta.url),
+  new URL('../../src/assets/icons/TitleLogo.svg', import.meta.url),
   'utf8',
 )
 assert.match(
@@ -132,14 +132,14 @@ for (const [source, expected] of [
   ['data:image/png;base64,AA==', 'data:image/png;base64,AA=='],
 ])
   assert.equal(pclImagePath(source, '/PCL.Proto/'), expected)
-const root = new URL('../', import.meta.url)
+const root = new URL('../../', import.meta.url)
 const walk = (dir) =>
   fs
     .readdirSync(dir, { withFileTypes: true })
     .flatMap((entry) =>
       entry.isDirectory() ? walk(path.join(dir, entry.name)) : [path.join(dir, entry.name)],
     )
-const files = walk(fileURLToPath(new URL('../src', import.meta.url))).filter((file) =>
+const files = walk(fileURLToPath(new URL('../../src', import.meta.url))).filter((file) =>
   /\.(vue|tsx?)$/.test(file),
 )
 const names = new Set(files.map((file) => path.basename(file).replace(/\.[^.]+$/, '')))
@@ -155,7 +155,7 @@ for (const file of files) {
   )) {
     const specifier = match[1].split('?')[0]
     const target = specifier.startsWith('@/')
-      ? path.join(fileURLToPath(new URL('../src', import.meta.url)), specifier.slice(2))
+      ? path.join(fileURLToPath(new URL('../../src', import.meta.url)), specifier.slice(2))
       : path.resolve(path.dirname(file), specifier)
     const resolved = ['', '.ts', '.tsx', '.js', '.vue', '/index.ts']
       .map((suffix) => target + suffix)
@@ -201,8 +201,8 @@ for (const loader of [
   for (const key of ['Intro.Title', 'Intro.Description', 'LoadingList'])
     assert.ok(strings[`Download.Version.${loader}.${key}`], `missing loader text: ${loader}.${key}`)
 }
-const options = read('../src/assets/export-options.json')
-const defaults = read('../src/assets/setting-defaults.json')
+const options = read('../../src/assets/export-options.json')
+const defaults = read('../../src/assets/setting-defaults.json')
 const originalFetch = globalThis.fetch
 for (const [id, locale, host, query] of [
   ['1.21.1', 'zh-CN', 'zh.minecraft.wiki', 'Java版1.21.1'],
@@ -341,18 +341,18 @@ assert.ok(
   options.every((option) => option.title && strings[option.title.match(/Resource (.+)}/)[1]]),
 )
 const header = fs.readFileSync(
-  new URL('../src/components/WindowHeader.vue', import.meta.url),
+  new URL('../../src/components/WindowHeader.vue', import.meta.url),
   'utf8',
 )
 assert.ok(header.includes('.title-tag Proto'), 'retain the Proto badge')
-const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8')
 assert.match(
   html,
   /<link\b[^>]*rel="icon"[^>]*href="\/PCL\.Proto\.svg"/,
   'use the current app logo as the website favicon',
 )
 const about = fs.readFileSync(
-  new URL('../src/views/Setup/PageSetupAbout.vue', import.meta.url),
+  new URL('../../src/views/Setup/PageSetupAbout.vue', import.meta.url),
   'utf8',
 )
 for (const identity of ['AMagicPear', 'Vue.js', 'Rust Programming Language', 'Tauri', 'PCL.Proto'])

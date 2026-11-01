@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PErrorRetry from '@/components/widget/PErrorRetry.vue'
 import { showUnavailable } from '@/util/showUnavailable'
 import { pclText } from '@/api/pclLocale'
 import { usePageSettings } from '@/composables/usePageSettings'
@@ -36,14 +37,8 @@ const text = pclText
 <template>
   <div class="pcl-page">
     <p class="settings-unavailable">{{ text('Proto.Settings.Unavailable') }}</p>
-    <p v-if="logSaveError" role="alert">
-      {{ logSaveError }}
-      <button @click="saveLogSettings">{{ text('Launch.Homepage.LoadFailed.Retry') }}</button>
-    </p>
-    <p v-if="proxyError" role="alert">
-      {{ proxyError }}
-      <button @click="saveProxy()">{{ text('Launch.Homepage.LoadFailed.Retry') }}</button>
-    </p>
+    <PErrorRetry :error="logSaveError" @retry="saveLogSettings" />
+    <PErrorRetry :error="proxyError" @retry="saveProxy()" />
     <div>
       <div data-control="PanBack">
         <div

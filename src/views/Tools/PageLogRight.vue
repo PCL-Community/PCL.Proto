@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import PErrorRetry from '@/components/widget/PErrorRetry.vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { invoke, isTauri } from '@tauri-apps/api/core'
 import PCard from '@/components/widget/PCard.vue'
-import PButton from '@/components/widget/PButton.vue'
+import PIconTextButton from '@/components/widget/PIconTextButton.vue'
 import PCheckBox from '@/components/widget/PCheckBox.vue'
-import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import PComboBox from '@/components/widget/PComboBox.vue'
 import { pclText } from '@/api/pclLocale'
 import { logSlider, logSaveError, saveLogSettings, updateLogSlider } from '@/api/logSettings'
@@ -132,23 +132,23 @@ function exportText(value: string, filename: string) {
           v-model="autoScroll"
           :label="text('LogPage.Action.Scroll')"
         />
-        <PButton inline @click="() => exportText(rawLog, 'PCL.Proto.log')"
-          ><PSvgIcon name="lucide/save" />{{ text('LogPage.Action.Export') }}</PButton
-        >
-        <PButton inline @click="clearLog"
-          ><PSvgIcon name="lucide/trash-2" />{{ text('LogPage.Action.Clear') }}</PButton
-        >
-        <PButton inline :disabled="!selected?.running" @click="stopGame"
-          ><PSvgIcon name="lucide/x" />{{ text('LogPage.Action.KillProcess') }}</PButton
-        >
-        <PButton inline :disabled="!stack" @click="() => exportText(stack, 'PCL.Proto-stack.log')"
-          ><PSvgIcon name="lucide/package" />{{ text('LogPage.Action.ExportStack') }}</PButton
+        <PIconTextButton icon="lucide/save" @click="() => exportText(rawLog, 'PCL.Proto.log')">{{
+          text('LogPage.Action.Export')
+        }}</PIconTextButton>
+        <PIconTextButton icon="lucide/trash-2" @click="clearLog">{{
+          text('LogPage.Action.Clear')
+        }}</PIconTextButton>
+        <PIconTextButton icon="lucide/x" :disabled="!selected?.running" @click="stopGame">{{
+          text('LogPage.Action.KillProcess')
+        }}</PIconTextButton>
+        <PIconTextButton
+          icon="lucide/package"
+          :disabled="!stack"
+          @click="() => exportText(stack, 'PCL.Proto-stack.log')"
+          >{{ text('LogPage.Action.ExportStack') }}</PIconTextButton
         >
       </div>
-      <p v-if="logSaveError" role="alert">
-        {{ logSaveError }}
-        <button @click="saveLogSettings">{{ text('Launch.Homepage.LoadFailed.Retry') }}</button>
-      </p>
+      <PErrorRetry :error="logSaveError" @retry="saveLogSettings" />
       <div class="log-limit">
         <label for="SliderMaxLog">{{ text('LogPage.MaxLines.Title') }}</label
         ><input

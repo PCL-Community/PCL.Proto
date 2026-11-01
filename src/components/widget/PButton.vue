@@ -17,12 +17,6 @@ const baseColor = {
   tint: 'var(--ce-color-2)',
   warn: 'var(--color-warn)',
 }
-
-const hoverBg = {
-  default: 'var(--color-tint-lighter)',
-  tint: 'var(--color-tint-lighter)',
-  warn: 'var(--color-warn-lighter)',
-}
 </script>
 
 <template>
@@ -37,30 +31,15 @@ const hoverBg = {
       cursor: disabled ? 'not-allowed' : 'pointer',
     }"
     @click="!disabled && emit('click', $event)"
-    :while-hover="
-      !disabled
-        ? {
-            backgroundColor: hoverBg[type ?? 'default'],
-            transition: {
-              backgroundColor: { type: 'tween', duration: 0.1, ease: 'linear' },
-              scale: { type: 'tween', duration: 0.3, delay: 0.01, ease: [0.33, 1, 0.68, 1] },
-            },
-          }
-        : undefined
-    "
     :while-press="
       !disabled
         ? {
             scale: 0.955,
-            transition: {
-              scale: { type: 'tween', duration: 0.08, ease: [0.22, 1, 0.36, 1] },
-              backgroundColor: { type: 'tween', duration: 0.1, ease: 'linear' },
-            },
+            transition: { scale: { type: 'tween', duration: 0.08, ease: [0.22, 1, 0.36, 1] } },
           }
         : undefined
     "
     :transition="{
-      backgroundColor: { type: 'tween', duration: 0.2, ease: 'linear' },
       scale: { type: 'tween', duration: 0.3, delay: 0.01, ease: [0.33, 1, 0.68, 1] },
     }"
   >
@@ -72,10 +51,26 @@ const hoverBg = {
 .mybutton {
   font-size: 13px;
   padding: 0.5rem;
-  background-color: transparent;
+  /* 背景过渡由 CSS 处理，Motion 只负责缩放。 */
+  background-color: var(--color-tint-rest);
+  transition: background-color 0.2s linear;
   border-radius: 4px;
   border: 1px solid rgba(52, 61, 74, 1);
   outline: none;
+}
+
+/* 警告按钮静止态也用警告色、仅 alpha 0，保证过渡只改 alpha。 */
+.mybutton.warn {
+  background-color: rgb(from var(--color-warn) r g b / 0);
+}
+
+.mybutton:not(:disabled):is(:hover, :active) {
+  background-color: var(--color-tint-lighter);
+  transition-duration: 0.1s;
+}
+
+.mybutton.warn:not(:disabled):is(:hover, :active) {
+  background-color: var(--color-warn-lighter);
 }
 
 .inline {

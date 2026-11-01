@@ -3,7 +3,7 @@ import { nextTick, ref, watch } from 'vue'
 import { pclText } from '@/api/pclLocale'
 import PCard from './PCard.vue'
 
-const props = defineProps<{ count: number }>()
+const props = defineProps<{ count: number; label?: string }>()
 const toolbar = ref<HTMLElement>()
 let animation: Animation | undefined
 watch(
@@ -30,7 +30,7 @@ watch(
 <template>
   <div v-if="count" ref="toolbar" class="pcl-selection-toolbar">
     <PCard hide-title>
-      <p>{{ pclText('Instance.Resource.SelectedCount', [count]) }}</p>
+      <p>{{ label ?? pclText('Instance.Resource.SelectedCount', [count]) }}</p>
       <div><slot /></div>
     </PCard>
   </div>

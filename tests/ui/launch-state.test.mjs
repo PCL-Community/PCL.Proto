@@ -12,11 +12,11 @@ const originalClearTimeout = globalThis.clearTimeout
 const timers = []
 try {
   const launchPage = fs.readFileSync(
-    new URL('../src/views/Home/PageLaunchLeft.vue', import.meta.url),
+    new URL('../../src/views/Home/PageLaunchLeft.vue', import.meta.url),
     'utf8',
   )
   const transitions = fs.readFileSync(
-    new URL('../src/composables/usePageTransition.ts', import.meta.url),
+    new URL('../../src/composables/usePageTransition.ts', import.meta.url),
     'utf8',
   )
   assert.match(launchPage, /transform: scale\(0\.96\)/)

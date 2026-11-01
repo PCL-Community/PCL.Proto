@@ -64,13 +64,17 @@
   --color-text-grey: oklch(0.5 0 0);
   --color-background: oklch(0.995 0 0);
   --color-background-soft: oklch(0.995 0 0 / 0.824);
-  --color-tint-lighter: var(--ce-color-7);
+  /* 悬停/按下背景是叠在表面上的半透明主题色，深浅主题都只轻微变色；
+     纯色阶（ce-color-7/6）在深色主题下比表面更暗，hover 会变成一块黑。 */
+  --color-tint-lighter: color-mix(in srgb, var(--color-tint) 10%, transparent);
+  /* 交互表面的静止态与悬停态使用同一主题色，只改变透明度。 */
+  --color-tint-rest: rgb(from var(--color-tint) r g b / 0);
   --color-tint-lightist: var(--ce-color-6);
   --color-tint-shadow: color-mix(in srgb, var(--ce-color-4) 50%, transparent);
   --tint-blue: var(--ce-color-3);
   --light-blue: var(--ce-color-4);
   --lighter-blue: var(--ce-color-7);
-  --half-transparent-blue: var(--ce-color-6);
+  --half-transparent-blue: color-mix(in srgb, var(--color-tint) 22%, transparent);
   --slight-transparent-blue: color-mix(in srgb, var(--ce-color-3) 80%, transparent);
 }
 

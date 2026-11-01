@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
 import { computed } from 'vue'
 
-const root = fileURLToPath(new URL('../', import.meta.url))
+const root = fileURLToPath(new URL('../../', import.meta.url))
 const languages = JSON.parse(await fs.readFile(path.join(root, 'src/assets/language-names.json')))
 const dictionaries = {}
 for (const directory of ['languages', 'messages']) {

@@ -13,6 +13,9 @@
 - 源文案从语言资源提取，由 `pclText` 按当前语言解析；表单默认值、导出选项、导航辅助操作、下载分类从源 XAML 和配置提取。
 - Lucide 通用图标通过官方 `@lucide/vue` 包具名导入。`pclIcons.ts` 注册 92 个名称（包括源图标和前端辅助图标）；不复制 Lucide SVG 到 public。
 - Logo、镐头等自定义 WPF Geometry 从源代码或 XML 提取，保留填充规则、描边与边界，生成 26 份 SVG；图片保留源目录结构。资源来源及许可证见 `public/pcl/LICENCE`。
+- 悬停与按下背景（`--color-tint-lighter`、`--half-transparent-blue`）取主题色的半透明叠加，而不是源色阶 `ColorBrush6/7` 的纯色：深色主题下这些纯色阶比卡片表面更暗，会把按钮、列表项和下拉框的悬停画成一块黑。同步 CE 色板时不要改回 `--ce-color-6/7`。
+- 交互表面的静止态使用 `--color-tint-rest`，与悬停态同色、仅 alpha 为 0。按钮背景过渡由 CSS `:hover/:active` 承担，`PButton` 只把 scale 交给 Motion。相关样式约定由 `tests/ui/components.test.mjs` 检查；Java 行回弹时图标变灰的原因是禁用状态改色，见下条。
+- 图标操作统一复用 `.pcl-icon-button`：对齐 CE `MyIconButton` 的 `ColorBrush4` 常态与 `ColorBrush2` hover，不为 disabled 增加改色规则。Java 行保存时仍临时禁用操作，但图标保持原色；Home 三个账户操作不再单独覆盖为最深的 `--color-tint-dark`。
 - 原有自定义主页 XAML 输入仍兼容 `My*`，也接受 `P*`；这是用户主页功能，不是整套源页面的运行时解释器。
 
 设置的默认值、持久化和重置集中在 `usePageSettings`，页面动作由页面函数处理。通用设置行通过 `SetupItem` 的标签和控件插槽组合，按钮与列表使用标准 `@click` 事件；文本框、下拉框将原生属性及监听器传给内部控件。组件内部样式由组件维护，菜单卡片通过 `overflow-visible` 显式放开裁剪。
@@ -27,7 +30,7 @@
 
 ```sh
 python3 scripts/sync-pcl-ui.py ../PCL2-CE
-node scripts/check-pcl-ui.mjs ../PCL2-CE
+node tests/ui/pcl-ui.test.mjs ../PCL2-CE
 pnpm ui:build
 git diff --check
 ```

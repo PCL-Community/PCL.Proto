@@ -7,7 +7,7 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
 
-const root = fileURLToPath(new URL('../', import.meta.url))
+const root = fileURLToPath(new URL('../../', import.meta.url))
 const outDir = path.join(root, 'node_modules/.tmp')
 await fs.mkdir(outDir, { recursive: true })
 for (const entry of [

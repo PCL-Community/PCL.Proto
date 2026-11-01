@@ -140,7 +140,7 @@ try {
       }
     }
   }
-  await checkCallers(new URL('../src/', import.meta.url))
+  await checkCallers(new URL('../../src/', import.meta.url))
   console.log('External URL validation, native/browser opening, click handling and cleanup passed.')
 } finally {
   console.error = originalConsoleError

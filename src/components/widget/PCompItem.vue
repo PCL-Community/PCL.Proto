@@ -179,6 +179,7 @@ async function download() {
   padding: 5px 5px 5px 7px;
   align-items: center;
   color: var(--color-text-grey);
+  background-color: var(--color-tint-rest);
   /* CE MyListItem：移出 180 ms、指向 120 ms。 */
   transition: background-color 180ms linear;
   min-width: 0;

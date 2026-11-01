@@ -45,7 +45,7 @@ async function openMenu(event: MouseEvent, actions: readonly string[]) {
         ><div class="profile-actions">
           <button
             type="button"
-            class="profile-action"
+            class="pcl-icon-button profile-action"
             :aria-label="text('Launch.Account.ProfileSkin.SkinsAndCapes')"
             :title="text('Launch.Account.ProfileSkin.SkinsAndCapes')"
             @click="openMenu($event, skinActions)"
@@ -54,7 +54,7 @@ async function openMenu(event: MouseEvent, actions: readonly string[]) {
           </button>
           <button
             type="button"
-            class="profile-action"
+            class="pcl-icon-button profile-action"
             :aria-label="text('Launch.Account.ProfileSkin.EditProfile')"
             :title="text('Launch.Account.ProfileSkin.EditProfile')"
             @click="openMenu($event, editActions)"
@@ -63,7 +63,7 @@ async function openMenu(event: MouseEvent, actions: readonly string[]) {
           </button>
           <button
             type="button"
-            class="profile-action"
+            class="pcl-icon-button profile-action"
             @click="emit('view', 'profiles')"
             :aria-label="text('Launch.Account.ProfileSkin.SwitchProfile')"
             :title="text('Launch.Account.ProfileSkin.SwitchProfile')"
@@ -128,28 +128,5 @@ async function openMenu(event: MouseEvent, actions: readonly string[]) {
 .profile-action {
   width: 24px;
   height: 24px;
-  padding: 5px;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--color-tint-light, var(--color-tint));
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* CE MyIconButton：悬停颜色 120/150 ms，按下 400 ms，松开回弹 250 ms。 */
-  transition:
-    color 150ms linear,
-    transform 250ms cubic-bezier(0.34, 2, 0.64, 1);
-}
-.profile-action:hover,
-.profile-action:focus-visible {
-  color: var(--color-tint-dark);
-  transition-duration: 120ms, 250ms;
-}
-.profile-action:active {
-  transform: scale(0.8);
-  transition-duration: 150ms, 400ms;
-  transition-timing-function: linear, cubic-bezier(0.25, 1, 0.5, 1);
 }
 </style>

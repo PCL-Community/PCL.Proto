@@ -55,7 +55,7 @@ defineProps<{
 <style scoped>
 input,
 textarea {
-  background-color: transparent;
+  background-color: var(--color-tint-rest);
   font-size: 12px;
   padding: 0.3rem 0.8rem;
   border-radius: 4px;

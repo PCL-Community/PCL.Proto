@@ -58,8 +58,10 @@ types/comp.ts
 
 ## 维护约定与验证
 
+`scripts/` 只保留图标生成与 CE 资源同步工具。前端回归检查统一放在 `tests/ui/*.test.mjs`，由 `pnpm check:ui` 使用 Node 自带测试运行器逐文件执行；新增测试无需修改命令列表。临时界面对照入口不随应用保留。
+
 新增功能先找所属领域的现有入口。公共规则只保留一个实现，调用方直接 import 所属模块；不要为转调一次函数而增加页面包装、兼容转导出或新的 service 层。页面确有独有状态、校验、错误处理或交互时再保留本地函数。
 
-本次整理的设置回归位于 `scripts/check-settings-persistence.mjs`，覆盖串行与并行作用域、快照隔离、失败重试、过期完成、读取期间编辑、真实领域 IPC 负载和实例编辑器重新挂载。该检查已接入 `pnpm check:ui`。
+本次整理的设置回归位于 `tests/ui/settings-persistence.test.mjs`，覆盖串行与并行作用域、快照隔离、失败重试、过期完成、读取期间编辑、真实领域 IPC 负载和实例编辑器重新挂载。该检查已接入 `pnpm check:ui`。
 
 常规验证：`pnpm ui:build`、`cargo check --workspace`、`cargo test -p pcl-proto --lib`。离线检查与构建不代表已完成真实游戏启动或 Windows/Linux 桌面验收。

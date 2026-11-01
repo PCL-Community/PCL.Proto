@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { pclText } from '@/api/pclLocale'
 import PButton from '@/components/widget/PButton.vue'
+import PIconTextButton from '@/components/widget/PIconTextButton.vue'
 import PCard from '@/components/widget/PCard.vue'
-import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import { computed } from 'vue'
 import { resourceUrl, useInstanceResources } from '@/composables/useInstanceResources'
 import { openInstancePath } from '@/api/instanceResources'
@@ -83,16 +83,14 @@ const text = pclText
                   <img :src="screenshot.url" :alt="screenshot.name" loading="lazy" />
                 </button>
                 <div class="screenshot-card-actions">
-                  <PButton inline @click="openScreenshot(screenshot.id)"
-                    ><PSvgIcon name="lucide/folder-open" :size="15" />{{
-                      text('Common.Action.Open')
-                    }}</PButton
+                  <PIconTextButton
+                    icon="lucide/folder-open"
+                    @click="openScreenshot(screenshot.id)"
+                    >{{ text('Common.Action.Open') }}</PIconTextButton
                   >
-                  <PButton inline @click="remove(screenshot.id)"
-                    ><PSvgIcon name="lucide/trash-2" :size="15" />{{
-                      text('Common.Action.Delete')
-                    }}</PButton
-                  >
+                  <PIconTextButton icon="lucide/trash-2" @click="remove(screenshot.id)">{{
+                    text('Common.Action.Delete')
+                  }}</PIconTextButton>
                 </div>
               </PCard>
             </div>

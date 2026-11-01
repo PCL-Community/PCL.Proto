@@ -4,8 +4,10 @@ import { computed, ref } from 'vue'
 import PCard from '@/components/widget/PCard.vue'
 import PComboBox from '@/components/widget/PComboBox.vue'
 import PSearchBox from '@/components/widget/PSearchBox.vue'
+import PSelectionToolbar from '@/components/widget/PSelectionToolbar.vue'
 import PCompItem from '@/components/widget/PCompItem.vue'
 import PButton from '@/components/widget/PButton.vue'
+import PIconTextButton from '@/components/widget/PIconTextButton.vue'
 import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import PCheckBox from '@/components/widget/PCheckBox.vue'
 import sideTip from '@/composables/sideTip'
@@ -117,29 +119,25 @@ const items = computed(() =>
         </p>
       </div></PCard
     >
-    <PCard v-if="selectedItems.length" hide-title class="selection-card"
-      ><p>
-        {{ text('Download.Comp.Favorites.Hint.SelectedCount', [selectedItems.length]) }}
-      </p>
-      <div class="selection-actions">
-        <PButton inline @click="unfavoriteSelected"
-          ><PSvgIcon name="lucide/heart-filled" />{{
-            text('Download.Comp.Favorites.Cancel')
-          }}</PButton
-        >
-        <PButton inline @click="() => share(selectedItems.map((item) => item.project_id))"
-          ><PSvgIcon name="lucide/share-2" />{{ text('Download.Comp.Favorites.Share') }}</PButton
-        >
-        <PButton inline @click="showUnavailable"
-          ><PSvgIcon name="lucide/download" />{{
-            text('Download.Comp.Favorites.Download')
-          }}</PButton
-        >
-        <PButton inline @click="() => selected.clear()"
-          ><PSvgIcon name="lucide/x" />{{ text('Download.Comp.Favorites.Deselect') }}</PButton
-        >
-      </div></PCard
+    <PSelectionToolbar
+      :count="selectedItems.length"
+      :label="text('Download.Comp.Favorites.Hint.SelectedCount', [selectedItems.length])"
     >
+      <PIconTextButton icon="lucide/heart-filled" @click="unfavoriteSelected">{{
+        text('Download.Comp.Favorites.Cancel')
+      }}</PIconTextButton>
+      <PIconTextButton
+        icon="lucide/share-2"
+        @click="() => share(selectedItems.map((item) => item.project_id))"
+        >{{ text('Download.Comp.Favorites.Share') }}</PIconTextButton
+      >
+      <PIconTextButton icon="lucide/download" @click="showUnavailable">{{
+        text('Download.Comp.Favorites.Download')
+      }}</PIconTextButton>
+      <PIconTextButton icon="lucide/x" @click="() => selected.clear()">{{
+        text('Download.Comp.Favorites.Deselect')
+      }}</PIconTextButton>
+    </PSelectionToolbar>
   </section>
 </template>
 <style scoped>
@@ -180,23 +178,6 @@ const items = computed(() =>
   flex-direction: column;
   gap: 4px;
   padding: 8px;
-}
-.selection-card {
-  position: sticky;
-  bottom: 15px;
-  margin: 15px auto 0;
-  width: fit-content;
-  max-width: 100%;
-}
-.selection-card p {
-  padding: 9px;
-  text-align: center;
-}
-.selection-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  padding: 0 5px 5px;
 }
 .select-favorite :deep(label) {
   font-size: 0;

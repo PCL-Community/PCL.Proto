@@ -4,6 +4,7 @@ import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import PPath from '@/components/widget/PPath.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PButton from '@/components/widget/PButton.vue'
+import PIconTextButton from '@/components/widget/PIconTextButton.vue'
 import PLoading from '@/components/widget/PLoading.vue'
 
 import PComboBox from '@/components/widget/PComboBox.vue'
@@ -472,32 +473,26 @@ const text = pclText
                 :title="text('Tools.GameLink.Finish.Actions')"
               >
                 <div style="margin: 0px 10px 10px 10px; display: flex; flex-direction: column">
-                  <PButton
+                  <PIconTextButton
                     data-control="BtnFinishCopyIp"
+                    icon="lucide/copy"
                     style="margin: 1px -2px"
                     @click="copyIp"
-                    inline
-                    ><PSvgIcon name="lucide/copy" :size="18" />{{
-                      text('Tools.GameLink.Finish.CopyVirtualIp')
-                    }}</PButton
+                    >{{ text('Tools.GameLink.Finish.CopyVirtualIp') }}</PIconTextButton
                   >
-                  <PButton
+                  <PIconTextButton
                     data-control="BtnFinishCopy"
+                    icon="lucide/copy"
                     style="margin: 1px -2px"
                     @click="copy(roomCode)"
-                    inline
-                    ><PSvgIcon name="lucide/copy" :size="18" />{{
-                      text('Tools.GameLink.Finish.CopyLobbyId')
-                    }}</PButton
+                    >{{ text('Tools.GameLink.Finish.CopyLobbyId') }}</PIconTextButton
                   >
-                  <PButton
+                  <PIconTextButton
                     data-control="BtnFinishExit"
+                    icon="lucide/power"
                     style="margin: 1px -2px"
                     @click="leave"
-                    inline
-                    ><PSvgIcon name="lucide/power" :size="18" />{{
-                      text('Tools.GameLink.Finish.Exit')
-                    }}</PButton
+                    >{{ text('Tools.GameLink.Finish.Exit') }}</PIconTextButton
                   >
                 </div>
               </PCard>

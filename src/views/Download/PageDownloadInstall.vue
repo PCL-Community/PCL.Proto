@@ -300,7 +300,7 @@ watch(versionId, (id) => {
         <div class="instance-name-row">
           <button
             type="button"
-            class="install-back"
+            class="pcl-icon-button install-back"
             @click="() => router.push('/download/game')"
             :aria-label="pclText('Common.Action.Back')"
           >
@@ -369,7 +369,7 @@ watch(versionId, (id) => {
         <template #header-actions>
           <button
             v-if="selected[loader]"
-            class="loader-clear"
+            class="pcl-icon-button loader-clear"
             type="button"
             :title="pclText('Proto.Action.ClearSelection')"
             :aria-label="pclText('Proto.Action.ClearSelection')"
@@ -441,21 +441,17 @@ watch(versionId, (id) => {
 }
 .install-back {
   flex: 0 0 26px;
-  width: 26px;
   height: 26px;
-  padding: 5px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
+  width: 26px;
   color: rgba(0, 0, 0, 0.62745);
   opacity: 0.6;
-  cursor: pointer;
   transition: color 150ms linear;
 }
-.install-back:hover,
-.install-back:focus-visible {
+.install-back:not(:disabled):active {
+  transform: none;
+}
+.install-back:not(:disabled):hover,
+.install-back:not(:disabled):focus-visible {
   color: rgba(0, 0, 0, 0.90196);
   transition-duration: 120ms;
 }
@@ -473,8 +469,8 @@ watch(versionId, (id) => {
 :global(.dark) .install-back {
   color: rgba(255, 255, 255, 0.62745);
 }
-:global(.dark) .install-back:hover,
-:global(.dark) .install-back:focus-visible {
+:global(.dark) .install-back:not(:disabled):hover,
+:global(.dark) .install-back:not(:disabled):focus-visible {
   color: rgba(255, 255, 255, 0.90196);
 }
 .instance-name-row > :last-child {
@@ -507,22 +503,18 @@ watch(versionId, (id) => {
 .loader-card:hover :deep(.mycard-title-actions > i) {
   color: var(--color-tint);
 }
-.loader-card:hover .loader-clear {
+.loader-card:hover .loader-clear:not(:disabled),
+.loader-clear:not(:disabled):focus-visible {
   color: var(--color-tint);
   transition-duration: 120ms;
 }
 .loader-clear {
-  display: grid;
-  place-items: center;
-  width: 25px;
-  height: 25px;
-  padding: 5px;
-  border: 0;
-  background: transparent;
   color: var(--color-text-grey);
-  cursor: pointer;
   /* CE MyIconButton：移出 150 ms、指向 120 ms。 */
   transition: color 150ms linear;
+}
+.loader-clear:not(:disabled):active {
+  transform: none;
 }
 .loader-clear:focus-visible {
   outline: 2px solid var(--color-text-grey);

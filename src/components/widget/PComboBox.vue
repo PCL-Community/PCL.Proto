@@ -89,7 +89,7 @@ select {
   width: 100%;
   &:hover {
     border-color: var(--ce-color-4);
-    background-color: var(--ce-color-7);
+    background-color: var(--color-tint-lighter);
   }
   &:focus {
     border-color: var(--ce-color-3);

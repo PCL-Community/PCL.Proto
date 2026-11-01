@@ -46,7 +46,7 @@ a {
   font-size: 13px;
   color: var(--color-text-black);
   height: 36px;
-  background-color: transparent;
+  background-color: var(--color-tint-rest);
   transition: 0.4s;
   padding-inline-end: 40px;
 }

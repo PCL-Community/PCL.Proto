@@ -59,6 +59,7 @@ const emit = defineEmits<{ click: [event: MouseEvent | KeyboardEvent] }>()
   align-items: center;
   padding: 6px;
   border-radius: 4px;
+  background-color: var(--color-tint-rest);
   gap: 6px;
   /* CE MyListItem：移出 180 ms、指向 120 ms；按下缩放 108 ms，松开 144/540 ms。 */
   transition: background-color 180ms linear;
