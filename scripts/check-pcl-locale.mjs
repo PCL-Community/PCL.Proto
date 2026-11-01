@@ -33,7 +33,7 @@ const storage = new Map()
 const calls = new Map()
 const hooks = new Map()
 const originals = Object.fromEntries(
-  ['localStorage', 'document', '__pclLocaleGlob'].map((name) => [
+  ['localStorage', 'document', 'navigator', '__pclLocaleGlob'].map((name) => [
     name,
     Object.getOwnPropertyDescriptor(globalThis, name),
   ]),
@@ -48,6 +48,10 @@ try {
     },
   })
   globalThis.document = { documentElement: { lang: '' } }
+  Object.defineProperty(globalThis, 'navigator', {
+    configurable: true,
+    value: { language: 'en-AU' },
+  })
   // Supply Vite's import adapter while testing the real translation and switching code.
   globalThis.__pclLocaleGlob = (pattern) =>
     Object.fromEntries(
@@ -72,14 +76,42 @@ try {
     define: { 'import.meta.glob': 'globalThis.__pclLocaleGlob' },
     logLevel: 'silent',
   })
-  const { pclText, pclLocale, loadPclLocale, setPclLocale, initializePclLocale } = await import(
-    pathToFileURL(modulePath)
-  )
+  const {
+    pclText,
+    pclLocale,
+    pclLanguagePreference,
+    pclFormatPreference,
+    pclFormatLocale,
+    resolveSystemLanguage,
+    setPclFormatLocale,
+    loadPclLocale,
+    setPclLocale,
+    initializePclLocale,
+  } = await import(pathToFileURL(modulePath))
   storage.set('ce-language', 'EN-us')
   await initializePclLocale()
   assert.equal(pclLocale.value, 'en-US')
   assert.equal(storage.get('pcl-language'), 'en-US')
   assert.equal(document.documentElement.lang, 'en-US')
+  assert.equal(resolveSystemLanguage('en-AU'), 'en-US')
+  assert.equal(resolveSystemLanguage('zh-TW'), 'zh-TW')
+  assert.equal(resolveSystemLanguage('ko-KR'), 'zh-CN')
+  await setPclLocale('auto')
+  assert.equal(pclLocale.value, 'en-US')
+  assert.equal(pclLanguagePreference.value, 'auto')
+  assert.equal(storage.get('pcl-language'), 'auto')
+  setPclFormatLocale('ui-language')
+  assert.equal(pclFormatLocale.value, 'en-US')
+  await setPclLocale('en-US')
+  assert.equal(pclFormatLocale.value, 'en-US')
+  setPclFormatLocale('de-DE')
+  assert.equal(pclFormatLocale.value, 'de-DE')
+  await setPclLocale('zh-CN')
+  assert.equal(pclFormatLocale.value, 'de-DE')
+  setPclFormatLocale('auto')
+  assert.equal(pclFormatPreference.value, 'auto')
+  assert.equal(pclFormatLocale.value, Intl.DateTimeFormat().resolvedOptions().locale)
+  await setPclLocale('en-US')
   assert.equal(pclText('Proto.Empty.Tasks'), 'No tasks')
   assert.equal(pclText('{DynamicResource Main.Tab.Launch}'), pclText('Main.Tab.Launch'))
   assert.equal(pclText('{StaticResource Main.Tab.Launch}'), pclText('Main.Tab.Launch'))
@@ -89,9 +121,11 @@ try {
   assert.equal(pclText('A {0}', ['{1}']), 'A {1}')
   assert.equal(pclText('A {0}'), 'A {0}')
   assert.equal(pclText('PCL CE'), 'PCL.Proto')
+  assert.ok(pclText('Proto.Language.Banner.DescriptionLine1', ['PCL CE']).includes('PCL CE'))
   const reactiveText = computed(() => pclText('Proto.Empty.Tasks'))
   assert.equal(reactiveText.value, 'No tasks')
   await setPclLocale('zh-CN')
+  assert.ok(pclText('Proto.Language.Banner.DescriptionLine2', ['PCL CE']).includes('PCL CE'))
   assert.equal(reactiveText.value, '暂无任务')
   await setPclLocale('en-US')
   assert.equal(calls.get('../assets/languages/en-US.json'), 1)
@@ -171,6 +205,19 @@ try {
     console.warn = originalWarn
   }
   for (const locale of languages) await setPclLocale(locale)
+  storage.delete('pcl-language')
+  storage.delete('ce-language')
+  storage.set('pcl-format-locale', 'ui-language')
+  await initializePclLocale()
+  assert.equal(pclLanguagePreference.value, 'auto')
+  assert.equal(pclLocale.value, 'en-US')
+  assert.equal(pclFormatPreference.value, 'ui-language')
+  assert.equal(pclFormatLocale.value, 'en-US')
+  storage.set('pcl-language', 'zh-CN')
+  storage.set('pcl-format-locale', 'ja-JP')
+  await initializePclLocale()
+  assert.equal(pclLocale.value, 'zh-CN')
+  assert.equal(pclFormatLocale.value, 'ja-JP')
   console.log(
     `Locale checks passed (${languages.length} languages, ${Object.keys(zh).length} application messages).`,
   )

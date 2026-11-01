@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { pclLocale, pclText } from '@/api/pclLocale'
+import { pclFormatLocale, pclLocale, pclText } from '@/api/pclLocale'
 import { compSourceOf } from '@/api/compProjects'
 import { compLoaders, compTags, compVersions } from '@/api/compResources'
 import { quickDownload } from '@/api/compDownload'
@@ -35,9 +35,10 @@ const versionText = computed(() =>
   [compLoaders(props.data), compVersions(props.data.versions)].filter(Boolean).join(' '),
 )
 const downloadsText = computed(() =>
-  new Intl.NumberFormat(pclLocale.value, { notation: 'compact', maximumFractionDigits: 1 }).format(
-    props.data.downloads,
-  ),
+  new Intl.NumberFormat(pclFormatLocale.value, {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(props.data.downloads),
 )
 const dateText = computed(() => {
   const seconds = (new Date(props.data.date_modified).getTime() - Date.now()) / 1000
@@ -118,7 +119,9 @@ async function download() {
         <span class="inline-icon"
           ><PSvgIcon name="lucide/download" :size="12" /><span>{{ downloadsText }}</span></span
         >
-        <span class="inline-icon" :title="new Date(data.date_modified).toLocaleString(pclLocale)"
+        <span
+          class="inline-icon"
+          :title="new Date(data.date_modified).toLocaleString(pclFormatLocale)"
           ><PSvgIcon name="lucide/arrow-up-from-line" :size="12" /><span>{{ dateText }}</span></span
         >
         <span class="inline-icon"

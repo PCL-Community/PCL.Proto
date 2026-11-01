@@ -1,16 +1,37 @@
 <script setup lang="ts">
-import { usePageSettings } from '@/composables/usePageSettings'
-import PButton from '@/components/widget/PButton.vue'
+import { computed } from 'vue'
+import PIconTextButton from '@/components/widget/PIconTextButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PComboBox from '@/components/widget/PComboBox.vue'
 import PSvgIcon from '@/components/widget/PSvgIcon.vue'
-import { pclLocale as locale, pclLanguages, pclText, setPclLocale } from '@/api/pclLocale'
+import {
+  pclLanguagePreference,
+  pclFormatPreference,
+  pclLanguages,
+  pclText,
+  resolveSystemLanguage,
+  setPclLocale,
+  setPclFormatLocale,
+} from '@/api/pclLocale'
 import sideTip from '@/composables/sideTip'
 import { openExternal } from '@/util/externalLink'
-const languageOptions = pclLanguages.map((key) => ({
-  key,
-  text: new Intl.DisplayNames([key], { type: 'language' }).of(key) || key,
-}))
+const languageName = (key: string) =>
+  new Intl.DisplayNames([key], { type: 'language' }).of(key) || key
+const languageOptions = computed(() => [
+  {
+    key: 'auto',
+    text: pclText('Setup.Language.UiLanguage.Auto', [languageName(resolveSystemLanguage())]),
+  },
+  ...pclLanguages.map((key) => ({
+    key,
+    text: languageName(key),
+  })),
+])
+const formatOptions = computed(() => [
+  { key: 'auto', text: pclText('Setup.Language.FormatCulture.Auto') },
+  { key: 'ui-language', text: pclText('Setup.Language.FormatCulture.FollowLanguage') },
+  ...pclLanguages.map((key) => ({ key, text: languageName(key) })),
+])
 async function setLanguage(value?: string) {
   if (!value) return
   try {
@@ -19,16 +40,10 @@ async function setLanguage(value?: string) {
     sideTip.show(pclText('Proto.Language.Failed', [String(error)]), 'warn')
   }
 }
-const { values } = usePageSettings('PageSetupLauncherLanguage', {
-  ComboUiLanguage: '0',
-  ComboUiFormatCulture: '0',
-})
-
 const text = pclText
 </script>
 <template>
   <div class="pcl-page">
-    <p class="settings-unavailable">{{ text('Proto.Settings.Unavailable') }}</p>
     <div>
       <div data-control="PanBack">
         <div
@@ -59,7 +74,8 @@ const text = pclText
                   data-control="ComboUiLanguage"
                   style="grid-row: 1 / span 1; grid-column: 2 / span 2"
                   :options="languageOptions"
-                  :model-value="locale"
+                  :model-value="pclLanguagePreference"
+                  :aria-label="text('Setup.Language.UiLanguage')"
                   @update:model-value="setLanguage"
                 />
                 <span
@@ -74,14 +90,12 @@ const text = pclText
                   >{{ text('Setup.Language.FormatCulture') }}</span
                 >
                 <PComboBox
-                  disabled
                   data-control="ComboUiFormatCulture"
                   style="grid-row: 3 / span 1; grid-column: 2 / span 2"
-                  :options="[
-                    { key: '0', text: text('Setup.Language.FormatCulture.Auto') },
-                    { key: '1', text: text('Setup.Language.FormatCulture.FollowLanguage') },
-                  ]"
-                  v-model="values.ComboUiFormatCulture"
+                  :options="formatOptions"
+                  :model-value="pclFormatPreference"
+                  :aria-label="text('Setup.Language.FormatCulture')"
+                  @update:model-value="(value) => value && setPclFormatLocale(value)"
                 />
               </div>
               <div
@@ -95,23 +109,9 @@ const text = pclText
                 "
               >
                 <div style="display: grid">
+                  <PSvgIcon class="internationalization-icon" name="lucide/earth" />
                   <div
-                    style="
-                      width: 205px;
-                      height: 145px;
-                      margin: -43px -25px 0px 0px;
-                      grid-row: 1 / span 1;
-                      grid-column: 1 / span 1;
-                      justify-self: end;
-                      align-self: start;
-                    "
-                  >
-                    <PSvgIcon
-                      style="width: 215px; height: 215px; opacity: 0.62"
-                      name="lucide/earth"
-                    />
-                  </div>
-                  <div
+                    class="internationalization-content"
                     style="
                       grid-row: 1 / span 1;
                       grid-column: 1 / span 1;
@@ -129,19 +129,20 @@ const text = pclText
                         flex-direction: column;
                       "
                     >
-                      <span style="font-size: 22px; font-weight: bold" class="pcl-text">{{
+                      <span style="font-size: 22px; font-weight: 700" class="pcl-text">{{
                         text('Setup.Language.Banner.TitlePrefix')
                       }}</span>
                       <span
-                        style="margin: 2px 0px 2px 0px; font-size: 42px; font-weight: bold"
+                        style="margin: 2px 0px 2px 0px; font-size: 42px; font-weight: 700"
                         class="pcl-text"
                         >{{ 'PCL.Proto' }}</span
                       >
-                      <span style="font-size: 22px; font-weight: bold" class="pcl-text">{{
+                      <span style="font-size: 22px; font-weight: 700" class="pcl-text">{{
                         text('Setup.Language.Banner.TitleSuffix')
                       }}</span>
                     </div>
                     <div
+                      class="internationalization-description"
                       style="
                         margin: 20px 0px 0px 0px;
                         grid-row: 2 / span 1;
@@ -151,13 +152,13 @@ const text = pclText
                       "
                     >
                       <span style="font-size: 14px" class="pcl-text">{{
-                        text('Setup.Language.Banner.DescriptionLine1')
+                        text('Proto.Language.Banner.DescriptionLine1', ['PCL CE'])
                       }}</span>
                       <span style="margin: 5px 0px 0px 0px; font-size: 14px" class="pcl-text">{{
-                        text('Setup.Language.Banner.DescriptionLine2')
+                        text('Proto.Language.Banner.DescriptionLine2', ['PCL CE'])
                       }}</span>
                       <span style="margin: 5px 0px 0px 0px; font-size: 14px" class="pcl-text">{{
-                        text('Setup.Language.Banner.DescriptionLine3')
+                        text('Proto.Language.Banner.DescriptionLine3', ['PCL CE'])
                       }}</span>
                     </div>
                   </div>
@@ -169,26 +170,23 @@ const text = pclText
                   display: flex;
                   flex-direction: row;
                   align-items: center;
+                  justify-content: flex-end;
+                  flex-wrap: wrap;
+                  gap: 7px;
                 "
               >
-                <PButton
+                <PIconTextButton
                   data-control="BtnTranslateWebsite"
-                  style="margin: 0px 7px 0px 0px"
+                  icon="lucide/globe"
+                  class="translation-link"
                   @click="() => openExternal('https://translate.pclc.cc/projects/pcl-ce/')"
-                  inline
-                  type="tint"
-                  ><PSvgIcon name="lucide/globe" :size="18" />{{
-                    text('Setup.Language.Banner.TranslateWebsite')
-                  }}</PButton
+                  >{{ text('Setup.Language.Banner.TranslateWebsite') }}</PIconTextButton
                 >
-                <PButton
+                <PIconTextButton
                   data-control="BtnSubmitPullRequest"
-                  style="margin: 0px 7px 0px 0px"
+                  icon="lucide/git-pull-request-arrow"
                   @click="() => openExternal('https://github.com/PCL-Community/PCL.Proto/pulls')"
-                  inline
-                  ><PSvgIcon name="lucide/git-pull-request-arrow" :size="18" />{{
-                    text('Setup.Language.Banner.SubmitPullRequest')
-                  }}</PButton
+                  >{{ text('Setup.Language.Banner.SubmitPullRequest') }}</PIconTextButton
                 >
               </div>
             </div>
@@ -200,8 +198,29 @@ const text = pclText
 </template>
 
 <style scoped>
+.translation-link {
+  color: var(--color-tint);
+}
 .internationalization-banner {
-  background: var(--color-background-soft);
-  box-shadow: var(--box-shadow);
+  position: relative;
+  overflow: hidden;
+  background: var(--color-tint-lighter);
+}
+.internationalization-icon {
+  position: absolute;
+  top: -74px;
+  right: -15px;
+  width: 215px;
+  height: 215px;
+  color: var(--ce-color-5, var(--color-tint-light));
+  opacity: 0.62;
+  pointer-events: none;
+  stroke-width: 2;
+}
+.internationalization-content {
+  position: relative;
+}
+.internationalization-description {
+  line-height: 23px;
 }
 </style>

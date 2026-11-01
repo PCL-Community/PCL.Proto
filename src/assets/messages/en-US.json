@@ -213,5 +213,8 @@
   "Proto.Settings.RendererWindowsOnly": "Renderer switching is only available on Windows.",
   "Proto.Settings.ModUpdateUnavailable": "PCL.Proto does not implement mod update checks yet.",
   "Proto.Settings.ProxyCredentialsHint": "PCL.Proto does not store proxy credentials separately; include them in the address, e.g. http://user:pass@127.0.0.1:7890.",
-  "Proto.Settings.ProxySaved": "Proxy settings saved"
+  "Proto.Settings.ProxySaved": "Proxy settings saved",
+  "Proto.Language.Banner.DescriptionLine1": "PCL.Proto reuses interface translations from {0}. Thanks to the community contributors who make multilingual support possible.",
+  "Proto.Language.Banner.DescriptionLine2": "Contribute translations on the {0} translation platform, or submit a pull request to the PCL.Proto repository to help improve this project.",
+  "Proto.Language.Banner.DescriptionLine3": "Thank you to everyone who contributes translations, reviews, and improvements."
 }

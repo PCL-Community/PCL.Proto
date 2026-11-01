@@ -18,7 +18,7 @@ import PLoading from '@/components/widget/PLoading.vue'
 import PHint from '@/components/widget/PHint.vue'
 import { useRoute } from 'vue-router'
 import { computed, onScopeDispose, ref, shallowRef, watch } from 'vue'
-import { pclText } from '@/api/pclLocale'
+import { pclFormatLocale, pclText } from '@/api/pclLocale'
 import sideTip from '@/composables/sideTip'
 import { useCompFavorites } from '@/stores/compFavorites'
 import { openExternal } from '@/util/externalLink'
@@ -285,7 +285,7 @@ watch(
           >
             <PListItem
               :title="version.name"
-              :subtitle="`${file.filename} · ${version.loaders.join(', ')} · ${new Date(version.date_published).toLocaleString()}`"
+              :subtitle="`${file.filename} · ${version.loaders.join(', ')} · ${new Date(version.date_published).toLocaleString(pclFormatLocale)}`"
               clickable
               @click="() => download(file, version)"
             />

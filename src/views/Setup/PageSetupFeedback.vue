@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { pclImagePath } from '@/api/pclAssets'
-import { pclText } from '@/api/pclLocale'
+import { pclFormatLocale, pclText } from '@/api/pclLocale'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
@@ -82,7 +82,7 @@ async function load() {
         id: issue.number,
         title: issue.title,
         author: String(issue.user?.login || ''),
-        date: new Date(issue.created_at).toLocaleDateString(),
+        date: issue.created_at,
         url: issue.html_url,
         status:
           statuses.find((status) => status.label.test(labels))?.key ||
@@ -136,7 +136,7 @@ const image = (value: string) => pclImagePath(value, import.meta.env.BASE_URL)
             v-for="issue in group.entries"
             :key="issue.id"
             :title="issue.title"
-            :subtitle="`${issue.author} | ${issue.date}`"
+            :subtitle="`${issue.author} | ${new Date(issue.date).toLocaleDateString(pclFormatLocale)}`"
             :icon="image(`Blocks/${group.icon}.png`)"
             clickable
             @click="() => openExternal(issue.url)"

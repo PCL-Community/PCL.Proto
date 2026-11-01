@@ -1,4 +1,4 @@
-import { readonly, ref, shallowReactive } from 'vue'
+import { computed, readonly, ref, shallowReactive } from 'vue'
 import zh from '../assets/languages/zh-CN.json'
 import appZh from '../assets/messages/zh-CN.json'
 import languageNames from '../assets/language-names.json'
@@ -15,12 +15,53 @@ export const pclStrings: Record<string, string> = { ...zh, ...appZh }
 export const pclLanguages = languageNames
 const currentLocale = ref('zh-CN')
 export const pclLocale = readonly(currentLocale)
+const languagePreference = ref('auto')
+export const pclLanguagePreference = readonly(languagePreference)
+const formatPreference = ref('auto')
+export const pclFormatPreference = readonly(formatPreference)
+const systemFormatLocale = ref(Intl.DateTimeFormat().resolvedOptions().locale)
+export const pclFormatLocale = computed(() =>
+  formatPreference.value === 'auto'
+    ? systemFormatLocale.value
+    : formatPreference.value === 'ui-language'
+      ? currentLocale.value
+      : formatPreference.value,
+)
 const loaded = shallowReactive<Record<string, Record<string, string>>>({ 'zh-CN': pclStrings })
 const pending = new Map<string, Promise<void>>()
 let languageChange = 0
 
 function normalizeLocale(value: string): string {
   return pclLanguages.find((locale) => locale.toLowerCase() === value.toLowerCase()) || 'zh-CN'
+}
+
+export function resolveSystemLanguage(
+  language = typeof navigator === 'undefined' ? '' : navigator.language,
+): string {
+  const supported = ['zh-CN', 'zh-TW', 'en-US', 'en-GB', 'ja-JP', 'fr-FR', 'es-ES']
+  const code = language.replaceAll('_', '-').toLowerCase()
+  return (
+    supported.find((locale) => locale.toLowerCase() === code) ||
+    supported.find((locale) => locale.toLowerCase().startsWith(`${code.split('-')[0]}-`)) ||
+    'zh-CN'
+  )
+}
+
+export function setPclFormatLocale(value: string) {
+  let normalized = value === 'ui-language' ? value : 'auto'
+  if (value !== 'auto' && value !== 'ui-language') {
+    try {
+      normalized = Intl.getCanonicalLocales(value)[0] || 'auto'
+    } catch {
+      /* use system format */
+    }
+  }
+  formatPreference.value = normalized
+  try {
+    localStorage.setItem('pcl-format-locale', normalized)
+  } catch (error) {
+    console.warn('Unable to save format preference', error)
+  }
 }
 
 export async function loadPclLocale(locale: string): Promise<void> {
@@ -41,10 +82,12 @@ export async function loadPclLocale(locale: string): Promise<void> {
 
 export async function setPclLocale(locale: string): Promise<void> {
   const change = ++languageChange
-  await loadPclLocale(locale)
+  const resolved = locale === 'auto' ? resolveSystemLanguage() : locale
+  await loadPclLocale(resolved)
   if (change !== languageChange) return
-  currentLocale.value = locale
-  if (typeof document !== 'undefined') document.documentElement.lang = locale
+  currentLocale.value = resolved
+  languagePreference.value = locale
+  if (typeof document !== 'undefined') document.documentElement.lang = resolved
   try {
     localStorage.setItem('pcl-language', locale)
   } catch (error) {
@@ -53,11 +96,12 @@ export async function setPclLocale(locale: string): Promise<void> {
 }
 
 export async function initializePclLocale(): Promise<void> {
-  let locale = 'zh-CN'
+  let locale = 'auto'
   try {
-    locale = normalizeLocale(
-      localStorage.getItem('pcl-language') || localStorage.getItem('ce-language') || locale,
-    )
+    const stored =
+      localStorage.getItem('pcl-language') || localStorage.getItem('ce-language') || 'auto'
+    locale = stored.toLowerCase() === 'auto' ? 'auto' : normalizeLocale(stored)
+    setPclFormatLocale(localStorage.getItem('pcl-format-locale') || 'auto')
   } catch (error) {
     console.warn('Unable to read language preference', error)
   }
@@ -65,8 +109,20 @@ export async function initializePclLocale(): Promise<void> {
     await setPclLocale(locale)
   } catch (error) {
     console.warn('Unable to load language; using zh-CN', error)
-    await setPclLocale('zh-CN')
+    currentLocale.value = 'zh-CN'
+    languagePreference.value = locale
+    if (typeof document !== 'undefined') document.documentElement.lang = 'zh-CN'
   }
+}
+
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('languagechange', () => {
+    systemFormatLocale.value = Intl.DateTimeFormat().resolvedOptions().locale
+    if (languagePreference.value === 'auto')
+      void setPclLocale('auto').catch((error) =>
+        console.warn('Unable to update system language', error),
+      )
+  })
 }
 
 export function pclText(value = '', params: readonly unknown[] = []): string {

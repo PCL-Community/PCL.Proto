@@ -83,13 +83,13 @@ watchEffect(() => {
 
 <style lang="css" scoped>
 .card-loading {
-  width: min(180px, 100%);
+  width: min(160px, 100%);
   margin: auto;
 }
 
 .card-loading .loading-container {
-  min-height: 140px;
-  padding: 20px 18px;
+  min-height: 130px;
+  padding: 12px 14px;
 }
 
 .loading-text {

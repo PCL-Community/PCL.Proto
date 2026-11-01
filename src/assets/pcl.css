@@ -125,7 +125,7 @@
 }
 .pcl-icon-button:not(:disabled):hover,
 .pcl-icon-button:not(:disabled):focus-visible {
-  color: var(--color-tint-dark, var(--color-tint));
+  color: var(--ce-color-2, var(--color-tint));
   transition-duration: 120ms, 250ms;
 }
 .pcl-icon-button:not(:disabled):active {

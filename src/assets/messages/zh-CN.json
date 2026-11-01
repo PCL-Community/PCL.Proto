@@ -213,5 +213,8 @@
   "Proto.Settings.RendererWindowsOnly": "渲染器切换仅在 Windows 上可用。",
   "Proto.Settings.ModUpdateUnavailable": "PCL.Proto 尚未提供模组更新检查，此项暂时不可用。",
   "Proto.Settings.ProxyCredentialsHint": "PCL.Proto 暂不支持单独填写代理凭据，请在代理地址中包含用户名与密码，如 http://user:pass@127.0.0.1:7890。",
-  "Proto.Settings.ProxySaved": "代理设置已保存"
+  "Proto.Settings.ProxySaved": "代理设置已保存",
+  "Proto.Language.Banner.DescriptionLine1": "PCL.Proto 复用了 {0} 的界面翻译，感谢社区贡献者提供的多语言支持。",
+  "Proto.Language.Banner.DescriptionLine2": "可前往 {0} 翻译平台参与翻译，或向 PCL.Proto 仓库提交 Pull Request，帮助改进本项目。",
+  "Proto.Language.Banner.DescriptionLine3": "感谢每一位参与翻译、校对与改进的贡献者。"
 }

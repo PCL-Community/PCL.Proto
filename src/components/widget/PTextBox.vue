@@ -75,8 +75,8 @@ textarea {
   resize: vertical;
 }
 
-input:hover,
-textarea:hover {
+input:not(:disabled):hover,
+textarea:not(:disabled):hover {
   background-color: var(--color-tint-lighter);
 }
 
@@ -88,7 +88,19 @@ textarea:focus {
 
 input:disabled,
 textarea:disabled {
+  color: var(--ce-gray-4);
+  -webkit-text-fill-color: var(--ce-gray-4);
+  border-color: var(--ce-gray-5);
+  background-color: var(--ce-gray-6);
+  opacity: 1;
   transition-duration: 200ms;
+}
+
+input:disabled::placeholder,
+textarea:disabled::placeholder {
+  color: var(--ce-gray-4);
+  -webkit-text-fill-color: var(--ce-gray-4);
+  opacity: 1;
 }
 
 .pcl-page .input-wrapper {

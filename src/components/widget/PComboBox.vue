@@ -70,6 +70,10 @@ select:focus + i {
   transform: translateY(-50%) rotate(180deg);
 }
 
+select:disabled + i {
+  color: var(--ce-gray-5);
+}
+
 select {
   background-color: color-mix(in srgb, var(--color-background) 33.3%, transparent);
   font-size: 12px;
@@ -92,8 +96,11 @@ select {
     transition-duration: 10ms;
   }
   &:disabled {
-    border-color: var(--color-text-grey);
-    background-color: var(--color-background);
+    color: var(--ce-gray-4);
+    -webkit-text-fill-color: var(--ce-gray-4);
+    border-color: var(--ce-gray-5);
+    background-color: var(--ce-gray-6);
+    opacity: 1;
     transition-duration: 200ms;
   }
 

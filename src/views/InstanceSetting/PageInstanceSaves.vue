@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { pclText } from '@/api/pclLocale'
+import { pclFormatLocale, pclText } from '@/api/pclLocale'
 import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import { computed, ref } from 'vue'
@@ -39,7 +39,7 @@ const resources = useInstanceResources({
 })
 
 function formatDate(seconds: number) {
-  return seconds ? new Date(seconds * 1000).toLocaleString() : ''
+  return seconds ? new Date(seconds * 1000).toLocaleString(pclFormatLocale.value) : ''
 }
 
 const saves = computed(() =>

@@ -13,7 +13,7 @@ import PHint from '@/components/widget/PHint.vue'
 import PLoading from '@/components/widget/PLoading.vue'
 import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import { getMinecraftVersions, type IVersionShow } from '@/api/gameVersions'
-import { pclLocale, pclText } from '@/api/pclLocale'
+import { pclFormatLocale, pclText } from '@/api/pclLocale'
 import { useTaskManager } from '@/stores/task'
 import sideTip from '@/composables/sideTip'
 import { useSelectedInstance } from '@/stores/gameLaunch'
@@ -68,7 +68,7 @@ function loaderSubtitle(version: McPluginReport) {
   if (version.release_time) {
     const date = new Date(version.release_time)
     if (!Number.isNaN(date.getTime()))
-      return text('Download.Version.ReleaseDate', [date.toLocaleString(pclLocale.value)])
+      return text('Download.Version.ReleaseDate', [date.toLocaleString(pclFormatLocale.value)])
   }
   return version.stable == null
     ? undefined
@@ -255,7 +255,11 @@ watch(versionId, (id) => {
               :key="version.id"
               :title="version.id"
               :icon="version.type === 'release' ? showIconPath.grass : showIconPath.command"
-              :subtitle="text(`Download.Version.Latest.${version.label}`, [version.releaseTime])"
+              :subtitle="
+                text(`Download.Version.Latest.${version.label}`, [
+                  new Date(version.timestamp).toLocaleString(pclFormatLocale),
+                ])
+              "
               clickable
               @click="() => choose(version.id, version.type)"
               ><template #icon-actions
@@ -279,7 +283,7 @@ watch(versionId, (id) => {
                   :key="version.id"
                   :title="version.id"
                   :icon="category.icon"
-                  :subtitle="version.releaseTime"
+                  :subtitle="new Date(version.timestamp).toLocaleString(pclFormatLocale)"
                   clickable
                   @click="() => choose(version.id, category.key)"
                   ><template #icon-actions

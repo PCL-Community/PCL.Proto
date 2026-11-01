@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
 import { showUnavailable } from '@/util/showUnavailable'
-import { pclText } from '@/api/pclLocale'
+import { pclFormatLocale, pclText } from '@/api/pclLocale'
 import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import { computed, ref, watch } from 'vue'
@@ -62,7 +62,7 @@ function formatSize(size: number) {
 
 function formatDate(seconds: number) {
   if (!seconds) return ''
-  return new Date(seconds * 1000).toLocaleDateString()
+  return new Date(seconds * 1000).toLocaleDateString(pclFormatLocale.value)
 }
 
 const items = computed(() =>
