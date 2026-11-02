@@ -44,6 +44,12 @@ impl Drop for TempFile {
     }
 }
 
+fn publish(temp: &Path, destination: &Path) -> anyhow::Result<()> {
+    std::fs::hard_link(temp, destination)
+        .context("Cannot publish download (the destination may already exist)")?;
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn save_loader_file(
     loader: String,
@@ -55,9 +61,14 @@ pub async fn save_loader_file(
         let (url, _) = urls(&loader, &game, &version)?;
         let parent = destination
             .parent()
-            .filter(|p| p.is_dir())
+            .filter(|p| p.is_absolute() && p.is_dir())
             .context("Invalid destination")?;
-        ensure!(destination.file_name().is_some(), "Invalid destination");
+        let name = destination
+            .file_name()
+            .and_then(|name| name.to_str())
+            .context("Invalid destination")?;
+        crate::io::files::validate_file_name(name)?;
+        ensure!(!destination.try_exists()?, "Destination already exists");
         let client = crate::io::net::proxy::builder().build()?;
         let sha1 = client
             .get(format!("{url}.sha1"))
@@ -88,7 +99,7 @@ pub async fn save_loader_file(
                 Path::new(&temp.0),
             )
             .await?;
-        std::fs::rename(&temp.0, &destination).context("Cannot save downloaded file")?;
+        publish(&temp.0, &destination)?;
         Ok::<(), anyhow::Error>(())
     }
     .await
@@ -126,5 +137,19 @@ mod tests {
         );
         assert!(urls("forge", "../bad", "47").is_err());
         assert!(urls("unknown", "1.20.1", "47").is_err());
+    }
+
+    #[test]
+    fn publication_never_overwrites_an_existing_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let temp = dir.path().join("download.tmp");
+        let destination = dir.path().join("installer.jar");
+        std::fs::write(&temp, b"download").unwrap();
+        std::fs::write(&destination, b"existing").unwrap();
+        assert!(publish(&temp, &destination).is_err());
+        assert_eq!(std::fs::read(&destination).unwrap(), b"existing");
+        std::fs::remove_file(&destination).unwrap();
+        publish(&temp, &destination).unwrap();
+        assert_eq!(std::fs::read(&destination).unwrap(), b"download");
     }
 }
