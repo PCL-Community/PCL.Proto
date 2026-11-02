@@ -138,9 +138,10 @@ impl JavaVersion {
             .map(str::parse)
             .collect::<Result<_, _>>()
             .ok()?;
-        if parts.is_empty() || parts.len() > 4 {
+        if parts.is_empty() {
             return None;
         }
+        // Vendor builds can report more than four segments (`25.0.5.0.3`); drop the tail.
         let n = |i| parts.get(i).copied().unwrap_or(0);
         if n(0) == 1 {
             (n(1) > 0).then_some(Self(n(1), n(2), n(3), 0))

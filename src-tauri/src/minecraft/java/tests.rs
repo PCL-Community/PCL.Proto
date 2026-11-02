@@ -60,6 +60,7 @@ fn versions_normalize_legacy_updates_and_ea_builds() {
         ("25-ea+12", JavaVersion::major(25)),
         ("21.0.7+6-LTS", JavaVersion(21, 0, 7, 0)),
         ("17.0.1.12", JavaVersion(17, 0, 1, 12)),
+        ("25.0.5.0.3", JavaVersion(25, 0, 5, 0)),
     ] {
         assert_eq!(JavaVersion::parse(input), Some(expected), "{input}");
     }
