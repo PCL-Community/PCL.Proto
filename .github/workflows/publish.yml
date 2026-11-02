@@ -6,8 +6,10 @@ on: workflow_dispatch
 # This workflow uses different actions to create and publish the release.
 # `tauri-action` will only build and upload the app bundles to the specified release.
 
+# 两个远程共用同一份工作流文件：正式版只在社区仓库发布。
 jobs:
   create-release:
+    if: github.repository == 'PCL-Community/PCL.Proto'
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -56,6 +58,7 @@ jobs:
             return data.id
 
   build-tauri:
+    if: github.repository == 'PCL-Community/PCL.Proto'
     needs: create-release
     permissions:
       contents: write
@@ -138,6 +141,7 @@ jobs:
           args: ${{ matrix.args }}
 
   publish-release:
+    if: github.repository == 'PCL-Community/PCL.Proto'
     permissions:
       contents: write
     runs-on: ubuntu-latest
