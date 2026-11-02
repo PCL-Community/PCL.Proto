@@ -398,6 +398,15 @@ async fn custom_transfer(
     destination: &Path,
     on_progress: impl Fn(u64, Option<u64>, f64),
 ) -> anyhow::Result<()> {
+    custom_transfer_checked(url, destination, 0, on_progress).await
+}
+
+async fn custom_transfer_checked(
+    url: &str,
+    destination: &Path,
+    min_size: u64,
+    on_progress: impl Fn(u64, Option<u64>, f64),
+) -> anyhow::Result<()> {
     use anyhow::{Context, ensure};
     crate::utils::external::validate(url).map_err(anyhow::Error::msg)?;
     let parent = destination
@@ -421,6 +430,10 @@ async fn custom_transfer(
         }
         match custom_attempt(&downloader, url, &partial.0, &on_progress).await {
             Ok(()) => {
+                ensure!(
+                    tokio::fs::metadata(&partial.0).await?.len() >= min_size,
+                    "Downloaded file is too small"
+                );
                 std::fs::hard_link(&partial.0, destination)
                     .context("Cannot publish download (the destination may already exist)")?;
                 return Ok(());
@@ -434,6 +447,33 @@ async fn custom_transfer(
         }
     }
     Err(last_error.context("Download failed")?.into())
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn download_fabric_installer(
+    family: crate::io::net::http::api_client::FabricFamily,
+    version: String,
+    destination: PathBuf,
+    task_id: i32,
+    on_event: tauri::ipc::Channel<TaskItemReport>,
+) -> Result<(), String> {
+    let url = family
+        .installer_url(&version)
+        .map_err(|error| error.to_string())?;
+    custom_transfer_checked(&url, &destination, 64 * 1024, |bytes, size, speed| {
+        let _ = on_event.send(TaskItemReport {
+            task_id,
+            item_id: 0,
+            files_remaining: 1,
+            progress: size
+                .filter(|size| *size > 0)
+                .map_or(0.0, |size| (bytes as f64 / size as f64).min(1.0)),
+            status: TaskStatus::Running,
+            speed: Some(speed),
+        });
+    })
+    .await
+    .map_err(|error| format!("{error:#}"))
 }
 
 async fn custom_attempt(

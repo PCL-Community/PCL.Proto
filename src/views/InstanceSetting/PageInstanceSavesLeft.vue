@@ -2,20 +2,40 @@
 import SideNavLayout from '@/layout/SideNavLayout.vue'
 import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import { computed, h } from 'vue'
+import { useRoute } from 'vue-router'
 import { pclText } from '@/api/pclLocale'
 import sideTip from '@/composables/sideTip'
+import { listInstanceResources, openInstancePath } from '@/api/instanceResources'
+import { useSelectedInstance } from '@/stores/gameLaunch'
+import { isTauri } from '@tauri-apps/api/core'
 const text = pclText
+const route = useRoute()
+const instance = useSelectedInstance()
+const save = computed(() => (typeof route.query.id === 'string' ? route.query.id : ''))
+const link = (path: string) => `${path}?id=${encodeURIComponent(save.value)}`
+async function openFolder() {
+  const directory = instance.instance_info?.directory
+  if (!isTauri() || !directory || !save.value) return
+  try {
+    const path = await listInstanceResources(directory, 'save')
+    const entry = path.find((item) => item.name === save.value)
+    if (!entry) throw new Error(text('Instance.Saves.Info.Error.LoadFailed'))
+    await openInstancePath(directory, entry.path)
+  } catch (error) {
+    sideTip.show(`${text('Instance.Saves.Error.OperationFailed')} ${error}`, 'warn')
+  }
+}
 const groups = computed(() => [
   {
     content: [
       {
         text: text('Instance.Saves.Left.Info'),
-        linkto: '/instance_save/info',
+        linkto: link('/instance_save/info'),
         icon: () => h(PSvgIcon, { name: 'lucide/info' }),
       },
       {
         text: text('Instance.Saves.Left.Datapack'),
-        linkto: '/instance_save/datapack',
+        linkto: link('/instance_save/datapack'),
         icon: () => h(PSvgIcon, { name: 'lucide/file-archive' }),
       },
     ],
@@ -26,7 +46,7 @@ const groups = computed(() => [
       {
         text: text('Common.Action.OpenFolder'),
         icon: () => h(PSvgIcon, { name: 'lucide/folder-open' }),
-        clickCallback: () => sideTip.show(pclText('Proto.NotImplemented.Action')),
+        clickCallback: () => void openFolder(),
       },
     ],
   },

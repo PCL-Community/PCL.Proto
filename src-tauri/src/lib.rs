@@ -24,11 +24,16 @@ async fn system_fonts() -> Result<Vec<String>, String> {
     tauri::async_runtime::spawn_blocking(|| {
         let mut db = fontdb::Database::new();
         db.load_system_fonts();
-        let mut names: Vec<_> = db.faces().flat_map(|face| face.families.iter().map(|(name, _)| name.clone())).collect();
+        let mut names: Vec<_> = db
+            .faces()
+            .flat_map(|face| face.families.iter().map(|(name, _)| name.clone()))
+            .collect();
         names.sort();
         names.dedup();
         names
-    }).await.map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| error.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -116,6 +121,10 @@ pub fn run() {
             commands::instances::set_instance_description,
             commands::instances::rename_instance,
             commands::instance_resources::list_instance_resources,
+            commands::instance_resources::get_save_info,
+            commands::instance_resources::update_save_info,
+            commands::servers::list_servers,
+            commands::servers::change_server,
             commands::instance_resources::open_instance_resource_folder,
             commands::instance_resources::open_instance_path,
             commands::instance_resources::set_instance_resources_enabled,
@@ -152,9 +161,11 @@ pub fn run() {
             minecraft::export::loader::save_loader_file,
             minecraft::export::loader::open_loader_changelog,
             io::download::download_custom_file,
+            io::download::download_fabric_installer,
             io::download::open_custom_download_folder,
             minecraft::installer::download_minecraft_version,
             commands::versions::get_plugin_versions,
+            commands::versions::get_fabric_installers,
             commands::instances::get_active_instance,
             link::mcping::server_query,
             minecraft::profile::skin::fetch_username_uuid,

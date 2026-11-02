@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { searchProjects } from '@/api/compProjects'
+import { datapackTargetFromQuery } from '@/api/compDownload'
 import curseforgeApi from '@/api/curseforgeApi'
 import type { ISearchHit, CompSourceFilter } from '@/types/comp'
 import PCompItem from '@/components/widget/PCompItem.vue'
@@ -24,6 +25,9 @@ const props = defineProps<{
 const text = pclText
 const route = useRoute()
 const instance = useSelectedInstance()
+const datapackTarget = computed(() =>
+  props.projectType === 'datapack' ? datapackTargetFromQuery(route.query) : undefined,
+)
 const searchHint = computed(() =>
   text('Proto.Resource.Search', [
     text(
@@ -255,6 +259,7 @@ watch(
               :resource-type="projectType"
               :game-version="values.version.trim()"
               :loader="projectType === 'datapack' ? 'datapack' : values.loader"
+              :datapack-target="datapackTarget"
               clickable
             />
           </PVirtualList>

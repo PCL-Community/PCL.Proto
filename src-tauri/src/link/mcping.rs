@@ -1,207 +1,580 @@
-//! from PCL.Core/Link/McPing.cs and PCL.Core/Utils/VarIntHelper.cs
+//! Minecraft server status queries.
 
 pub mod model;
 
-use hickory_resolver::{TokioResolver, proto::rr::RData};
+use anyhow::{bail, ensure};
+use hickory_resolver::{
+    TokioResolver,
+    proto::rr::{RData, rdata::SRV},
+};
 use model::McPingResult;
-use std::net::{IpAddr, SocketAddr};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use std::{
+    io::Cursor,
+    net::{IpAddr, SocketAddr},
+    time::{Duration, Instant},
+};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
 
-struct McPingClient {
-    endpoint: SocketAddr,
-    timeout: std::time::Duration,
-    host: String,
+const DEFAULT_PORT: u16 = 25565;
+const TIMEOUT: Duration = Duration::from_secs(10);
+const CONNECT_TIMEOUT: Duration = Duration::from_millis(2500);
+const MAX_PACKET: usize = 1024 * 1024;
+
+pub(crate) fn parse_address(input: &str) -> anyhow::Result<(String, Option<u16>)> {
+    let input = input.trim();
+    let input = input
+        .split_once("://")
+        .map_or(input, |(_, address)| address)
+        .trim_end_matches('/');
+    if let Ok(addr) = input.parse::<SocketAddr>() {
+        ensure!(addr.port() != 0, "Invalid port");
+        return Ok((addr.ip().to_string(), Some(addr.port())));
+    }
+    let input = input
+        .strip_prefix('[')
+        .and_then(|s| s.strip_suffix(']'))
+        .unwrap_or(input);
+    if input.parse::<IpAddr>().is_ok() {
+        return Ok((input.to_owned(), None));
+    }
+    let (host, port) = match input.split_once(':') {
+        Some((host, port)) => (host, Some(port.parse::<u16>()?)),
+        None => (input, None),
+    };
+    ensure!(
+        !host.is_empty() && host.len() <= 255 && !host.contains(['/', '[', ']']) && port != Some(0),
+        "Invalid server address"
+    );
+    Ok((host.to_owned(), port))
 }
 
-impl McPingClient {
-    const DEFAULT_PORT: u16 = 25565;
-    const DEFAULT_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(10000);
-
-    /// parse a str to McPingClient endpoint
-    pub async fn from_str(addr_str: &str) -> anyhow::Result<Self> {
-        let socket_addr = if let Ok(addr) = addr_str.parse::<SocketAddr>() {
-            addr
-        } else if let Ok(ip) = addr_str.parse::<IpAddr>() {
-            SocketAddr::new(ip, Self::DEFAULT_PORT)
+fn order_srv(mut records: Vec<SRV>, mut draw: impl FnMut(usize) -> usize) -> Vec<SRV> {
+    records.retain(|srv| srv.port != 0 && !srv.target.is_root());
+    records.sort_by_key(|srv| srv.priority);
+    let mut ordered = Vec::with_capacity(records.len());
+    while !records.is_empty() {
+        let group_len = records.partition_point(|srv| srv.priority == records[0].priority);
+        let total: usize = records[..group_len]
+            .iter()
+            .map(|srv| usize::from(srv.weight))
+            .sum();
+        let index = if total == 0 {
+            draw(group_len)
         } else {
-            let add_str_split = addr_str.split_once(':');
-            let (host, port) = match add_str_split {
-                Some(split) => (split.0, split.1.parse()?),
-                None => (addr_str, Self::DEFAULT_PORT),
-            };
-            let resolver = TokioResolver::builder_tokio()?.build()?;
-            let mut addresses = Vec::new();
-            if let Ok(ip_lookup) = resolver.lookup_ip(host).await {
-                let ip = ip_lookup.iter().collect::<Vec<_>>();
-                addresses.extend_from_slice(&ip);
-            } else {
-                log::warn!("No A/AAAA record found, falling back to SRV record");
-                let srv_name = format!("_minecraft._tcp.{}", host);
-                let srv_response = resolver.srv_lookup(&srv_name).await?;
-                for record in srv_response.answers() {
-                    let RData::SRV(srv) = &record.data else {
-                        continue;
-                    };
-                    let target = srv.target.to_string().trim_end_matches('.').to_string();
-                    let srv_port = srv.port;
-                    log::debug!("SRV record found: {}:{}", target, srv_port);
-                    // 解析SRV记录中的目标主机
-                    if let Ok(ip_lookup) = resolver.lookup_ip(&target).await {
-                        for ip in ip_lookup.iter() {
-                            addresses.push(ip);
-                            log::debug!("Resolved SRV target: {}", ip);
-                        }
+            let mut ticket = draw(total);
+            records[..group_len]
+                .iter()
+                .position(|srv| {
+                    if ticket < usize::from(srv.weight) {
+                        true
+                    } else {
+                        ticket -= usize::from(srv.weight);
+                        false
                     }
-                }
-            }
-            if addresses.is_empty() {
-                return Err(anyhow::anyhow!("No addresses resolved"));
-            }
-            let ip = addresses.first().unwrap();
-            SocketAddr::new(*ip, port)
+                })
+                .unwrap()
         };
-        Ok(Self {
-            endpoint: socket_addr,
-            timeout: Self::DEFAULT_TIMEOUT,
-            host: socket_addr.ip().to_string(),
-        })
+        ordered.push(records.remove(index));
     }
-
-    pub async fn ping(&self) -> anyhow::Result<(McPingResult, u128)> {
-        let mut socket_stream = tokio::net::TcpStream::connect(&self.endpoint).await?;
-        log::debug!("Connection established: {}", self.endpoint);
-        let handshake_packet = self.build_handshake_packet();
-        tokio::time::timeout(self.timeout, async {
-            socket_stream.write_all(&handshake_packet).await?;
-            log::debug!("Handshake sent, packet length: {}", handshake_packet.len());
-            // 构建并发送状态请求包
-            let status_packet = self.build_status_request_packet();
-            socket_stream.write_all(&status_packet).await?;
-            log::debug!("Status sent, packet length: {}", status_packet.len());
-            // 读取响应
-            let start = std::time::Instant::now();
-            // 读取包长度 (VarInt)
-            let total_length = varint::read_from_stream(&mut socket_stream).await?;
-            log::debug!("Total length: {}", total_length);
-            // 读取包ID (VarInt)
-            let packet_id = varint::read_from_stream(&mut socket_stream).await?;
-            log::debug!("Packet ID: {}", packet_id);
-            // 读取数据长度 (VarInt)
-            let data_length = varint::read_from_stream(&mut socket_stream).await?;
-            log::debug!("Data length: {}", data_length);
-            // 读取JSON数据
-            let mut json_buffer = vec![0u8; data_length as usize];
-            socket_stream.read_exact(&mut json_buffer).await?;
-            let latency = start.elapsed().as_millis();
-            let json_str = String::from_utf8(json_buffer)?;
-            log::debug!("Received JSON");
-            let value: serde_json::Value = serde_json::from_str(&json_str)?;
-            let result: McPingResult = serde_json::from_value(value)?;
-            Ok((result, latency))
-        })
-        .await?
-    }
-
-    /// 构建握手包
-    fn build_handshake_packet(&self) -> Vec<u8> {
-        let mut handshake = Vec::new();
-        handshake.extend_from_slice(&varint::encode(0)); // 状态头 表明这是一个握手包
-        handshake.extend_from_slice(&varint::encode(772)); // 协议头 表明请求客户端的版本
-        let binary_ip = self.host.as_bytes();
-        handshake.extend_from_slice(&varint::encode(binary_ip.len())); //服务器地址长度
-        handshake.extend_from_slice(binary_ip); //服务器地址
-        handshake.extend_from_slice(&self.endpoint.port().to_be_bytes()); //服务器端口
-        handshake.extend_from_slice(&varint::encode(1)); //1 表明当前状态为 ping 2 表明当前的状态为连接
-        // 添加包长度前缀
-        let mut packet = Vec::new();
-        packet.extend_from_slice(&varint::encode(handshake.len()));
-        packet.extend_from_slice(&handshake);
-        packet
-    }
-
-    fn build_status_request_packet(&self) -> Vec<u8> {
-        let mut packet = Vec::new();
-        // 包长度 (包ID + 数据)
-        packet.extend_from_slice(&varint::encode(1)); // 长度 = 1 (只有包ID)
-        // 包ID (0 for status request)
-        packet.extend_from_slice(&varint::encode(0));
-        packet
-    }
+    ordered
 }
 
-mod varint {
-    use anyhow::Result;
-    const MAX_BYTES: u8 = 10;
-
-    /// 将无符号长整数编码为VarInt字节序列
-    pub fn encode(mut value: usize) -> Vec<u8> {
-        let mut result = Vec::with_capacity(MAX_BYTES as usize);
-        while value > 0x7F {
-            result.push((value as u8) | 0x80);
-            value >>= 7;
-        }
-        result.push(value as u8);
-        result
-    }
-
-    pub async fn read_from_stream(stream: &mut tokio::net::TcpStream) -> Result<i32> {
-        use tokio::io::{AsyncReadExt, ErrorKind};
-
-        let mut result = 0;
-        let mut shift = 0;
-        let mut buffer = [0u8; 1];
-
-        loop {
-            match stream.read_exact(&mut buffer).await {
-                Ok(_) => {
-                    let byte = buffer[0];
-                    result |= ((byte & 0x7F) as i32) << shift;
-                    shift += 7;
-
-                    if (byte & 0x80) == 0 {
-                        break;
-                    }
-
-                    if shift >= 32 {
-                        return Err(anyhow::anyhow!("VarInt too large"));
-                    }
-                }
-                Err(e) if e.kind() == ErrorKind::UnexpectedEof => {
-                    return Err(anyhow::anyhow!("Unexpected EOF while reading VarInt"));
-                }
-                Err(e) => return Err(e.into()),
+async fn query_resolved(
+    resolver: &TokioResolver,
+    host: &str,
+    port: Option<u16>,
+    deadline: tokio::time::Instant,
+) -> anyhow::Result<(McPingResult, u128)> {
+    let mut targets = Vec::new();
+    if port.is_none() {
+        let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+        if let Ok(Ok(records)) = tokio::time::timeout(
+            (remaining / 2).min(CONNECT_TIMEOUT),
+            resolver.srv_lookup(format!("_minecraft._tcp.{}", host.trim_end_matches('.'))),
+        )
+        .await
+        {
+            let records: Vec<_> = records
+                .answers()
+                .iter()
+                .filter_map(|record| match &record.data {
+                    RData::SRV(srv) => Some(srv.clone()),
+                    _ => None,
+                })
+                .collect();
+            for srv in order_srv(records, |upper| fastrand::usize(..upper)) {
+                targets.push((srv.target.to_string(), srv.port));
             }
         }
-
-        Ok(result)
     }
+    targets.push((host.to_string(), port.unwrap_or(DEFAULT_PORT)));
+    let mut last_error = None;
+    for (index, (target, port)) in targets.iter().enumerate() {
+        let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+        if remaining.is_zero() {
+            break;
+        }
+        let count = u32::try_from(targets.len() - index).unwrap_or(u32::MAX);
+        let target_deadline = tokio::time::Instant::now() + remaining / count;
+        let dns_budget = (remaining / count / 2).min(CONNECT_TIMEOUT);
+        let addresses = match tokio::time::timeout(
+            dns_budget,
+            resolver.lookup_ip(target.trim_end_matches('.')),
+        )
+        .await
+        {
+            Ok(Ok(ips)) => ips
+                .iter()
+                .map(|ip| SocketAddr::new(ip, *port))
+                .collect::<Vec<_>>(),
+            Ok(Err(error)) => {
+                last_error = Some(anyhow::anyhow!("DNS {target}: {error}"));
+                continue;
+            }
+            Err(error) => {
+                last_error = Some(anyhow::anyhow!("DNS {target}: {error}"));
+                continue;
+            }
+        };
+        match query_endpoints(host, &addresses, target_deadline).await {
+            Ok(result) => return Ok(result),
+            Err(error) => last_error = Some(error),
+        }
+    }
+    Err(last_error
+        .unwrap_or_else(|| anyhow::anyhow!("No server endpoints responded before the deadline")))
+}
+
+async fn query(host: &str, endpoint: SocketAddr) -> anyhow::Result<(McPingResult, u128)> {
+    let mut stream =
+        tokio::time::timeout(CONNECT_TIMEOUT, tokio::net::TcpStream::connect(endpoint)).await??;
+    let mut handshake = vec![0];
+    encode(772, &mut handshake);
+    encode(host.len(), &mut handshake);
+    handshake.extend_from_slice(host.as_bytes());
+    handshake.extend_from_slice(&endpoint.port().to_be_bytes());
+    handshake.push(1);
+    let mut request = Vec::new();
+    encode(handshake.len(), &mut request);
+    request.extend_from_slice(&handshake);
+    request.extend_from_slice(&[1, 0, 9, 1]);
+    request.extend_from_slice(&0i64.to_be_bytes());
+    stream.write_all(&request).await?;
+    let start = Instant::now();
+    let mut status = None;
+    let mut latency = None;
+    while status.is_none() || latency.is_none() {
+        let length = read_varint(&mut stream).await?;
+        ensure!((1..=MAX_PACKET).contains(&length), "Invalid packet length");
+        let mut packet = vec![0; length];
+        stream.read_exact(&mut packet).await?;
+        let mut packet = Cursor::new(packet);
+        match read_varint(&mut packet).await? {
+            0 => {
+                let length = read_varint(&mut packet).await?;
+                let offset = packet.position() as usize;
+                ensure!(
+                    length == packet.get_ref().len() - offset,
+                    "Invalid status length"
+                );
+                status = Some(serde_json::from_slice::<McPingResult>(
+                    &packet.get_ref()[offset..],
+                )?);
+            }
+            1 => {
+                let offset = packet.position() as usize;
+                ensure!(
+                    packet.get_ref()[offset..] == 0i64.to_be_bytes(),
+                    "Invalid pong"
+                );
+                latency = Some(start.elapsed().as_millis());
+            }
+            _ => {}
+        }
+    }
+    let latency = latency.unwrap();
+    let mut status = status.unwrap();
+    status.latency = latency as u64;
+    Ok((status, latency))
+}
+
+async fn query_endpoints(
+    host: &str,
+    endpoints: &[SocketAddr],
+    deadline: tokio::time::Instant,
+) -> anyhow::Result<(McPingResult, u128)> {
+    let mut last_error = None;
+    for (index, endpoint) in endpoints.iter().enumerate() {
+        let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+        if remaining.is_zero() {
+            break;
+        }
+        let count = u32::try_from(endpoints.len() - index).unwrap_or(u32::MAX);
+        let budget = if count == 1 {
+            remaining
+        } else {
+            (remaining / count).min(CONNECT_TIMEOUT)
+        };
+        match tokio::time::timeout(budget, query(host, *endpoint)).await {
+            Ok(Ok(result)) => return Ok(result),
+            Ok(Err(error)) => last_error = Some(anyhow::anyhow!("Server {endpoint}: {error:#}")),
+            Err(error) => last_error = Some(anyhow::anyhow!("Server {endpoint}: {error}")),
+        }
+    }
+    Err(last_error
+        .unwrap_or_else(|| anyhow::anyhow!("No server endpoints responded before the deadline")))
+}
+
+fn encode(mut value: usize, output: &mut Vec<u8>) {
+    while value > 0x7f {
+        output.push((value as u8) | 0x80);
+        value >>= 7;
+    }
+    output.push(value as u8);
+}
+
+async fn read_varint<R: AsyncRead + Unpin>(stream: &mut R) -> anyhow::Result<usize> {
+    let mut result = 0usize;
+    for index in 0..5 {
+        let byte = stream.read_u8().await?;
+        ensure!(index != 4 || byte <= 7, "Invalid VarInt");
+        result |= usize::from(byte & 0x7f) << (7 * index);
+        if byte & 0x80 == 0 {
+            return Ok(result);
+        }
+    }
+    bail!("Invalid VarInt")
 }
 
 #[tauri::command]
 pub async fn server_query(addr_str: &str) -> Result<(McPingResult, u128), String> {
-    let mc_ping = McPingClient::from_str(addr_str)
+    let deadline = tokio::time::Instant::now() + TIMEOUT;
+    let operation = async {
+        let (host, port) = parse_address(addr_str)?;
+        if let Ok(ip) = host.parse::<IpAddr>() {
+            return query_endpoints(
+                &host,
+                &[SocketAddr::new(ip, port.unwrap_or(DEFAULT_PORT))],
+                deadline,
+            )
+            .await;
+        }
+        let resolver = TokioResolver::builder_tokio()?.build()?;
+        query_resolved(&resolver, &host, port, deadline).await
+    };
+    tokio::time::timeout_at(deadline, operation)
         .await
-        .map_err(|e| e.to_string())?;
-    log::debug!("constructed mc_ping with endpoint: {}", mc_ping.endpoint);
-    mc_ping.ping().await.map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?
+        .map_err(|e: anyhow::Error| e.to_string())
 }
 
 #[cfg(test)]
-#[tokio::test]
-async fn mc_ping_test() -> anyhow::Result<()> {
-    let input = "127.0.0.1";
-    let mcping = McPingClient::from_str(input).await?;
-    dbg!(mcping.endpoint);
-    match mcping.ping().await {
-        Ok(result) => {
-            println!("result json: {:?}", result.0);
-            println!("latency: {}", result.1);
-        }
-        Err(e) => {
-            println!("failed to connet for {}", e)
-        }
+mod tests {
+    use super::*;
+    use hickory_resolver::proto::rr::Name;
+
+    fn srv(priority: u16, weight: u16, port: u16, target: &str) -> SRV {
+        SRV::new(priority, weight, port, Name::from_ascii(target).unwrap())
     }
-    Ok(())
-    // dbg!(socket_addr.ip());
-    // dbg!(socket_addr.port());
+
+    #[test]
+    fn srv_order_respects_priority_weight_and_zero_weight() {
+        let records = vec![
+            srv(20, 50, 20, "later.example."),
+            srv(10, 1, 1, "one.example."),
+            srv(10, 3, 2, "three.example."),
+            srv(10, 0, 3, "zero.example."),
+            srv(0, 1, 4, "."),
+            srv(0, 1, 0, "invalid.example."),
+        ];
+        let ports = |draw: fn(usize) -> usize| {
+            order_srv(records.clone(), draw)
+                .into_iter()
+                .map(|record| record.port)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(ports(|_| 0), vec![1, 2, 3, 20]);
+        assert_eq!(ports(|upper| upper - 1), vec![2, 1, 3, 20]);
+
+        let zeroes = vec![srv(1, 0, 1, "a.example."), srv(1, 0, 2, "b.example.")];
+        assert_eq!(order_srv(zeroes, |upper| upper - 1)[0].port, 2);
+    }
+
+    #[tokio::test]
+    async fn resolves_srv_and_explicit_port_with_local_dns() {
+        use hickory_resolver::{
+            Resolver,
+            config::{LookupIpStrategy, NameServerConfig, ResolverConfig},
+            net::runtime::TokioRuntimeProvider,
+            proto::{
+                op::Message,
+                rr::{Record, RecordType, rdata::A},
+            },
+        };
+        use std::sync::{Arc, Mutex};
+
+        async fn status_server(listener: tokio::net::TcpListener, name: &'static str) {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let length = read_varint(&mut socket).await.unwrap();
+            let mut request = vec![0; length + 12];
+            socket.read_exact(&mut request).await.unwrap();
+            let json = format!(r#"{{"version":{{"name":"{name}"}}}}"#);
+            let mut packet = vec![0];
+            encode(json.len(), &mut packet);
+            packet.extend_from_slice(json.as_bytes());
+            let mut response = Vec::new();
+            encode(packet.len(), &mut response);
+            response.extend_from_slice(&packet);
+            response.extend_from_slice(&[9, 1]);
+            response.extend_from_slice(&0i64.to_be_bytes());
+            socket.write_all(&response).await.unwrap();
+        }
+
+        let srv_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let srv_port = srv_listener.local_addr().unwrap().port();
+        let explicit_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let explicit_port = explicit_listener.local_addr().unwrap().port();
+        let fallback_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let fallback_port = fallback_listener.local_addr().unwrap().port();
+        let srv_server = tokio::spawn(status_server(srv_listener, "srv"));
+        let explicit_server = tokio::spawn(status_server(explicit_listener, "explicit"));
+        let fallback_server = tokio::spawn(status_server(fallback_listener, "fallback"));
+        let socket = tokio::net::UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        let address = socket.local_addr().unwrap();
+        let requests = Arc::new(Mutex::new(Vec::new()));
+        let observed = Arc::clone(&requests);
+        let server = tokio::spawn(async move {
+            let mut buf = [0; 2048];
+            loop {
+                let (len, peer) = socket.recv_from(&mut buf).await.unwrap();
+                let request = Message::from_vec(&buf[..len]).unwrap();
+                let query = request.queries[0].clone();
+                observed
+                    .lock()
+                    .unwrap()
+                    .push((query.name.to_string(), query.query_type));
+                if query.name.to_string() == "slow.example." {
+                    continue;
+                }
+                let mut response = Message::response(request.metadata.id, request.metadata.op_code);
+                response.add_query(query.clone());
+                if query.query_type == RecordType::SRV
+                    && query.name.to_string() == "_minecraft._tcp.game.example."
+                {
+                    response.add_answer(Record::from_rdata(
+                        query.name,
+                        60,
+                        RData::SRV(srv(0, 1, srv_port, "target.example.")),
+                    ));
+                } else if query.query_type == RecordType::SRV
+                    && query.name.to_string() == "_minecraft._tcp.fallback.example."
+                {
+                    response.add_answer(Record::from_rdata(
+                        query.name.clone(),
+                        60,
+                        RData::SRV(srv(0, 1, 1, "slow.example.")),
+                    ));
+                    response.add_answer(Record::from_rdata(
+                        query.name,
+                        60,
+                        RData::SRV(srv(1, 1, fallback_port, "target.example.")),
+                    ));
+                } else if query.query_type == RecordType::A {
+                    response.add_answer(Record::from_rdata(
+                        query.name,
+                        60,
+                        RData::A(A::new(127, 0, 0, 1)),
+                    ));
+                }
+                socket
+                    .send_to(&response.to_vec().unwrap(), peer)
+                    .await
+                    .unwrap();
+            }
+        });
+        let mut nameserver = NameServerConfig::udp(address.ip());
+        nameserver.connections[0].port = address.port();
+        let mut builder = Resolver::builder_with_config(
+            ResolverConfig::from_name_servers(vec![nameserver]),
+            TokioRuntimeProvider::default(),
+        );
+        builder.options_mut().ip_strategy = LookupIpStrategy::Ipv4Only;
+        let resolver = builder.build().unwrap();
+
+        let deadline = || tokio::time::Instant::now() + Duration::from_secs(2);
+        let result = query_resolved(&resolver, "game.example.", None, deadline())
+            .await
+            .unwrap();
+        assert_eq!(result.0.version.name, "srv");
+        let result = query_resolved(
+            &resolver,
+            "explicit.example",
+            Some(explicit_port),
+            deadline(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(result.0.version.name, "explicit");
+        let result = query_resolved(&resolver, "fallback.example", None, deadline())
+            .await
+            .unwrap();
+        assert_eq!(result.0.version.name, "fallback");
+        srv_server.await.unwrap();
+        explicit_server.await.unwrap();
+        fallback_server.await.unwrap();
+        let requests = requests.lock().unwrap();
+        assert!(
+            !requests
+                .iter()
+                .any(|(name, kind)| name.contains("explicit.example") && *kind == RecordType::SRV)
+        );
+        assert!(
+            requests
+                .iter()
+                .any(|(name, kind)| name == "_minecraft._tcp.fallback.example."
+                    && *kind == RecordType::SRV)
+        );
+        assert!(requests.iter().any(|(name, _)| name == "slow.example."));
+        assert!(
+            !requests
+                .iter()
+                .any(|(name, kind)| name == "game.example." && *kind == RecordType::A)
+        );
+        server.abort();
+    }
+
+    #[test]
+    fn parses_addresses() {
+        assert_eq!(
+            parse_address("minecraft://example.org/").unwrap(),
+            ("example.org".into(), None)
+        );
+        assert_eq!(
+            parse_address("[::1]:1234").unwrap(),
+            ("::1".into(), Some(1234))
+        );
+        assert!(parse_address("example.org:0").is_err());
+        assert!(parse_address("example.org/path").is_err());
+    }
+
+    #[tokio::test]
+    async fn queries_status_and_checks_pong() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let endpoint = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let length = read_varint(&mut socket).await.unwrap();
+            let mut handshake = vec![0; length];
+            socket.read_exact(&mut handshake).await.unwrap();
+            assert!(handshake.windows(11).any(|part| part == b"example.org"));
+            let mut request = [0; 12];
+            socket.read_exact(&mut request).await.unwrap();
+            assert_eq!(&request[..4], &[1, 0, 9, 1]);
+            let json = br#"{"version":{"name":"test"},"description":"hello"}"#;
+            let mut packet = vec![0];
+            encode(json.len(), &mut packet);
+            packet.extend_from_slice(json);
+            let mut response = Vec::new();
+            encode(packet.len(), &mut response);
+            response.extend_from_slice(&packet);
+            response.extend_from_slice(&[9, 1]);
+            response.extend_from_slice(&0i64.to_be_bytes());
+            socket.write_all(&response).await.unwrap();
+        });
+        let (result, _) = query("example.org", endpoint).await.unwrap();
+        assert_eq!(result.version.name, "test");
+        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn tries_next_endpoint_after_timeout_and_invalid_response() {
+        let stalled = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let invalid = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let valid = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let endpoints = [
+            stalled.local_addr().unwrap(),
+            invalid.local_addr().unwrap(),
+            valid.local_addr().unwrap(),
+        ];
+        let first = tokio::spawn(async move {
+            let (mut socket, _) = stalled.accept().await.unwrap();
+            let mut bytes = Vec::new();
+            socket.read_to_end(&mut bytes).await.unwrap();
+            assert!(!bytes.is_empty());
+        });
+        let second = tokio::spawn(async move {
+            let (mut socket, _) = invalid.accept().await.unwrap();
+            let mut packet = Vec::new();
+            encode(MAX_PACKET + 1, &mut packet);
+            socket.write_all(&packet).await.unwrap();
+        });
+        let third = tokio::spawn(async move {
+            let (mut socket, _) = valid.accept().await.unwrap();
+            let length = read_varint(&mut socket).await.unwrap();
+            let mut request = vec![0; length + 12];
+            socket.read_exact(&mut request).await.unwrap();
+            let json = br#"{"version":{"name":"fallback"}}"#;
+            let mut packet = vec![0];
+            encode(json.len(), &mut packet);
+            packet.extend_from_slice(json);
+            let mut response = Vec::new();
+            encode(packet.len(), &mut response);
+            response.extend_from_slice(&packet);
+            response.extend_from_slice(&[9, 1]);
+            response.extend_from_slice(&0i64.to_be_bytes());
+            socket.write_all(&response).await.unwrap();
+        });
+
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
+        let result = tokio::time::timeout_at(
+            deadline,
+            query_endpoints("example.org", &endpoints, deadline),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert_eq!(result.0.version.name, "fallback");
+        first.await.unwrap();
+        second.await.unwrap();
+        third.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn endpoint_timeouts_remain_within_the_overall_deadline() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let endpoint = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut bytes = Vec::new();
+            socket.read_to_end(&mut bytes).await.unwrap();
+        });
+        let deadline = tokio::time::Instant::now() + Duration::from_millis(100);
+        let error = query_endpoints("localhost", &[endpoint], deadline)
+            .await
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains(&endpoint.to_string()));
+        assert!(error.contains("deadline"));
+        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn rejects_invalid_packet_lengths() {
+        let mut invalid = Cursor::new(vec![0xff, 0xff, 0xff, 0xff, 0x0f]);
+        assert!(read_varint(&mut invalid).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn rejects_oversized_server_packet() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let endpoint = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut length = Vec::new();
+            encode(MAX_PACKET + 1, &mut length);
+            socket.write_all(&length).await.unwrap();
+        });
+        assert!(query("localhost", endpoint).await.is_err());
+        server.await.unwrap();
+    }
 }

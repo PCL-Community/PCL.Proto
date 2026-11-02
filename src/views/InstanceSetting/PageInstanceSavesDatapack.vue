@@ -14,9 +14,11 @@ import { popupNativeMenu } from '@/util/nativeMenu'
 import { computed, ref, watch } from 'vue'
 import PComboBox from '@/components/widget/PComboBox.vue'
 import { useInstanceResources } from '@/composables/useInstanceResources'
+import { useSelectedInstance } from '@/stores/gameLaunch'
 
 const route = useRoute()
 const router = useRouter()
+const instance = useSelectedInstance()
 const { values } = usePageSettings('PageInstanceSavesDatapack', {
   filter: 'All',
   SearchBox: '',
@@ -30,6 +32,14 @@ const saveList = useInstanceResources({ kind: () => 'save' })
 const saveOptions = computed(() =>
   saveList.items.value.map((entry) => ({ key: entry.name, text: entry.name })),
 )
+function downloadDatapacks() {
+  const directory = instance.instance_info?.directory
+  if (!directory || !saveOptions.value.some((option) => option.key === selectedSave.value)) return
+  void router.push({
+    path: '/download/datapack',
+    query: { instance: 'selected', targetInstance: directory, save: selectedSave.value },
+  })
+}
 watch(saveOptions, (options) => {
   if (!selectedSave.value && options.length) selectedSave.value = options[0]?.key || ''
 })
@@ -204,10 +214,8 @@ const text = pclText
                   <PButton
                     data-control="BtnManageDownload"
                     style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
-                    @click="
-                      () =>
-                        router.push({ path: '/download/datapack', query: { instance: 'selected' } })
-                    "
+                    @click="downloadDatapacks"
+                    :disabled="!selectedSave"
                     >{{ text('Instance.Resource.Datapack.DownloadNew') }}</PButton
                   >
                   <PButton
@@ -329,10 +337,8 @@ const text = pclText
                 <PButton
                   data-control="BtnHintDownload"
                   style="height: 35px; min-width: 130px; margin: 0px 5px; padding: 0px 12px"
-                  @click="
-                    () =>
-                      router.push({ path: '/download/datapack', query: { instance: 'selected' } })
-                  "
+                  @click="downloadDatapacks"
+                  :disabled="!selectedSave"
                   >{{ text('Instance.Resource.Datapack.DownloadNew') }}</PButton
                 >
                 <PButton

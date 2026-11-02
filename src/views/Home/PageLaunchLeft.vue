@@ -12,7 +12,7 @@ import type { ProfileView } from '@/types/profile'
 import { Channel, invoke } from '@tauri-apps/api/core'
 import { prepareGameJava, downloadGameJava } from '@/api/javaReq'
 import { useModal } from '@/composables/useModal'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { pclText } from '@/api/pclLocale'
 import sideTip from '@/composables/sideTip'
 import { ModalWidthVariant } from '@/types/modal'
@@ -110,7 +110,7 @@ function showLaunchFailure(attempt: number, failure: LaunchFailure) {
     buttons: [{ content: text('Common.Action.Confirm'), operation: () => modal.close() }],
   })
 }
-async function launch() {
+async function launch(serverAddress?: string) {
   if (preparing.value) return
   if (!instance.instance_info) {
     await router.push('/download/game')
@@ -191,7 +191,11 @@ async function launch() {
       }
       if (message.progress === 1) returnToHome(attempt!)
     }
-    await invoke('launch_game', { instanceDirectory, progress })
+    await invoke('launch_game', {
+      instanceDirectory,
+      progress,
+      serverAddress: serverAddress ?? null,
+    })
   } catch (err) {
     if (attempt !== undefined && launchState.isCurrent(attempt)) {
       await abandonLaunch(attempt)
@@ -204,6 +208,19 @@ async function launch() {
     if (attempt !== undefined) launchState.setPreparing(attempt, false)
   }
 }
+watch(
+  () => launchState.pendingServer,
+  (pending) => {
+    if (!pending) return
+    launchState.pendingServer = null
+    if (pending.directory === instance.instance_info?.directory && !preparing.value) {
+      void launch(pending.address)
+    } else {
+      sideTip.show(text('Instance.Server.Card.LaunchFailed'), 'warn')
+    }
+  },
+  { immediate: true },
+)
 function settings() {
   if (instance.instance_info) void router.push('/instance_setting')
   else sideTip.show(pclText('Proto.Instance.SelectFirstHint'))
@@ -225,7 +242,7 @@ function settings() {
         <PButton
           class="launch"
           type="tint"
-          @click="launch"
+          @click="() => launch()"
           :disabled="loadingInstances || preparing"
           ><span>{{
             text(

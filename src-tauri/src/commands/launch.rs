@@ -217,9 +217,17 @@ pub async fn launch_game(
     window: tauri::WebviewWindow,
     instance_directory: std::path::PathBuf,
     progress: tauri::ipc::Channel<LaunchProgress>,
+    server_address: Option<String>,
 ) -> Result<(), String> {
     let ticket = claim_launch_ticket()?;
-    let result = launch_game_inner(window, instance_directory, progress, ticket.clone()).await;
+    let result = launch_game_inner(
+        window,
+        instance_directory,
+        progress,
+        server_address,
+        ticket.clone(),
+    )
+    .await;
     if result.is_err() {
         clear_pending_launch(&ticket);
     }
@@ -230,6 +238,7 @@ async fn launch_game_inner(
     window: tauri::WebviewWindow,
     instance_directory: std::path::PathBuf,
     progress: tauri::ipc::Channel<LaunchProgress>,
+    server_address: Option<String>,
     mut ticket: LaunchTicket,
 ) -> Result<(), String> {
     let report = |stage, value, downloading| {
@@ -257,6 +266,11 @@ async fn launch_game_inner(
     )
     .await?
     .map_err(|error| error.to_string())??;
+    if let Some(address) = server_address {
+        option = option
+            .with_server(&address)
+            .map_err(|error| error.to_string())?;
+    }
     if option.uses_launcher_size() {
         if ticket.cancelled.load(Ordering::Acquire) {
             return Err(LAUNCH_CANCELLED.into());

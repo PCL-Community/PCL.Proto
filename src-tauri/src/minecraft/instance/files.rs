@@ -128,7 +128,7 @@ fn mod_details(path: &Path) -> ModDetails {
             };
             let Some(value) = std::str::from_utf8(&bytes)
                 .ok()
-                .and_then(|s| s.parse::<toml::Value>().ok())
+                .and_then(|s| toml::from_str::<toml::Value>(s).ok())
             else {
                 continue;
             };
@@ -265,13 +265,17 @@ pub fn list(kind: Kind, directory: &Path) -> Result<Vec<Entry>, String> {
                         .any(|extension| base.ends_with(extension))
             }
             Kind::Screenshot => metadata.is_file() && base.ends_with(".png"),
-            Kind::Save => metadata.is_dir() && path.join("level.dat").is_file(),
+            Kind::Save => {
+                metadata.is_dir()
+                    && (path.join("level.dat").is_file() || path.join("level.dat_old").is_file())
+            }
             Kind::Datapack => metadata.is_dir() || (metadata.is_file() && base.ends_with(".zip")),
         };
         if !matched {
             continue;
         }
         let name = match kind {
+            Kind::Save => raw_name.to_owned(),
             Kind::Screenshot => path
                 .file_stem()
                 .and_then(|stem| stem.to_str())

@@ -13,19 +13,43 @@ import { useModal } from '@/composables/useModal'
 import sideTip from '@/composables/sideTip'
 
 type ResourceFile = IVersion['files'][number]
+export interface DatapackTarget {
+  instanceDirectory: string
+  save: string
+}
+
+export function datapackTargetFromQuery(
+  query: Record<string, unknown>,
+): DatapackTarget | undefined {
+  return typeof query.targetInstance === 'string' &&
+    query.targetInstance &&
+    typeof query.save === 'string' &&
+    query.save
+    ? { instanceDirectory: query.targetInstance, save: query.save }
+    : undefined
+}
 const folderKinds: Partial<Record<CompType, string>> = {
   mod: 'mod',
   resourcepack: 'resourcepack',
   shader: 'shader',
+  datapack: 'datapack',
 }
 
-async function instanceDestination(instance: GameInstance, type: CompType, filename: string) {
+async function instanceDestination(
+  instance: GameInstance,
+  type: CompType,
+  filename: string,
+  target?: DatapackTarget,
+) {
   const kind = folderKinds[type]
-  if (!kind) return undefined
+  if (!kind || (type === 'datapack' && !target)) return undefined
+  if (type === 'datapack' && target?.instanceDirectory !== instance.directory)
+    throw new Error('The selected instance changed; choose the save again')
   return invoke<string>('instance_resource_destination', {
     instanceDirectory: instance.directory,
     kind,
     filename,
+    save: type === 'datapack' ? target?.save : undefined,
   })
 }
 
@@ -48,7 +72,12 @@ function start(file: ResourceFile, destination: string, name: string) {
     .catch((error) => sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn'))
 }
 
-export async function saveResource(file: ResourceFile, version: IVersion, type: CompType) {
+export async function saveResource(
+  file: ResourceFile,
+  version: IVersion,
+  type: CompType,
+  target?: DatapackTarget,
+) {
   if (!/^https:\/\//i.test(file.url)) throw new Error('Invalid resource URL')
   if (!isTauri()) {
     const link = document.createElement('a')
@@ -60,9 +89,11 @@ export async function saveResource(file: ResourceFile, version: IVersion, type: 
     return
   }
   const instance = useSelectedInstance().instance_info
+  if (type === 'datapack' && target && instance?.directory !== target.instanceDirectory)
+    throw new Error('The selected instance changed; choose the save again')
   const defaultPath =
-    instance && compatibleResource(version, instance, type)
-      ? await instanceDestination(instance, type, file.filename)
+    instance && ((type === 'datapack' && target) || compatibleResource(version, instance, type))
+      ? await instanceDestination(instance, type, file.filename, target)
       : undefined
   const destination = await save({ defaultPath: defaultPath || file.filename })
   if (destination) start(file, destination, version.name)
@@ -73,7 +104,7 @@ async function choose(options: { value: string; label: string }[], title: string
   return result.confirmed ? result.selected : undefined
 }
 
-export async function quickDownload(project: ISearchHit) {
+export async function quickDownload(project: ISearchHit, target?: DatapackTarget) {
   if (!isTauri()) {
     sideTip.show(pclText('Proto.Desktop.Download'), 'warn')
     return
@@ -152,7 +183,7 @@ export async function quickDownload(project: ISearchHit) {
   )
     throw new Error('Invalid resource filename')
   let destination = instance
-    ? await instanceDestination(instance, project.project_type, file.filename)
+    ? await instanceDestination(instance, project.project_type, file.filename, target)
     : undefined
   if (!destination) {
     const directory = await open({

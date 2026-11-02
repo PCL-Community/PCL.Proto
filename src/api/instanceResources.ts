@@ -21,6 +21,36 @@ export interface InstanceResourceEntry {
   iconData?: string
 }
 
+export interface SaveInfo {
+  levelName: string
+  versionName: string | null
+  versionId: number | null
+  seed: string | null
+  lastPlayed: number
+  spawn: [number, number, number] | null
+  gameMode: number
+  difficulty: number | null
+  difficultyLocked: boolean
+  hardcore: boolean
+  allowCommands: boolean
+  canEditCommands: boolean
+  canEditDifficulty: boolean
+  canEditLock: boolean
+  playTicks: number
+}
+
+export type SaveChanges = Partial<Pick<SaveInfo, 'allowCommands' | 'difficultyLocked'>> & {
+  difficulty?: number
+}
+
+export function getSaveInfo(instanceDirectory: string, save: string) {
+  return invoke<SaveInfo>('get_save_info', { instanceDirectory, save })
+}
+
+export function updateSaveInfo(instanceDirectory: string, save: string, changes: SaveChanges) {
+  return invoke<SaveInfo>('update_save_info', { instanceDirectory, save, changes })
+}
+
 export function listInstanceResources(
   instanceDirectory: string,
   kind: InstanceResourceKind,

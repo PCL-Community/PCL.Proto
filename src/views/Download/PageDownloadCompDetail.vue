@@ -22,7 +22,7 @@ import { pclFormatLocale, pclText } from '@/api/pclLocale'
 import sideTip from '@/composables/sideTip'
 import { useCompFavorites } from '@/stores/compFavorites'
 import { openExternal } from '@/util/externalLink'
-import { saveResource } from '@/api/compDownload'
+import { datapackTargetFromQuery, saveResource } from '@/api/compDownload'
 const favorites = useCompFavorites()
 
 const route = useRoute()
@@ -144,6 +144,7 @@ async function download(file: IVersion['files'][number], version: IVersion) {
       file,
       version,
       route.query.type === 'datapack' ? 'datapack' : project.value.project_type,
+      route.query.type === 'datapack' ? datapackTargetFromQuery(route.query) : undefined,
     )
   } catch (error) {
     sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn')

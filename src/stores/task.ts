@@ -12,7 +12,7 @@ export enum TaskStatus {
   Completed = 2,
   Failed = 3,
 }
-type DownloadKind = 'install' | 'client' | 'server' | 'resource' | 'custom'
+type DownloadKind = 'install' | 'client' | 'server' | 'resource' | 'custom' | 'installer'
 
 export interface ITaskItem {
   id: number
@@ -47,7 +47,7 @@ interface TaskItemReport {
 
 function createTask(id: number, versionId: string, kind: DownloadKind): Task {
   const keys =
-    kind === 'resource' || kind === 'custom'
+    kind === 'resource' || kind === 'custom' || kind === 'installer'
       ? ['Download.Comp.Detail.DownloadFile']
       : [
           'Minecraft.Download.Stage.VanillaJsonDownload',
@@ -65,6 +65,7 @@ function createTask(id: number, versionId: string, kind: DownloadKind): Task {
     versionId,
     kind,
     get name() {
+      if (kind === 'installer') return versionId
       if (kind === 'custom') return pclText('Tools.Test.CustomDownload.LoaderName', [versionId])
       if (kind === 'resource')
         return pclText('Download.Comp.Detail.DownloadResource', ['', versionId])
@@ -237,6 +238,20 @@ export const useTaskManager = defineStore('task-manager', () => {
     return runDownload(name, 'download_custom_file', { url, destination }, 'custom')
   }
 
+  function downloadFabricInstaller(
+    name: string,
+    family: string,
+    version: string,
+    destination: string,
+  ) {
+    return runDownload(
+      name,
+      'download_fabric_installer',
+      { family, version, destination },
+      'installer',
+    )
+  }
+
   return {
     tasks,
     totalProgress,
@@ -247,5 +262,6 @@ export const useTaskManager = defineStore('task-manager', () => {
     exportMinecraftVersion,
     downloadResource,
     downloadCustom,
+    downloadFabricInstaller,
   }
 })

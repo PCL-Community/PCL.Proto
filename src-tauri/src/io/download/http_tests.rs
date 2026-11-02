@@ -129,6 +129,19 @@ fn payload(size: usize) -> Arc<Vec<u8>> {
 }
 
 #[tokio::test]
+async fn installer_minimum_size_does_not_publish_short_files() {
+    let server = Server::new(payload(1024), Behavior::Ignore, Duration::ZERO).await;
+    let temp = Temp::new();
+    assert!(
+        custom_transfer_checked(&server.url, &temp.file(), 64 * 1024, |_, _, _| {})
+            .await
+            .is_err()
+    );
+    assert!(!temp.file().exists());
+    temp.assert_clean();
+}
+
+#[tokio::test]
 async fn custom_download_saves_known_length_response() {
     let body = payload(4096);
     let server = Server::new(body.clone(), Behavior::Ignore, Duration::ZERO).await;

@@ -136,7 +136,9 @@ const text = pclText
                   :subtitle="save.description"
                   :icon="save.icon"
                   clickable
-                  @click="() => openSave(save.id)"
+                  @click="
+                    () => router.push({ path: '/instance_save/info', query: { id: save.name } })
+                  "
                 >
                   <template #icon-actions>
                     <button

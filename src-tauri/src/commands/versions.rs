@@ -5,6 +5,17 @@ use crate::{
 use tauri::State;
 
 #[tauri::command]
+pub async fn get_fabric_installers(
+    client: State<'_, &api_client::MinecraftApiClient>,
+    family: api_client::FabricFamily,
+) -> Result<Vec<McPluginReport>, String> {
+    client
+        .get_fabric_installers(family)
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 pub async fn get_version_manifest(
     client: State<'_, &api_client::MinecraftApiClient>,
 ) -> Result<api_client::game::McVersionManifest, String> {

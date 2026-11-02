@@ -31,6 +31,7 @@ pub struct LaunchOption {
     natives_path: std::path::PathBuf,
     arguments: crate::minecraft::launch::arguments::LaunchArguments,
     extras: crate::minecraft::launch::settings::LaunchExtras,
+    server: Option<(String, Option<u16>)>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -64,6 +65,13 @@ pub enum GameLaunchError {
 }
 
 impl LaunchOption {
+    pub fn with_server(mut self, address: &str) -> Result<Self, GameLaunchError> {
+        let (host, port) = crate::link::mcping::parse_address(address)
+            .map_err(|error| GameLaunchError::CustomArguments(error.to_string()))?;
+        self.server = Some((host, port));
+        Ok(self)
+    }
+
     pub fn with_window_size(mut self, width: usize, height: usize) -> Self {
         self.width = Some(width);
         self.height = Some(height);
@@ -544,6 +552,28 @@ impl LaunchOption {
             })
             .collect();
         game.extend(parse_custom(&self.arguments.game)?);
+        if let Some((host, port)) = &self.server {
+            if self
+                .version_details
+                .release_time
+                .as_deref()
+                .is_some_and(|date| date > "2023-04-04")
+            {
+                let address = match port {
+                    Some(port) if host.contains(':') => format!("[{host}]:{port}"),
+                    Some(port) => format!("{host}:{port}"),
+                    None => host.clone(),
+                };
+                game.extend(["--quickPlayMultiplayer".into(), address]);
+            } else {
+                game.extend([
+                    "--server".into(),
+                    host.clone(),
+                    "--port".into(),
+                    port.unwrap_or(25565).to_string(),
+                ]);
+            }
+        }
         Ok((custom_jvm, jvm, game))
     }
 
@@ -629,6 +659,7 @@ impl LaunchOption {
                 natives_path: game_instance.natives_path.clone(),
                 arguments,
                 extras,
+                server: None,
             });
         }
         Err(GameLaunchError::MissingInstance)
@@ -776,6 +807,7 @@ pub fn game_launch_test() {
         natives_path: game_instance.natives_path.clone(),
         arguments: crate::minecraft::launch::arguments::LaunchArguments::global_default(),
         extras: Default::default(),
+        server: None,
     }
     .with_window_size(1280, 720);
     if let Ok(mut child) = launch_option.launch() {
@@ -850,6 +882,7 @@ mod tests {
             natives_path: instance.natives_path.clone(),
             arguments: crate::minecraft::launch::arguments::LaunchArguments::global_default(),
             extras: Default::default(),
+            server: None,
         };
         option.extras.proxy = Some(("127.0.0.1".into(), 7891));
         let proxy_args = option.agent_arguments().unwrap();
@@ -879,6 +912,21 @@ mod tests {
         );
         let (_, _, game) = option.metadata_arguments("a path").unwrap();
         assert_eq!(game, ["--versionType", "Custom Info"]);
+        option = option.with_server("[::1]:25566").unwrap();
+        option.version_details.release_time = Some("2024-01-01T00:00:00Z".into());
+        let (_, _, game) = option.metadata_arguments("a path").unwrap();
+        assert!(
+            game.windows(2)
+                .any(|args| args == ["--quickPlayMultiplayer", "[::1]:25566"])
+        );
+        option.version_details.release_time = Some("2020-01-01T00:00:00Z".into());
+        let (_, _, game) = option.metadata_arguments("a path").unwrap();
+        assert!(
+            game.windows(4)
+                .any(|args| args == ["--server", "::1", "--port", "25566"])
+        );
+        option.server = None;
+        option.version_details.release_time = None;
         option.version_details.arguments = original_arguments;
         assert!(option.launch_checked().unwrap().wait().unwrap().success());
         let output = fs::read_to_string(root.join("captured")).unwrap();

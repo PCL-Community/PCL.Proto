@@ -75,7 +75,7 @@ pub async fn repair_instance_files(instance_directory: std::path::PathBuf) -> Re
     Ok(())
 }
 /// Game directory that owns the instance resource folders (isolation aware).
-fn instance_game_directory(
+pub(crate) fn instance_game_directory(
     instance_directory: &std::path::Path,
 ) -> Result<std::path::PathBuf, String> {
     ConfigManager::instance().ensure_instance_isolation(instance_directory)?;
@@ -90,6 +90,7 @@ pub async fn instance_resource_destination(
     instance_directory: std::path::PathBuf,
     kind: String,
     filename: String,
+    save: Option<String>,
 ) -> Result<std::path::PathBuf, String> {
     tauri::async_runtime::spawn_blocking(move || {
         crate::io::files::validate_file_name(&filename).map_err(|e| e.to_string())?;
@@ -100,12 +101,22 @@ pub async fn instance_resource_destination(
                 | crate::minecraft::instance::files::Kind::ResourcePack
                 | crate::minecraft::instance::files::Kind::Shader
                 | crate::minecraft::instance::files::Kind::Save
+                | crate::minecraft::instance::files::Kind::Datapack
         ) {
             return Err("Select a destination for this resource type".into());
         }
         let root = instance_game_directory(&instance_directory)?;
-        let folder = crate::minecraft::instance::files::directory(kind, &root, None)?;
-        std::fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
+        let folder = if kind == crate::minecraft::instance::files::Kind::Datapack {
+            datapack_destination(
+                &root,
+                save.as_deref()
+                    .ok_or("A save name is required for datapacks")?,
+            )?
+        } else {
+            let folder = crate::minecraft::instance::files::directory(kind, &root, None)?;
+            std::fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
+            folder
+        };
         Ok(folder.join(filename))
     })
     .await
@@ -120,6 +131,70 @@ fn ensure_inside_instance(root: &std::path::Path, path: &std::path::Path) -> Res
         return Err("Resource path is outside the instance directory".into());
     }
     Ok(())
+}
+
+fn save_directory(
+    instance_directory: &std::path::Path,
+    save: &str,
+) -> Result<std::path::PathBuf, String> {
+    let game = instance_game_directory(instance_directory)?;
+    save_in_game(&game, save)
+}
+
+fn save_in_game(game: &std::path::Path, save: &str) -> Result<std::path::PathBuf, String> {
+    use crate::minecraft::instance::files::{Kind, directory};
+    let folder = directory(Kind::Datapack, game, Some(save))?
+        .parent()
+        .unwrap()
+        .to_path_buf();
+    let saves = directory(Kind::Save, game, None)?;
+    ensure_inside_instance(game, &saves)?;
+    let saves = saves.canonicalize().map_err(|e| e.to_string())?;
+    let folder = folder.canonicalize().map_err(|e| e.to_string())?;
+    if folder.parent() != Some(saves.as_path()) || !folder.is_dir() {
+        return Err("Save is outside the saves directory".into());
+    }
+    Ok(folder)
+}
+
+fn datapack_destination(game: &std::path::Path, save: &str) -> Result<std::path::PathBuf, String> {
+    let save = save_in_game(game, save)?;
+    let folder = save.join("datapacks");
+    match std::fs::create_dir(&folder) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+        Err(error) => return Err(error.to_string()),
+    }
+    let metadata = std::fs::symlink_metadata(&folder).map_err(|error| error.to_string())?;
+    if !metadata.is_dir() || metadata.file_type().is_symlink() {
+        return Err("Datapack folder must be a directory inside the save".into());
+    }
+    Ok(folder)
+}
+
+#[tauri::command]
+pub async fn get_save_info(
+    instance_directory: std::path::PathBuf,
+    save: String,
+) -> Result<crate::minecraft::saves::SaveInfo, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::minecraft::saves::read(&save_directory(&instance_directory, &save)?)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn update_save_info(
+    instance_directory: std::path::PathBuf,
+    save: String,
+    changes: crate::minecraft::saves::SaveChanges,
+) -> Result<crate::minecraft::saves::SaveInfo, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::minecraft::saves::apply(&save_directory(&instance_directory, &save)?, changes)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -228,4 +303,35 @@ pub async fn import_instance_resources(
     })
     .await
     .map_err(|error| error.to_string())?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn datapack_destination_requires_an_existing_save() {
+        let root = tempfile::tempdir().unwrap();
+        let world = root.path().join("saves/world");
+        std::fs::create_dir_all(&world).unwrap();
+        let destination = datapack_destination(root.path(), "world").unwrap();
+        assert_eq!(destination, world.canonicalize().unwrap().join("datapacks"));
+        assert!(destination.is_dir());
+        assert!(datapack_destination(root.path(), "../escape").is_err());
+        assert!(datapack_destination(root.path(), "missing").is_err());
+        assert!(!root.path().join("saves/missing").exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn datapack_destination_rejects_linked_folders() {
+        use std::os::unix::fs::symlink;
+        let root = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        let world = root.path().join("saves/world");
+        std::fs::create_dir_all(&world).unwrap();
+        symlink(outside.path(), world.join("datapacks")).unwrap();
+        assert!(datapack_destination(root.path(), "world").is_err());
+        assert!(std::fs::read_dir(outside.path()).unwrap().next().is_none());
+    }
 }

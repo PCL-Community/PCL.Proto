@@ -185,6 +185,47 @@ pub enum FabricFamily {
     Legacyfabric,
 }
 
+impl FabricFamily {
+    pub fn installer_url(self, version: &str) -> McApiResult<String> {
+        if version.is_empty()
+            || version == "."
+            || version == ".."
+            || !version
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'-' | b'_' | b'+'))
+        {
+            return Err(McApiError::InvalidMetadata(
+                "Invalid installer version".into(),
+            ));
+        }
+        let (host, group) = match self {
+            Self::Fabric => ("maven.fabricmc.net", "fabricmc"),
+            Self::Legacyfabric => ("maven.legacyfabric.net", "legacyfabric"),
+        };
+        Ok(format!(
+            "https://{host}/net/{group}/fabric-installer/{version}/fabric-installer-{version}.jar"
+        ))
+    }
+}
+
+fn fabric_metadata_sources(base: &'static str) -> Vec<&'static str> {
+    let official = "https://meta.fabricmc.net/v2/versions/loader";
+    let mirror = "https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader";
+    if base != official && base != mirror {
+        return vec![base];
+    }
+    if matches!(
+        crate::io::download::resources::DOWNLOAD_RESOURCES
+            .settings()
+            .version_source,
+        crate::io::download::resources::SourcePreference::Official
+    ) {
+        vec![official, mirror]
+    } else {
+        vec![mirror, official]
+    }
+}
+
 pub mod game {
     pub use crate::minecraft::version::*;
 }
@@ -255,6 +296,32 @@ pub mod plugins {
     }
 }
 
+fn parse_fabric_installers(
+    value: serde_json::Value,
+    family: FabricFamily,
+) -> McApiResult<Vec<McPluginReport>> {
+    let entries = value
+        .as_array()
+        .ok_or_else(|| McApiError::InvalidMetadata("Invalid installer list".into()))?;
+    let mut installers = Vec::new();
+    for entry in entries {
+        let version = entry
+            .get("version")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| McApiError::InvalidMetadata("Missing installer version".into()))?;
+        let url = family.installer_url(version)?;
+        if entry.get("url").and_then(|v| v.as_str()) != Some(url.as_str()) {
+            return Err(McApiError::InvalidMetadata("Invalid installer URL".into()));
+        }
+        installers.push(McPluginReport {
+            version: version.into(),
+            stable: entry.get("stable").and_then(|v| v.as_bool()),
+            release_time: None,
+        });
+    }
+    Ok(installers)
+}
+
 pub struct MinecraftApiClient {
     client: std::sync::RwLock<Client>,
     api_bases: RwLock<ApiBases>,
@@ -263,6 +330,35 @@ pub struct MinecraftApiClient {
 }
 
 impl MinecraftApiClient {
+    pub async fn get_fabric_installers(
+        &self,
+        family: FabricFamily,
+    ) -> McApiResult<Vec<McPluginReport>> {
+        let bases = self.api_bases.read().await;
+        let base = match family {
+            FabricFamily::Fabric => bases.fabric_base,
+            FabricFamily::Legacyfabric => bases.legacy_fabric_base,
+        };
+        drop(bases);
+        let mut last_error = None;
+        for source in fabric_metadata_sources(base) {
+            let url = format!(
+                "{}/installer",
+                source.strip_suffix("/loader").unwrap_or(source)
+            );
+            match self
+                .get::<serde_json::Value>(&url, true)
+                .await
+                .and_then(|value| parse_fabric_installers(value, family))
+            {
+                Ok(installers) => return Ok(installers),
+                Err(error) => last_error = Some(error),
+            }
+        }
+        Err(last_error.unwrap_or_else(|| {
+            McApiError::InvalidMetadata("No installer metadata source available".into())
+        }))
+    }
     /// Create a new MinecraftApiClient
     pub fn new(client: Client, api_provider: &ApiProvider) -> Self {
         Self {
@@ -537,25 +633,9 @@ impl MinecraftApiClient {
             FabricFamily::Legacyfabric => bases.legacy_fabric_base,
         };
         drop(bases);
-        let official = "https://meta.fabricmc.net/v2/versions/loader";
-        let mirror = "https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader";
-        let sources = if base == official || base == mirror {
-            if matches!(
-                crate::io::download::resources::DOWNLOAD_RESOURCES
-                    .settings()
-                    .version_source,
-                crate::io::download::resources::SourcePreference::Official
-            ) {
-                vec![official, mirror]
-            } else {
-                vec![mirror, official]
-            }
-        } else {
-            vec![base]
-        };
         let mut last_error = None;
         let mut fabric_versions = None;
-        for source in sources {
+        for source in fabric_metadata_sources(base) {
             let mut url = reqwest::Url::parse(source)
                 .map_err(|error| McApiError::InvalidMetadata(error.to_string()))?;
             url.path_segments_mut()
@@ -748,6 +828,26 @@ pub fn curseforge_available() -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn fabric_installer_metadata_requires_matching_official_url() {
+        use super::*;
+        let url = FabricFamily::Legacyfabric.installer_url("1.1.0+1").unwrap();
+        let good = serde_json::json!([{ "version": "1.1.0+1", "url": url, "stable": false }]);
+        let entries = parse_fabric_installers(good, FabricFamily::Legacyfabric).unwrap();
+        assert_eq!(entries[0].version, "1.1.0+1");
+        assert!(
+            parse_fabric_installers(
+                serde_json::json!([{ "version": "1.0", "url": "https://evil.test/a.jar" }]),
+                FabricFamily::Fabric
+            )
+            .is_err()
+        );
+        assert!(
+            parse_fabric_installers(serde_json::json!([{ "url": "x" }]), FabricFamily::Fabric)
+                .is_err()
+        );
+        assert!(FabricFamily::Fabric.installer_url("../1.0").is_err());
+    }
     use super::*;
 
     #[test]

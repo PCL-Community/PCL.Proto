@@ -8,4 +8,6 @@ pub mod launch;
 pub mod maven;
 pub mod mod_loader;
 pub mod profile;
+pub mod saves;
+pub mod servers;
 pub mod version;

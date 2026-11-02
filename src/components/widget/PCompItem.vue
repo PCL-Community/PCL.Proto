@@ -2,7 +2,7 @@
 import { pclFormatLocale, pclLocale, pclText } from '@/api/pclLocale'
 import { compSourceOf } from '@/api/compProjects'
 import { compLoaders, compTags, compVersions } from '@/api/compResources'
-import { quickDownload } from '@/api/compDownload'
+import { quickDownload, type DatapackTarget } from '@/api/compDownload'
 import type { CompType, ISearchHit } from '@/types/comp'
 import { useCompFavorites } from '@/stores/compFavorites'
 import sideTip from '@/composables/sideTip'
@@ -21,6 +21,7 @@ const props = withDefaults(
     gameVersion?: string
     loader?: string
     resourceType?: CompType
+    datapackTarget?: DatapackTarget
   }>(),
   {
     clickable: false,
@@ -68,6 +69,8 @@ function navigateToProject() {
         id: props.data.project_id,
         type: props.resourceType || (props.loader === 'datapack' ? 'datapack' : undefined),
         version: props.gameVersion || 'all',
+        targetInstance: props.datapackTarget?.instanceDirectory,
+        save: props.datapackTarget?.save,
         loader:
           props.data.project_type === 'mod' && props.loader !== 'datapack'
             ? props.loader || undefined
@@ -80,11 +83,15 @@ async function download() {
   if (downloading.value) return
   downloading.value = true
   try {
-    await quickDownload({
-      ...props.data,
-      project_type:
-        props.resourceType || (props.loader === 'datapack' ? 'datapack' : props.data.project_type),
-    })
+    await quickDownload(
+      {
+        ...props.data,
+        project_type:
+          props.resourceType ||
+          (props.loader === 'datapack' ? 'datapack' : props.data.project_type),
+      },
+      props.datapackTarget,
+    )
   } catch (error) {
     sideTip.show(pclText('Proto.Error.Resource', [String(error)]), 'warn')
   } finally {

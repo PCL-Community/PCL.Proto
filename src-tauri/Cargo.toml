@@ -46,11 +46,15 @@ terracotta = { path = "../src-terracotta", version = "2.5.0-pcl.proto" }
 dashmap = "6.2.1"
 uuid = { workspace = true, features = ["v4"] }
 hickory-resolver = "0.26.3"
+fastrand = "2.5.0"
 base64 = "0.23.1"
 sysinfo = { version = "0.40.1", default-features = false, features = ["system"] }
 trash = "5.2.9"
 open = { version = "5.4.5", features = ["shellexecute-on-windows"] }
 fontdb = "0.23"
+fastnbt = "2.6.3"
+flate2 = "1.1.10"
+tempfile = "3.27.0"
 
 [dev-dependencies]
 tauri = { version = "2.12.5", features = ["test"] }

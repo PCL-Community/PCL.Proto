@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch, onMounted } from 'vue'
 import { invoke, isTauri } from '@tauri-apps/api/core'
+import { save } from '@tauri-apps/plugin-dialog'
 import { getMinecraftVersions } from '@/api/gameVersions'
 import type { McPluginReport } from '@/types/mcPlugin'
 import PCard from '@/components/widget/PCard.vue'
@@ -14,8 +15,10 @@ import { pclText } from '@/api/pclLocale'
 import sideTip from '@/composables/sideTip'
 import { loaderIcon } from '@/types/gameInfo'
 import { openExternal } from '@/util/externalLink'
+import { useTaskManager } from '@/stores/task'
 const props = defineProps<{ loader: string; website: string; supported?: boolean }>()
 const localeName = computed(() => (props.loader === 'OptiFine' ? 'Optifine' : props.loader))
+const fabricFamily = computed(() => ['Fabric', 'LegacyFabric'].includes(props.loader))
 const text = pclText
 const minecraft = ref('')
 const minecraftOptions = ref<{ key: string; text: string }[]>([])
@@ -24,16 +27,20 @@ const error = ref('')
 const loading = ref(false)
 let request = 0
 async function load() {
-  if (!props.supported || !minecraft.value) return
+  if (!props.supported || (!fabricFamily.value && !minecraft.value)) return
   const current = ++request
   loading.value = true
   error.value = ''
   try {
     if (!isTauri()) throw new Error(pclText('Proto.Desktop.Loaders'))
-    const data = await invoke<McPluginReport[]>('get_plugin_versions', {
-      plugin_type: props.loader.toLowerCase(),
-      mc_version: minecraft.value,
-    })
+    const data = fabricFamily.value
+      ? await invoke<McPluginReport[]>('get_fabric_installers', {
+          family: props.loader.toLowerCase(),
+        })
+      : await invoke<McPluginReport[]>('get_plugin_versions', {
+          plugin_type: props.loader.toLowerCase(),
+          mc_version: minecraft.value,
+        })
     if (current === request) versions.value = data
   } catch (err) {
     if (current === request) error.value = pclText('Proto.Error.Versions', [String(err)])
@@ -43,6 +50,7 @@ async function load() {
 }
 async function initialize() {
   if (!props.supported) return
+  if (fabricFamily.value) return load()
   loading.value = true
   try {
     const data = await getMinecraftVersions()
@@ -59,9 +67,34 @@ async function initialize() {
 }
 onMounted(initialize)
 function retry() {
-  return minecraft.value ? load() : initialize()
+  return fabricFamily.value || minecraft.value ? load() : initialize()
 }
 watch(minecraft, load)
+async function selectVersion(version: McPluginReport) {
+  if (!fabricFamily.value) return sideTip.show(pclText('Proto.NotImplemented.Installer'))
+  try {
+    const destination = await save({
+      title: text('Download.Version.SelectSaveLocation'),
+      defaultPath: `fabric-installer-${version.version}.jar`,
+      filters: [{ name: 'JAR', extensions: ['jar'] }],
+    })
+    if (!destination) return
+    const name = text(`Minecraft.Download.Stage.${props.loader}InstallerDownload`, [
+      version.version,
+    ])
+    const download = useTaskManager().downloadFabricInstaller(
+      name,
+      props.loader.toLowerCase(),
+      version.version,
+      destination,
+    )
+    sideTip.show(text('Download.Comp.QuickDownload.Hint.DownloadStarted', [version.version]))
+    await download
+    sideTip.show(text('Proto.Download.Saved', [destination]), 'success')
+  } catch (error) {
+    sideTip.show(text('Proto.Error.Download', [String(error)]), 'warn')
+  }
+}
 </script>
 <template>
   <section class="pcl-page loader-page">
@@ -87,7 +120,13 @@ watch(minecraft, load)
         }}<PButton inline @click="retry">{{
           pclText('Launch.Homepage.LoadFailed.Retry')
         }}</PButton></PHint
-      ><PCard v-else :title="minecraft || loader"
+      ><PCard
+        v-else
+        :title="
+          fabricFamily
+            ? text('Download.Version.VersionListCount', [versions.length])
+            : minecraft || loader
+        "
         ><div class="version-list">
           <PVirtualList
             :items="versions"
@@ -100,7 +139,7 @@ watch(minecraft, load)
               :icon="loaderIcon(loader)"
               :subtitle="version.stable ? text('Download.Version.Type.Stable') : undefined"
               clickable
-              @click="() => sideTip.show(pclText('Proto.NotImplemented.Installer'))"
+              @click="() => selectVersion(version)"
             />
           </PVirtualList>
           <p v-if="!versions.length" class="pcl-empty">
