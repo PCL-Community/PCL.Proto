@@ -7,7 +7,9 @@
 
 use serde::{Deserialize, Serialize};
 
-pub mod skin;
+pub mod auth;
+pub mod service;
+pub mod uuid;
 
 /// Authentication provider of a launcher profile.
 ///
@@ -30,10 +32,12 @@ pub enum ProfileType {
 /// Mirrors `PCL.Core.Minecraft.Profile.Models.McProfile` / `SafeProfile`.
 /// Provider-only fields stay optional so offline profiles do not accumulate
 /// meaningless credentials.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct McProfile {
     pub profile_id: String,
+    // CE 的 JSON 名：`username`（不是 `userName`）。
+    #[serde(rename = "username")]
     pub user_name: String,
     pub access_token: String,
     pub uuid: String,
@@ -50,6 +54,8 @@ pub struct McProfile {
     // Authlib / Yggdrasil
     pub server: Option<String>,
     pub server_name: Option<String>,
+    // CE 的 JSON 名：`name`（属性名是 LoginName）。
+    #[serde(rename = "name")]
     pub login_name: Option<String>,
     pub password: Option<String>,
 
@@ -65,149 +71,6 @@ pub struct McProfile {
     pub server_homepage: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub server_meta: Option<String>,
-}
-
-/// Legacy `Account` enum persisted by Proto before the `McProfile` migration.
-#[derive(Deserialize)]
-enum LegacyAccount {
-    Offline {
-        username: String,
-        uuid: String,
-    },
-    Yggdrasil {
-        username: String,
-        uuid: String,
-        access_token: String,
-    },
-    Microsoft {
-        username: String,
-        uuid: String,
-        access_token: String,
-        refresh_token: String,
-        xuid: String,
-    },
-    AuthlibInjector {
-        api_location: String,
-        server_name: String,
-        server_homepage: String,
-        server_meta: String,
-        access_token: String,
-        uuid: String,
-        username: String,
-    },
-}
-
-#[derive(Deserialize, Default)]
-#[serde(default, rename_all = "camelCase")]
-struct ModernProfile {
-    profile_id: String,
-    user_name: String,
-    access_token: String,
-    uuid: String,
-    token_type: String,
-    profile_type: ProfileType,
-    refresh_token: String,
-    client_token: String,
-    expires_at: Option<chrono::DateTime<chrono::Utc>>,
-    description: String,
-    skin_head_id: String,
-    raw_json: String,
-    server: Option<String>,
-    server_name: Option<String>,
-    login_name: Option<String>,
-    password: Option<String>,
-    provider: Option<String>,
-    discovery_address: Option<String>,
-    id_token: Option<String>,
-    xuid: Option<String>,
-    server_homepage: Option<String>,
-    server_meta: Option<String>,
-}
-
-#[derive(Deserialize)]
-#[serde(untagged)]
-enum ProfileCompat {
-    Legacy(LegacyAccount),
-    Modern(ModernProfile),
-}
-
-impl From<ModernProfile> for McProfile {
-    fn from(value: ModernProfile) -> Self {
-        Self {
-            profile_id: value.profile_id,
-            user_name: value.user_name,
-            access_token: value.access_token,
-            uuid: value.uuid,
-            token_type: if value.token_type.is_empty() {
-                "Bearer".into()
-            } else {
-                value.token_type
-            },
-            profile_type: value.profile_type,
-            refresh_token: value.refresh_token,
-            client_token: value.client_token,
-            expires_at: value.expires_at,
-            description: value.description,
-            skin_head_id: value.skin_head_id,
-            raw_json: value.raw_json,
-            server: value.server,
-            server_name: value.server_name,
-            login_name: value.login_name,
-            password: value.password,
-            provider: value.provider,
-            discovery_address: value.discovery_address,
-            id_token: value.id_token,
-            xuid: value.xuid,
-            server_homepage: value.server_homepage,
-            server_meta: value.server_meta,
-        }
-    }
-}
-
-impl From<LegacyAccount> for McProfile {
-    fn from(value: LegacyAccount) -> Self {
-        match value {
-            LegacyAccount::Offline { username, uuid } => McProfile::offline(username, uuid),
-            LegacyAccount::Yggdrasil {
-                username,
-                uuid,
-                access_token,
-            } => McProfile::yggdrasil(username, uuid, access_token),
-            LegacyAccount::Microsoft {
-                username,
-                uuid,
-                access_token,
-                refresh_token,
-                xuid,
-            } => McProfile::microsoft(username, uuid, access_token, refresh_token, xuid),
-            LegacyAccount::AuthlibInjector {
-                api_location,
-                server_name,
-                server_homepage,
-                server_meta,
-                access_token,
-                uuid,
-                username,
-            } => McProfile::authlib(
-                api_location,
-                server_name,
-                server_homepage,
-                server_meta,
-                access_token,
-                uuid,
-                username,
-            ),
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for McProfile {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        match ProfileCompat::deserialize(deserializer)? {
-            ProfileCompat::Legacy(legacy) => Ok(legacy.into()),
-            ProfileCompat::Modern(modern) => Ok(modern.into()),
-        }
-    }
 }
 
 impl Default for McProfile {
@@ -344,6 +207,10 @@ impl McProfile {
         if self.uuid.trim().is_empty() {
             return Err("Profile has no UUID".into());
         }
+        // CE 的 IsProfileValid：名称里的引号会破坏启动参数。
+        if self.user_name.contains('"') {
+            return Err("Player name contains a quote".into());
+        }
         if matches!(
             self.profile_type,
             ProfileType::Microsoft | ProfileType::YggdrasilConnect | ProfileType::Authlib
@@ -405,47 +272,6 @@ mod tests {
         assert!(value.get("accessToken").is_none());
         assert!(value.get("refreshToken").is_none());
         assert!(value.get("xuid").is_none());
-    }
-
-    #[test]
-    fn legacy_account_enums_migrate_to_profiles() {
-        let offline: McProfile = serde_json::from_value(serde_json::json!({
-            "Offline": {"username": "Player", "uuid": "uuid"}
-        }))
-        .unwrap();
-        assert_eq!(offline.user_name, "Player");
-        assert_eq!(offline.profile_type, ProfileType::Offline);
-
-        let microsoft: McProfile = serde_json::from_value(serde_json::json!({
-            "Microsoft": {
-                "username": "Player",
-                "uuid": "uuid",
-                "access_token": "access",
-                "refresh_token": "refresh",
-                "xuid": "xuid"
-            }
-        }))
-        .unwrap();
-        assert_eq!(microsoft.profile_type, ProfileType::Microsoft);
-        assert_eq!(microsoft.access_token(), Some("access"));
-        assert_eq!(microsoft.refresh_token, "refresh");
-        assert_eq!(microsoft.xuid(), Some("xuid"));
-
-        let authlib: McProfile = serde_json::from_value(serde_json::json!({
-            "AuthlibInjector": {
-                "api_location": "https://example.org/api",
-                "server_name": "Example",
-                "server_homepage": "https://example.org",
-                "server_meta": "meta",
-                "access_token": "access",
-                "uuid": "uuid",
-                "username": "Player"
-            }
-        }))
-        .unwrap();
-        assert_eq!(authlib.profile_type, ProfileType::Authlib);
-        assert_eq!(authlib.server.as_deref(), Some("https://example.org/api"));
-        assert_eq!(authlib.server_meta.as_deref(), Some("meta"));
     }
 
     #[test]

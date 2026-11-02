@@ -2,6 +2,10 @@
 
 > 2026-10-30：Rust 模块与关键类型已按 PCL.Core/CE 结构对齐，详见 [Rust 后端与 PCL.Core 结构对齐](CORE_ALIGNMENT.md)。本文保留原有功能迁移与验收记录；文中 `core/`、`util/`、`setup.rs` 等旧路径为迁移时记录，当前路径以对齐文档为准。
 
+2026-11-02：按 PCL2-CE 移植账号功能，三种登录方式（微软设备码、authlib-injector 密码、Yggdrasil Connect 设备码）与离线档案全部接通。档案列表支持新建、选择、删除、复制/更改离线 UUID 与正版改名；皮肤页支持更换（正版上传、第三方跳转衣柜）、保存、刷新与修改密码入口；启动前按 CE 的规则静默刷新令牌，第三方账号自动准备 authlib-injector 并预取服务器元数据。离线 UUID 的行业规范与旧版 PCL 两套算法、令牌校验与刷新的分支、XSTS/未购买/未建档等错误弹窗均对照 CE 实现；单元测试覆盖 UUID 生成、OAuth 响应校验、服务器地址归一化与 JWT 声明解析，前端测试覆盖登录会话状态机、取消、角色选择与皮肤回退。真实的微软/皮肤站登录、游戏内第三方服务器进服与披风更换仍待验收，披风选择尚未实现。
+
+2026-11-02：档案配置改为 CE 的 `ProfileJson`（`profile: { lastUsed, profiles[] }`，字段名 `username` / `name`）；移除“先完成一次正版验证才能使用其它验证方式”的限制（`ProfileUi.CanCreateOtherProfile`），因为没有可用的 Microsoft Client ID。同时删除了所有旧配置兼容：旧账户枚举与 camelCase 字段名、Java 的 `directory_path`/`compability`/`is_jdk`/`implementor`、`default_java`、`accounts`/`active_account`，以及旧版浏览器设置（localStorage）到 Rust 配置的一次性迁移命令与其前端模块。
+
 2026-11-02：新增本地和在线 Modrinth 整合包安装，支持原版与 Fabric、可选文件选择、校验下载和覆盖文件；实例隔离与发布受安装事务保护。资源详情保留单独保存整合包文件的入口，CurseForge 继续使用原有下载流程。任务页按行显示阶段并支持取消，Fabric 阶段反映实际 profile 获取和库分析。Forge、NeoForge、其他整合包格式及真实 Tauri 和游戏启动仍待完成或验证。
 
 在线验收：使用 Modrinth 的 `1.20.1 OFF Backport 1.0.0`（Fabric 0.16.10，索引含 41 个文件）在临时仓库完成整合包下载、游戏及附加文件安装，验证实例 JSON、模组文件和隔离配置；安装目录在测试结束后清理。该测试不覆盖原生界面操作或实际启动游戏。
@@ -126,7 +130,7 @@ cargo test -p pcl-proto --lib official_client_and_server_export -- --ignored --n
 
 设置页的下载源、版本列表源、连接数、单文件连接数、限速和 HTTP 协议均已接入 Rust。安装、导出和获取版本列表时也携带已保存的设置，首次下载不依赖先打开设置页。活动连接表示正在执行的 HTTP 请求/HTTP2 流，并不等于系统 TCP socket 数。
 
-后续迁移：桌面端这六项现由 Rust 配置保存并在后端启动时应用；前端首次运行仅在 Rust 尚无该组设置时迁移旧 localStorage 值，后续安装、导出、Java 下载与启动补全均不再传入策略副本。写入串行化并先保存再应用；失败保留前端草稿和重试入口。测试覆盖一次性迁移、新值优先、写盘失败及前端提交顺序。跨窗口 revision 和通知、真正的 Tauri 重启验收尚未完成。
+后续迁移：桌面端这六项现由 Rust 配置保存并在后端启动时应用，前端首次运行写入默认值，后续安装、导出、Java 下载与启动补全均不再传入策略副本。写入串行化并先保存再应用；失败保留前端草稿和重试入口。测试覆盖新值优先、写盘失败及前端提交顺序。跨窗口 revision 和通知、真正的 Tauri 重启验收尚未完成。
 
 新增验证：
 
@@ -156,7 +160,7 @@ cargo test -p pcl-proto --lib official_large_client_range_smoke -- --ignored --n
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 探测     | 执行 `-XshowSettings:properties -version`，旧 Java 回退 `-version`；校验真实版本、Java Home、架构和供应商，解析 Java 6/8 更新号及现代 EA 版本。处理系统 stub、wrapper、符号链接、Java 8 嵌套 JRE；超时 5 秒，输出有界且同步排空两个管道         |
 | 扫描     | 环境变量、PATH、系统 JVM 根、SDKMAN/asdf/jabba/mise、Minecraft 与启动器 runtime；Windows 追加注册表和 Store runtime，macOS 追加 JDK bundles、Applications、Homebrew。关键词遍历有深度限制并防链接循环；自动扫描间隔至少 13 秒，手动刷新强制重扫 |
-| 状态     | 统一 Rust 配置保存全局路径、运行时启用/禁用和实例偏好；扫描保留禁用状态与并发导入，失效项移除。配置写入临时文件后替换，序列化失败保留原文件；旧实例 localStorage 偏好只在没有新设置时迁移                                                       |
+| 状态     | 统一 Rust 配置保存全局路径、运行时启用/禁用和实例偏好；扫描保留禁用状态与并发导入，失效项移除。配置写入临时文件后替换，序列化失败保留原文件                                                                                   |
 | 需求     | 原版/快照日期、OptiFine、Forge（含 Java 7 和 8u321 上限）、Fabric、LiteLoader、Cleanroom、LabyMod；读取 JSON `javaVersion`、非连续 `compatibleJavaMajors` 集合与 JAR `version.json`。仅为 Java 需求解析父版本元数据，并检查继承循环             |
 | 选择     | 实例指定/启动器目录内相对路径 → 全局指定 → 自动候选；每次选择重新探测实际 executable。自动候选按最低可接受 major、原生架构、JDK、供应商、最新补丁排序，禁用、失效或不能运行的候选不会启动                                                       |
 | 手动覆盖 | 与当前 CE 一致：指定版本越界时警告后仍使用，忽略兼容性只跳过警告。CE 当前 `AutoSelect` 在启动选择时仍继续检查全局指定；实例 Auto 不会绕过全局手动覆盖                                                                                           |
@@ -168,7 +172,7 @@ cargo test -p pcl-proto --lib official_large_client_range_smoke -- --ignored --n
 Java 验证：
 
 - 本轮 Rust 核心离线回归 47 项通过（其中 Java 18 项），另有配置回归 2 项、路径边界回归 1 项通过。Java 覆盖需求规则、major 集合、排序、缓存版本失真、手动越界警告、禁用/失效回退、别名去重、Java 6 回退、Java 8 JDK、相对路径与 manifest 链接边界、继承循环、扫描目录布局、探测大输出/超时，以及模拟 HTTP 完整安装、错误散列和取消清理。`pnpm ui:build` 通过。
-- 配置回归覆盖旧字段迁移、不覆盖新偏好、保存失败保留旧文件；前端真实 Pinia store 的模拟 IPC 回归覆盖迁移、持久化、保存失败、迟到请求隔离、相对路径和禁用候选。
+- 配置回归覆盖保存失败保留旧文件；前端真实 Pinia store 的模拟 IPC 回归覆盖持久化、保存失败、迟到请求隔离、相对路径和禁用候选。
 - macOS ARM64 本机只读扫描通过，识别本地 Java 8、17、21，以及用户 Applications 中 Rider 自带的 Java 25.0.2。官方 ARM64 Java 25.0.1 已在独立临时目录完整下载、校验、执行并清理，报告原生架构兼容；没有改写用户启动器配置。
 - Chrome 使用真实 Vue 组件与模拟 Tauri IPC，检查全局选择、启用/禁用、实例选项和相对路径保存；这不等于原生 Tauri 验收。
 - Windows/Linux/macOS 构建矩阵已加入 Java 和配置测试；尚未执行远端 CI。本机 Windows 交叉检查在下载目标依赖阶段受阻，没有取得 Windows 编译结果。
@@ -232,7 +236,6 @@ cargo test -p pcl-proto --lib official_native_java25_install_smoke -- --ignored 
 
 后续进展：全局窗口默认、自定义和同启动器尺寸已连接配置事务及启动参数；同启动器尺寸通过 Tauri 获取物理像素，旧版元数据按 CE 的发布日期条件补充尺寸。受控进程与配置测试覆盖实际参数、迁移、范围及写盘失败。全屏和最大化仍不可用，早期版本或不支持尺寸参数的加载器不能保证效果，未验证真实游戏或各平台窗口行为。
 
-后续进展：旧实例 Java 偏好迁移改为启动时批量执行，扫描登记仓库并只将唯一 ID 绑定到对应目录，已有 Rust 偏好优先；重复 ID、目录不可访问、数据无效或缺失时保留旧值并提示。迁移结果和完成标记通过同一配置事务提交。本地测试覆盖同 ID、已有配置、重试、写入失败和目录不可访问；无法追溯旧逻辑已错误写入的偏好，也不能保证扫描期间外部程序不修改实例目录，尚未验收真实 Tauri 重启。
 
 后续进展：实例概览的实例、存档和 Mod 目录快捷方式已接入后端，并与游戏启动共用当前游戏目录解析；存档和 Mod 目录按需创建，不覆盖已有内容。命令只接受当前选择的实例与预定义目录类型；测试覆盖目录不存在、同名文件、原有数据保护和实例切换。文件管理器启动后的系统错误及真实 Tauri、Windows/Linux 桌面交互尚未验收。
 
@@ -254,3 +257,47 @@ cargo test -p pcl-proto --lib official_native_java25_install_smoke -- --ignored 
 4. **资源与整合包**：Modrinth 与 CurseForge 的检索已接通（含双来源合并）；继续接真实文件安装、依赖解析、更新及收藏批量操作，之后接整合包导入/导出和存档操作。
 
 Windows/Linux 真实桌面行为与 Java 扫描、macOS WebView 安装交互、账户认证和联机仍需各自验收，不能用本批 Rust 服务测试代替。
+
+## 账号与登录：对齐 PCL.Core.Minecraft.Profile（2026-11-02）
+
+对应 CE 源文件：`PCL.Core/Minecraft/Profile/{ProfileService,ProfileManagement}.cs`、`Profile/Authentication/{MicrosoftProvider,AuthlibProvider,YggdrasilConnectProvider,IAuthenticateProvider}.cs`、`PCL.Core/Minecraft/IdentityModel/**`、`Plain Craft Launcher 2/Modules/Minecraft/{ProfileUi,ModSkin}.cs`、`Pages/PageLaunch/{PageLoginMs,PageLoginAuth,PageLoginOffline,PageLoginProfile,PageLoginProfileSkin,MyMsgLogin}.xaml.cs`。
+
+| 文件                                                       | 职责                                                                                                                       |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `src-tauri/src/minecraft/profile/service.rs`               | 档案增删改查与选择，全部走 `ConfigManager::update` 事务；`apply`/`find_matching` 对应 CE 的 `ApplyAuthenticationResult`      |
+| `src-tauri/src/minecraft/profile/uuid.rs`                  | 离线 UUID（MD5 v3 与旧版 PCL 哈希两套）与 `McSkinSex` 的默认皮肤推导                                                        |
+| `src-tauri/src/minecraft/profile/auth/oauth.rs`            | 设备码/令牌响应的必须字段校验、轮询错误分类（`authorization_pending`/`slow_down`/`expired_token`/`access_denied`）           |
+| `src-tauri/src/minecraft/profile/auth/microsoft.rs`        | OAuth 设备码与刷新、Xbox Live、XSTS（含 `xsts_<XErr>` 错误码）、Mojang 登录/许可/档案与改名                                 |
+| `src-tauri/src/minecraft/profile/auth/yggdrasil.rs`        | 传统 Yggdrasil 的 authenticate/refresh/validate 端点封装                                                                     |
+| `src-tauri/src/minecraft/profile/auth/authlib.rs`          | authlib-injector 提供者：地址归一化、`X-Authlib-Injector-Api-Location` 跟随、多角色选择、`meta.serverName`                   |
+| `src-tauri/src/minecraft/profile/auth/connect.rs`          | Yggdrasil Connect：OpenID 发现与校验、设备码、JWKS 签名验证（拒绝 HS*）、用户信息回退与角色选择                              |
+| `src-tauri/src/minecraft/profile/auth/session/`            | 登录会话：`mod.rs` 状态机与设备码/角色选择/取消，`login.rs` 复用、刷新与重新认证（`login_for_launch` 供启动流程无界面刷新）   |
+| `src-tauri/src/commands/skin.rs`                           | 按档案类型解析皮肤（Mojang / 认证服务器 sessionserver / 内置），缓存、另存与正版皮肤上传                                     |
+| `src-tauri/src/minecraft/launch/authlib.rs`                | authlib-injector.jar 的下载与 sha256 校验、prefetched 元数据与 javaagent 参数                                                |
+| `src-tauri/src/commands/account.rs`                        | 档案与登录会话命令、认证服务器探测                                                                                           |
+| `src-tauri/src/app/secrets.rs` + `src-tauri/build.rs`      | `MS_CLIENT_ID` 编译期烧录 + 运行环境变量兜底（与 CurseForge 同一套机制）                                                     |
+| `src/stores/account.ts`                                    | 档案列表、当前档案、皮肤缓存与登录会话轮询                                                                                   |
+| `src/composables/useLoginSession.ts`                       | 设备码弹窗、角色选择弹窗、结果提示与登录按钮百分比（CE 的 0%→5%→98%）                                                        |
+| `src/util/loginErrors.ts`                                  | `xsts_*`、`minecraft_not_owned`、`profile_not_created` 等错误码到 CE 弹窗的映射                                              |
+| `src/views/Home/PageLogin*.vue`                            | 四个登录页与档案列表/皮肤页的实际行为                                                                                        |
+
+已改变的行为与有意保留的差异：
+
+1. 微软 OAuth 的 Client ID 未配置时回退到旧版公开客户端 `00000000402b5328`；但 2026-11-02 实测微软设备码端点返回 `AADSTS700016`，因此仍需配置支持设备码的 `MS_CLIENT_ID`。CE 在未配置时直接报错。
+2. 设备码轮询放在后端会话任务里，界面只轮询状态；CE 的轮询循环在弹窗代码里。两者的间隔、`slow_down` +5 秒、2 秒后自动打开网页并复制授权码的行为一致。
+3. 启动前的令牌刷新不做交互：需要设备码或多角色选择时直接失败并提示重新登录，CE 会在启动过程中弹出登录框；CE 的“刷新失败仍用缓存档案继续启动”确认框也未实现。
+4. 档案（含第三方账号密码与各类令牌）保存在 `config.json` 明文字段中，CE 使用加密配置源；这是 Proto 既有的配置格式，尚未加密。
+5. 披风更换只保留菜单入口并提示不支持，CE 会拉取披风列表并渲染预览。
+6. 认证服务器地址在 Proto 的第三方登录页内直接输入并即时探测，CE 是在新建档案时先用 `MyMsgAuthServer` 弹窗选择预设或自定义地址；预设列表同样只有 LittleSkin。
+
+验收：`cargo test -p pcl-proto --lib`（含新增的离线 UUID、OAuth 响应校验、会话状态序列化、服务器地址归一化、JWT 声明解析、皮肤文件校验与 javaagent 参数用例）、`cargo clippy -p pcl-proto --all-targets`（新增代码无告警）、`pnpm ui:build`（含 `pnpm check:ui` 的 15 个测试与 `vue-tsc`）全部通过。
+
+真实网络冒烟测试（默认忽略，只读取公开元数据与错误响应，不登录任何账号）：
+
+```sh
+cargo test -p pcl-proto --lib -- --ignored auth::connect::tests::littleskin auth::authlib::tests::wrong_credentials
+# 验证微软设备码端点：
+cargo test -p pcl-proto --lib -- --ignored auth::microsoft::tests::device_code_endpoint
+```
+
+已用 LittleSkin 实测通过：`X-Authlib-Injector-Api-Location` 跟随、`meta.serverName` 读取、OpenID 发现文档校验、内置 ClientId（1514）解析、设备码申请，以及错误凭据返回服务器错误码。未验收：真实微软账号登录、真实皮肤站账号的密码与 OAuth 登录、游戏内进入第三方服务器、正版皮肤上传与改名，以及 Windows/Linux 上的原生界面表现。

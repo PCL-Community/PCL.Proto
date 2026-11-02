@@ -14,30 +14,11 @@ function sliderForLines(lines: number) {
   )
 }
 
-function legacySlider() {
-  for (const page of ['PageLogRight', 'PageSetupLauncherMisc']) {
-    const raw = localStorage.getItem(`pcl-ui:${page}:global`)
-    try {
-      const value = JSON.parse(raw || '{}')?.SliderMaxLog
-      if (typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 29)
-        return value
-    } catch {
-      // Keep the old data intact and try the next source.
-    }
-  }
-  return 13
-}
-
 export async function initializeLogSettings() {
   if (!isTauri()) return
-  let lines = await invoke<number | null>('get_log_max_lines')
-  if (lines === null) {
-    const legacy = maxLogLines(legacySlider())
-    lines = await invoke<number>('set_log_max_lines', {
-      lines: Number.isFinite(legacy) ? legacy : 0,
-      migrateOnly: true,
-    })
-  }
+  const lines =
+    (await invoke<number | null>('get_log_max_lines')) ??
+    (await invoke<number>('set_log_max_lines', { lines: maxLogLines(logSlider.value) }))
   logSlider.value = sliderForLines(lines)
 }
 
@@ -50,10 +31,7 @@ export function saveLogSettings() {
   logSaveError.value = ''
   pending = pending.then(async () => {
     try {
-      await invoke('set_log_max_lines', {
-        lines: Number.isFinite(lines) ? lines : 0,
-        migrateOnly: false,
-      })
+      await invoke('set_log_max_lines', { lines: Number.isFinite(lines) ? lines : 0 })
     } catch (error) {
       if (logSlider.value === value) logSaveError.value = String(error)
     }

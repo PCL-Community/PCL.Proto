@@ -98,8 +98,7 @@ export async function setPclLocale(locale: string): Promise<void> {
 export async function initializePclLocale(): Promise<void> {
   let locale = 'auto'
   try {
-    const stored =
-      localStorage.getItem('pcl-language') || localStorage.getItem('ce-language') || 'auto'
+    const stored = localStorage.getItem('pcl-language') || 'auto'
     locale = stored.toLowerCase() === 'auto' ? 'auto' : normalizeLocale(stored)
     setPclFormatLocale(localStorage.getItem('pcl-format-locale') || 'auto')
   } catch (error) {

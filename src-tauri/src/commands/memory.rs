@@ -42,7 +42,6 @@ pub async fn set_memory_settings(
     instance_directory: Option<std::path::PathBuf>,
     settings: Option<crate::minecraft::launch::memory::MemorySettings>,
     custom: Option<crate::minecraft::launch::memory::MemoryCustom>,
-    migrate_only: bool,
 ) -> Result<crate::minecraft::launch::memory::MemorySnapshot, String> {
     use crate::minecraft::launch::memory::{MemoryCustom, MemorySnapshot};
     if let Some(settings) = &settings {
@@ -72,17 +71,6 @@ pub async fn set_memory_settings(
         ConfigManager::instance().update(|state| {
             if let Some(directory) = instance_directory {
                 current_instance(state, &directory).map_err(|error| error.to_string())?;
-                if migrate_only && let Some(saved) = state.instance_memory_settings.get(&directory)
-                {
-                    return Ok(MemorySnapshot {
-                        settings: Some(saved.clone()),
-                        custom: state
-                            .instance_memory_custom
-                            .get(&directory)
-                            .cloned()
-                            .unwrap_or_else(|| MemoryCustom::from_settings(Some(saved))),
-                    });
-                }
                 if let Some(settings) = settings.clone() {
                     state
                         .instance_memory_settings
@@ -95,31 +83,11 @@ pub async fn set_memory_settings(
                 state
                     .instance_memory_custom
                     .insert(directory.clone(), custom.clone());
-                state.edited_memory_instances.insert(directory);
                 Ok(MemorySnapshot { settings, custom })
             } else {
                 let value = settings
                     .clone()
                     .ok_or("Global memory settings cannot inherit")?;
-                if migrate_only && let Some(saved) = &state.memory_settings {
-                    let saved = saved.clone();
-                    if state.memory_custom.is_none() {
-                        state.memory_custom = match &saved {
-                            crate::minecraft::launch::memory::MemorySettings::Custom { .. } => {
-                                Some(MemoryCustom::from_settings(Some(&saved)))
-                            }
-                            _ => custom,
-                        };
-                    }
-                    let custom = state
-                        .memory_custom
-                        .clone()
-                        .unwrap_or_else(|| MemoryCustom::from_settings(Some(&saved)));
-                    return Ok(MemorySnapshot {
-                        settings: Some(saved),
-                        custom,
-                    });
-                }
                 state.memory_settings = Some(value.clone());
                 let custom = custom.unwrap_or_else(|| MemoryCustom::from_settings(Some(&value)));
                 state.memory_custom = Some(custom.clone());
@@ -129,17 +97,6 @@ pub async fn set_memory_settings(
                 })
             }
         })
-    })
-    .await
-    .map_err(|error| error.to_string())?
-}
-
-#[tauri::command]
-pub async fn migrate_instance_memory_settings(
-    legacy: std::collections::HashMap<String, crate::minecraft::launch::memory::MemorySnapshot>,
-) -> Result<Vec<String>, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        ConfigManager::instance().migrate_instance_memory_settings(legacy)
     })
     .await
     .map_err(|error| error.to_string())?

@@ -22,7 +22,10 @@ export const downloadSettingKeys = [
 ]
 
 export async function initializeDownloadSettings() {
-  return invoke<DownloadSettings>('initialize_download_settings', { legacy: downloadSettings() })
+  return (
+    (await invoke<DownloadSettings | null>('get_download_settings')) ||
+    invoke<DownloadSettings>('set_download_settings', { settings: downloadSettings({}) })
+  )
 }
 
 export const downloadSettingsStorage = createSettingsPersistence(
@@ -61,16 +64,8 @@ export interface DownloadStats {
   downloaded_bytes: number
 }
 
-export function downloadSettings(values?: Record<string, unknown>): DownloadSettings {
-  if (!values) {
-    const saved = localStorage.getItem('pcl-ui:PageSetupGameManage:global')
-    try {
-      values = JSON.parse(saved || '{}')
-    } catch {
-      // Invalid persisted preferences use the same defaults as the settings page.
-    }
-  }
-  const settings = values || {}
+export function downloadSettings(values: Record<string, unknown> = {}): DownloadSettings {
+  const settings = values
   const integer = (key: string, fallback: number, max: number) => {
     const raw = settings[key]
     const value =

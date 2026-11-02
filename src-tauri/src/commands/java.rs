@@ -183,16 +183,6 @@ pub async fn set_instance_java_settings(
     .map_err(|e| e.to_string())?
 }
 #[tauri::command]
-pub async fn migrate_instance_java_settings(
-    legacy: std::collections::HashMap<String, InstanceJavaSettings>,
-) -> Result<Vec<String>, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        ConfigManager::instance().migrate_instance_java_settings(legacy)
-    })
-    .await
-    .map_err(|error| error.to_string())?
-}
-#[tauri::command]
 pub async fn select_relative_java(app: AppHandle) -> Result<Option<JavaPreference>, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let root = java::launcher_directory().map_err(|e| e.to_string())?;

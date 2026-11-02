@@ -3,11 +3,20 @@ import { pclText } from '@/api/pclLocale'
 import sideTip from '@/composables/sideTip'
 import { openExternal } from '@/util/externalLink'
 
-// Device-code login uses the existing application modal.
-export function PMsgLogin(code: string, verificationUrl: string, caption: string) {
+/**
+ * 设备码登录弹窗，对照 CE 的 `MyMsgLogin`：重新打开网页、复制代码、取消。
+ *
+ * 轮询在后端进行，取消时调用 `onCancel` 让后端停下。
+ */
+export function PMsgLogin(
+  code: string,
+  verificationUrl: string,
+  caption: string,
+  onCancel: () => void,
+) {
   const modal = useModal()
   return modal.open({
-    title: pclText('Launch.Account.LoginDialog.Title'),
+    title: pclText('Launch.Account.LoginDialog.MinecraftLogin'),
     content: caption,
     buttons: [
       {
@@ -25,7 +34,13 @@ export function PMsgLogin(code: string, verificationUrl: string, caption: string
           }
         },
       },
-      { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
+      {
+        content: pclText('Common.Action.Cancel'),
+        operation: () => {
+          onCancel()
+          modal.close(false)
+        },
+      },
     ],
   })
 }

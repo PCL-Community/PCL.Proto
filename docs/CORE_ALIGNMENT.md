@@ -2,7 +2,7 @@
 
 日期：2026-10-30。参考：`../PCL2-CE/PCL.Core`（revision `d6881999`）与 `../PCL2-CE/Plain Craft Launcher 2` 的实例/网络模型。
 
-本文记录本轮“将现有 Rust 功能按 PCL.Core 的结构与关键命名对齐”的落地结果、兼容策略和有意保留的差异。它不宣称补齐了 PCL.Core 的全部子系统；存档 NBT、缓存服务、任务中心、事件总线、账户 OAuth/OpenID 等仍属于后续工作。
+本文记录本轮“将现有 Rust 功能按 PCL.Core 的结构与关键命名对齐”的落地结果、兼容策略和有意保留的差异。它不宣称补齐了 PCL.Core 的全部子系统；存档 NBT、缓存服务、任务中心、事件总线等仍属于后续工作（账户 OAuth/OpenID 已于 2026-11-02 落地，见 [BACKEND_ALIGNMENT.md](BACKEND_ALIGNMENT.md)）。
 
 ## 1. 目标与边界
 
@@ -58,13 +58,15 @@ src-tauri/src/
       settings.rs      实例启动附加设置与资源释放
       memory.rs        CE 自动内存公式与实例内存解析
     profile/
-      mod.rs           McProfile / ProfileType
-      skin.rs          皮肤与档案查询
+      mod.rs           McProfile / ProfileType / SafeProfile
+      service.rs       档案列表、选择与认证结果写回（对应 Profile.ProfileService）
+      uuid.rs          离线 UUID 与默认皮肤推导（对应 ProfileUi.GetOfflineUuid）
+      auth/            认证提供者：oauth、microsoft、yggdrasil、authlib、connect；session/ 为登录会话与流程编排
   utils/
     platform.rs        OS/Architecture/Compatibility
     secret.rs          设备标识与 PCL 哈希
     toys.rs            今日人品
-  commands/            按启动、设置、Java、实例、资源、仓库等职责拆分的 IPC 适配层
+  commands/            按启动、设置、Java、实例、资源、仓库、皮肤等职责拆分的 IPC 适配层
 ```
 
 ## 3. 关键结构映射
@@ -85,7 +87,11 @@ src-tauri/src/
 | `ModFolder.McFolder`（CE）                      | `minecraft::instance::folder::McFolder`                           | 新增 `McFolderType`（Original/RenamedOriginal/Custom）。                                              |
 | `McInstanceFolder`（CE 快捷目录）               | `minecraft::instance::McInstanceFolder`                           | 实例/存档/模组快捷目录。                                                                              |
 | `Profile.Models.McProfile` / `ProfileType`      | `minecraft::profile::{McProfile, ProfileType}`                    | 统一账户档案；保留 Microsoft/Authlib/Xbox 启动所需字段。                                              |
-| `Profile.Models.SafeProfile`                    | `minecraft::profile::SafeProfile`                                 | `get_account` 的 UI 视图，不返回 access/refresh token、xuid 或密码。                                  |
+| `Profile.Models.SafeProfile`                    | `minecraft::profile::SafeProfile`                                 | `get_profiles` 的 UI 视图，不返回 access/refresh token、xuid 或密码。                                 |
+| `Profile.ProfileService` / `ProfileManagement`  | `minecraft::profile::service`                                     | 档案增删改查与选择，写入走 `ConfigManager::update` 事务。                                             |
+| `Profile.Authentication.*Provider`              | `minecraft::profile::auth::{microsoft, authlib, connect}`         | 微软 OAuth+Xbox+Mojang、authlib-injector、Yggdrasil Connect 三种登录方式。                            |
+| `IdentityModel.OAuth` / `Yggdrasil`             | `minecraft::profile::auth::{oauth, yggdrasil}`                    | 设备码/令牌响应校验与传统 Yggdrasil 端点封装。                                                        |
+| `MyMsgLogin` 弹窗轮询                            | `minecraft::profile::auth::session`                               | 登录会话状态机：设备码、角色选择、取消，前端轮询状态。                                                |
 | `Utils.Result`                                  | Rust 原生 `Result`                                                | 不重复造 `Result` 类型。                                                                              |
 | `Utils.Secret.Identify`                         | `utils::secret::Identify`                                         | 设备序列号与启动器标识派生；保留 Proto 的平台实现。                                                   |
 | `Link.McPing.Model.McPing*`                     | `link::mcping::model::{McPingResult, McPingPlayerResult, ...}`    | 服务器状态 JSON 的类型化结果；`description` 保留原始 chat component。                                 |
@@ -97,13 +103,9 @@ src-tauri/src/
 ## 4. 兼容与迁移
 
 - **Tauri 命令名不变**：`get_java_list`、`add_java`、`get_account` 等仍使用原名称；`lib.rs` 的 handler 列表未改。
-- **Java JSON**：`JavaEntry` 以 `#[serde(flatten)]` 输出扁平结构；旧字段通过自定义 `Deserialize` 兼容：
-  - `directory_path` → `java_folder`
-  - `compability` → `compatibility`
-  - `is_jdk` → `is_jre` 的反向映射
-  - `implementor` → `brand`（按 vendor 字符串识别）
-  - `is_user_imported` 不再持久化；旧值会被忽略，扫描后会按 `JavaSource::AutoScanned` 重新标记。
+- **不兼容旧配置**：Java 与档案的旧字段名（`directory_path`、`compability`、`is_jdk`、`implementor`、`userName`、`loginName`）与旧账户枚举、旧 `accounts` / `active_account` 段都不再读取；字段只按 PCL.Core 命名序列化。
 - **账户 JSON**：由枚举 `{ "Offline": { ... } }` 改为 `McProfile` 扁平结构，`profileType` 为 `microsoft`/`offline`/`authlib`/`yggdrasilConnect`。前端 `stores/account.ts`、启动页已同步。
+- **档案配置**：`AppState.profile` 采用 CE 的 `profile: { lastUsed, profiles[] }`，字段名对齐 `username` / `name`。
 - **配置根**：`AppState.launcher_setup` 使用 `#[serde(rename = "pcl_setup_info")]`，旧 `config.json` 不需要改写。
 - **实例文件夹**：`McFolder.kind` 缺省为 `custom`，旧仓库记录可直接反序列化。
 - **持久化 Java 列表**：仍以 `Vec<JavaEntry>` 保存在 `AppState`；`JavaStorageItem` 已提供，后续迁移到“只存路径、启动时重探测”的 PCL.Core 模式时可复用。
@@ -139,6 +141,6 @@ pnpm ui:build-only
 - 缓存：`io/storage/cache`
 - 任务中心：`app/tasks`
 - 事件总线：`app/event_bus`
-- 账户 OAuth/OpenID：`minecraft/profile/auth/{microsoft,yggdrasil,authlib}`
+- 账户 OAuth/OpenID：已落地为 `minecraft/profile/auth/{oauth,microsoft,yggdrasil,authlib,connect,session}`
 
 新增类型优先复用本轮的 `McProfile`、`McInstance`、`DownloadFile`、`JavaEntry`，避免再引入 `Game*` 前缀的平行模型。

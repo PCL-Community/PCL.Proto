@@ -34,11 +34,13 @@ shlex = "2.0"
 tokio = { workspace = true, features = ["rt", "macros"] }
 goblin = "0.10.7"
 directories = "6.0.0"
-reqwest = { workspace = true, features = ["json", "stream"] }
+reqwest = { workspace = true, features = ["json", "stream", "form", "multipart"] }
 thiserror = "2.0.21"
 futures-util = "0.3.34"
 serde_repr = "0.1.21"
 sha1 = "0.11.0"
+md5 = "0.7.0"
+sha2 = "0.10"
 zip = { version = "9.1.3", default-features = false, features = ["deflate"] }
 quick-xml = { version = "0.42.0", features = ["serialize"] }
 anyhow = "1.0.104"
@@ -48,6 +50,7 @@ uuid = { workspace = true, features = ["v4"] }
 hickory-resolver = "0.26.3"
 fastrand = "2.5.0"
 base64 = "0.23.1"
+jsonwebtoken = "9"
 sysinfo = { version = "0.40.1", default-features = false, features = ["system"] }
 trash = "5.2.9"
 open = { version = "5.4.5", features = ["shellexecute-on-windows"] }

@@ -210,18 +210,7 @@ pub fn get_download_stats() -> DownloadStats {
 #[tauri::command]
 pub async fn set_download_settings(settings: DownloadSettings) -> Result<DownloadSettings, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        crate::app::config::ConfigManager::instance().update_download_settings(settings, false)
-    })
-    .await
-    .map_err(|e| e.to_string())?
-}
-
-#[tauri::command]
-pub async fn initialize_download_settings(
-    legacy: DownloadSettings,
-) -> Result<DownloadSettings, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        crate::app::config::ConfigManager::instance().update_download_settings(legacy, true)
+        crate::app::config::ConfigManager::instance().update_download_settings(settings)
     })
     .await
     .map_err(|e| e.to_string())?

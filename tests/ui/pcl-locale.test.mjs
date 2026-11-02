@@ -88,10 +88,9 @@ try {
     setPclLocale,
     initializePclLocale,
   } = await import(pathToFileURL(modulePath))
-  storage.set('ce-language', 'EN-us')
+  storage.set('pcl-language', 'EN-us')
   await initializePclLocale()
   assert.equal(pclLocale.value, 'en-US')
-  assert.equal(storage.get('pcl-language'), 'en-US')
   assert.equal(document.documentElement.lang, 'en-US')
   assert.equal(resolveSystemLanguage('en-AU'), 'en-US')
   assert.equal(resolveSystemLanguage('zh-TW'), 'zh-TW')
@@ -206,7 +205,6 @@ try {
   }
   for (const locale of languages) await setPclLocale(locale)
   storage.delete('pcl-language')
-  storage.delete('ce-language')
   storage.set('pcl-format-locale', 'ui-language')
   await initializePclLocale()
   assert.equal(pclLanguagePreference.value, 'auto')

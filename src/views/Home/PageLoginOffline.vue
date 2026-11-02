@@ -2,25 +2,53 @@
 import { ref } from 'vue'
 import PTextBox from '@/components/widget/PTextBox.vue'
 import PButton from '@/components/widget/PButton.vue'
-import { useAccountInfo } from '@/stores/account'
+import { useAccountInfo, toAuthFailure, type UuidMode } from '@/stores/account'
 import type { ProfileView } from '@/types/profile'
 import { pclText } from '@/api/pclLocale'
 import sideTip from '@/composables/sideTip'
+import { dialog } from '@/util/loginErrors'
+
 const emit = defineEmits<{ view: [view: ProfileView] }>()
 const text = pclText
-const username = ref(useAccountInfo().username || '')
-const uuidType = ref('standard')
+const account = useAccountInfo()
+const username = ref(account.username || '')
+const uuidType = ref<UuidMode>('standard')
 const uuid = ref('')
-function create() {
-  if (!/^[A-Za-z0-9_]{3,16}$/.test(username.value)) {
-    sideTip.show(text('Launch.Account.Profile.EditPlayerId.NotAllowed'), 'warn')
-    return
+const creating = ref(false)
+const uuidModes: UuidMode[] = ['standard', 'legacy', 'custom']
+
+/** 对照 CE 的 `PageLoginOffline.BtnLogin_Click`：ID 不规范时允许用户坚持创建。 */
+async function create() {
+  if (creating.value) return
+  const name = username.value.trim()
+  if (!/^[A-Za-z0-9_]{3,16}$/.test(name)) {
+    const { confirmed } = await dialog({
+      title: text('Launch.Account.Offline.InvalidPlayerId.Title'),
+      content: text('Launch.Account.Offline.InvalidPlayerId.Message'),
+      ok: text('Common.Action.Continue'),
+      cancel: text('Common.Action.Cancel'),
+    })
+    if (!confirmed) return
   }
-  if (uuidType.value === 'custom' && !/^[a-f0-9]{32}$/i.test(uuid.value)) {
+  if (uuidType.value === 'custom' && !/^[a-fA-F0-9]{32}$/.test(uuid.value.replaceAll('-', ''))) {
     sideTip.show(text('Launch.Account.Offline.Uuid.Custom.Input.ToolTip'), 'warn')
     return
   }
-  sideTip.show(pclText('Proto.NotImplemented.Profile'))
+  creating.value = true
+  try {
+    await account.createOffline(name, uuidType.value, uuid.value.replaceAll('-', '') || undefined)
+    sideTip.show(text('Launch.Account.Profile.Created'), 'success')
+    emit('view', 'skin')
+  } catch (error) {
+    const failure = toAuthFailure(error)
+    sideTip.show(failure.message, 'warn')
+  } finally {
+    creating.value = false
+  }
+}
+
+function back() {
+  emit('view', 'profiles')
 }
 </script>
 <template>
@@ -30,7 +58,7 @@ function create() {
       ><PTextBox v-model="username" /></label
     ><strong>{{ text('Launch.Account.Offline.UuidStandard') }}</strong>
     <div class="uuid-types">
-      <label v-for="kind in ['standard', 'legacy', 'custom']" :key="kind"
+      <label v-for="kind in uuidModes" :key="kind"
         ><input type="radio" v-model="uuidType" :value="kind" />{{
           text(
             kind === 'custom'
@@ -44,10 +72,10 @@ function create() {
       ><span>UUID</span><PTextBox v-model="uuid"
     /></label>
     <div class="form-actions">
-      <PButton compact @click="() => emit('view', 'profiles')">{{
+      <PButton compact :disabled="creating" @click="back">{{
         text('Launch.Account.Offline.Back')
       }}</PButton
-      ><PButton compact type="tint" @click="create">{{
+      ><PButton compact type="tint" :disabled="creating" @click="create">{{
         text('Launch.Account.Offline.Create')
       }}</PButton>
     </div>

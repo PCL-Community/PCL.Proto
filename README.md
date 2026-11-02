@@ -70,6 +70,9 @@ pnpm dev
 > [!NOTE]
 > The CurseForge resource source needs an API key: set `CURSEFORGE_API_KEY` in the environment or in the git-ignored root `.env` before building. The key is embedded in the desktop binary, with a runtime environment fallback. Without it CurseForge is unavailable; the web preview cannot use it.
 
+> [!NOTE]
+> Microsoft login falls back to a legacy public client ID, but the current Microsoft device-code endpoint does not accept it. Set `MS_CLIENT_ID` in the build environment or the git-ignored root `.env`, or set `MS_CLIENT_ID` / `PCL_MS_CLIENT_ID` at runtime. The Azure app registration must support the device-code flow and the `XboxLive.signin offline_access` scope.
+
 ### Build Tauri App
 
 If only `bun` is installed on your device but `nodejs` is not installed, please change the`build/foreBuildCommand` content in `src-auri/tauri.conf.json `from `pnpm run build` to `bun run build-only`.

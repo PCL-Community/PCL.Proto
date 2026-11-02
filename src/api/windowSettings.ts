@@ -13,37 +13,12 @@ export const windowSettingKeys = [
   'TextArgumentWindowHeight',
 ]
 
-export function legacyWindowSettings(): WindowSettings {
-  let values: Record<string, unknown> = {}
-  try {
-    values = JSON.parse(localStorage.getItem('pcl-ui:PageSetupLaunch:global') || '{}') || {}
-  } catch {
-    /* Keep the legacy data intact. */
-  }
-  const dimension = (value: unknown, fallback: number) => {
-    const number = typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : NaN
-    return Number.isInteger(number) && number >= 100 && number <= 16384 ? number : fallback
-  }
-  return {
-    mode:
-      values.ComboArgumentWindowType === '2'
-        ? 'launcher'
-        : values.ComboArgumentWindowType === '3'
-          ? 'custom'
-          : 'default',
-    width: dimension(values.TextArgumentWindowWidth, 854),
-    height: dimension(values.TextArgumentWindowHeight, 480),
-  }
-}
+const defaultWindowSettings: WindowSettings = { mode: 'default', width: 854, height: 480 }
 
 export async function initializeWindowSettings() {
-  const saved = await invoke<WindowSettings | null>('get_window_settings')
   return (
-    saved ||
-    invoke<WindowSettings>('set_window_settings', {
-      settings: legacyWindowSettings(),
-      migrateOnly: true,
-    })
+    (await invoke<WindowSettings | null>('get_window_settings')) ||
+    invoke<WindowSettings>('set_window_settings', { settings: defaultWindowSettings })
   )
 }
 
@@ -53,5 +28,5 @@ export const windowSettingsStorage = createSettingsPersistence(
     if (!settings) throw new Error('Window settings are not initialized')
     return settings
   },
-  (_, settings) => invoke<WindowSettings>('set_window_settings', { settings, migrateOnly: false }),
+  (_, settings) => invoke<WindowSettings>('set_window_settings', { settings }),
 )

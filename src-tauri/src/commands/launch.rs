@@ -375,9 +375,47 @@ async fn prepare_launch_option(
             info.requirements.description()
         )
     })?;
-    tauri::async_runtime::spawn_blocking(move || build_launch_option(instance_directory, runtime))
+    // CE 在启动前先跑一遍登录加载器：令牌过期时静默刷新，失败就要求重新登录。
+    refresh_active_account().await?;
+    let option = tauri::async_runtime::spawn_blocking(move || {
+        build_launch_option(instance_directory, runtime)
+    })
+    .await
+    .map_err(|error| error.to_string())??;
+    prepare_authlib(option).await
+}
+
+/// 刷新当前档案的访问令牌，对照 CE 的 `ModLaunch.mcLoginLoader`。
+async fn refresh_active_account() -> Result<(), String> {
+    use crate::minecraft::profile::{ProfileType, service};
+    let Some(profile) = tauri::async_runtime::spawn_blocking(service::current)
         .await
         .map_err(|error| error.to_string())?
+    else {
+        // 没有档案时由 `LaunchOption::from_state` 报 MissingAccount。
+        return Ok(());
+    };
+    if profile.profile_type == ProfileType::Offline {
+        return Ok(());
+    }
+    crate::minecraft::profile::auth::session::login_for_launch(&profile, false)
+        .await
+        .map_err(|error| error.to_string())?;
+    Ok(())
+}
+
+/// 第三方账号需要 authlib-injector 才能连到自己的认证服务器。
+async fn prepare_authlib(option: LaunchOption) -> Result<LaunchOption, String> {
+    use crate::minecraft::profile::ProfileType;
+    let profile = option.account().clone();
+    if !matches!(
+        profile.profile_type,
+        ProfileType::Authlib | ProfileType::YggdrasilConnect
+    ) {
+        return Ok(option);
+    }
+    let agent = crate::minecraft::launch::authlib::prepare(&profile).await?;
+    Ok(option.with_authlib(agent))
 }
 
 fn build_launch_option(

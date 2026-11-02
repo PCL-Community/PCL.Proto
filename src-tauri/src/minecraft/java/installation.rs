@@ -174,9 +174,8 @@ impl std::fmt::Display for JavaVersion {
 ///
 /// `java_folder` is the `bin` directory, as in PCL.Core. `java_exe` is kept
 /// explicit because probing may canonicalize a symlink.
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct JavaInstallation {
-    #[serde(alias = "directory_path")]
     pub java_folder: PathBuf,
     pub java_exe: PathBuf,
     /// Raw `java.version`, e.g. `17.0.9` or `1.8.0_392`.
@@ -186,52 +185,10 @@ pub struct JavaInstallation {
     pub architecture: Architecture,
     pub is_64_bit: bool,
     /// PCL.Core models the inverse (`IsJre`); Proto keeps the positive name.
-    #[serde(alias = "is_jre", default)]
+    #[serde(default)]
     pub is_jre: bool,
-    #[serde(alias = "compability", default)]
+    #[serde(default)]
     pub compatibility: Compatibility,
-}
-
-/// Legacy shape written by earlier Proto versions.
-#[derive(Deserialize)]
-struct RawJavaInstallation {
-    #[serde(alias = "directory_path")]
-    java_folder: PathBuf,
-    java_exe: PathBuf,
-    version: String,
-    #[serde(default)]
-    brand: Option<JavaBrandType>,
-    #[serde(default)]
-    implementor: Option<String>,
-    architecture: Architecture,
-    is_64_bit: bool,
-    #[serde(default)]
-    is_jre: Option<bool>,
-    #[serde(default)]
-    is_jdk: Option<bool>,
-    #[serde(alias = "compability", default)]
-    compatibility: Option<Compatibility>,
-}
-
-impl<'de> Deserialize<'de> for JavaInstallation {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let raw = RawJavaInstallation::deserialize(deserializer)?;
-        let brand = raw
-            .brand
-            .or_else(|| raw.implementor.as_deref().map(JavaBrandType::from_vendor))
-            .unwrap_or_default();
-        let is_jre = raw.is_jre.unwrap_or_else(|| !raw.is_jdk.unwrap_or(false));
-        Ok(Self {
-            java_folder: raw.java_folder,
-            java_exe: raw.java_exe,
-            version: raw.version,
-            brand,
-            architecture: raw.architecture,
-            is_64_bit: raw.is_64_bit,
-            is_jre,
-            compatibility: raw.compatibility.unwrap_or_default(),
-        })
-    }
 }
 
 impl PartialEq for JavaInstallation {
@@ -505,25 +462,5 @@ mod tests {
                 serde_json::json!(name)
             );
         }
-    }
-
-    #[test]
-    fn legacy_installation_fields_are_migrated() {
-        let installation: JavaInstallation = serde_json::from_value(serde_json::json!({
-            "directory_path": "/jdk/bin",
-            "java_exe": "/jdk/bin/java",
-            "version": "1.8.0_392",
-            "architecture": "X64",
-            "is_64_bit": true,
-            "is_jdk": true,
-            "compability": "Perfect",
-            "implementor": "Eclipse Adoptium"
-        }))
-        .unwrap();
-        assert_eq!(installation.java_folder, PathBuf::from("/jdk/bin"));
-        assert_eq!(installation.brand, JavaBrandType::EclipseTemurin);
-        assert!(!installation.is_jre);
-        assert_eq!(installation.compatibility, Compatibility::Perfect);
-        assert_eq!(installation.major_version(), 8);
     }
 }

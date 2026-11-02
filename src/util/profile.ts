@@ -20,3 +20,29 @@ export function getProfileInfo(profile?: McProfile | null): string {
   const label = getProfileTypeLabel(profile)
   return profile?.description ? `${label}，${profile.description}` : label
 }
+
+/**
+ * 第三方认证服务器对应的网站根地址。
+ *
+ * 对照 CE：`Server.BeforeFirst("api/yggdrasil/authserver")`，没有该段时退回去掉
+ * `/authserver` 的 API 根地址。
+ */
+export function authSiteRoot(server?: string | null): string | undefined {
+  if (!server) return undefined
+  const marker = server.indexOf('api/yggdrasil')
+  const root = marker > 0 ? server.slice(0, marker) : server.replace(/\/authserver\/?$/, '')
+  if (!root) return undefined
+  return root.endsWith('/') ? root : `${root}/`
+}
+
+/** 皮肤站的衣柜页面，对照 CE 的 `user/closet`。 */
+export function authClosetUrl(server?: string | null): string | undefined {
+  const root = authSiteRoot(server)
+  return root ? `${root}user/closet` : undefined
+}
+
+/** 皮肤站的账号设置页面，对照 CE 的 `user/profile`。 */
+export function authAccountUrl(server?: string | null): string | undefined {
+  const root = authSiteRoot(server)
+  return root ? `${root}user/profile` : undefined
+}

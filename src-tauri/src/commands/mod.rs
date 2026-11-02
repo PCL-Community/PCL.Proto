@@ -10,4 +10,5 @@ pub mod memory;
 pub mod network;
 pub mod repositories;
 pub mod servers;
+pub mod skin;
 pub mod versions;

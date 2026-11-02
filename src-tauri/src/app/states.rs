@@ -5,15 +5,10 @@ use crate::{
     io::net::http::api_client::ApiProvider,
     minecraft::{
         instance::{McInstance, folder::McFolder},
-        java::JavaEntry,
         profile::McProfile,
     },
 };
-use std::{
-    collections::{HashMap, HashSet},
-    path::PathBuf,
-    sync::Arc,
-};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 /// PCL global setup info, which user can modify
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -22,7 +17,6 @@ pub struct LauncherSetup {
     theme: Theme,
     pub api_provider: ApiProvider,
     pub max_memory: usize,
-    pub default_java: Option<Arc<JavaEntry>>,
     #[serde(default)]
     pub selected_java: Option<PathBuf>,
 }
@@ -43,9 +37,42 @@ impl Default for LauncherSetup {
             theme: Theme::BlueLight,
             api_provider: ApiProvider::Official,
             max_memory: 2048,
-            default_java: None,
             selected_java: None,
         }
+    }
+}
+
+/// 档案配置，对照 CE 的 `ProfileJson<McProfile>`。
+///
+/// `last_used` 是当前档案在 `profiles` 中的下标，`-1` 表示未选择；
+/// 用下标表示当前档案，替代早期重复保存整份当前档案的做法。
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct ProfileConfig {
+    pub last_used: i32,
+    pub profiles: Vec<McProfile>,
+}
+
+impl Default for ProfileConfig {
+    fn default() -> Self {
+        Self {
+            last_used: -1,
+            profiles: Vec::new(),
+        }
+    }
+}
+
+impl ProfileConfig {
+    /// 当前档案；未选择或下标越界时为 `None`（CE 的 `_NormalizeLastUsedUnsafe`）。
+    pub fn current(&self) -> Option<&McProfile> {
+        usize::try_from(self.last_used)
+            .ok()
+            .and_then(|index| self.profiles.get(index))
+    }
+
+    /// 选择档案下标，`None` 表示取消选择。
+    pub fn select(&mut self, index: Option<usize>) {
+        self.last_used = index.map_or(-1, |index| index as i32);
     }
 }
 
@@ -53,18 +80,16 @@ impl Default for LauncherSetup {
 #[derive(Clone, serde::Serialize, serde::Deserialize, Default)]
 pub struct AppState {
     pub java_runtimes: Vec<crate::minecraft::java::JavaEntry>,
-    pub accounts: Vec<McProfile>,
+    #[serde(default)]
+    pub profile: ProfileConfig,
     #[serde(rename = "pcl_setup_info")]
     pub launcher_setup: LauncherSetup,
-    pub active_account: Option<Arc<McProfile>>,
     pub repositories: Vec<McFolder>,
     pub active_game_instance: Option<Arc<McInstance>>,
     pub active_repo_path: PathBuf,
     #[serde(default)]
     pub java_preferences:
         HashMap<PathBuf, crate::minecraft::java::preference::InstanceJavaSettings>,
-    #[serde(default)]
-    pub migrated_java_ids: HashSet<String>,
     #[serde(default)]
     pub download_settings: Option<crate::io::download::resources::DownloadSettings>,
     #[serde(default)]
@@ -80,12 +105,6 @@ pub struct AppState {
     pub memory_custom: Option<crate::minecraft::launch::memory::MemoryCustom>,
     #[serde(default)]
     pub instance_memory_custom: HashMap<PathBuf, crate::minecraft::launch::memory::MemoryCustom>,
-    #[serde(default)]
-    pub migrated_memory_ids: HashSet<String>,
-    #[serde(default)]
-    pub migrated_memory_custom_ids: HashSet<String>,
-    #[serde(default)]
-    pub edited_memory_instances: HashSet<PathBuf>,
     #[serde(default)]
     pub isolation_default: crate::minecraft::instance::isolation::IsolationDefault,
     #[serde(default)]

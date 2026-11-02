@@ -1,18 +1,29 @@
 <script setup lang="ts">
-import { PMsgLogin } from '@/components/widget/PMsgLogin'
 import PButton from '@/components/widget/PButton.vue'
 import PPath from '@/components/widget/PPath.vue'
 import paths from '@/assets/vector-paths.json'
 const loginShape = paths['05803c336117c503'].data
 import type { ProfileView } from '@/types/profile'
+import { computed } from 'vue'
 import { pclText } from '@/api/pclLocale'
-import sideTip from '@/composables/sideTip'
 import { openExternal } from '@/util/externalLink'
+import { useAccountInfo } from '@/stores/account'
+import { loginProgress } from '@/composables/useLoginSession'
+
 const emit = defineEmits<{ view: [view: ProfileView] }>()
 const text = pclText
-defineExpose({ showLoginDialog: PMsgLogin })
+const account = useAccountInfo()
+// 登录会话由启动页统一驱动，避免登录途中切页丢掉弹窗与结果提示。
+const progress = loginProgress('microsoft')
+const loggingIn = computed(() => account.loggingIn)
+
 function login() {
-  sideTip.show(pclText('Proto.NotImplemented.Microsoft'))
+  void account.startLogin({ profileType: 'microsoft' })
+}
+
+function back() {
+  account.resetLoginState()
+  emit('view', 'profiles')
 }
 </script>
 <template>
@@ -21,8 +32,9 @@ function login() {
       class="login-button"
       type="tint"
       compact
+      :disabled="loggingIn"
       @click="login"
-      >{{ text('Launch.Account.Microsoft.Start') }}</PButton
+      >{{ progress ?? text('Launch.Account.Microsoft.Start') }}</PButton
     >
     <div class="account-links login-links">
       <PButton
@@ -36,7 +48,7 @@ function login() {
         text('Launch.Account.Microsoft.Website')
       }}</PButton>
     </div>
-    <PButton class="account-back login-back" inline @click="() => emit('view', 'profiles')">{{
+    <PButton v-if="!loggingIn" class="account-back login-back" inline @click="back">{{
       text('Launch.Account.Back')
     }}</PButton>
   </section>

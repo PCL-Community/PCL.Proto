@@ -199,16 +199,12 @@ try {
   ])
   const snapshot = { settings: { mode: 'auto' }, custom: { maximum_mib: 4096, initial_mib: null } }
   await domains.memorySettingsStorage.write(snapshot)
-  assert.deepEqual(calls.at(-1), [
-    'set_memory_settings',
-    {
-      instanceDirectory: null,
-      ...snapshot,
-      migrateOnly: false,
-    },
-  ])
+  assert.deepEqual(calls.at(-1), ['set_memory_settings', { instanceDirectory: null, ...snapshot }])
   await domains.windowSettingsStorage.write({ mode: 'custom', width: 854, height: 480 })
-  assert.equal(calls.at(-1)[1].migrateOnly, false)
+  assert.deepEqual(calls.at(-1), [
+    'set_window_settings',
+    { settings: { mode: 'custom', width: 854, height: 480 } },
+  ])
   await domains.downloadSettingsStorage.write({ max_connections: 8 })
   assert.deepEqual(calls.at(-1), ['set_download_settings', { settings: { max_connections: 8 } }])
 

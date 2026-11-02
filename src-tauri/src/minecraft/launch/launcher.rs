@@ -32,6 +32,33 @@ pub struct LaunchOption {
     arguments: crate::minecraft::launch::arguments::LaunchArguments,
     extras: crate::minecraft::launch::settings::LaunchExtras,
     server: Option<(String, Option<u16>)>,
+    authlib: Option<AuthlibAgent>,
+}
+
+/// 第三方账号需要的 authlib-injector javaagent 参数，对照 CE 的 Authlib-Injector 分支。
+pub struct AuthlibAgent {
+    /// 本地 authlib-injector.jar 路径。
+    pub jar: std::path::PathBuf,
+    /// 认证服务器 API 根地址（不含 `/authserver`）。
+    pub server: String,
+    /// 服务器元数据的 Base64，作为 prefetched 传给 agent。
+    pub prefetched: String,
+}
+
+impl AuthlibAgent {
+    /// CE 把这三段拼成一个字符串塞进参数表；Proto 走 `Command::args`，必须拆开。
+    pub fn arguments(&self) -> Vec<String> {
+        let mut args = vec![
+            format!("-javaagent:{}={}", self.jar.display(), self.server),
+            "-Dauthlibinjector.side=client".to_owned(),
+            format!("-Dauthlibinjector.yggdrasil.prefetched={}", self.prefetched),
+        ];
+        // CE：信任系统根证书（Meloong-Git/#5252）。WINDOWS-ROOT 只在 Windows 上存在。
+        if cfg!(windows) {
+            args.push("-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT".to_owned());
+        }
+        args
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -70,6 +97,16 @@ impl LaunchOption {
             .map_err(|error| GameLaunchError::CustomArguments(error.to_string()))?;
         self.server = Some((host, port));
         Ok(self)
+    }
+
+    /// 第三方账号在启动前准备好 javaagent 后挂上来。
+    pub fn with_authlib(mut self, agent: AuthlibAgent) -> Self {
+        self.authlib = Some(agent);
+        self
+    }
+
+    pub fn account(&self) -> &McProfile {
+        &self.account
     }
 
     pub fn with_window_size(mut self, width: usize, height: usize) -> Self {
@@ -119,6 +156,9 @@ impl LaunchOption {
                 && !(arg.starts_with("-Xms") && (custom_initial || self.initial_memory.is_some()))
         });
         let wrapper = self.java_wrapper()?;
+        if let Some(agent) = &self.authlib {
+            command.args(agent.arguments());
+        }
         command
             .args(custom_jvm)
             .args(self.build_jvm_arguments(custom_initial)?)
@@ -590,8 +630,7 @@ impl LaunchOption {
         java_selected: Arc<JavaEntry>,
     ) -> Result<Self, GameLaunchError> {
         if let Some(game_instance) = state.active_game_instance.as_ref() {
-            let active_account = state.active_account.as_ref();
-            let Some(active_account) = active_account else {
+            let Some(active_account) = state.profile.current() else {
                 return Err(GameLaunchError::MissingAccount);
             };
             active_account
@@ -651,7 +690,7 @@ impl LaunchOption {
             let extras =
                 crate::minecraft::launch::settings::resolve(state, Some(&game_instance.directory));
             return Ok(Self {
-                account: active_account.clone(),
+                account: Arc::new(active_account.clone()),
                 java_runtime: java_selected.clone(),
                 game_instance: game_instance.clone(),
                 game_directory,
@@ -667,6 +706,7 @@ impl LaunchOption {
                 arguments,
                 extras,
                 server: None,
+                authlib: None,
             });
         }
         Err(GameLaunchError::MissingInstance)
@@ -950,6 +990,7 @@ pub fn game_launch_test() {
         Arc::new(McInstance::from_version_folder(&version_folder, &game_repo).unwrap());
     let launch_option = LaunchOption {
         account,
+        authlib: None,
         java_runtime: Arc::new(JavaEntry::try_from("/usr/bin/java").unwrap()),
         game_instance: game_instance.clone(),
         game_directory: game_instance.directory.clone(),
@@ -1014,9 +1055,9 @@ mod tests {
         let repo = crate::minecraft::instance::folder::McFolder::new("test", root.clone());
         let instance = Arc::new(McInstance::from_version_folder(&version, &repo).unwrap());
         let runtime: JavaEntry = serde_json::from_value(json!({
-            "directory_path":root, "is_user_imported":false, "version":"21", "slug_version":21,
-            "is_64_bit":true, "architecture":"Arm64", "compability":"Perfect", "is_jdk":true,
-            "java_exe":executable, "implementor":"fixture"
+            "java_folder":root, "version":"21", "slug_version":21,
+            "is_64_bit":true, "architecture":"Arm64", "compatibility":"Perfect",
+            "java_exe":executable, "brand":"unknown"
         }))
         .unwrap();
         let mut option = LaunchOption {
@@ -1038,6 +1079,7 @@ mod tests {
             arguments: crate::minecraft::launch::arguments::LaunchArguments::global_default(),
             extras: Default::default(),
             server: None,
+            authlib: None,
         };
         option.extras.proxy = Some(("127.0.0.1".into(), 7891));
         let proxy_args = option.agent_arguments().unwrap();
@@ -1150,7 +1192,10 @@ mod tests {
                 .any(|pair| pair == ["--accessToken", "secret token"])
         );
         let state = AppState {
-            active_account: Some(option.account.clone()),
+            profile: crate::app::states::ProfileConfig {
+                last_used: 0,
+                profiles: vec![option.account.as_ref().clone()],
+            },
             active_game_instance: Some(instance.clone()),
             instance_isolation: [(version.clone(), false)].into(),
             ..Default::default()
@@ -1331,7 +1376,10 @@ mod tests {
         fs::create_dir_all(forge_library.parent().unwrap()).unwrap();
         fs::write(&forge_library, b"forge").unwrap();
         let mut state = AppState {
-            active_account: Some(option.account.clone()),
+            profile: crate::app::states::ProfileConfig {
+                last_used: 0,
+                profiles: vec![option.account.as_ref().clone()],
+            },
             active_game_instance: Some(option.game_instance.clone()),
             ..Default::default()
         };

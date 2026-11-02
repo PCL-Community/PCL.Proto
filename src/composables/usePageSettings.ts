@@ -65,22 +65,15 @@ export function usePageSettings<
     () => {
       if (loading || !storageKey.value) return
       try {
-        const legacy = JSON.parse(localStorage.getItem(storageKey.value) || '{}')
-        const javaLegacy = Object.fromEntries(
-          Object.entries(legacy || {}).filter(([key]) =>
-            ['ComboArgumentJava', 'CheckAdvanceJava', ...excludedKeys].includes(key),
-          ),
-        )
         localStorage.setItem(
           storageKey.value,
-          JSON.stringify({
-            ...javaLegacy,
-            ...Object.fromEntries(
+          JSON.stringify(
+            Object.fromEntries(
               Object.entries(values).filter(
                 ([key]) => !excludedKeys.includes(key) && !/password|token|secret|cdk/i.test(key),
               ),
             ),
-          }),
+          ),
         )
       } catch {
         sideTip.show(pclText('Proto.Storage.SettingsFailed'), 'warn')

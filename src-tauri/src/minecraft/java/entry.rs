@@ -150,7 +150,6 @@ impl JavaEntry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::Path;
 
     fn installation() -> JavaInstallation {
         JavaInstallation {
@@ -174,27 +173,5 @@ mod tests {
         assert_eq!(value["source"], "manual_added");
         assert_eq!(value["brand"], "eclipseTemurin");
         assert!(value.get("installation").is_none());
-    }
-
-    #[test]
-    fn legacy_java_json_still_deserializes() {
-        let entry: JavaEntry = serde_json::from_value(serde_json::json!({
-            "directory_path": "/jdk/bin",
-            "java_exe": "/jdk/bin/java",
-            "version": "17.0.1",
-            "is_user_imported": true,
-            "slug_version": 17,
-            "is_64_bit": true,
-            "architecture": "X64",
-            "compability": "Perfect",
-            "is_jdk": true,
-            "implementor": "OpenJDK",
-            "is_enabled": false
-        }))
-        .unwrap();
-        assert_eq!(entry.java_folder(), Path::new("/jdk/bin"));
-        assert_eq!(entry.brand(), JavaBrandType::OpenJDK);
-        assert!(!entry.installation.is_jre);
-        assert!(!entry.is_enabled);
     }
 }

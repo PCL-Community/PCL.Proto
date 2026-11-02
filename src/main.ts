@@ -10,11 +10,6 @@ import { isTauri } from '@tauri-apps/api/core'
 import { initializeDownloadSettings } from './api/downloadSettings'
 import { initializeLogSettings } from './api/logSettings'
 import { initializeWindowSettings } from './api/windowSettings'
-import { migrateLegacyInstanceJava } from './api/javaMigration'
-import { migrateLegacyInstancePages } from './api/instancePageMigration'
-import { initializeMemorySettings } from './api/memorySettings'
-import sideTip from './composables/sideTip'
-import { pclText } from './api/pclLocale'
 
 import App from './App.vue'
 import { initializePclLocale } from './api/pclLocale'
@@ -51,17 +46,11 @@ const removeExternalLinkHandler = installExternalLinkHandler()
 import.meta.hot?.dispose(removeExternalLinkHandler)
 
 void initializePclLocale().then(async () => {
-  let pendingJava: string[] = []
-  let pendingPages = 0
-  let pendingMemory = 0
   if (isTauri()) {
     try {
       await initializeDownloadSettings()
       await initializeLogSettings()
       await initializeWindowSettings()
-      pendingMemory = await initializeMemorySettings()
-      pendingJava = await migrateLegacyInstanceJava()
-      pendingPages = await migrateLegacyInstancePages()
     } catch (error) {
       const root = document.querySelector('#app')!
       root.textContent = `Unable to load settings: ${String(error)}`
@@ -73,12 +62,6 @@ void initializePclLocale().then(async () => {
     }
   }
   app.mount('#app')
-  if (pendingJava.length)
-    sideTip.show(pclText('Proto.Java.LegacyMigrationPending', [pendingJava.length]), 'warn')
-  if (pendingPages)
-    sideTip.show(pclText('Proto.Instance.LegacyPagesPending', [pendingPages]), 'warn')
-  if (pendingMemory)
-    sideTip.show(pclText('Proto.Instance.LegacyMemoryPending', [pendingMemory]), 'warn')
 })
 
 // some async actions

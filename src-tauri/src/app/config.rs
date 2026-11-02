@@ -9,7 +9,6 @@ use crate::{
     minecraft::instance::{McInstance, folder::McFolder},
 };
 use std::{
-    collections::{HashMap, HashSet},
     fs,
     io::Write,
     path::PathBuf,
@@ -50,12 +49,9 @@ pub async fn set_launcher_visibility(
 }
 
 #[tauri::command]
-pub async fn set_window_settings(
-    settings: WindowSettings,
-    migrate_only: bool,
-) -> Result<WindowSettings, String> {
+pub async fn set_window_settings(settings: WindowSettings) -> Result<WindowSettings, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        ConfigManager::instance().update_window_settings(settings, migrate_only)
+        ConfigManager::instance().update_window_settings(settings)
     })
     .await
     .map_err(|error| error.to_string())?
@@ -74,240 +70,13 @@ impl ConfigManager {
         self.update(|state| crate::minecraft::instance::isolation::ensure(state, path))
     }
 
-    /// 旧版按实例 ID 记录的设置迁入 Rust 配置的公共流程：
-    /// 跳过已迁移项 → 扫描登记仓库确认 ID 唯一 → 单个事务写入 → 返回仍未处理的 ID。
-    fn migrate_legacy_instances<T>(
-        &self,
-        mut legacy: HashMap<String, T>,
-        label: &str,
-        done: impl Fn(&AppState, &str) -> bool,
-        apply: impl Fn(&mut AppState, &str, &std::path::Path, T) -> Result<(), String>,
-    ) -> Result<Vec<String>, String> {
-        let repositories = {
-            let state = self.app_state.blocking_lock();
-            legacy.retain(|id, _| !id.is_empty() && id != "none" && !done(&state, id));
-            state.repositories.clone()
-        };
-        if legacy.is_empty() {
-            return Ok(Vec::new());
-        }
-        let matches =
-            match scan_legacy_instance_ids(&repositories, &legacy.keys().cloned().collect()) {
-                Ok(matches) => matches,
-                Err(error) => {
-                    log::warn!("Cannot verify legacy {label} settings: {error}");
-                    let mut pending: Vec<_> = legacy.into_keys().collect();
-                    pending.sort();
-                    return Ok(pending);
-                }
-            };
-        let mut state = self.app_state.blocking_lock();
-        if state
-            .repositories
-            .iter()
-            .map(|repo| &repo.path)
-            .ne(repositories.iter().map(|repo| &repo.path))
-        {
-            return Err("Minecraft folders changed during settings migration; retry".into());
-        }
-        let mut candidate = state.clone();
-        let mut pending = Vec::new();
-        let mut changed = false;
-        for (id, value) in legacy {
-            if done(&candidate, &id) {
-                continue;
-            }
-            let Some(path) = matches
-                .get(&id)
-                .filter(|paths| paths.len() == 1)
-                .map(|paths| paths[0].clone())
-            else {
-                pending.push(id);
-                continue;
-            };
-            if apply(&mut candidate, &id, &path, value).is_err() {
-                pending.push(id);
-                continue;
-            }
-            changed = true;
-        }
-        if changed {
-            save_config_atomically(&self.config_path, &candidate)
-                .map_err(|error| format!("{error:?}"))?;
-            *state = candidate;
-        }
-        pending.sort();
-        Ok(pending)
-    }
-
-    pub fn migrate_instance_memory_settings(
-        &self,
-        legacy: HashMap<String, crate::minecraft::launch::memory::MemorySnapshot>,
-    ) -> Result<Vec<String>, String> {
-        self.migrate_legacy_instances(
-            legacy,
-            "memory",
-            |state, id| {
-                state.migrated_memory_ids.contains(id)
-                    && state.migrated_memory_custom_ids.contains(id)
-            },
-            |state, id, path, snapshot| {
-                if snapshot
-                    .settings
-                    .as_ref()
-                    .is_some_and(|value| value.validate().is_err())
-                    || snapshot.custom.validate().is_err()
-                {
-                    return Err("Invalid legacy memory settings".into());
-                }
-                if !state.edited_memory_instances.contains(path) {
-                    if !state.migrated_memory_ids.contains(&id.to_owned()) {
-                        if let Some(settings) = snapshot.settings {
-                            state
-                                .instance_memory_settings
-                                .entry(path.to_path_buf())
-                                .or_insert(settings);
-                        }
-                    }
-                    let custom = match state.instance_memory_settings.get(path) {
-                        Some(
-                            settings @ crate::minecraft::launch::memory::MemorySettings::Custom {
-                                ..
-                            },
-                        ) => crate::minecraft::launch::memory::MemoryCustom::from_settings(Some(
-                            settings,
-                        )),
-                        _ => snapshot.custom,
-                    };
-                    state
-                        .instance_memory_custom
-                        .entry(path.to_path_buf())
-                        .or_insert(custom);
-                }
-                state.migrated_memory_ids.insert(id.to_owned());
-                state.migrated_memory_custom_ids.insert(id.to_owned());
-                Ok(())
-            },
-        )
-    }
-
-    pub fn resolve_legacy_instance_ids(
-        &self,
-        ids: HashSet<String>,
-    ) -> Result<HashMap<String, PathBuf>, String> {
-        let repositories = self.app_state.blocking_lock().repositories.clone();
-        let matches = scan_legacy_instance_ids(&repositories, &ids)?;
-        let state = self.app_state.blocking_lock();
-        if state
-            .repositories
-            .iter()
-            .map(|repo| &repo.path)
-            .ne(repositories.iter().map(|repo| &repo.path))
-        {
-            return Err("Minecraft folders changed during settings migration; retry".into());
-        }
-        Ok(matches
-            .into_iter()
-            .filter_map(|(id, paths)| {
-                if paths.len() == 1 {
-                    Some((id, paths.into_iter().next().unwrap()))
-                } else {
-                    None
-                }
-            })
-            .collect())
-    }
-
-    pub fn migrate_instance_java_settings(
-        &self,
-        legacy: HashMap<String, crate::minecraft::java::preference::InstanceJavaSettings>,
-    ) -> Result<Vec<String>, String> {
-        self.migrate_legacy_instances(
-            legacy,
-            "Java",
-            |state, id| state.migrated_java_ids.contains(id),
-            |state, id, path, settings| {
-                if !matches!(
-                    settings.preference,
-                    crate::minecraft::java::preference::JavaPreference::Auto
-                        | crate::minecraft::java::preference::JavaPreference::Existing { .. }
-                ) || crate::minecraft::java::preference::validate_preference(
-                    &settings.preference,
-                )
-                .is_err()
-                {
-                    return Err("Invalid legacy Java preference".into());
-                }
-                state
-                    .java_preferences
-                    .entry(path.to_path_buf())
-                    .or_insert(settings);
-                state.migrated_java_ids.insert(id.to_owned());
-                Ok(())
-            },
-        )
-    }
-
-    fn update_window_settings(
-        &self,
-        settings: WindowSettings,
-        migrate_only: bool,
-    ) -> Result<WindowSettings, String> {
+    fn update_window_settings(&self, settings: WindowSettings) -> Result<WindowSettings, String> {
         settings.validate()?;
         self.update(|state| {
-            if migrate_only && let Some(existing) = &state.window_settings {
-                return Ok(existing.clone());
-            }
             state.window_settings = Some(settings.clone());
             Ok(settings)
         })
     }
-}
-
-fn scan_legacy_instance_ids(
-    repositories: &[McFolder],
-    ids: &HashSet<String>,
-) -> Result<HashMap<String, Vec<PathBuf>>, String> {
-    let mut matches: HashMap<String, Vec<PathBuf>> = HashMap::new();
-    for repo in repositories {
-        if !repo.path.is_dir() {
-            return Err("Minecraft folder is unavailable".into());
-        }
-        let versions = repo.path.join("versions");
-        let entries = match fs::read_dir(versions) {
-            Ok(entries) => entries,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
-            Err(error) => return Err(error.to_string()),
-        };
-        for entry in entries {
-            let entry = entry.map_err(|error| error.to_string())?;
-            if !entry
-                .file_type()
-                .map_err(|error| error.to_string())?
-                .is_dir()
-            {
-                continue;
-            }
-            let directory = entry.path();
-            let name = entry.file_name();
-            let json = directory.join(format!("{}.json", name.to_string_lossy()));
-            if fs::metadata(&json).is_ok_and(|metadata| metadata.len() > 16 * 1024 * 1024) {
-                return Err("Instance JSON is too large to verify".into());
-            }
-            let data = match fs::read(&json) {
-                Ok(data) => data,
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
-                Err(error) => return Err(error.to_string()),
-            };
-            let value: serde_json::Value =
-                serde_json::from_slice(&data).map_err(|error| error.to_string())?;
-            let id = value["id"].as_str().ok_or("Instance JSON has no ID")?;
-            if ids.contains(id) {
-                matches.entry(id.to_owned()).or_default().push(directory);
-            }
-        }
-    }
-    Ok(matches)
 }
 
 #[tauri::command]
@@ -320,23 +89,20 @@ pub async fn get_log_max_lines() -> Option<u32> {
 }
 
 #[tauri::command]
-pub async fn set_log_max_lines(lines: u32, migrate_only: bool) -> Result<u32, String> {
+pub async fn set_log_max_lines(lines: u32) -> Result<u32, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        ConfigManager::instance().update_log_max_lines(lines, migrate_only)
+        ConfigManager::instance().update_log_max_lines(lines)
     })
     .await
     .map_err(|e| e.to_string())?
 }
 
 impl ConfigManager {
-    fn update_log_max_lines(&self, lines: u32, migrate_only: bool) -> Result<u32, String> {
+    fn update_log_max_lines(&self, lines: u32) -> Result<u32, String> {
         if lines != 0 && !(50..=2000).contains(&lines) {
             return Err("Invalid log line limit".into());
         }
         self.update(|state| {
-            if migrate_only && let Some(existing) = state.log_max_lines {
-                return Ok(existing);
-            }
             state.log_max_lines = Some(lines);
             Ok(lines)
         })
@@ -542,7 +308,6 @@ impl ConfigManager {
             .map_err(|_| ConfigManagerError::ConfigFileCorrupted)?;
         let mut state = self.app_state.blocking_lock();
         *state = state_read;
-        migrate_java_settings(&mut state);
         // update the api provider
         self.api_client
             .switch_provider(&state.launcher_setup.api_provider);
@@ -630,19 +395,10 @@ impl ConfigManager {
 
     pub fn update_download_settings(
         &self,
-        mut settings: crate::io::download::resources::DownloadSettings,
-        migrate_only: bool,
+        settings: crate::io::download::resources::DownloadSettings,
     ) -> Result<crate::io::download::resources::DownloadSettings, String> {
         settings.validate()?;
         let mut state = self.app_state.blocking_lock();
-        if migrate_only && let Some(existing) = &state.download_settings {
-            if existing.auto_select_instance.is_some() {
-                return Ok(existing.clone());
-            }
-            let legacy_auto_select = settings.auto_select_instance;
-            settings = existing.clone();
-            settings.auto_select_instance = legacy_auto_select;
-        }
         let mut candidate = state.clone();
         candidate.download_settings = Some(settings.clone());
         save_config_atomically(&self.config_path, &candidate).map_err(|e| format!("{e:?}"))?;
@@ -683,31 +439,6 @@ impl ConfigManager {
 
     pub fn java_runtime_dir(&self) -> PathBuf {
         self.config_dir.join("runtime")
-    }
-}
-
-fn migrate_java_settings(state: &mut AppState) {
-    // Legacy cached version numbers are untrusted; migrate only the executable path.
-    if state.launcher_setup.selected_java.is_none() {
-        state.launcher_setup.selected_java = state
-            .launcher_setup
-            .default_java
-            .as_ref()
-            .map(|j| j.java_exe.clone());
-    }
-    state.launcher_setup.default_java = None;
-    if let Some(instance) = state.active_game_instance.as_ref()
-        && let crate::minecraft::instance::InstanceJava::Custom(runtime) = &instance.game_java
-    {
-        let (path, java_exe) = (instance.directory.clone(), runtime.java_exe.clone());
-        state.java_preferences.entry(path).or_insert_with(|| {
-            crate::minecraft::java::preference::InstanceJavaSettings {
-                preference: crate::minecraft::java::preference::JavaPreference::Existing {
-                    java_exe,
-                },
-                ignore_compatibility: false,
-            }
-        });
     }
 }
 
@@ -765,246 +496,6 @@ fn test_config_manager() {
 mod java_config_tests {
     use super::*;
     use serde::ser::Error;
-    #[test]
-    fn legacy_java_migration_requires_unique_ids_and_preserves_existing_settings() {
-        use crate::minecraft::java::preference::{InstanceJavaSettings, JavaPreference};
-        let root = std::env::temp_dir().join(format!("pcl-legacy-java-{}", uuid::Uuid::new_v4()));
-        let repo_a = root.join("a");
-        let repo_b = root.join("b");
-        for (repo, name, id) in [
-            (&repo_a, "one", "unique"),
-            (&repo_a, "two", "duplicate"),
-            (&repo_b, "three", "duplicate"),
-            (&repo_b, "four", "already"),
-            (&repo_b, "five", "automatic"),
-            (&repo_b, "six", "following"),
-        ] {
-            let dir = repo.join("versions").join(name);
-            fs::create_dir_all(&dir).unwrap();
-            fs::write(
-                dir.join(format!("{name}.json")),
-                format!(r#"{{"id":"{id}"}}"#),
-            )
-            .unwrap();
-        }
-        let manager = ConfigManager {
-            config_path: root.join("config.json"),
-            config_dir: root.clone(),
-            app_state: Arc::new(Mutex::new(AppState {
-                repositories: vec![
-                    McFolder::new("a", repo_a.clone()),
-                    McFolder::new("b", repo_b.clone()),
-                ],
-                java_preferences: [(
-                    repo_b.join("versions/four"),
-                    InstanceJavaSettings {
-                        preference: JavaPreference::Global,
-                        ignore_compatibility: false,
-                    },
-                )]
-                .into(),
-                ..Default::default()
-            })),
-            api_client: MinecraftApiClient::new(reqwest::Client::new(), &ApiProvider::default()),
-            pcl_identifier: String::new(),
-        };
-        let old = InstanceJavaSettings {
-            preference: JavaPreference::Existing {
-                java_exe: PathBuf::from("/old/java"),
-            },
-            ignore_compatibility: true,
-        };
-        let legacy: HashMap<_, _> = ["unique", "duplicate", "already", "none"]
-            .into_iter()
-            .map(|id| (id.to_string(), old.clone()))
-            .collect();
-        let resolved = manager
-            .resolve_legacy_instance_ids(
-                [
-                    "unique".to_string(),
-                    "duplicate".to_string(),
-                    "missing".to_string(),
-                ]
-                .into(),
-            )
-            .unwrap();
-        assert_eq!(resolved.get("unique"), Some(&repo_a.join("versions/one")));
-        assert!(!resolved.contains_key("duplicate"));
-        assert!(!resolved.contains_key("missing"));
-        assert_eq!(
-            manager
-                .migrate_instance_java_settings(legacy.clone())
-                .unwrap(),
-            ["duplicate"]
-        );
-        let saved: AppState =
-            serde_json::from_slice(&fs::read(&manager.config_path).unwrap()).unwrap();
-        assert!(saved.java_preferences[&repo_a.join("versions/one")].ignore_compatibility);
-        assert_eq!(
-            saved.java_preferences[&repo_b.join("versions/four")].preference,
-            JavaPreference::Global
-        );
-        assert!(
-            !saved
-                .java_preferences
-                .contains_key(&repo_a.join("versions/two"))
-        );
-        assert!(
-            !saved
-                .java_preferences
-                .contains_key(&repo_b.join("versions/three"))
-        );
-        assert_eq!(
-            manager.migrate_instance_java_settings(legacy).unwrap(),
-            ["duplicate"]
-        );
-        let custom = crate::minecraft::launch::memory::MemorySettings::Custom {
-            maximum_mib: 4096,
-            initial_mib: Some(1024),
-        };
-        manager
-            .update(|state| {
-                state
-                    .edited_memory_instances
-                    .insert(repo_a.join("versions/one"));
-                state
-                    .instance_memory_settings
-                    .insert(repo_b.join("versions/four"), custom.clone());
-                Ok(())
-            })
-            .unwrap();
-        let snapshot = |settings| crate::minecraft::launch::memory::MemorySnapshot {
-            settings,
-            custom: crate::minecraft::launch::memory::MemoryCustom {
-                maximum_mib: 6144,
-                initial_mib: Some(4096),
-            },
-        };
-        manager
-            .update(|state| {
-                state.migrated_memory_ids.extend([
-                    "already".into(),
-                    "automatic".into(),
-                    "following".into(),
-                ]);
-                state.instance_memory_settings.insert(
-                    repo_b.join("versions/five"),
-                    crate::minecraft::launch::memory::MemorySettings::Auto,
-                );
-                Ok(())
-            })
-            .unwrap();
-        let memory_legacy = [
-            (
-                "unique".into(),
-                snapshot(Some(crate::minecraft::launch::memory::MemorySettings::Auto)),
-            ),
-            (
-                "duplicate".into(),
-                snapshot(Some(crate::minecraft::launch::memory::MemorySettings::Auto)),
-            ),
-            (
-                "already".into(),
-                snapshot(Some(crate::minecraft::launch::memory::MemorySettings::Auto)),
-            ),
-            (
-                "automatic".into(),
-                snapshot(Some(crate::minecraft::launch::memory::MemorySettings::Auto)),
-            ),
-            ("following".into(), snapshot(None)),
-            ("none".into(), snapshot(None)),
-        ]
-        .into();
-        assert_eq!(
-            manager
-                .migrate_instance_memory_settings(memory_legacy)
-                .unwrap(),
-            ["duplicate"]
-        );
-        let saved: AppState =
-            serde_json::from_slice(&fs::read(&manager.config_path).unwrap()).unwrap();
-        assert!(
-            !saved
-                .instance_memory_settings
-                .contains_key(&repo_a.join("versions/one"))
-        );
-        assert_eq!(
-            saved.instance_memory_settings[&repo_b.join("versions/four")],
-            custom
-        );
-        assert!(saved.migrated_memory_ids.contains("unique"));
-        assert_eq!(
-            saved.instance_memory_custom[&repo_b.join("versions/four")].maximum_mib,
-            4096
-        );
-        assert!(saved.migrated_memory_custom_ids.contains("already"));
-        assert_eq!(
-            saved.instance_memory_settings[&repo_b.join("versions/five")],
-            crate::minecraft::launch::memory::MemorySettings::Auto
-        );
-        assert_eq!(
-            saved.instance_memory_custom[&repo_b.join("versions/five")].maximum_mib,
-            6144
-        );
-        assert!(
-            !saved
-                .instance_memory_settings
-                .contains_key(&repo_b.join("versions/six"))
-        );
-        assert_eq!(
-            saved.instance_memory_custom[&repo_b.join("versions/six")].initial_mib,
-            Some(4096)
-        );
-        assert!(!saved.migrated_memory_ids.contains("duplicate"));
-        fs::remove_file(&manager.config_path).unwrap();
-        fs::create_dir(&manager.config_path).unwrap();
-        assert_eq!(
-            manager
-                .migrate_instance_memory_settings([("duplicate".into(), snapshot(None))].into())
-                .unwrap(),
-            ["duplicate"]
-        );
-        let extra = repo_a.join("versions/extra");
-        fs::create_dir(&extra).unwrap();
-        fs::write(extra.join("extra.json"), r#"{"id":"extra"}"#).unwrap();
-        assert!(
-            manager
-                .migrate_instance_memory_settings([("extra".into(), snapshot(None))].into())
-                .is_err()
-        );
-        assert!(
-            !manager
-                .app_state
-                .blocking_lock()
-                .migrated_memory_ids
-                .contains("extra")
-        );
-        assert!(
-            manager
-                .migrate_instance_java_settings([("extra".into(), old.clone())].into())
-                .is_err()
-        );
-        assert!(
-            !manager
-                .app_state
-                .blocking_lock()
-                .java_preferences
-                .contains_key(&extra)
-        );
-        fs::remove_dir_all(&repo_b).unwrap();
-        assert!(
-            manager
-                .resolve_legacy_instance_ids(["extra".to_string()].into())
-                .is_err()
-        );
-        assert_eq!(
-            manager
-                .migrate_instance_java_settings([("extra".into(), old)].into())
-                .unwrap(),
-            ["extra"]
-        );
-        fs::remove_dir_all(root).unwrap();
-    }
     #[test]
     fn isolation_initialization_is_transactional_and_persists_per_directory() {
         let root =
@@ -1140,7 +631,7 @@ mod java_config_tests {
     }
 
     #[test]
-    fn window_settings_validate_migrate_and_preserve_failed_save() {
+    fn window_settings_validate_and_preserve_failed_save() {
         let root =
             std::env::temp_dir().join(format!("pcl-window-settings-{}", uuid::Uuid::new_v4()));
         fs::create_dir(&root).unwrap();
@@ -1157,9 +648,7 @@ mod java_config_tests {
             height: 720,
         };
         assert_eq!(
-            manager
-                .update_window_settings(custom.clone(), true)
-                .unwrap(),
+            manager.update_window_settings(custom.clone()).unwrap(),
             custom
         );
         let default = WindowSettings {
@@ -1167,21 +656,12 @@ mod java_config_tests {
             width: 854,
             height: 480,
         };
-        assert_eq!(
-            manager
-                .update_window_settings(default.clone(), true)
-                .unwrap(),
-            custom
-        );
         assert!(
             manager
-                .update_window_settings(
-                    WindowSettings {
-                        width: 99,
-                        ..default.clone()
-                    },
-                    false
-                )
+                .update_window_settings(WindowSettings {
+                    width: 99,
+                    ..default.clone()
+                })
                 .is_err()
         );
         let restored: AppState =
@@ -1189,7 +669,7 @@ mod java_config_tests {
         assert_eq!(restored.window_settings, Some(custom.clone()));
         fs::remove_file(&manager.config_path).unwrap();
         fs::create_dir(&manager.config_path).unwrap();
-        assert!(manager.update_window_settings(default, false).is_err());
+        assert!(manager.update_window_settings(default).is_err());
         assert_eq!(
             manager.app_state.blocking_lock().window_settings,
             Some(custom)
@@ -1347,7 +827,7 @@ mod java_config_tests {
         fs::remove_dir_all(root).unwrap();
     }
     #[test]
-    fn download_settings_migrate_once_and_failed_save_preserves_state() {
+    fn download_settings_validate_and_failed_save_preserves_state() {
         use crate::io::download::resources::{DOWNLOAD_RESOURCES, DownloadSettings};
         let previous = DOWNLOAD_RESOURCES.settings();
         let root =
@@ -1373,21 +853,21 @@ mod java_config_tests {
         };
         assert_eq!(
             manager
-                .update_download_settings(first, true)
+                .update_download_settings(first)
                 .unwrap()
                 .max_connections,
             17
         );
         assert_eq!(
             manager
-                .update_download_settings(second.clone(), true)
+                .update_download_settings(second.clone())
                 .unwrap()
                 .max_connections,
-            17
+            32
         );
         let saved = fs::read(&path).unwrap();
         let restored: AppState = serde_json::from_slice(&saved).unwrap();
-        assert_eq!(restored.download_settings.unwrap().max_connections, 17);
+        assert_eq!(restored.download_settings.unwrap().max_connections, 32);
         assert_eq!(
             manager
                 .app_state
@@ -1400,7 +880,7 @@ mod java_config_tests {
         );
         fs::remove_file(&path).unwrap();
         fs::create_dir(&path).unwrap();
-        assert!(manager.update_download_settings(second, false).is_err());
+        assert!(manager.update_download_settings(second).is_err());
         assert_eq!(
             manager
                 .app_state
@@ -1409,9 +889,9 @@ mod java_config_tests {
                 .as_ref()
                 .unwrap()
                 .max_connections,
-            17
+            32
         );
-        assert_eq!(DOWNLOAD_RESOURCES.settings().max_connections, 17);
+        assert_eq!(DOWNLOAD_RESOURCES.settings().max_connections, 32);
         DOWNLOAD_RESOURCES.configure(previous).unwrap();
         fs::remove_dir_all(root).unwrap();
     }
@@ -1480,7 +960,7 @@ mod java_config_tests {
         fs::remove_dir_all(root).unwrap();
     }
     #[test]
-    fn log_limit_migration_and_failed_save_preserve_state() {
+    fn log_limit_validation_and_failed_save_preserve_state() {
         let root = std::env::temp_dir().join(format!("pcl-log-settings-{}", uuid::Uuid::new_v4()));
         fs::create_dir(&root).unwrap();
         let path = root.join("config.json");
@@ -1491,46 +971,13 @@ mod java_config_tests {
             api_client: MinecraftApiClient::new(reqwest::Client::new(), &ApiProvider::default()),
             pcl_identifier: String::new(),
         };
-        assert_eq!(manager.update_log_max_lines(500, true).unwrap(), 500);
-        assert_eq!(manager.update_log_max_lines(100, true).unwrap(), 500);
-        assert!(manager.update_log_max_lines(2001, false).is_err());
+        assert_eq!(manager.update_log_max_lines(500).unwrap(), 500);
+        assert_eq!(manager.update_log_max_lines(100).unwrap(), 100);
+        assert!(manager.update_log_max_lines(2001).is_err());
         fs::remove_file(&path).unwrap();
         fs::create_dir(&path).unwrap();
-        assert!(manager.update_log_max_lines(0, false).is_err());
-        assert_eq!(manager.app_state.blocking_lock().log_max_lines, Some(500));
+        assert!(manager.update_log_max_lines(0).is_err());
+        assert_eq!(manager.app_state.blocking_lock().log_max_lines, Some(100));
         fs::remove_dir_all(root).unwrap();
-    }
-    #[test]
-    fn legacy_java_migration_preserves_only_path_and_does_not_override_new_preferences() {
-        let mut data = serde_json::to_value(AppState::default()).unwrap();
-        data["pcl_setup_info"]["default_java"] = serde_json::json!({
-            "directory_path":"/legacy/bin","is_user_imported":false,"version":"25","slug_version":25,
-            "is_64_bit":true,"architecture":"Arm64","compability":"Perfect","is_jdk":true,
-            "java_exe":"/legacy/bin/java","implementor":"fixture"
-        });
-        let mut state: AppState = serde_json::from_value(data).unwrap();
-        migrate_java_settings(&mut state);
-        assert_eq!(
-            state.launcher_setup.selected_java,
-            Some(PathBuf::from("/legacy/bin/java"))
-        );
-        assert!(state.launcher_setup.default_java.is_none());
-        migrate_java_settings(&mut state);
-        assert_eq!(
-            state.launcher_setup.selected_java,
-            Some(PathBuf::from("/legacy/bin/java"))
-        );
-        state.launcher_setup.selected_java = Some(PathBuf::from("/new/bin/java"));
-        state.launcher_setup.default_java = serde_json::from_value(serde_json::json!({
-            "directory_path":"/legacy/bin","is_user_imported":false,"version":"25","slug_version":25,
-            "is_64_bit":true,"architecture":"Arm64","compability":"Perfect","is_jdk":true,
-            "java_exe":"/legacy/bin/java","implementor":"fixture"
-        })).unwrap();
-        migrate_java_settings(&mut state);
-        assert_eq!(
-            state.launcher_setup.selected_java,
-            Some(PathBuf::from("/new/bin/java"))
-        );
-        assert!(state.launcher_setup.default_java.is_none());
     }
 }

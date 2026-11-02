@@ -471,12 +471,15 @@ async fn official_fabric_install(
         )?;
         fs::set_permissions(&executable, fs::Permissions::from_mode(0o755))?;
         let runtime = serde_json::from_value(json!({
-            "directory_path":root, "is_user_imported":false, "version":"8", "slug_version":8,
-            "is_64_bit":true, "architecture":"X64", "compability":"Perfect", "is_jdk":true,
-            "java_exe":executable, "implementor":"fixture"
+            "java_folder":root, "version":"8", "slug_version":8,
+            "is_64_bit":true, "architecture":"X64", "compatibility":"Perfect",
+            "java_exe":executable, "brand":"unknown"
         }))?;
         let state = crate::app::config::AppState {
-            active_account: Some(Arc::new(McProfile::offline("test", "uuid"))),
+            profile: crate::app::states::ProfileConfig {
+                last_used: 0,
+                profiles: vec![McProfile::offline("test", "uuid")],
+            },
             active_game_instance: Some(Arc::new(instance)),
             ..Default::default()
         };
@@ -821,15 +824,18 @@ async fn fabric_install_merges_profile_and_publishes_only_after_verified_files()
         .unwrap();
         fs::set_permissions(&executable, fs::Permissions::from_mode(0o755)).unwrap();
         let runtime = serde_json::from_value(json!({
-            "directory_path":root, "is_user_imported":false, "version":"21", "slug_version":21,
-            "is_64_bit":true, "architecture":"Arm64", "compability":"Perfect", "is_jdk":true,
-            "java_exe":executable, "implementor":"fixture"
+            "java_folder":root, "version":"21", "slug_version":21,
+            "is_64_bit":true, "architecture":"Arm64", "compatibility":"Perfect",
+            "java_exe":executable, "brand":"unknown"
         }))
         .unwrap();
         let state = crate::app::config::AppState {
-            active_account: Some(Arc::new(crate::minecraft::profile::McProfile::offline(
-                "test", "uuid",
-            ))),
+            profile: crate::app::states::ProfileConfig {
+                last_used: 0,
+                profiles: vec![crate::minecraft::profile::McProfile::offline(
+                    "test", "uuid",
+                )],
+            },
             active_game_instance: Some(Arc::new(instance)),
             ..Default::default()
         };

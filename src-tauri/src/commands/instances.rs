@@ -59,16 +59,6 @@ pub async fn set_instance_isolation(
     .map_err(|error| error.to_string())?
 }
 #[tauri::command]
-pub async fn resolve_legacy_instance_ids(
-    ids: std::collections::HashSet<String>,
-) -> Result<std::collections::HashMap<String, std::path::PathBuf>, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        ConfigManager::instance().resolve_legacy_instance_ids(ids)
-    })
-    .await
-    .map_err(|error| error.to_string())?
-}
-#[tauri::command]
 pub async fn open_instance_folder(
     instance_directory: std::path::PathBuf,
     kind: McInstanceFolder,
@@ -275,9 +265,6 @@ fn rename_instance_inner(
             state
                 .instance_isolation
                 .insert(new_directory.clone(), value);
-        }
-        if state.edited_memory_instances.remove(&instance.directory) {
-            state.edited_memory_instances.insert(new_directory.clone());
         }
         if let Some(description) = state.instance_descriptions.remove(&instance.directory) {
             state

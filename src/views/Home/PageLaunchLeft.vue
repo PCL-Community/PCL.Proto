@@ -7,6 +7,9 @@ import PageLoginOffline from './PageLoginOffline.vue'
 import PageLoginMs from './PageLoginMs.vue'
 import PageLoginAuth from './PageLoginAuth.vue'
 import { useSelectedInstance } from '@/stores/gameLaunch'
+import { useAccountInfo } from '@/stores/account'
+import { useLoginSession } from '@/composables/useLoginSession'
+import { getProfileTypeLabel } from '@/util/profile'
 import { useRouter } from 'vue-router'
 import type { ProfileView } from '@/types/profile'
 import { Channel, invoke } from '@tauri-apps/api/core'
@@ -23,8 +26,9 @@ defineProps<{ loadingInstances?: boolean }>()
 
 const router = useRouter()
 const instance = useSelectedInstance()
+const account = useAccountInfo()
 const text = pclText
-const profileView = ref<ProfileView>('skin')
+const profileView = ref<ProfileView>(account.profile ? 'skin' : 'profiles')
 const accountViews = {
   skin: PageLoginProfileSkin,
   profiles: PageLoginProfile,
@@ -33,35 +37,32 @@ const accountViews = {
   auth: PageLoginAuth,
 }
 const accountView = computed(() => accountViews[profileView.value])
+// CE 的 RefreshPage：选中档案时显示皮肤页，没有档案时显示档案列表。
+watch(
+  () => account.currentId,
+  (current) => {
+    profileView.value = current ? 'skin' : 'profiles'
+  },
+)
+// 登录会话挂在启动页：设备码弹窗、角色选择与失败提示都在这里，登录途中切页也不会丢。
+useLoginSession(
+  () => (profileView.value === 'auth' ? 'auth' : 'microsoft'),
+  () => {
+    profileView.value = 'skin'
+  },
+)
 const modal = useModal()
 const launchState = useLaunchState()
 const { preparing, launching, downloadSpeed, leavingLaunch } = storeToRefs(launchState)
 
-async function getLaunchMethod() {
-  try {
-    const account = await invoke<{
-      profileType: 'microsoft' | 'offline' | 'authlib' | 'yggdrasilConnect'
-      serverName?: string | null
-    } | null>('get_account')
-    if (!account) return text('Launch.Account.Type.Offline')
-    if (account.profileType === 'microsoft') return text('Launch.Account.Type.Microsoft')
-    if (account.profileType === 'authlib' || account.profileType === 'yggdrasilConnect') {
-      return `${text('Launch.Account.Type.ThirdParty')}${account.serverName ? ` / ${account.serverName}` : ''}`
-    }
-    return text('Launch.Account.Type.Offline')
-  } catch {
-    return text('Launch.Account.Type.Offline')
-  }
+/** 启动页显示的验证方式，对照 CE 的 `LabLaunchingMethod`。 */
+function getLaunchMethod() {
+  return account.profile
+    ? getProfileTypeLabel(account.profile)
+    : text('Launch.Account.Type.Offline')
 }
 function startLaunching() {
-  const attempt = launchState.start(
-    instance.instance_info?.name || '',
-    text('Launch.Account.Type.Offline'),
-  )
-  void getLaunchMethod().then((method) => {
-    launchState.setMethod(attempt, method)
-  })
-  return attempt
+  return launchState.start(instance.instance_info?.name || '', getLaunchMethod())
 }
 function returnToHome(attempt: number) {
   launchState.returnToHome(attempt)
@@ -110,7 +111,13 @@ function showLaunchFailure(attempt: number, failure: LaunchFailure) {
   })
 }
 async function launch(serverAddress?: string) {
-  if (preparing.value) return
+  if (preparing.value || account.loggingIn) return
+  // CE：没有选中档案时不允许启动。
+  if (!account.profile) {
+    profileView.value = 'profiles'
+    sideTip.show(text('Launch.Account.Profile.SelectHint'), 'warn')
+    return
+  }
   if (!instance.instance_info) {
     await router.push('/download/game')
     return
@@ -240,7 +247,7 @@ function settings() {
           class="launch"
           type="tint"
           @click="() => launch()"
-          :disabled="loadingInstances || preparing"
+          :disabled="loadingInstances || preparing || !account.profile || account.loggingIn"
           ><span>{{
             text(
               loadingInstances
