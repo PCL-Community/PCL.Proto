@@ -34,7 +34,13 @@ jobs:
             const heading = `## ${process.env.PACKAGE_VERSION}`
             const section = changelog.split(heading)[1]?.split(/^## /m)[0]?.trim()
             if (!section) throw new Error(`Missing changelog for ${heading}`)
-            const { data } = await github.rest.repos.createRelease({
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            })
+            const existing = releases.find(release => release.tag_name === `v${process.env.PACKAGE_VERSION}`)
+            if (existing && !existing.draft) throw new Error('Release already published')
+            const params = {
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: `v${process.env.PACKAGE_VERSION}`,
@@ -43,7 +49,10 @@ jobs:
               body: section,
               draft: true,
               prerelease: false
-            })
+            }
+            const { data } = existing
+              ? await github.rest.repos.updateRelease({ ...params, release_id: existing.id })
+              : await github.rest.repos.createRelease(params)
             return data.id
 
   build-tauri:

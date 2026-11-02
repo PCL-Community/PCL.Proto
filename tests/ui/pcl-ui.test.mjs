@@ -161,8 +161,9 @@ for (const file of files) {
       .map((suffix) => target + suffix)
       .find((candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile())
     assert.ok(resolved, `${file}: unresolved import ${specifier}`)
-    let parent = path.parse(resolved).root
-    for (const segment of resolved.slice(parent.length).split(path.sep)) {
+    const normalized = path.normalize(resolved)
+    let parent = path.parse(normalized).root
+    for (const segment of normalized.slice(parent.length).split(path.sep)) {
       assert.ok(
         fs.readdirSync(parent).includes(segment),
         `${file}: incorrect import casing ${specifier}`,
