@@ -171,7 +171,6 @@ async function confirmWarning(message: string) {
   const result = await modal.open({
     title: text('Common.Dialog.Warning'),
     content: message,
-    plainText: true,
     buttons: [
       {
         content: text('Setup.Launch.Advanced.Renderer.Warning.Confirm'),
@@ -243,7 +242,6 @@ async function changeIsolation(value: string | undefined) {
     const result = await modal.open({
       title: text('Common.Dialog.Warning'),
       content: text('Instance.Setup.Options.InstanceIsolation.Message'),
-      plainText: true,
       buttons: [
         {
           content: text('Setup.Launch.Advanced.Renderer.Warning.Confirm'),
@@ -272,7 +270,6 @@ async function setLittleSkin() {
     const result = await modal.open({
       title: text('Instance.Setup.Server.LittleSkin.Override.Title'),
       content: text('Instance.Setup.Server.LittleSkin.Override.Message'),
-      plainText: true,
       buttons: [
         {
           content: text('Instance.Setup.Server.LittleSkin.Override.Continue'),

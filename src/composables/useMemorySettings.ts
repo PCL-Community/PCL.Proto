@@ -58,20 +58,17 @@ export function useMemorySettings(
   }
   function snapshot() {
     const max = memoryTickToMib(maximum.value)
+    // 初始堆不得超过最大堆：这条规则只在这里算一次，settings 与 custom 共用同一个结果。
     const custom = {
       maximum_mib: max,
-      initial_mib: initial.value === 0 ? null : memoryTickToMib(initial.value),
+      initial_mib: initial.value === 0 ? null : Math.min(max, memoryTickToMib(initial.value)),
     }
     const settings: MemorySettings | null =
       mode.value === 'inherit'
         ? null
         : mode.value === 'auto'
           ? { mode: 'auto' }
-          : {
-              mode: 'custom',
-              maximum_mib: max,
-              initial_mib: custom.initial_mib === null ? null : Math.min(max, custom.initial_mib),
-            }
+          : { mode: 'custom', maximum_mib: max, initial_mib: custom.initial_mib }
     return { settings, custom }
   }
   function save() {
@@ -117,7 +114,10 @@ export function useMemorySettings(
         },
         { immediate: true },
       )
-      interval = setInterval(refreshPreview, 5000)
+      interval = setInterval(() => {
+        if (document.hidden) return
+        refreshPreview()
+      }, 5000)
     })
     onUnmounted(() => {
       previewRevision++

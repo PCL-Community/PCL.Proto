@@ -106,7 +106,6 @@ async function input(prompt: string, initial: string) {
   const answer = await modal.open({
     title: text('Instance.Server.EditTitle'),
     content: prompt,
-    plainText: true,
     showInput: true,
     defaultInputText: initial,
     buttons: [
@@ -166,7 +165,6 @@ async function remove(index: number) {
   const answer = await modal.open({
     title: text('Instance.Server.Card.RemoveConfirmTitle'),
     content: text('Instance.Server.Card.RemoveConfirmMessage', [server.name, server.address]),
-    plainText: true,
     buttons: [
       {
         type: 'warn',

@@ -157,7 +157,6 @@ function showInfo(id: string) {
   const modal = useModal()
   void modal.open({
     title: entry.displayName || entry.name,
-    plainText: true,
     content: [entry.version, entry.description, entry.name, formatSize(entry.size)]
       .filter(Boolean)
       .join('\n'),

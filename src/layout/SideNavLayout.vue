@@ -15,7 +15,6 @@ provide('navAction', (kind: string) => {
     void useModal().open({
       title: pclText('Common.Dialog.Title'),
       content: pclText('Proto.NotImplemented.Initialize'),
-      plainText: true,
     })
 })
 let observer: ResizeObserver | null = null

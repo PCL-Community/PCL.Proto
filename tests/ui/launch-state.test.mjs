@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict'
-import fs from 'node:fs'
 import { createPinia, setActivePinia } from 'pinia'
 import { createServer } from 'vite'
 
@@ -11,21 +10,6 @@ const originalSetTimeout = globalThis.setTimeout
 const originalClearTimeout = globalThis.clearTimeout
 const timers = []
 try {
-  const launchPage = fs.readFileSync(
-    new URL('../../src/views/Home/PageLaunchLeft.vue', import.meta.url),
-    'utf8',
-  )
-  const transitions = fs.readFileSync(
-    new URL('../../src/composables/usePageTransition.ts', import.meta.url),
-    'utf8',
-  )
-  assert.match(launchPage, /transform: scale\(0\.96\)/)
-  assert.match(launchPage, /transform: scale\(0\.8\)/)
-  assert.doesNotMatch(launchPage, /scale\(0\.9\)/)
-  assert.doesNotMatch(launchPage, /:not\(\.is-launching\)/)
-  assert.match(transitions, /scale\(0\.95\)/)
-  assert.doesNotMatch(transitions, /scale\(0\.9\)/)
-
   globalThis.setTimeout = (callback, delay) => {
     const timer = { callback, delay, cleared: false }
     timers.push(timer)

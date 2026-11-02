@@ -36,7 +36,6 @@ async function showDialog(withInput: boolean) {
   const result = await modal.open({
     title: withInput ? pclText('Proto.Demo.InputDialog') : pclText('Proto.Demo.ConfirmDialog'),
     content: withInput ? pclText('Proto.Demo.InputPrompt') : pclText('Proto.Demo.ConfirmPrompt'),
-    plainText: true,
     showInput: withInput,
     defaultInputText: playerName.value,
     buttons: [

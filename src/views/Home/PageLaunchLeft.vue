@@ -105,7 +105,6 @@ function showLaunchFailure(attempt: number, failure: LaunchFailure) {
   void modal.open({
     title: text('Crash.Dialog.Title.Auto'),
     content: formatLaunchFailure(failure),
-    plainText: true,
     width: ModalWidthVariant.Fat,
     buttons: [{ content: text('Common.Action.Confirm'), operation: () => modal.close() }],
   })
@@ -137,7 +136,6 @@ async function launch(serverAddress?: string) {
             info.requirements.min[0],
             info.requirements.max[0],
           ]),
-          plainText: true,
           buttons: [{ content: text('Common.Action.Close'), operation: () => modal.close() }],
         })
         await abandonLaunch(attempt)
@@ -149,7 +147,6 @@ async function launch(serverAddress?: string) {
         content: text('Minecraft.Launch.Java.AutoDownload.Message', [
           `Java ${info.download_major}`,
         ]),
-        plainText: true,
         buttons: [
           {
             content: text('Minecraft.Launch.Java.AutoDownload.Action'),

@@ -1,7 +1,6 @@
 use super::*;
 use std::{
     collections::{HashMap, HashSet},
-    io::Write,
     sync::{LazyLock, Mutex as StdMutex},
 };
 
@@ -273,18 +272,18 @@ fn extract_overrides(
                 seen.insert(relative.to_ascii_lowercase()),
                 "Duplicate override path"
             );
-            total = total
-                .checked_add(entry.size())
-                .context("Modpack size overflow")?;
-            ensure!(
-                entry.size() <= 512 * 1024 * 1024 && total <= 4 * 1024 * 1024 * 1024,
-                "Modpack overrides are too large"
-            );
+            // 额度按实际写入字节累计：archive 头声明的 size 可以被伪造。
+            const MAX_ENTRY: u64 = 512 * 1024 * 1024;
+            const MAX_TOTAL: u64 = 4 * 1024 * 1024 * 1024;
+            ensure!(total < MAX_TOTAL, "Modpack overrides are too large");
             let target = pack_path(directory, name, relative)?;
             fs::create_dir_all(target.parent().context("Missing override parent")?)?;
             let mut output = fs::File::create(target)?;
-            std::io::copy(&mut entry, &mut output)?;
-            output.flush()?;
+            total += crate::io::files::copy_entry_bounded(
+                &mut entry,
+                &mut output,
+                MAX_ENTRY.min(MAX_TOTAL - total),
+            )?;
         }
     }
     Ok(())
@@ -367,6 +366,7 @@ async fn install_pack(
         .map(|version| FabricInstall {
             family: crate::io::net::http::api_client::FabricFamily::Fabric,
             version: version.clone(),
+            api: None,
         });
     install_version_with_modpack(
         client,

@@ -82,7 +82,6 @@ async function addJava() {
 function info(runtime: IJavaRuntimeInfo) {
   void modal.open({
     title: text('Setup.Java.Info.Title'),
-    plainText: true,
     content: text('Setup.Java.Info.Format', [
       runtime.is_jre ? 'JRE' : 'JDK',
       runtime.version,

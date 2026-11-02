@@ -25,7 +25,6 @@ export enum ModalWidthVariant {
 }
 
 export interface ModalOptions {
-  plainText?: boolean
   content?: string
   title?: string
   width?: ModalWidthVariant

@@ -139,7 +139,6 @@ async function folderAction(item: GameInstance, remove: boolean) {
     const result = await modal.open({
       title: text('Select.Instance.Delete.ConfirmTitle'),
       content: `${text('Select.Instance.Delete.ConfirmMessage', [item.name])}\n${text('Select.Instance.Delete.IsolatedWarning')}`,
-      plainText: true,
       buttons: [
         { content: text('Common.Action.Delete'), type: 'warn', operation: () => modal.close(true) },
         { content: text('Common.Action.Cancel'), operation: () => modal.close(false) },

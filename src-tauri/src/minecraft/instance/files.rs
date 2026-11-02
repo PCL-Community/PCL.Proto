@@ -1,6 +1,6 @@
 use std::{
     fs,
-    io::{Read, Write},
+    io::Read,
     path::{Path, PathBuf},
     time::UNIX_EPOCH,
 };
@@ -426,8 +426,9 @@ fn extract_zip(source: &Path, directory: &Path) -> Result<(), String> {
             fs::create_dir_all(parent).map_err(|e| e.to_string())?;
         }
         let mut output = fs::File::create(&target).map_err(|e| e.to_string())?;
-        std::io::copy(&mut file, &mut output).map_err(|e| e.to_string())?;
-        output.flush().map_err(|e| e.to_string())?;
+        // 存档 zip 由用户提供，头里声明的大小不可信，按实际写入字节限 512 MiB。
+        crate::io::files::copy_entry_bounded(&mut file, &mut output, 512 * 1024 * 1024)
+            .map_err(|e| e.to_string())?;
     }
     Ok(())
 }
@@ -459,6 +460,7 @@ fn unique_path(path: PathBuf) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
 
     fn root() -> PathBuf {
         std::env::temp_dir().join(format!("pcl-resources-{}", uuid::Uuid::new_v4()))

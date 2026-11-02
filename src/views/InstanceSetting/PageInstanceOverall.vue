@@ -126,7 +126,6 @@ async function editDescription() {
   const result = await modal.open({
     title: text('Instance.Overall.Description.EditTitle'),
     content: text('Instance.Overall.Description.EditMessage'),
-    plainText: true,
     showInput: true,
     defaultInputText: description.value,
     buttons: [
@@ -172,7 +171,6 @@ async function deleteInstance() {
   const result = await modal.open({
     title: text('Instance.Overall.Delete.ConfirmTitle'),
     content: text(message, [info.name]),
-    plainText: true,
     buttons: [
       { content: text('Common.Action.Delete'), type: 'warn', operation: () => modal.close(true) },
       { content: text('Common.Action.Cancel'), operation: () => modal.close(false) },

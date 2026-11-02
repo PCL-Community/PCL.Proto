@@ -51,9 +51,7 @@ const { mode, maximum, initial, ready, error, preview, segments, load, save } = 
         >{{ text('Setup.Launch.Memory.Initial')
         }}<template v-if="mode === 'custom'">
           ({{
-            initial
-              ? `${Math.min(memoryTickToMib(initial), memoryTickToMib(maximum))} MiB`
-              : text('Setup.Launch.Memory.Auto')
+            initial ? `${memoryTickToMib(initial)} MiB` : text('Setup.Launch.Memory.Auto')
           }})</template
         ></span
       >
@@ -64,7 +62,7 @@ const { mode, maximum, initial, ready, error, preview, segments, load, save } = 
         :title="text('Setup.Launch.Memory.Initial.ToolTip')"
         type="range"
         min="0"
-        max="49"
+        :max="maximum"
         @change="save"
       />
     </div>

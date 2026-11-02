@@ -65,6 +65,27 @@ pub fn validate_file_name(name: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Copy one archive entry, failing once it expands beyond `limit` bytes.
+/// Archive headers are attacker-controlled, so the cap counts real bytes written,
+/// not the size the archive claims.
+pub fn copy_entry_bounded<R: std::io::Read>(
+    entry: &mut R,
+    output: &mut impl std::io::Write,
+    limit: u64,
+) -> std::io::Result<u64> {
+    let mut limited = entry.take(limit);
+    let written = std::io::copy(&mut limited, output)?;
+    let mut probe = [0_u8; 1];
+    if std::io::Read::read(&mut limited, &mut probe)? != 0 {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Archive entry expands beyond the allowed size",
+        ));
+    }
+    output.flush()?;
+    Ok(written)
+}
+
 /// Remote manifest paths are relative slash-separated paths, even on Windows.
 pub fn safe_join(root: &Path, relative: &str) -> anyhow::Result<PathBuf> {
     anyhow::ensure!(!relative.is_empty(), "Empty download path");

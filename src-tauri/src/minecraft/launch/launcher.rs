@@ -188,6 +188,7 @@ impl LaunchOption {
             }
             script.push('\n');
         }
+        let script = filter_access_token(script, self.account.access_token(), self.account.uuid());
         let parent = path
             .parent()
             .ok_or_else(|| GameLaunchError::Resource("Invalid launch script path".into()))?;
@@ -845,16 +846,33 @@ mod macos_arm_patch_tests {
 
 /// Batch tokens break on whitespace and shell metacharacters; quote those arguments.
 fn quote_windows(arg: &str) -> String {
-    if arg.chars().any(|c| {
-        matches!(
-            c,
-            ' ' | '\t' | ';' | '&' | '|' | '<' | '>' | '^' | '(' | ')'
-        )
-    }) {
+    // CE 语义：参数已经自带结尾引号时不再二次包裹，否则含空格、盘符或 cmd 元字符才补引号。
+    let needs_quotes = arg.contains(' ')
+        || arg.contains(":\\")
+        || arg
+            .chars()
+            .any(|c| matches!(c, '\t' | ';' | '&' | '|' | '<' | '>' | '^' | '(' | ')'));
+    if needs_quotes && !arg.ends_with('"') {
         format!("\"{arg}\"")
     } else {
         arg.to_owned()
     }
+}
+
+/// 对齐 CE 的 `McLogFilter.FilterAccessToken`：保留前后各 5 个字符，中间用 `F` 打码。
+/// UUID 与 token 相同（离线登录等场景）时不打码。
+fn filter_access_token(script: String, token: Option<&str>, uuid: &str) -> String {
+    let Some(token) = token.filter(|token| token.len() >= 10 && *token != uuid) else {
+        return script;
+    };
+    let chars: Vec<char> = token.chars().collect();
+    let masked: String = chars[..5]
+        .iter()
+        .copied()
+        .chain(std::iter::repeat_n('F', chars.len() - 10))
+        .chain(chars[chars.len() - 5..].iter().copied())
+        .collect();
+    script.replace(token, &masked)
 }
 
 fn quote_unix(arg: &str) -> String {
@@ -1388,8 +1406,24 @@ mod tests {
             "\"-cp C:\\a b\\lib.jar;C:\\c.jar\""
         );
         assert_eq!(
+            quote_windows("-Dlog4j.configurationFile=\"C:\\path\\cfg.xml\""),
+            "-Dlog4j.configurationFile=\"C:\\path\\cfg.xml\""
+        );
+        assert_eq!(
             quote_unix("/tmp/with space/it's.jar"),
             "'/tmp/with space/it'\\''s.jar'"
+        );
+        let token = "abcdefghijklmnopqrstuvwxyz";
+        let masked = filter_access_token(
+            format!("-cp . --accessToken {token}"),
+            Some(token),
+            "another-uuid",
+        );
+        assert_eq!(masked, "-cp . --accessToken abcdeFFFFFFFFFFFFFFFFvwxyz");
+        assert_eq!(masked.len(), format!("-cp . --accessToken {token}").len());
+        assert_eq!(
+            filter_access_token(format!("--accessToken {token}"), Some(token), token),
+            format!("--accessToken {token}")
         );
     }
 

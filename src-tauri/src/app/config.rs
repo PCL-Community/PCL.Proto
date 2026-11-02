@@ -6,10 +6,7 @@ use tokio::sync::Mutex;
 use crate::{
     app::config::constants::USER_AGENT,
     io::net::http::api_client::{ApiProvider, MinecraftApiClient},
-    minecraft::{
-        instance::{McInstance, folder::McFolder},
-        profile::McProfile,
-    },
+    minecraft::instance::{McInstance, folder::McFolder},
 };
 use std::{
     collections::{HashMap, HashSet},
@@ -77,20 +74,20 @@ impl ConfigManager {
         self.update(|state| crate::minecraft::instance::isolation::ensure(state, path))
     }
 
-    pub fn migrate_instance_memory_settings(
+    /// 旧版按实例 ID 记录的设置迁入 Rust 配置的公共流程：
+    /// 跳过已迁移项 → 扫描登记仓库确认 ID 唯一 → 单个事务写入 → 返回仍未处理的 ID。
+    fn migrate_legacy_instances<T>(
         &self,
-        mut legacy: HashMap<String, crate::minecraft::launch::memory::MemorySnapshot>,
+        mut legacy: HashMap<String, T>,
+        label: &str,
+        done: impl Fn(&AppState, &str) -> bool,
+        apply: impl Fn(&mut AppState, &str, &std::path::Path, T) -> Result<(), String>,
     ) -> Result<Vec<String>, String> {
-        legacy.retain(|id, _| !id.is_empty() && id != "none");
-        let (repositories, migrated, migrated_custom) = {
+        let repositories = {
             let state = self.app_state.blocking_lock();
-            (
-                state.repositories.clone(),
-                state.migrated_memory_ids.clone(),
-                state.migrated_memory_custom_ids.clone(),
-            )
+            legacy.retain(|id, _| !id.is_empty() && id != "none" && !done(&state, id));
+            state.repositories.clone()
         };
-        legacy.retain(|id, _| !migrated.contains(id) || !migrated_custom.contains(id));
         if legacy.is_empty() {
             return Ok(Vec::new());
         }
@@ -98,7 +95,7 @@ impl ConfigManager {
             match scan_legacy_instance_ids(&repositories, &legacy.keys().cloned().collect()) {
                 Ok(matches) => matches,
                 Err(error) => {
-                    log::warn!("Cannot verify legacy memory settings: {error}");
+                    log::warn!("Cannot verify legacy {label} settings: {error}");
                     let mut pending: Vec<_> = legacy.into_keys().collect();
                     pending.sort();
                     return Ok(pending);
@@ -116,52 +113,22 @@ impl ConfigManager {
         let mut candidate = state.clone();
         let mut pending = Vec::new();
         let mut changed = false;
-        for (id, snapshot) in legacy {
-            if candidate.migrated_memory_ids.contains(&id)
-                && candidate.migrated_memory_custom_ids.contains(&id)
-            {
+        for (id, value) in legacy {
+            if done(&candidate, &id) {
                 continue;
             }
-            let Some(paths) = matches.get(&id).filter(|paths| paths.len() == 1) else {
+            let Some(path) = matches
+                .get(&id)
+                .filter(|paths| paths.len() == 1)
+                .map(|paths| paths[0].clone())
+            else {
                 pending.push(id);
                 continue;
             };
-            if snapshot
-                .settings
-                .as_ref()
-                .is_some_and(|value| value.validate().is_err())
-                || snapshot.custom.validate().is_err()
-            {
+            if apply(&mut candidate, &id, &path, value).is_err() {
                 pending.push(id);
                 continue;
             }
-            let path = &paths[0];
-            if !candidate.edited_memory_instances.contains(path) {
-                if !candidate.migrated_memory_ids.contains(&id) {
-                    if let Some(settings) = snapshot.settings {
-                        candidate
-                            .instance_memory_settings
-                            .entry(path.clone())
-                            .or_insert(settings);
-                    }
-                }
-                let custom = match candidate.instance_memory_settings.get(path) {
-                    Some(
-                        settings @ crate::minecraft::launch::memory::MemorySettings::Custom {
-                            ..
-                        },
-                    ) => crate::minecraft::launch::memory::MemoryCustom::from_settings(Some(
-                        settings,
-                    )),
-                    _ => snapshot.custom,
-                };
-                candidate
-                    .instance_memory_custom
-                    .entry(path.clone())
-                    .or_insert(custom);
-            }
-            candidate.migrated_memory_ids.insert(id.clone());
-            candidate.migrated_memory_custom_ids.insert(id);
             changed = true;
         }
         if changed {
@@ -171,6 +138,57 @@ impl ConfigManager {
         }
         pending.sort();
         Ok(pending)
+    }
+
+    pub fn migrate_instance_memory_settings(
+        &self,
+        legacy: HashMap<String, crate::minecraft::launch::memory::MemorySnapshot>,
+    ) -> Result<Vec<String>, String> {
+        self.migrate_legacy_instances(
+            legacy,
+            "memory",
+            |state, id| {
+                state.migrated_memory_ids.contains(id)
+                    && state.migrated_memory_custom_ids.contains(id)
+            },
+            |state, id, path, snapshot| {
+                if snapshot
+                    .settings
+                    .as_ref()
+                    .is_some_and(|value| value.validate().is_err())
+                    || snapshot.custom.validate().is_err()
+                {
+                    return Err("Invalid legacy memory settings".into());
+                }
+                if !state.edited_memory_instances.contains(path) {
+                    if !state.migrated_memory_ids.contains(&id.to_owned()) {
+                        if let Some(settings) = snapshot.settings {
+                            state
+                                .instance_memory_settings
+                                .entry(path.to_path_buf())
+                                .or_insert(settings);
+                        }
+                    }
+                    let custom = match state.instance_memory_settings.get(path) {
+                        Some(
+                            settings @ crate::minecraft::launch::memory::MemorySettings::Custom {
+                                ..
+                            },
+                        ) => crate::minecraft::launch::memory::MemoryCustom::from_settings(Some(
+                            settings,
+                        )),
+                        _ => snapshot.custom,
+                    };
+                    state
+                        .instance_memory_custom
+                        .entry(path.to_path_buf())
+                        .or_insert(custom);
+                }
+                state.migrated_memory_ids.insert(id.to_owned());
+                state.migrated_memory_custom_ids.insert(id.to_owned());
+                Ok(())
+            },
+        )
     }
 
     pub fn resolve_legacy_instance_ids(
@@ -202,70 +220,32 @@ impl ConfigManager {
 
     pub fn migrate_instance_java_settings(
         &self,
-        mut legacy: HashMap<String, crate::minecraft::java::preference::InstanceJavaSettings>,
+        legacy: HashMap<String, crate::minecraft::java::preference::InstanceJavaSettings>,
     ) -> Result<Vec<String>, String> {
-        legacy.retain(|id, _| !id.is_empty() && id != "none");
-        let (repositories, migrated) = {
-            let state = self.app_state.blocking_lock();
-            (state.repositories.clone(), state.migrated_java_ids.clone())
-        };
-        legacy.retain(|id, _| !migrated.contains(id));
-        if legacy.is_empty() {
-            return Ok(Vec::new());
-        }
-        let matches =
-            match scan_legacy_instance_ids(&repositories, &legacy.keys().cloned().collect()) {
-                Ok(matches) => matches,
-                Err(error) => {
-                    log::warn!("Cannot verify legacy Java settings: {error}");
-                    let mut pending: Vec<_> = legacy.into_keys().collect();
-                    pending.sort();
-                    return Ok(pending);
-                }
-            };
-        let mut state = self.app_state.blocking_lock();
-        if state
-            .repositories
-            .iter()
-            .map(|repo| &repo.path)
-            .ne(repositories.iter().map(|repo| &repo.path))
-        {
-            return Err("Minecraft folders changed during settings migration; retry".into());
-        }
-        let mut candidate = state.clone();
-        let mut pending = Vec::new();
-        let mut changed = false;
-        for (id, settings) in legacy {
-            if candidate.migrated_java_ids.contains(&id) {
-                continue;
-            }
-            let paths = matches.get(&id);
-            if paths.is_none_or(|paths| paths.len() != 1)
-                || !matches!(
+        self.migrate_legacy_instances(
+            legacy,
+            "Java",
+            |state, id| state.migrated_java_ids.contains(id),
+            |state, id, path, settings| {
+                if !matches!(
                     settings.preference,
                     crate::minecraft::java::preference::JavaPreference::Auto
                         | crate::minecraft::java::preference::JavaPreference::Existing { .. }
+                ) || crate::minecraft::java::preference::validate_preference(
+                    &settings.preference,
                 )
-                || crate::minecraft::java::preference::validate_preference(&settings.preference)
-                    .is_err()
-            {
-                pending.push(id);
-                continue;
-            }
-            candidate
-                .java_preferences
-                .entry(paths.unwrap()[0].clone())
-                .or_insert(settings);
-            candidate.migrated_java_ids.insert(id);
-            changed = true;
-        }
-        if changed {
-            save_config_atomically(&self.config_path, &candidate)
-                .map_err(|error| format!("{error:?}"))?;
-            *state = candidate;
-        }
-        pending.sort();
-        Ok(pending)
+                .is_err()
+                {
+                    return Err("Invalid legacy Java preference".into());
+                }
+                state
+                    .java_preferences
+                    .entry(path.to_path_buf())
+                    .or_insert(settings);
+                state.migrated_java_ids.insert(id.to_owned());
+                Ok(())
+            },
+        )
     }
 
     fn update_window_settings(
@@ -495,20 +475,9 @@ impl ConfigManager {
             fs::create_dir_all(&game_dir).map_err(|_| ConfigManagerError::ConfigDirNotFound)?;
         }
         let mut state = self.app_state.blocking_lock();
-        // [WARN] Only for Debug!!
-        // TODO)) 后面去除下面的代码
         state.active_repo_path = game_dir.clone();
         state.repositories.push(McFolder::new("Default", game_dir));
-        // state.repositories.push(McFolder::new(
-        //     "HMCL",
-        //     PathBuf::from("/Users/amagicpear/HMCL/.minecraft"),
-        // ));
-        state.active_account = Some(Arc::new(McProfile::offline(
-            "AMagicPear",
-            "31bbe5379fea4e68aa4ad7aacca23d13",
-        )));
-        // state.launcher_setup.default_java =
-        //     Some(Arc::new(JavaEntry::try_from("/usr/bin/java").unwrap()));
+        // CE 一致：首次运行不预置账号，由用户自行登录。
         Ok(())
     }
 
@@ -677,8 +646,9 @@ impl ConfigManager {
         let mut candidate = state.clone();
         candidate.download_settings = Some(settings.clone());
         save_config_atomically(&self.config_path, &candidate).map_err(|e| format!("{e:?}"))?;
-        crate::io::download::resources::DOWNLOAD_RESOURCES.configure(settings.clone())?;
         *state = candidate;
+        // 副作用放在提交之后：失败时磁盘与内存一致，用户重试即可恢复。
+        crate::io::download::resources::DOWNLOAD_RESOURCES.configure(settings.clone())?;
         Ok(settings)
     }
 

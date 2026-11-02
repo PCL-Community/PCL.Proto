@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { createSettingsPersistence } from '@/util/settingsPersistence'
+import { dropLegacyFields, legacyInstancePages } from '@/util/legacySettings'
 
 export type MemorySettings =
   { mode: 'auto' } | { mode: 'custom'; maximum_mib: number; initial_mib: number | null }
@@ -88,25 +89,27 @@ function parseLegacy(key: string): unknown {
 }
 
 export async function initializeMemorySettings() {
-  const global = legacyMemory(parseLegacy('pcl-ui:PageSetupLaunch:global'), false)
-  if (global)
+  const globalKey = 'pcl-ui:PageSetupLaunch:global'
+  const global = legacyMemory(parseLegacy(globalKey), false)
+  if (global) {
     await invoke('set_memory_settings', { instanceDirectory: null, ...global, migrateOnly: true })
-  const prefix = 'pcl-ui:PageInstanceSetup:'
+    dropLegacyFields(globalKey, memorySettingKeys)
+  }
   const legacy: Record<string, MemorySnapshot> = Object.create(null)
+  const pages = new Map<string, string>()
   let invalid = 0
-  for (let index = 0; index < localStorage.length; index++) {
-    const key = localStorage.key(index)
-    if (!key?.startsWith(prefix)) continue
-    const id = key.slice(prefix.length)
-    if (!id || id === 'none') continue
-    const parsed = parseLegacy(key)
-    const settings = legacyMemory(parsed, true)
-    if (settings !== undefined) legacy[id] = settings
-    else if (parsed && typeof parsed === 'object' && 'VersionRamType' in parsed) invalid++
+  for (const { key, id, value } of legacyInstancePages('pcl-ui:PageInstanceSetup:')) {
+    const settings = legacyMemory(value, true)
+    if (settings !== undefined) {
+      legacy[id] = settings
+      pages.set(id, key)
+    } else if (value && 'VersionRamType' in value) invalid++
   }
   const pending = Object.keys(legacy).length
     ? await invoke<string[]>('migrate_instance_memory_settings', { legacy })
     : []
+  // Rust 已接管的实例删除旧袋副本，pending 的保留供下次重试。
+  for (const [id, key] of pages) if (!pending.includes(id)) dropLegacyFields(key, memorySettingKeys)
   return invalid + pending.length
 }
 

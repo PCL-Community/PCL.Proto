@@ -9,7 +9,6 @@ export function PMsgLogin(code: string, verificationUrl: string, caption: string
   return modal.open({
     title: pclText('Launch.Account.LoginDialog.Title'),
     content: caption,
-    plainText: true,
     buttons: [
       {
         content: pclText('Launch.Account.LoginDialog.ReopenWebpage'),

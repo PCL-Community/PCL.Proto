@@ -37,7 +37,6 @@ async function chooseOptional(info: ModpackInfo) {
       content: pclText('Minecraft.Download.Modpack.OptionalFile.Message', [file]),
       confirmText: pclText('Minecraft.Download.Modpack.OptionalFile.Download'),
       cancelText: pclText('Minecraft.Download.Modpack.OptionalFile.Skip'),
-      plainText: true,
     })
     if (choice.confirmed) selected.push(file)
   }

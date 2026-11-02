@@ -460,7 +460,8 @@ fn extract_natives(archives: &[NativeArchive], destination: &Path) -> anyhow::Re
             let path = safe_join(destination, &name)?;
             fs::create_dir_all(path.parent().context("Missing native parent")?)?;
             let mut file = fs::File::create(&path)?;
-            std::io::copy(&mut entry, &mut file)?;
+            // 头里声明的 size 不可信，按实际解压字节限 512 MiB。
+            crate::io::files::copy_entry_bounded(&mut entry, &mut file, 512 * 1024 * 1024)?;
         }
     }
     Ok(())
@@ -807,6 +808,26 @@ fn merge_fabric_profile(
 pub struct FabricInstall {
     family: crate::io::net::http::api_client::FabricFamily,
     version: String,
+    #[serde(default)]
+    api: Option<FabricApiInstall>,
+}
+
+#[derive(serde::Deserialize)]
+pub struct FabricApiInstall {
+    #[serde(flatten)]
+    file: DownloadFile,
+    filename: String,
+}
+
+fn add_fabric_api(
+    plan: &mut InstallPlan,
+    instance: &Path,
+    api: &FabricApiInstall,
+) -> anyhow::Result<()> {
+    validate_file_name(&api.filename)?;
+    crate::minecraft::export::resource::validate(&api.file)?;
+    plan.stages.insert(8, Vec::new());
+    plan.add(8, &api.file, instance.join("mods").join(&api.filename))
 }
 
 async fn install_version(
@@ -914,6 +935,9 @@ async fn install_version_with_modpack(
         &downloader,
     )
     .await?;
+    if let Some(api) = fabric.and_then(|fabric| fabric.api.as_ref()) {
+        add_fabric_api(&mut plan, &directory.path, api)?;
+    }
     if fabric.is_some() {
         let _ = on_event.send(TaskItemReport {
             task_id,
@@ -958,7 +982,7 @@ async fn install_version_with_modpack(
     metadata["clientVersion"] = version_id.into();
     let json = serde_json::to_vec_pretty(&metadata)?;
     let filename = format!("{name}.json");
-    let isolated = pack.is_some();
+    let isolated = pack.is_some() || fabric.and_then(|fabric| fabric.api.as_ref()).is_some();
     let path = directory.path.clone();
     crate::io::download::tasks::commit(task_id, move || {
         let mut directory = directory;

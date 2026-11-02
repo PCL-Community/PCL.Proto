@@ -5,7 +5,6 @@ export function showUnavailable() {
   return useModal().open({
     title: pclText('Common.Dialog.Title'),
     content: pclText('Proto.NotImplemented.Action'),
-    plainText: true,
     buttons: [{ type: 'tint', content: pclText('Common.Action.Confirm') }],
   })
 }
