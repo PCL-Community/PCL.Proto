@@ -78,9 +78,10 @@ appWindow?.onResized(async () => {
             component(:is="item.icon")
             | {{ pclText(item.label) }}
 
-    .right(v-if="currentPlatform != 'macos' && appWindow")
-      i.button-animated(@click="appWindow?.minimize()"): PSvgIcon(name="lucide/minus" :size="14")
-      i.button-animated(@click="appWindow?.close()"): PSvgIcon(name="lucide/x" :size="14")
+    //- web 预览下 appWindow 为空，按钮仅作展示，点击为 no-op
+    .right(v-if="currentPlatform != 'macos'")
+      i.button-animated(@click="appWindow?.minimize()"): PSvgIcon(name="lucide/minus" :size="18")
+      i.button-animated(@click="appWindow?.close()"): PSvgIcon(name="lucide/x" :size="18")
 
 </template>
 
