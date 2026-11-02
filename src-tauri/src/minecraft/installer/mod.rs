@@ -158,7 +158,9 @@ impl InstallPlan {
                             .take(2)
                             .collect::<Vec<_>>()
                             .as_slice(),
-                        ["org.lwjgl", "lwjgl"] | ["org.lwjgl.lwjgl", "lwjgl-platform"]
+                        ["org.lwjgl", "lwjgl"]
+                            | ["org.lwjgl.lwjgl", "lwjgl-platform"]
+                            | ["org.glavo.hmcl", "lwjgl2-natives"]
                     ),
                     exclude: library
                         .extract

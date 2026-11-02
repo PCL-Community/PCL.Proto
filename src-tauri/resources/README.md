@@ -11,3 +11,11 @@ Copied from [PCL2-CE](https://github.com/PCL-Community/PCL2-CE) `Plain Craft Lau
 They are embedded in the binary with `include_bytes!` and extracted to
 `<config dir>/resources` on first use. The renderer agent (mesa-loader) is downloaded from the
 Tencent maven mirror at launch time instead of being bundled.
+
+`macos-arm64-libraries.json` contains the macOS ARM64 library coordinates and
+checksums from HMCL's `HMCL/src/main/resources/assets/natives.json`. They are
+applied to the launch metadata in memory, without changing installed version files.
+Like HMCL, legacy launch defaults leave `-XstartOnFirstThread` to the version's
+JVM metadata: forcing it breaks LWJGL 2's AWT window initialization. On macOS,
+launches and exported scripts also clear `DYLD_LIBRARY_PATH`; inherited Homebrew
+libraries were observed crashing AWT/AppKit during image decoding.

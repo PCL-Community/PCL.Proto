@@ -101,6 +101,9 @@ impl LaunchOption {
     /// Build the java command without running it, so scripts can be exported.
     fn command(&self) -> Result<std::process::Command, GameLaunchError> {
         let mut command = std::process::Command::new(&self.java_runtime.java_exe);
+        // Homebrew library overrides can crash AWT/AppKit while decoding application icons.
+        #[cfg(target_os = "macos")]
+        command.env_remove("DYLD_LIBRARY_PATH");
         let context = McRuleContext::for_java(&self.java_runtime.architecture)
             .map_err(|e| GameLaunchError::InvalidMetadata(e.to_string()))?;
         let head = self
@@ -174,6 +177,9 @@ impl LaunchOption {
             if !self.extras.prelaunch_command.trim().is_empty() {
                 script.push_str(self.extras.prelaunch_command.trim());
                 script.push('\n');
+            }
+            if cfg!(target_os = "macos") {
+                script.push_str("unset DYLD_LIBRARY_PATH\n");
             }
             script.push_str(&quote_unix(&java));
             for arg in &args {
@@ -257,7 +263,7 @@ impl LaunchOption {
         // macOS specific settings
         #[cfg(target_os = "macos")]
         {
-            args.push("-XstartOnFirstThread".to_string());
+            // LWJGL 3 requests its main-thread mode in version metadata; LWJGL 2 uses AWT.
             args.push("-Xdock:name=Minecraft".to_string());
             // TODO: 图标路径需要从 assets 中获取
         }
@@ -670,6 +676,7 @@ impl LaunchOption {
         downloader: &crate::io::download::Downloader,
     ) -> anyhow::Result<crate::minecraft::installer::LaunchNatives> {
         let context = McRuleContext::for_java(&self.java_runtime.architecture)?;
+        patch_macos_arm_libraries(&mut self.version_details, &context)?;
         if self.extras.renderer != 0
             && cfg!(windows)
             && !crate::minecraft::launch::settings::mesa_loader_path().is_file()
@@ -703,6 +710,136 @@ impl LaunchOption {
             !self.extras.disable_asset_verify,
         )
         .await
+    }
+}
+
+fn patch_macos_arm_libraries(
+    details: &mut McVersion,
+    context: &McRuleContext,
+) -> anyhow::Result<()> {
+    if context.os != "osx"
+        || context.arch != "aarch64"
+        || !details.libraries.iter().any(|library| {
+            matches!(
+                library.name.as_str(),
+                "org.lwjgl:lwjgl:3.1.6"
+                    | "org.lwjgl:lwjgl:3.2.1"
+                    | "org.lwjgl.lwjgl:lwjgl-platform:2.9.1"
+                    | "org.lwjgl.lwjgl:lwjgl-platform:2.9.1-nightly-20130708-debug3"
+                    | "org.lwjgl.lwjgl:lwjgl-platform:2.9.2-nightly-20140822"
+            )
+        })
+    {
+        return Ok(());
+    }
+    // Library coordinates and checksums follow HMCL's macos-arm64 native mappings.
+    let replacements: std::collections::HashMap<
+        String,
+        Option<crate::minecraft::version::McLibrary>,
+    > = serde_json::from_str(include_str!(
+        "../../../resources/macos-arm64-libraries.json"
+    ))?;
+    let mut libraries = Vec::new();
+    for library in &details.libraries {
+        if !library.rule_allow(context)? {
+            libraries.push(library.clone());
+            continue;
+        }
+        let artifact = replacements.get(&library.name);
+        let native = library
+            .natives
+            .contains_key(&context.os)
+            .then(|| replacements.get(&format!("{}:natives", library.name)))
+            .flatten();
+        if artifact.is_none() && native.is_none() {
+            libraries.push(library.clone());
+            continue;
+        }
+        let mut original = library.clone();
+        if let Some(replacement) = artifact {
+            if let Some(replacement) = replacement {
+                libraries.push(replacement.clone());
+            }
+            if let Some(downloads) = &mut original.downloads {
+                downloads.artifact = None;
+            }
+        }
+        if let Some(replacement) = native {
+            if let Some(replacement) = replacement {
+                libraries.push(replacement.clone());
+            }
+            original.natives.clear();
+            if let Some(downloads) = &mut original.downloads {
+                downloads.classifiers.clear();
+            }
+        }
+        if (artifact.is_none()
+            && (original
+                .downloads
+                .as_ref()
+                .is_some_and(|d| d.artifact.is_some())
+                || (original.downloads.is_none() && library.natives.is_empty())))
+            || !original.natives.is_empty()
+        {
+            libraries.push(original);
+        }
+    }
+    details.libraries = libraries;
+    Ok(())
+}
+
+#[cfg(test)]
+mod macos_arm_patch_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn patches_legacy_libraries_only_for_arm_java() {
+        let mut details: McVersion = serde_json::from_value(json!({
+            "id":"test", "type":"release", "assets":"test", "mainClass":"Main",
+            "downloads":{"client":{}}, "assetIndex":{"id":"test", "sha1":"", "size":1, "url":""},
+            "libraries":[
+                {"name":"org.lwjgl:lwjgl:3.2.1", "natives":{"osx":"natives-macos"}, "downloads":{"artifact":{}, "classifiers":{"natives-macos":{}}}},
+                {"name":"org.lwjgl.lwjgl:lwjgl-platform:2.9.1", "natives":{"osx":"natives-osx"}, "downloads":{"classifiers":{"natives-osx":{}}}},
+                {"name":"net.java.jinput:jinput-platform:2.0.5", "natives":{"osx":"natives-osx"}, "downloads":{"classifiers":{"natives-osx":{}}}}
+            ]
+        })).unwrap();
+        let mut context = McRuleContext {
+            os: "osx".into(),
+            arch: "x86_64".into(),
+            version: String::new(),
+            features: Default::default(),
+        };
+        patch_macos_arm_libraries(&mut details, &context).unwrap();
+        assert_eq!(details.libraries[0].name, "org.lwjgl:lwjgl:3.2.1");
+        context.arch = "aarch64".into();
+        patch_macos_arm_libraries(&mut details, &context).unwrap();
+        let names: Vec<_> = details
+            .libraries
+            .iter()
+            .map(|lib| lib.name.as_str())
+            .collect();
+        assert_eq!(
+            names,
+            [
+                "org.lwjgl:lwjgl:3.3.1",
+                "org.lwjgl:lwjgl:3.3.1:natives-macos-arm64",
+                "org.glavo.hmcl:lwjgl2-natives:2.9.3-rc1"
+            ]
+        );
+        for library in &details.libraries {
+            if let Some(downloads) = &library.downloads {
+                for info in downloads
+                    .artifact
+                    .iter()
+                    .chain(downloads.classifiers.values())
+                {
+                    info.validate().unwrap();
+                }
+            }
+        }
+        patch_macos_arm_libraries(&mut details, &context).unwrap();
+        assert_eq!(details.libraries.len(), 3);
     }
 }
 
@@ -906,6 +1043,42 @@ mod tests {
         option.version_details.libraries.clear();
         option.extras.info = "Custom Info".into();
         let original_arguments = option.version_details.arguments.take();
+        assert!(
+            !option
+                .build_jvm_arguments(false)
+                .unwrap()
+                .iter()
+                .any(|arg| arg == "-XstartOnFirstThread")
+        );
+        option.version_details.arguments = Some(
+            serde_json::from_value(json!({"jvm":["-XstartOnFirstThread"], "game":["--username","${auth_player_name}"]})).unwrap(),
+        );
+        #[cfg(target_os = "macos")]
+        {
+            assert!(
+                option
+                    .command()
+                    .unwrap()
+                    .get_envs()
+                    .any(|(key, value)| key == "DYLD_LIBRARY_PATH" && value.is_none())
+            );
+            let script_path = root.join("launch.command");
+            option.export_script(&script_path).unwrap();
+            assert!(
+                fs::read_to_string(script_path)
+                    .unwrap()
+                    .contains("unset DYLD_LIBRARY_PATH\n")
+            );
+        }
+        assert_eq!(
+            option
+                .command()
+                .unwrap()
+                .get_args()
+                .filter(|arg| *arg == "-XstartOnFirstThread")
+                .count(),
+            1
+        );
         option.version_details.arguments = Some(
             serde_json::from_value(json!({"jvm":[],"game":["--versionType","${version_type}"]}))
                 .unwrap(),
