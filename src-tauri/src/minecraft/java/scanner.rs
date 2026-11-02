@@ -1,3 +1,5 @@
+#[cfg(windows)]
+use super::installation::command_output;
 use super::{
     JavaEntry, JavaInstallation, JavaManager, JavaSource, java_binary, launcher_directory,
 };
