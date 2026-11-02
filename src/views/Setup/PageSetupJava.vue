@@ -4,7 +4,7 @@ import PCard from '@/components/widget/PCard.vue'
 import PListItem from '@/components/widget/PListItem.vue'
 import PHint from '@/components/widget/PHint.vue'
 import PIconTextButton from '@/components/widget/PIconTextButton.vue'
-import { javaBrandLabel, javaDisplayName, type IJavaRuntimeInfo } from '@/api/javaReq'
+import { javaDisplayName, type IJavaRuntimeInfo } from '@/api/javaReq'
 import { onMounted, ref } from 'vue'
 import { invoke, isTauri } from '@tauri-apps/api/core'
 import sideTip from '@/composables/sideTip'
@@ -87,7 +87,7 @@ function info(runtime: IJavaRuntimeInfo) {
       runtime.version,
       architectureLabels[runtime.architecture],
       runtime.is_64_bit ? '64 Bit' : '32 Bit',
-      javaBrandLabel(runtime.brand),
+      runtime.vendor || text('Common.State.Unknown'),
       runtime.java_folder,
     ]),
     buttons: [{ content: text('Common.Action.Close'), operation: () => modal.close() }],
@@ -135,7 +135,7 @@ onMounted(() => load())
               :key="runtime.java_exe"
               :class="{ 'java-disabled': !runtime.is_enabled }"
               :title="javaDisplayName(runtime)"
-              :tags="[architectureLabels[runtime.architecture], javaBrandLabel(runtime.brand)]"
+              :tags="[architectureLabels[runtime.architecture], runtime.vendor].filter(Boolean)"
               :subtitle="runtime.java_folder"
               clickable
               :selected="java.globalJava === runtime.java_exe"

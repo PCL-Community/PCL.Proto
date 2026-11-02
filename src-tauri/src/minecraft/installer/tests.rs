@@ -473,7 +473,7 @@ async fn official_fabric_install(
         let runtime = serde_json::from_value(json!({
             "java_folder":root, "version":"8", "slug_version":8,
             "is_64_bit":true, "architecture":"X64", "compatibility":"Perfect",
-            "java_exe":executable, "brand":"unknown"
+            "java_exe":executable, "vendor":"OpenJDK"
         }))?;
         let state = crate::app::config::AppState {
             profile: crate::app::states::ProfileConfig {
@@ -826,7 +826,7 @@ async fn fabric_install_merges_profile_and_publishes_only_after_verified_files()
         let runtime = serde_json::from_value(json!({
             "java_folder":root, "version":"21", "slug_version":21,
             "is_64_bit":true, "architecture":"Arm64", "compatibility":"Perfect",
-            "java_exe":executable, "brand":"unknown"
+            "java_exe":executable, "vendor":"OpenJDK"
         }))
         .unwrap();
         let state = crate::app::config::AppState {

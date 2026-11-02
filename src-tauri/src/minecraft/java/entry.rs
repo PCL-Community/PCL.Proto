@@ -1,7 +1,7 @@
 //! A managed Java entry, mirroring `PCL.Core.Minecraft.Java.JavaEntry` and
 //! `JavaStorageItem`.
 
-use super::installation::{JavaBrandType, JavaInstallation, JavaVersion};
+use super::installation::{JavaInstallation, JavaVersion};
 use serde::{Deserialize, Serialize};
 use std::{
     ops::Deref,
@@ -114,12 +114,8 @@ impl JavaEntry {
         self.installation.major_version()
     }
 
-    pub fn brand(&self) -> JavaBrandType {
-        self.installation.brand
-    }
-
-    pub fn brand_rank(&self) -> usize {
-        self.installation.brand.rank()
+    pub fn vendor(&self) -> &str {
+        &self.installation.vendor
     }
 
     pub fn is_64_bit(&self) -> bool {
@@ -156,7 +152,7 @@ mod tests {
             java_folder: "/jdk/bin".into(),
             java_exe: "/jdk/bin/java".into(),
             version: "21.0.7".into(),
-            brand: JavaBrandType::EclipseTemurin,
+            vendor: "Eclipse Adoptium".into(),
             architecture: crate::utils::platform::Architecture::X64,
             is_64_bit: true,
             is_jre: false,
@@ -171,7 +167,7 @@ mod tests {
         assert_eq!(value["java_folder"], "/jdk/bin");
         assert_eq!(value["is_jre"], false);
         assert_eq!(value["source"], "manual_added");
-        assert_eq!(value["brand"], "eclipseTemurin");
+        assert_eq!(value["vendor"], "Eclipse Adoptium");
         assert!(value.get("installation").is_none());
     }
 }

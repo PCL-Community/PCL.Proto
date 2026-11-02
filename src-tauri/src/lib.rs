@@ -98,6 +98,8 @@ pub fn run() {
             app::config::set_window_settings,
             app::config::get_launcher_visibility,
             app::config::set_launcher_visibility,
+            app::config::get_version_info,
+            app::config::set_version_info,
             commands::memory::get_memory_settings,
             commands::memory::set_memory_settings,
             commands::memory::preview_memory_settings,

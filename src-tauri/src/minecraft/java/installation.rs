@@ -1,7 +1,8 @@
 //! Java installation identity and executable probing.
 //!
-//! Mirrors `PCL.Core.Minecraft.Java.JavaInstallation` while keeping Proto's
-//! cross-platform `-XshowSettings` probe and ELF/Mach-O/PE architecture reader.
+//! Mirrors `PCL.Core.Minecraft.Java.JavaInstallation`. Identity comes from files only:
+//! the JDK's `release` properties plus the PE/ELF/Mach-O header of the executable, so no
+//! `java` process is started and no JVM-reported value is trusted.
 
 use crate::utils::platform::{Architecture, Compatibility};
 use anyhow::{Context, ensure};
@@ -11,112 +12,6 @@ use std::{
     process::{Command, Stdio},
     time::{Duration, Instant},
 };
-
-/// Java distribution brand, mirroring `PCL.Core.Minecraft.Java.JavaBrandType`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
-pub enum JavaBrandType {
-    #[serde(rename = "eclipseTemurin")]
-    EclipseTemurin,
-    #[serde(rename = "liberica")]
-    Liberica,
-    #[serde(rename = "zulu")]
-    Zulu,
-    #[serde(rename = "corretto")]
-    Corretto,
-    #[serde(rename = "microsoft")]
-    Microsoft,
-    #[serde(rename = "ibmSemeru")]
-    IBMSemeru,
-    #[serde(rename = "oracle")]
-    Oracle,
-    #[serde(rename = "dragonwell")]
-    Dragonwell,
-    #[serde(rename = "tencentKona")]
-    TencentKona,
-    #[serde(rename = "openJdk")]
-    OpenJDK,
-    #[serde(rename = "graalVm")]
-    GraalVmCommunity,
-    #[serde(rename = "jetBrains")]
-    JetBrains,
-    #[default]
-    #[serde(rename = "unknown")]
-    Unknown,
-}
-
-impl JavaBrandType {
-    /// Map a vendor string such as `java.vendor` to a known brand.
-    pub fn from_vendor(vendor: &str) -> Self {
-        let vendor = vendor.to_ascii_lowercase();
-        let has = |needle: &str| vendor.contains(needle);
-        if has("temurin") || has("adoptium") || has("eclipse") {
-            Self::EclipseTemurin
-        } else if has("liberica") || has("bellsoft") {
-            Self::Liberica
-        } else if has("zulu") || has("azul") {
-            Self::Zulu
-        } else if has("corretto") || has("amazon") {
-            Self::Corretto
-        } else if has("microsoft") {
-            Self::Microsoft
-        } else if has("semeru") || has("ibm") {
-            Self::IBMSemeru
-        } else if has("oracle") || has("sun microsystems") {
-            Self::Oracle
-        } else if has("dragonwell") || has("alibaba") {
-            Self::Dragonwell
-        } else if has("tencent") || has("kona") {
-            Self::TencentKona
-        } else if has("graalvm") {
-            Self::GraalVmCommunity
-        } else if has("jetbrains") {
-            Self::JetBrains
-        } else if has("openjdk") || has("hotspot") {
-            Self::OpenJDK
-        } else {
-            Self::Unknown
-        }
-    }
-
-    /// Preference order used when several runtimes satisfy the same version.
-    ///
-    /// Lower is preferred, matching CE's `JavaInstallation.Brand` ordering.
-    pub fn rank(self) -> usize {
-        match self {
-            Self::EclipseTemurin => 0,
-            Self::Liberica => 1,
-            Self::Zulu => 2,
-            Self::Corretto => 3,
-            Self::Microsoft => 4,
-            Self::IBMSemeru => 5,
-            Self::Oracle => 6,
-            Self::Dragonwell => 7,
-            Self::TencentKona => 8,
-            Self::OpenJDK => 9,
-            Self::GraalVmCommunity => 10,
-            Self::JetBrains => 11,
-            Self::Unknown => 12,
-        }
-    }
-
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::EclipseTemurin => "Eclipse Temurin",
-            Self::Liberica => "BellSoft Liberica",
-            Self::Zulu => "Azul Zulu",
-            Self::Corretto => "Amazon Corretto",
-            Self::Microsoft => "Microsoft OpenJDK",
-            Self::IBMSemeru => "IBM Semeru",
-            Self::Oracle => "Oracle",
-            Self::Dragonwell => "Alibaba Dragonwell",
-            Self::TencentKona => "Tencent Kona",
-            Self::OpenJDK => "OpenJDK",
-            Self::GraalVmCommunity => "GraalVM Community",
-            Self::JetBrains => "JetBrains Runtime",
-            Self::Unknown => "Unknown",
-        }
-    }
-}
 
 /// Normalized Java version: `1.8.0_321` and `8.0.321` compare identically.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -141,7 +36,7 @@ impl JavaVersion {
         if parts.is_empty() {
             return None;
         }
-        // Vendor builds can report more than four segments (`25.0.5.0.3`); drop the tail.
+        // Vendor `JAVA_VERSION` may carry more than four segments (`25.0.5.0.3`); drop the tail.
         let n = |i| parts.get(i).copied().unwrap_or(0);
         if n(0) == 1 {
             (n(1) > 0).then_some(Self(n(1), n(2), n(3), 0))
@@ -179,10 +74,11 @@ impl std::fmt::Display for JavaVersion {
 pub struct JavaInstallation {
     pub java_folder: PathBuf,
     pub java_exe: PathBuf,
-    /// Raw `java.version`, e.g. `17.0.9` or `1.8.0_392`.
+    /// Raw `JAVA_VERSION`, e.g. `17.0.9` or `1.8.0_392`; empty when unidentifiable.
     pub version: String,
+    /// Raw `IMPLEMENTOR` (or `java.vendor`); shown as-is, empty when unknown.
     #[serde(default)]
-    pub brand: JavaBrandType,
+    pub vendor: String,
     pub architecture: Architecture,
     pub is_64_bit: bool,
     /// PCL.Core models the inverse (`IsJre`); Proto keeps the positive name.
@@ -224,117 +120,70 @@ impl JavaInstallation {
         format!(
             "{} {} {} {} | {}",
             if self.is_jre { "JRE" } else { "JDK" },
-            self.version,
-            self.brand.label(),
+            if self.version.is_empty() {
+                "Unknown"
+            } else {
+                &self.version
+            },
+            self.vendor,
             if self.is_64_bit { "64 Bit" } else { "32 Bit" },
             self.java_folder.display()
         )
     }
 
-    /// Parse a Java executable without executing the game.
+    /// Identify a Java executable, reading its files first.
+    ///
+    /// `bin/java` points at a home that owns a `release` file, which supplies the version, the
+    /// vendor and `OS_ARCH`. A runtime without one is asked for `-version` as a fallback (that is
+    /// also how a shim like macOS `/usr/bin/java` finds its real home), and still gets registered
+    /// with an empty version when neither works.
     pub fn probe(java_path: &Path) -> anyhow::Result<Self> {
         ensure!(
             java_path.is_file(),
             "Java executable does not exist: {}",
             java_path.display()
         );
-        let mut command = Command::new(java_path);
-        command.args(["-XshowSettings:properties", "-version"]);
-        let output = command_output(command)?;
-        let text = |output: &std::process::Output| {
-            format!(
-                "{}\n{}",
-                String::from_utf8_lossy(&output.stderr),
-                String::from_utf8_lossy(&output.stdout)
-            )
-        };
-        if output.status.success()
-            && let Ok(runtime) = Self::from_probe(java_path, &text(&output))
-        {
-            return Ok(runtime);
-        }
-        // Java 6 and some older vendor builds do not implement -XshowSettings.
-        let mut command = Command::new(java_path);
-        command.arg("-version");
-        let output = command_output(command)?;
-        ensure!(
-            output.status.success(),
-            "Java executable could not start: {}",
-            java_path.display()
-        );
-        Self::from_probe(java_path, &text(&output))
-    }
-
-    pub(crate) fn from_probe(java_path: &Path, text: &str) -> anyhow::Result<Self> {
-        let property = |name: &str| {
-            text.lines().find_map(|line| {
-                let (key, value) = line.trim().split_once('=')?;
-                (key.trim() == name).then(|| value.trim().to_owned())
-            })
-        };
-        let version = property("java.version")
-            .or_else(|| {
-                let re = regex::Regex::new(r#"(?:openjdk|java) version\s+"([^"]+)"#).unwrap();
-                re.captures(text).map(|v| v[1].to_owned())
-            })
-            .context("Cannot identify Java version")?;
-        let parsed = JavaVersion::parse(&version).context("Invalid Java version")?;
-        ensure!(parsed.0 > 0, "Invalid Java major version");
-        let home = property("java.home").map(PathBuf::from).map(|home| {
-            // Java 8 JDKs report their nested jre as java.home; retain the JDK executable and its javac.
-            if home.file_name().is_some_and(|name| name == "jre")
-                && let Some(parent) = home.parent()
-                && parent
-                    .join("bin")
-                    .join(if cfg!(windows) { "javac.exe" } else { "javac" })
-                    .is_file()
-            {
-                return parent.to_owned();
-            }
-            home
-        });
-        let actual = home
-            .as_ref()
-            .map(|p| p.join("bin").join(java_binary()))
-            .filter(|p| p.is_file())
-            .unwrap_or_else(|| java_path.to_owned());
-        let java_exe = actual
+        let mut java_exe = java_path
             .canonicalize()
-            .with_context(|| format!("Invalid Java path: {}", actual.display()))?;
+            .with_context(|| format!("Invalid Java path: {}", java_path.display()))?;
+        let mut release = read_release_near(&java_exe);
+        let mut probed = None;
+        if release.is_none() {
+            probed = probe_process(&java_exe);
+            if let Some(actual) = probed
+                .as_ref()
+                .and_then(|probe| probe.home.as_ref())
+                .map(|home| home.join("bin").join(java_binary()))
+                .filter(|actual| actual.is_file())
+                .and_then(|actual| actual.canonicalize().ok())
+            {
+                java_exe = actual;
+                release = read_release_near(&java_exe);
+            }
+        }
+        let (version, vendor, os_arch) = release
+            .map(|release| (release.version, release.implementor, release.architecture))
+            .or_else(|| probed.map(|probe| (probe.version, probe.vendor, probe.os_arch)))
+            .unwrap_or_default();
         let java_folder = java_exe
             .parent()
             .context("Missing Java directory")?
             .to_owned();
-        let architecture = match property("os.arch").as_deref() {
-            Some("amd64" | "x86_64" | "x64") => Architecture::X64,
-            Some("aarch64" | "arm64") => Architecture::Arm64,
-            Some("x86" | "i386" | "i486" | "i586" | "i686") => Architecture::X86,
-            _ => Architecture::read_header(&java_exe).unwrap_or(Architecture::Unknown),
-        };
-        let is_64_bit = property("sun.arch.data.model")
-            .map(|v| v == "64")
-            .unwrap_or(matches!(
+        let architecture = architecture_of(&os_arch)
+            .or_else(|| Architecture::read_header(&java_exe).ok())
+            .unwrap_or(Architecture::Unknown);
+        Ok(Self {
+            is_jre: !java_folder.join(java_compiler()).is_file(),
+            compatibility: crate::utils::platform::assert_compatibility(&architecture),
+            is_64_bit: matches!(
                 architecture,
                 Architecture::Arm64 | Architecture::X64 | Architecture::FatFile
-            ));
-        let compatibility = crate::utils::platform::assert_compatibility(&architecture);
-        let is_jre = !java_folder
-            .join(if cfg!(windows) { "javac.exe" } else { "javac" })
-            .is_file();
-        let brand = JavaBrandType::from_vendor(
-            &property("java.vendor")
-                .or_else(|| property("java.vm.vendor"))
-                .unwrap_or_default(),
-        );
-        Ok(Self {
+            ),
+            version,
+            vendor,
+            architecture,
             java_folder,
             java_exe,
-            version,
-            brand,
-            architecture,
-            is_64_bit,
-            is_jre,
-            compatibility,
         })
     }
 
@@ -367,6 +216,107 @@ impl JavaInstallation {
 
 pub fn java_binary() -> &'static str {
     if cfg!(windows) { "java.exe" } else { "java" }
+}
+
+fn java_compiler() -> &'static str {
+    if cfg!(windows) { "javac.exe" } else { "javac" }
+}
+
+/// The subset of a JDK's `release` file that identifies the runtime.
+struct Release {
+    version: String,
+    /// Raw `IMPLEMENTOR`, falling back to `IMPLEMENTOR_VERSION`, and shown as written.
+    implementor: String,
+    architecture: String,
+}
+
+fn read_release(home: &Path) -> Option<Release> {
+    let text = std::fs::read_to_string(home.join("release")).ok()?;
+    let property = |key: &str| {
+        text.lines().find_map(|line| {
+            let (name, value) = line.split_once('=')?;
+            (name.trim() == key).then(|| value.trim().trim_matches('"').to_owned())
+        })
+    };
+    Some(Release {
+        version: property("JAVA_VERSION")?,
+        implementor: property("IMPLEMENTOR")
+            .or_else(|| property("IMPLEMENTOR_VERSION"))
+            .unwrap_or_default(),
+        architecture: property("OS_ARCH").unwrap_or_default(),
+    })
+}
+
+/// Read the `release` file that identifies this `bin/java`, ignoring a corrupt one.
+fn read_release_near(java_exe: &Path) -> Option<Release> {
+    let home = java_exe.parent()?.parent()?;
+    read_release(home)
+        // Java 8 keeps a second runtime in `<jdk>/jre`, which has no release file of its own.
+        .or_else(|| home.parent().and_then(read_release))
+        .filter(|release| JavaVersion::parse(&release.version).is_some_and(|parsed| parsed.0 > 0))
+}
+
+/// What a JVM reports about itself, used when no usable `release` file exists.
+#[derive(Default)]
+struct ProcessProbe {
+    version: String,
+    vendor: String,
+    os_arch: String,
+    home: Option<PathBuf>,
+}
+
+/// Last resort for runtimes that ship no `release` file: ask the JVM what it is.
+///
+/// `-XshowSettings` also reports the vendor and home, but Java 6 rejects it, so a bare
+/// `-version` retry covers the banner-only case.
+fn probe_process(java_path: &Path) -> Option<ProcessProbe> {
+    let banner = regex::Regex::new(r#"(?:openjdk|java) version\s+"([^"]+)""#).unwrap();
+    for arguments in [
+        &["-XshowSettings:properties", "-version"][..],
+        &["-version"][..],
+    ] {
+        let mut command = Command::new(java_path);
+        command.args(arguments);
+        let Ok(output) = command_output(command) else {
+            continue;
+        };
+        let text = format!(
+            "{}\n{}",
+            String::from_utf8_lossy(&output.stderr),
+            String::from_utf8_lossy(&output.stdout)
+        );
+        let property = |name: &str| {
+            text.lines().find_map(|line| {
+                let (key, value) = line.trim().split_once('=')?;
+                (key.trim() == name).then(|| value.trim().to_owned())
+            })
+        };
+        let Some(version) = property("java.version").or_else(|| {
+            banner
+                .captures(&text)
+                .map(|captures| captures[1].to_owned())
+        }) else {
+            continue;
+        };
+        return Some(ProcessProbe {
+            version,
+            vendor: property("java.vendor")
+                .or_else(|| property("java.vm.vendor"))
+                .unwrap_or_default(),
+            os_arch: property("os.arch").unwrap_or_default(),
+            home: property("java.home").map(PathBuf::from),
+        });
+    }
+    None
+}
+
+fn architecture_of(value: &str) -> Option<Architecture> {
+    match value {
+        "amd64" | "x86_64" | "x64" | "x86_amd64" => Some(Architecture::X64),
+        "aarch64" | "arm64" => Some(Architecture::Arm64),
+        "x86" | "i386" | "i486" | "i586" | "i686" => Some(Architecture::X86),
+        _ => None,
+    }
 }
 
 pub fn launcher_directory() -> anyhow::Result<PathBuf> {
@@ -450,18 +400,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn brand_names_match_the_frontend_contract() {
-        for (brand, name) in [
-            (JavaBrandType::EclipseTemurin, "eclipseTemurin"),
-            (JavaBrandType::IBMSemeru, "ibmSemeru"),
-            (JavaBrandType::OpenJDK, "openJdk"),
-            (JavaBrandType::GraalVmCommunity, "graalVm"),
-            (JavaBrandType::Unknown, "unknown"),
-        ] {
-            assert_eq!(
-                serde_json::to_value(brand).unwrap(),
-                serde_json::json!(name)
-            );
+    fn vendor_is_kept_as_written_in_the_release_file() {
+        let mut values = [
+            ("IMPLEMENTOR=\"Azul Systems, Inc.\"", "Azul Systems, Inc."),
+            (
+                "IMPLEMENTOR=\"Eclipse Adoptium\"\nIMPLEMENTOR_VERSION=\"Temurin-21\"",
+                "Eclipse Adoptium",
+            ),
+            ("IMPLEMENTOR_VERSION=\"Semeru-21\"", "Semeru-21"),
+            ("OS_ARCH=\"aarch64\"", ""),
+        ]
+        .map(|(property, _)| property);
+        let home = std::env::temp_dir().join(format!("pcl-release-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir(&home).unwrap();
+        for property in values.iter_mut() {
+            std::fs::write(
+                home.join("release"),
+                format!("JAVA_VERSION=\"21.0.7\"\n{property}\n"),
+            )
+            .unwrap();
+            let release = read_release(&home).unwrap();
+            assert_eq!(release.version, "21.0.7");
+            if !property.starts_with("OS_ARCH") {
+                assert!(!release.implementor.is_empty(), "{property}");
+            }
         }
+        std::fs::remove_dir_all(&home).unwrap();
     }
 }

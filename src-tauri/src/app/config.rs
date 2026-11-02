@@ -49,6 +49,29 @@ pub async fn set_launcher_visibility(
 }
 
 #[tauri::command]
+pub async fn get_version_info() -> String {
+    ConfigManager::instance()
+        .app_state
+        .lock()
+        .await
+        .version_info
+        .clone()
+}
+
+#[tauri::command]
+pub async fn set_version_info(value: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        ConfigManager::instance().update(|state| {
+            crate::minecraft::launch::settings::validate_info(&value)?;
+            state.version_info = value.clone();
+            Ok(value)
+        })
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+#[tauri::command]
 pub async fn set_window_settings(settings: WindowSettings) -> Result<WindowSettings, String> {
     tauri::async_runtime::spawn_blocking(move || {
         ConfigManager::instance().update_window_settings(settings)

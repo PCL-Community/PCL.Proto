@@ -33,10 +33,9 @@ impl InstanceLaunchSettings {
         if self.renderer > RENDERER_MAX {
             return Err("Invalid renderer choice".into());
         }
-        for value in [&self.info, &self.prelaunch_command] {
-            if value.len() > 16384 || value.contains('\0') {
-                return Err("Invalid instance launch setting".into());
-            }
+        validate_info(&self.info)?;
+        if self.prelaunch_command.len() > 16384 || self.prelaunch_command.contains('\0') {
+            return Err("Invalid instance launch setting".into());
         }
         Ok(())
     }
@@ -63,13 +62,9 @@ pub fn resolve(state: &AppState, instance: Option<&Path>) -> LaunchExtras {
         .and_then(|path| state.instance_launch_settings.get(path))
         .cloned()
         .unwrap_or_default();
-    let global_info = if state.version_info.trim().is_empty() {
-        default_version_info()
-    } else {
-        state.version_info.clone()
-    };
+    // Empty info stays empty; the launcher drops `--versionType` entirely, as CE does.
     let info = if settings.info.trim().is_empty() {
-        global_info
+        state.version_info.clone()
     } else {
         settings.info.clone()
     };
@@ -119,6 +114,19 @@ pub fn update(
 /// Default global version info mirrors CE's brand value.
 pub fn default_version_info() -> String {
     LAUNCHER_NAME.into()
+}
+
+/// CE's `LaunchArgumentInfo` rule: bounded length, no NUL, and no quotes, which would
+/// otherwise leak into the `--versionType` argument.
+pub fn validate_info(value: &str) -> Result<(), String> {
+    if value.len() > 16384
+        || value
+            .chars()
+            .any(|c| matches!(c, '\0' | '"' | '\u{201c}' | '\u{201d}'))
+    {
+        return Err("Invalid version info".into());
+    }
+    Ok(())
 }
 
 /// CE only uses the Java wrapper for legacy versions under a UTF-8 Windows code page.
@@ -314,6 +322,12 @@ mod tests {
             resolve(&state, Some(Path::new("/tmp/other"))).info,
             "PCL.Proto"
         );
+        state.version_info = String::new();
+        assert!(
+            resolve(&state, Some(Path::new("/tmp/other")))
+                .info
+                .is_empty()
+        );
     }
 
     #[test]
@@ -335,6 +349,15 @@ mod tests {
             .is_err()
         );
         assert!(InstanceLaunchSettings::default().validate().is_ok());
+        assert!(
+            InstanceLaunchSettings {
+                info: "PCL \"Proto\"".into(),
+                ..Default::default()
+            }
+            .validate()
+            .is_err()
+        );
+        assert!(validate_info("PCL.Proto").is_ok());
     }
 
     #[test]

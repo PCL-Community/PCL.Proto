@@ -179,12 +179,11 @@ pub(super) fn candidate_order(a: &JavaEntry, b: &JavaEntry) -> std::cmp::Orderin
         crate::utils::platform::Compatibility::Perfect => 0,
         _ => 1,
     };
-    // CE: lowest acceptable major, then JDK, vendor and newest patch. Prefer native architecture within a major.
+    // Lowest acceptable major, then JDK, newest patch and path; vendor no longer ranks.
     a.major_version()
         .cmp(&b.major_version())
         .then(rank(a).cmp(&rank(b)))
         .then(b.is_jdk().cmp(&a.is_jdk()))
-        .then(a.brand_rank().cmp(&b.brand_rank()))
         .then(b.parsed_version().cmp(&a.parsed_version()))
         .then(a.java_exe.cmp(&b.java_exe))
 }

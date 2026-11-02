@@ -63,7 +63,7 @@ impl JavaManager {
             .insert(entry.installation.java_exe.clone(), entry);
     }
 
-    /// CE order: newest version first, then brand preference, then path.
+    /// Newest version first, then executable path so the order stays stable.
     pub fn sorted(&self) -> Vec<JavaEntry> {
         let mut list: Vec<_> = self.entries.values().cloned().collect();
         Self::sort(&mut list);
@@ -74,7 +74,6 @@ impl JavaManager {
         list.sort_by(|a, b| {
             b.parsed_version()
                 .cmp(&a.parsed_version())
-                .then(a.brand_rank().cmp(&b.brand_rank()))
                 .then(a.installation.java_exe.cmp(&b.installation.java_exe))
         });
     }
@@ -150,7 +149,6 @@ impl JavaManager {
             a.major_version()
                 .cmp(&b.major_version())
                 .then(a.is_jdk().cmp(&b.is_jdk()))
-                .then(a.brand_rank().cmp(&b.brand_rank()))
                 .then(b.parsed_version().cmp(&a.parsed_version()))
         });
         candidates

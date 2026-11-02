@@ -21,9 +21,7 @@ pub use crate::utils::platform::{Architecture, Compatibility};
 #[allow(unused_imports)]
 pub use entry::{JavaEntry, JavaSource, JavaStorageItem};
 #[allow(unused_imports)]
-pub use installation::{
-    JavaBrandType, JavaInstallation, JavaVersion, java_binary, launcher_directory,
-};
+pub use installation::{JavaInstallation, JavaVersion, java_binary, launcher_directory};
 pub use manager::JavaManager;
 pub(crate) use scanner::scan;
 

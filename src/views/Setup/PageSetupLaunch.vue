@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import SetupItem from '@/components/widget/SetupItem.vue'
 import { useSetup } from '@/stores/setup'
-import { watch, computed, onMounted, ref } from 'vue'
+import { watch, computed, onMounted, onUnmounted, ref } from 'vue'
 import { isTauri } from '@tauri-apps/api/core'
 import { useJavaStore } from '@/stores/java'
 import { useRouter } from 'vue-router'
@@ -20,6 +20,7 @@ import PMemorySettings from '@/components/widget/PMemorySettings.vue'
 import PErrorRetry from '@/components/widget/PErrorRetry.vue'
 import sideTip from '@/composables/sideTip'
 import { getIsolationDefault, setIsolationDefault, isolationChoices } from '@/api/isolationSettings'
+import { versionInfoStorage } from '@/api/versionInfo'
 import { launchArgumentKeys } from '@/api/launchArguments'
 import { useLaunchArguments } from '@/composables/useLaunchArguments'
 import { invoke } from '@tauri-apps/api/core'
@@ -52,6 +53,7 @@ const { values } = usePageSettings(
         ...launchArgumentKeys,
         'ComboArgumentIndieV2',
         'ComboArgumentVisibie',
+        'TextArgumentInfo',
       ]
     : [],
 )
@@ -143,6 +145,39 @@ async function changeIsolation(value: string | undefined) {
   }
 }
 if (desktop) void loadIsolation()
+
+const infoReady = ref(false)
+const infoError = ref('')
+let hydratingInfo = false
+async function loadVersionInfo() {
+  try {
+    const { settings } = await versionInfoStorage.read()
+    hydratingInfo = true
+    values.TextArgumentInfo = settings
+    hydratingInfo = false
+    infoReady.value = true
+    infoError.value = ''
+  } catch (error) {
+    infoError.value = String(error)
+  }
+}
+function saveVersionInfo() {
+  if (!infoReady.value) return
+  versionInfoStorage.stage(values.TextArgumentInfo)
+  void versionInfoStorage.save().catch((error) => (infoError.value = String(error)))
+}
+if (desktop) {
+  void loadVersionInfo()
+  onUnmounted(saveVersionInfo)
+}
+watch(
+  () => values.TextArgumentInfo,
+  () => {
+    if (!desktop || hydratingInfo) return
+    versionInfoStorage.stage(values.TextArgumentInfo)
+  },
+  { flush: 'sync' },
+)
 const memoryJava64 = computed(() => (java.runtimes.length ? java.globalIs64Bit : null))
 
 const windowReady = ref(false)
@@ -218,6 +253,7 @@ const text = pclText
       @retry="visibilityReady ? changeVisibility(visibilityDraft) : loadVisibility()"
     />
     <PErrorRetry :error="isolationError" @retry="loadIsolation" />
+    <PErrorRetry :error="infoError" @retry="infoReady ? saveVersionInfo() : loadVersionInfo()" />
     <PErrorRetry
       :error="argumentsError"
       @retry="argumentsReady ? saveArguments() : loadArguments()"
@@ -289,7 +325,7 @@ const text = pclText
                 /></SetupItem>
                 <SetupItem :label="text('Setup.Launch.Options.CustomInfo.Label')" v-slot="{ id }"
                   ><PTextBox
-                    disabled
+                    :disabled="!desktop || !infoReady"
                     :input-id="id"
                     data-control="TextArgumentInfo"
                     :title="text('Setup.Launch.Options.CustomInfo.ToolTip')"

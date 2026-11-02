@@ -1,20 +1,5 @@
 import { Channel, invoke } from '@tauri-apps/api/core'
 
-export type JavaBrand =
-  | 'eclipseTemurin'
-  | 'liberica'
-  | 'zulu'
-  | 'corretto'
-  | 'microsoft'
-  | 'ibmSemeru'
-  | 'oracle'
-  | 'dragonwell'
-  | 'tencentKona'
-  | 'openJdk'
-  | 'graalVm'
-  | 'jetBrains'
-  | 'unknown'
-
 export type JavaSource = 'auto_scanned' | 'auto_installed' | 'manual_added'
 
 /** Flat IPC view of `minecraft::java::JavaEntry`. */
@@ -22,7 +7,8 @@ export interface IJavaRuntimeInfo {
   java_folder: string
   java_exe: string
   version: string
-  brand: JavaBrand
+  /** Raw `IMPLEMENTOR` from the JDK; empty when it could not be read. */
+  vendor: string
   architecture: 'X86' | 'X64' | 'Arm64' | 'FatFile' | 'Unknown'
   is_64_bit: boolean
   is_jre: boolean
@@ -30,24 +16,6 @@ export interface IJavaRuntimeInfo {
   is_enabled: boolean
   source: JavaSource
 }
-
-const brandLabels: Record<JavaBrand, string> = {
-  eclipseTemurin: 'Eclipse Temurin',
-  liberica: 'BellSoft Liberica',
-  zulu: 'Azul Zulu',
-  corretto: 'Amazon Corretto',
-  microsoft: 'Microsoft OpenJDK',
-  ibmSemeru: 'IBM Semeru',
-  oracle: 'Oracle',
-  dragonwell: 'Alibaba Dragonwell',
-  tencentKona: 'Tencent Kona',
-  openJdk: 'OpenJDK',
-  graalVm: 'GraalVM Community',
-  jetBrains: 'JetBrains Runtime',
-  unknown: '—',
-}
-
-export const javaBrandLabel = (brand: JavaBrand) => brandLabels[brand] || brand
 
 /** Java 8 is reported as `1.8.0_x`, so normalize it for display/sorting. */
 export function javaMajorVersion(version: string): number {
@@ -59,7 +27,9 @@ export function javaMajorVersion(version: string): number {
 }
 
 export const javaDisplayName = (runtime: IJavaRuntimeInfo) =>
-  `${runtime.is_jre ? 'JRE' : 'JDK'} ${javaMajorVersion(runtime.version)} (${runtime.version})`
+  runtime.version
+    ? `${runtime.is_jre ? 'JRE' : 'JDK'} ${javaMajorVersion(runtime.version)} (${runtime.version})`
+    : `${runtime.is_jre ? 'JRE' : 'JDK'} (${runtime.vendor || '?'})`
 export type JavaPreference =
   | { kind: 'global' | 'auto' }
   | { kind: 'exist'; java_exe: string }

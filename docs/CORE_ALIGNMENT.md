@@ -112,7 +112,7 @@ src-tauri/src/
 
 ## 5. 有意保留的差异
 
-1. **Java 扫描与探测**：保留 Proto 的异步、跨平台 BFS、`-XshowSettings:properties` 解析、PE/ELF/Mach-O 架构读取与探测超时控制。它们比 PCL.Core 当前的 Windows 注册表/`where` 扫描更完整，因此只对齐类型与管理器职责，不照搬扫描器实现。
+1. **Java 扫描与探测**：保留 Proto 的异步、跨平台 BFS、只读文件的 `release` 解析与 PE/ELF/Mach-O 架构读取（与旧版 Proto 及 CE 的 `FileVersionInfo` 思路一致）；没有可用 `release` 时才回退执行一次 `-version`，并把发行商按原文显示，不映射成 CE 的 `JavaBrandType` 枚举。它们比 PCL.Core 当前的 Windows 注册表/`where` 扫描更完整，因此只对齐类型与管理器职责，不照搬扫描器实现。
 2. **实例模型**：保留 `McInstance` 的 `jar_path`、`json_path`、`natives_path`、`global_dir` 等 Rust 侧显式路径，避免在每次使用时重新推导；新增的 `info()`/`state()` 只做派生，不替换现有字段。
 3. **下载器**：保留 Proto 的 Range 分段、续传、全局配额与校验发布流程；PCL.Core 的 `NDlFactory` 抽象面向 C# 对象生命周期，不直接映射为 Rust trait，以免增加无调用方的抽象层。
 4. **命令层**：PCL.Core 使用 `RpcService`，Tauri 使用 `#[tauri::command]`。命令集中在 `commands/`，按业务职责分文件，`lib.rs` 直接引用所属模块，不复制 RPC 反射模型。当前职责和前端边界见 [代码组织与维护边界](ARCHITECTURE.md)。

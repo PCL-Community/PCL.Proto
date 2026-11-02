@@ -33,7 +33,7 @@ fn runtime(version: &str, vendor: &str, jdk: bool) -> JavaEntry {
             java_folder: PathBuf::new(),
             java_exe: PathBuf::from(format!("/{vendor}/{version}/{}", java_binary())),
             version: version.into(),
-            brand: JavaBrandType::from_vendor(vendor),
+            vendor: vendor.into(),
             architecture: Architecture::Arm64,
             is_64_bit: true,
             is_jre: !jdk,
@@ -193,7 +193,7 @@ fn forge_update_limits_and_declared_major_sets_are_not_continuous_ranges() {
 }
 
 #[test]
-fn candidate_sorting_matches_ce_and_prefers_native_architecture() {
+fn candidate_sorting_prefers_the_lowest_compatible_major_and_native_architecture() {
     let mut list = vec![
         runtime("25.0.1", "Eclipse", true),
         runtime("21.0.8", "Azul", true),
@@ -204,14 +204,14 @@ fn candidate_sorting_matches_ce_and_prefers_native_architecture() {
     list.sort_by(preference::candidate_order);
     assert_eq!(
         list.iter()
-            .map(|j| (j.version.as_str(), j.brand(), j.is_jdk()))
+            .map(|j| (j.version.as_str(), j.vendor(), j.is_jdk()))
             .collect::<Vec<_>>(),
         vec![
-            ("21.0.7", JavaBrandType::EclipseTemurin, true),
-            ("21.0.1", JavaBrandType::EclipseTemurin, true),
-            ("21.0.8", JavaBrandType::Zulu, true),
-            ("21.0.1", JavaBrandType::EclipseTemurin, false),
-            ("25.0.1", JavaBrandType::EclipseTemurin, true)
+            ("21.0.8", "Azul", true),
+            ("21.0.7", "Eclipse", true),
+            ("21.0.1", "Eclipse", true),
+            ("21.0.1", "Eclipse", false),
+            ("25.0.1", "Eclipse", true)
         ]
     );
     let native = runtime("21.0.1", "Azul", true);
@@ -340,14 +340,19 @@ fn relative_and_manifest_links_cannot_escape_their_roots() {
     }
 }
 
-#[cfg(unix)]
 fn fake_java(root: &Path, version: &str, vendor: &str) -> JavaEntry {
-    use std::os::unix::fs::PermissionsExt;
     let bin = root.join("bin");
     fs::create_dir_all(&bin).unwrap();
-    let path = bin.join("java");
-    fs::write(&path, format!("#!/bin/sh\ncat >&2 <<'PROPERTIES'\njava.version = {version}\njava.home = {}\njava.vendor = {vendor}\nos.arch = {}\nsun.arch.data.model = 64\nPROPERTIES\n",root.display(),std::env::consts::ARCH)).unwrap();
-    fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+    let path = bin.join(installation::java_binary());
+    fs::write(&path, b"fixture").unwrap();
+    fs::write(
+        root.join("release"),
+        format!(
+            "JAVA_VERSION=\"{version}\"\nIMPLEMENTOR=\"{vendor}\"\nOS_ARCH=\"{}\"\n",
+            std::env::consts::ARCH
+        ),
+    )
+    .unwrap();
     fs::write(bin.join("javac"), b"fixture").unwrap();
     JavaEntry::probe(&path).unwrap()
 }
@@ -465,29 +470,6 @@ fn selection_reprobes_overrides_warns_and_falls_back_from_disabled_or_missing_pa
     );
 }
 
-#[cfg(unix)]
-#[test]
-fn probing_resolves_wrappers_to_actual_java_home_and_rejects_invalid_executables() {
-    let temp = TestDirectory::new();
-    let actual = fake_java(&temp.0.join("jdk"), "25-ea+12", "Eclipse");
-    let wrapper = temp.0.join("wrapper");
-    use std::os::unix::fs::PermissionsExt;
-    fs::write(
-        &wrapper,
-        format!("#!/bin/sh\nexec '{}' \"$@\"\n", actual.java_exe.display()),
-    )
-    .unwrap();
-    fs::set_permissions(&wrapper, fs::Permissions::from_mode(0o755)).unwrap();
-    assert_eq!(
-        JavaEntry::probe(&wrapper).unwrap().java_exe,
-        actual.java_exe
-    );
-    fs::write(&wrapper, "#!/bin/sh\necho not-java >&2\nexit 0\n").unwrap();
-    assert!(JavaEntry::probe(&wrapper).is_err());
-    fs::write(&wrapper, "#!/bin/sh\nexit 1\n").unwrap();
-    assert!(JavaEntry::probe(&wrapper).is_err());
-}
-
 #[test]
 fn instance_requirements_inherit_metadata_and_detect_cycles() {
     use crate::minecraft::instance::{McInstance, folder::McFolder};
@@ -540,21 +522,15 @@ mod download_tests {
         }
     }
     async fn mirror(corrupt: bool, traversal: bool, slow: bool) -> Mirror {
-        let script = format!(
-            r#"#!/bin/sh
-jhome=$(cd "$(dirname "$0")/.." && pwd)
-echo "java.home = $jhome" >&2
-echo 'java.version = 25.0.1' >&2
-echo 'java.vendor = OpenJDK' >&2
-echo 'os.arch = {}' >&2
-echo 'sun.arch.data.model = 64' >&2
-"#,
+        let release = format!(
+            "JAVA_VERSION=\"25.0.1\"\nIMPLEMENTOR=\"OpenJDK\"\nOS_ARCH=\"{}\"\n",
             std::env::consts::ARCH
         )
         .into_bytes();
         let info = |path: &str, body: &[u8]| json!({"url": format!("https://piston-data.mojang.com/{path}"),"sha1":crate::io::files::sha1_hex(sha1::Sha1::digest(body)),"size":body.len()});
         let mut manifest = json!({"files":{
-            "bin/java":{"type":"file","executable":true,"downloads":{"raw":info("files/java",&script)}},
+            "bin/java":{"type":"file","executable":true,"downloads":{"raw":info("files/java",b"jvm")}},
+            "release":{"type":"file","downloads":{"raw":info("files/release",&release)}},
             "lib/NOTICE":{"type":"file","downloads":{"raw":info("files/notice",b"license")}},
             "legal/NOTICE":{"type":"link","target":"../lib/NOTICE"}
         }});
@@ -572,7 +548,8 @@ echo 'sun.arch.data.model = 64' >&2
             index,
         );
         routes.insert("/manifest.json".to_owned(), manifest);
-        routes.insert("/files/java".to_owned(), script);
+        routes.insert("/files/java".to_owned(), b"jvm".to_vec());
+        routes.insert("/files/release".to_owned(), release);
         routes.insert(
             "/files/notice".to_owned(),
             if corrupt {
@@ -686,25 +663,65 @@ echo 'sun.arch.data.model = 64' >&2
     }
 }
 
-#[cfg(unix)]
 #[test]
 fn java8_nested_jre_is_recognized_as_its_parent_jdk() {
     let temp = TestDirectory::new();
     let jdk = temp.0.join("jdk8");
     let original = fake_java(&jdk, "1.8.0_452", "Azul");
-    fs::create_dir_all(jdk.join("jre/bin")).unwrap();
-    fs::write(jdk.join("jre/bin/java"), b"fixture").unwrap();
-    let info = JavaInstallation::from_probe(
-        &original.java_exe,
-        &format!(
-            "java.home = {}\njava.version = 1.8.0_452\nos.arch = {}\n",
-            jdk.join("jre").display(),
-            std::env::consts::ARCH
-        ),
+    let nested = jdk.join("jre/bin").join(installation::java_binary());
+    fs::create_dir_all(nested.parent().unwrap()).unwrap();
+    fs::write(&nested, b"fixture").unwrap();
+    let info = JavaInstallation::probe(&nested).unwrap();
+    assert_eq!(
+        info.parsed_version(),
+        original.installation.parsed_version()
+    );
+    assert_eq!(info.vendor, original.installation.vendor);
+    assert!(info.is_jre, "the nested runtime has no javac of its own");
+}
+
+#[test]
+fn runtime_without_a_usable_release_file_is_still_registered() {
+    let temp = TestDirectory::new();
+    let bin = temp.0.join("jdk/bin");
+    fs::create_dir_all(&bin).unwrap();
+    let java = bin.join(installation::java_binary());
+    fs::write(&java, b"fixture").unwrap();
+    let info = JavaInstallation::probe(&java).unwrap();
+    assert_eq!(info.version, "");
+    assert_eq!(info.vendor, "");
+    assert!(info.to_detailed_string().contains("Unknown"));
+    for release in [
+        "JAVA_VERSION=\"1.x\"\nIMPLEMENTOR=\"Azul Systems, Inc.\"\n",
+        "IMPLEMENTOR=\"Azul Systems, Inc.\"\n",
+    ] {
+        fs::write(temp.0.join("jdk/release"), release).unwrap();
+        let info = JavaInstallation::probe(&java).unwrap();
+        assert_eq!(info.version, "", "{release:?}");
+        assert_eq!(info.vendor, "", "{release:?}");
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn fallback_reads_version_and_vendor_from_the_running_jvm() {
+    use std::os::unix::fs::PermissionsExt;
+    let temp = TestDirectory::new();
+    let jdk = temp.0.join("jdk");
+    let bin = jdk.join("bin");
+    fs::create_dir_all(&bin).unwrap();
+    let java = bin.join(installation::java_binary());
+    fs::write(
+        &java,
+        "#!/bin/sh\ncat >&2 <<'PROPERTIES'\njava.version = 1.6.0_45\njava.vendor = Sun Microsystems Inc.\nos.arch = aarch64\nPROPERTIES\n",
     )
     .unwrap();
-    assert!(info.is_jdk());
-    assert_eq!(info.java_exe, original.installation.java_exe);
+    fs::set_permissions(&java, fs::Permissions::from_mode(0o755)).unwrap();
+    let info = JavaInstallation::probe(&java).unwrap();
+    assert_eq!(info.parsed_version(), JavaVersion(6, 0, 45, 0));
+    assert_eq!(info.vendor, "Sun Microsystems Inc.");
+    assert_eq!(info.architecture, Architecture::Arm64);
+    assert!(info.is_jre);
 }
 
 #[tokio::test]
@@ -772,19 +789,6 @@ fn discovery_aliases_do_not_reenable_a_disabled_runtime() {
 }
 
 #[cfg(unix)]
-#[test]
-fn old_java_without_show_settings_still_reports_its_actual_version() {
-    use std::os::unix::fs::PermissionsExt;
-    let temp = TestDirectory::new();
-    let java = temp.0.join("java");
-    fs::write(&java,"#!/bin/sh\nif [ \"$1\" != '-version' ]; then exit 1; fi\necho 'java version \"1.6.0_45\"' >&2\n").unwrap();
-    fs::set_permissions(&java, fs::Permissions::from_mode(0o755)).unwrap();
-    assert_eq!(
-        JavaEntry::probe(&java).unwrap().parsed_version(),
-        JavaVersion(6, 0, 45, 0)
-    );
-}
-
 #[cfg(unix)]
 #[test]
 fn probe_drains_large_output_and_times_out_unresponsive_processes() {

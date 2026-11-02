@@ -154,20 +154,20 @@ cargo test -p pcl-proto --lib official_large_client_range_smoke -- --ignored --n
 
 参考 CE 的 `ModJava.cs`、`ModLaunch.cs`、`PageSetupJava.xaml.cs`、`PageInstanceSetup.xaml.cs`，以及 `PCL.Core/Minecraft/Java` 下的管理器、扫描器、解析器和用户偏好。保留 CE 的选择契约，将 Windows 路径与架构规则扩展至 macOS、Linux。
 
-本次 26.3 故障的直接原因是实际执行了 Java 21（最高 class 65），游戏要求 Java 25（class 69）。本机旧配置曾将 `/usr/bin/java` 缓存为 25，但实际探测为 Zulu 21.0.7；新逻辑只迁移旧选择路径，版本与架构重新从可执行文件读取。
+本次 26.3 故障的直接原因是实际执行了 Java 21（最高 class 65），游戏要求 Java 25（class 69）。本机旧配置曾将 `/usr/bin/java` 缓存为 25，但实际探测为 Zulu 21.0.7；新逻辑只迁移旧选择路径，版本与架构重新从可执行文件所属目录读取，不再由 JVM 自报。
 
 | 链路     | 当前行为                                                                                                                                                                                                                                        |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 探测     | 执行 `-XshowSettings:properties -version`，旧 Java 回退 `-version`；校验真实版本、Java Home、架构和供应商，解析 Java 6/8 更新号及现代 EA 版本。处理系统 stub、wrapper、符号链接、Java 8 嵌套 JRE；超时 5 秒，输出有界且同步排空两个管道         |
+| 探测     | 优先只读文件：从 `bin/java` 定位 Java Home 读 `release`（`JAVA_VERSION`、`IMPLEMENTOR`、`OS_ARCH`），Java 8 嵌套 `jre` 回退父 JDK 的 `release`；架构取 `OS_ARCH`，缺失时读 PE/ELF/Mach-O 头部（goblin）；JDK/JRE 由 `bin/javac` 是否存在判定。没有可用 `release`（缺失或版本不可解析）时回退执行 `-XshowSettings:properties -version`（Java 6 退到 `-version`），并用它报告的 `java.home` 解析出真实可执行文件，macOS `/usr/bin/java` 这类系统 stub 由此去重；两条路都失败仍登记，版本与发行商留空 |
 | 扫描     | 环境变量、PATH、系统 JVM 根、SDKMAN/asdf/jabba/mise、Minecraft 与启动器 runtime；Windows 追加注册表和 Store runtime，macOS 追加 JDK bundles、Applications、Homebrew。关键词遍历有深度限制并防链接循环；自动扫描间隔至少 13 秒，手动刷新强制重扫 |
 | 状态     | 统一 Rust 配置保存全局路径、运行时启用/禁用和实例偏好；扫描保留禁用状态与并发导入，失效项移除。配置写入临时文件后替换，序列化失败保留原文件                                                                                   |
 | 需求     | 原版/快照日期、OptiFine、Forge（含 Java 7 和 8u321 上限）、Fabric、LiteLoader、Cleanroom、LabyMod；读取 JSON `javaVersion`、非连续 `compatibleJavaMajors` 集合与 JAR `version.json`。仅为 Java 需求解析父版本元数据，并检查继承循环             |
-| 选择     | 实例指定/启动器目录内相对路径 → 全局指定 → 自动候选；每次选择重新探测实际 executable。自动候选按最低可接受 major、原生架构、JDK、供应商、最新补丁排序，禁用、失效或不能运行的候选不会启动                                                       |
+| 选择     | 实例指定/启动器目录内相对路径 → 全局指定 → 自动候选；每次选择重新探测实际 executable。自动候选按最低可接受 major、原生架构、JDK、最新补丁、路径排序；不再按发行商偏好排序，发行商只用于显示。禁用、失效或不能运行的候选不会启动 |
 | 手动覆盖 | 与当前 CE 一致：指定版本越界时警告后仍使用，忽略兼容性只跳过警告。CE 当前 `AutoSelect` 在启动选择时仍继续检查全局指定；实例 Auto 不会绕过全局手动覆盖                                                                                           |
 | 补全     | 缺失时重扫；用户确认后按平台/架构及 Mojang component 下载，再重新选择。复用共享下载源、连接/带宽配额、大小/SHA-1 校验；独立 staging、失败/取消清理、Unix 执行权限与安全链接处理。旧 Java 和受限 Java 8 更新范围要求手动安装                     |
 | 界面     | 全局自动/指定、导入、刷新、详情、打开目录、启用/禁用；实例全局/自动/相对/指定、忽略兼容性；32 位内存警告读取后端 Java 信息。启动前提供下载进度和取消，拒绝异步期间切换到其他实例后继续启动                                                      |
 
-平台处理：Windows x86/x64/ARM64、macOS Intel/Apple Silicon、Linux x86/x64/ARM64 的本地 Java 均可识别，架构兼容性按实际主机 CPU 判断（包含 Rosetta/Windows 模拟下的启动器）。可运行性最终由实际执行验证。Mojang 当前没有 Linux ARM64 运行时，也未必提供每个平台的所有 Java major；这种情况明确提示手动安装，不使用其他架构冒充原生运行时。Linux ARM64 可导入本地 ARM64 Java。选择 ARM Java 并不代表实例已有的 native 库也已经匹配 ARM，二者联动仍属于后续启动链路工作。
+平台处理：Windows x86/x64/ARM64、macOS Intel/Apple Silicon、Linux x86/x64/ARM64 的本地 Java 均可识别，架构兼容性按实际主机 CPU 判断（包含 Rosetta/Windows 模拟下的启动器）。发行商直接显示 `release` 里写的原文（如 `Azul Systems, Inc.`），不再映射成固定品牌枚举；读不到就显示"未知"，不影响识别。只读文件能识别但不能代替实际执行：损坏的 JVM、缺失的 native 库仍会在启动游戏时暴露。Mojang 当前没有 Linux ARM64 运行时，也未必提供每个平台的所有 Java major；这种情况明确提示手动安装，不使用其他架构冒充原生运行时。Linux ARM64 可导入本地 ARM64 Java。选择 ARM Java 并不代表实例已有的 native 库也已经匹配 ARM，二者联动仍属于后续启动链路工作。
 
 Java 验证：
 

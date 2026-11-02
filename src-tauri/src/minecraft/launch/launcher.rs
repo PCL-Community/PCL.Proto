@@ -599,6 +599,13 @@ impl LaunchOption {
             })
             .collect();
         game.extend(parse_custom(&self.arguments.game)?);
+        if self.extras.info.is_empty() {
+            // CE drops the whole argument so the game falls back to the version's own type.
+            // shortcut: only the vanilla two-token form is removed; `--versionType=` becomes empty.
+            if let Some(index) = game.iter().position(|argument| argument == "--versionType") {
+                game.drain(index..(index + 2).min(game.len()));
+            }
+        }
         if let Some((host, port)) = &self.server {
             if self
                 .version_details
@@ -1057,7 +1064,7 @@ mod tests {
         let runtime: JavaEntry = serde_json::from_value(json!({
             "java_folder":root, "version":"21", "slug_version":21,
             "is_64_bit":true, "architecture":"Arm64", "compatibility":"Perfect",
-            "java_exe":executable, "brand":"unknown"
+            "java_exe":executable, "vendor":"OpenJDK"
         }))
         .unwrap();
         let mut option = LaunchOption {
@@ -1145,6 +1152,10 @@ mod tests {
         );
         let (_, _, game) = option.metadata_arguments("a path").unwrap();
         assert_eq!(game, ["--versionType", "Custom Info"]);
+        option.extras.info = String::new();
+        let (_, _, game) = option.metadata_arguments("a path").unwrap();
+        assert!(game.is_empty(), "{game:?}");
+        option.extras.info = "Custom Info".into();
         option = option.with_server("[::1]:25566").unwrap();
         option.version_details.release_time = Some("2024-01-01T00:00:00Z".into());
         let (_, _, game) = option.metadata_arguments("a path").unwrap();
