@@ -70,31 +70,52 @@ const groups = computed(() => {
   const label = kinds.length === 1 ? labels[kinds[0]!] : undefined
   return [
     {
+      key: 'favorites',
       title: text('Select.Instance.Card.Favorites'),
       items: filtered.value.filter((item) => favorites.value.includes(item.directory)),
       favorite: true,
     },
-    { title: text(`Select.Instance.Card.${label || 'Modable'}`), items: modded, favorite: false },
-    { title: text('Select.Instance.Card.Regular'), items: regular, favorite: false },
+    {
+      key: 'modded',
+      title: text(`Select.Instance.Card.${label || 'Modable'}`),
+      items: modded,
+      favorite: false,
+    },
+    {
+      key: 'regular',
+      title: text('Select.Instance.Card.Regular'),
+      items: regular,
+      favorite: false,
+    },
   ].filter((group) => group.items.length)
 })
 let request = 0
 async function load() {
   const current = ++request
+  const index = Number(route.params.repository || 0)
+  const cachedRepository = repos.repositories?.[index]
+  instances.value = cachedRepository ? repos.instancesByPath[cachedRepository.path] || [] : []
   loading.value = true
   error.value = ''
-  instances.value = []
   try {
     if (!isTauri()) return
     if (!repos.repositories) await repos.fetchFromBackend()
-    const index = Number(route.params.repository || 0)
-    if (!Number.isInteger(index) || index < 0 || !repos.repositories?.[index]) return
+    if (current !== request) return
+    const repository = repos.repositories?.[index]
+    if (!Number.isInteger(index) || index < 0 || !repository) return
+    instances.value = repos.instancesByPath[repository.path] || []
     await repos.selectRepository(index)
     if (current !== request) return
     const items = await repos.getInstancesInRepository(index)
-    if (current === request) instances.value = items
+    if (current === request) {
+      instances.value = items
+      repos.instancesByPath[repository.path] = items
+    }
   } catch (err) {
-    if (current === request) error.value = pclText('Proto.Error.Instances', [String(err)])
+    if (current === request) {
+      error.value = pclText('Proto.Error.Instances', [String(err)])
+      if (instances.value.length) sideTip.show(error.value, 'warn')
+    }
   } finally {
     if (current === request) loading.value = false
   }
@@ -179,8 +200,8 @@ watch(
       v-model="query"
       :placeholder="text('Select.Instance.Search.Hint')"
     />
-    <PLoading v-if="loading" :loading-text="text('Select.Instance.Loading')" />
-    <PHint v-else-if="error" severity="error"
+    <PLoading v-if="loading && !instances.length" :loading-text="text('Select.Instance.Loading')" />
+    <PHint v-else-if="error && !instances.length" severity="error"
       >{{ error
       }}<PButton inline @click="load">{{
         pclText('Launch.Homepage.LoadFailed.Retry')
@@ -206,7 +227,7 @@ watch(
     <template v-else
       ><PCard
         v-for="group in groups"
-        :key="group.title"
+        :key="group.key"
         :title="group.favorite ? group.title : `${group.title} (${group.items.length})`"
         ><div class="instance-list">
           <PListItem

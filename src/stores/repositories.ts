@@ -11,6 +11,8 @@ type Repository = { name: string; path: string }
 export const useRepositoriesStore = defineStore('repositories', {
   state: () => ({
     repositories: undefined as Repository[] | undefined,
+    // shortcut: memory-only cache; persist it if cold-start flicker also matters.
+    instancesByPath: {} as Record<string, GameInstance[]>,
   }),
   actions: {
     async fetchFromBackend() {
