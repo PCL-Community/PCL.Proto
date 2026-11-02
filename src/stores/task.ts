@@ -54,7 +54,13 @@ interface TaskItemReport {
   speed: number | null
 }
 
-function createTask(id: number, versionId: string, kind: DownloadKind, fabric?: string): Task {
+function createTask(
+  id: number,
+  versionId: string,
+  kind: DownloadKind,
+  fabric?: string,
+  fabricApi = false,
+): Task {
   const keys =
     kind === 'resource' || kind === 'custom' || kind === 'installer' || kind === 'pack-file'
       ? [
@@ -92,6 +98,7 @@ function createTask(id: number, versionId: string, kind: DownloadKind, fabric?: 
       itemId: 6,
     })
   }
+  if (fabricApi) stages.push({ key: 'Minecraft.Download.Stage.DownloadFabricApi', itemId: 8 })
   if (kind === 'install' || kind === 'modpack')
     stages.push({ key: 'Minecraft.Download.Stage.InstallGame', itemId: 7 })
   return {
@@ -168,10 +175,11 @@ export const useTaskManager = defineStore('task-manager', () => {
     args: Record<string, unknown>,
     kind: DownloadKind,
     fabric?: string,
+    fabricApi = false,
   ) {
     const id = nextTaskId
     nextTaskId = (nextTaskId + 1) & 0x7fffffff
-    tasks.value.push(createTask(id, versionId, kind, fabric))
+    tasks.value.push(createTask(id, versionId, kind, fabric, fabricApi))
     const task = tasks.value.find((item) => item.id === id)!
     floatButton.setFloatButton(FloatButtonType.TaskManage)
     floatButton.floatButtonState.visible = true
@@ -191,7 +199,7 @@ export const useTaskManager = defineStore('task-manager', () => {
           ? Math.max(0, message.speed || 0)
           : 0
       const weights = kind === 'install' || kind === 'modpack'
-        ? [5, 5, 9, 18, 1, 1, 1, 2]
+        ? [5, 5, 9, 18, 1, 1, 1, 2, 3]
         : kind === 'client' || kind === 'server' ? [2, 5] : [1]
       task.progress = task.items.reduce((sum, item) => sum + item.progress * (weights[item.id] || 1), 0) /
         task.items.reduce((sum, item) => sum + (weights[item.id] || 1), 0)
@@ -278,7 +286,11 @@ export const useTaskManager = defineStore('task-manager', () => {
   function startDownloadMCVersion(
     versionId: string,
     instanceName: string,
-    fabric?: { family: 'fabric' | 'legacyfabric'; version: string },
+    fabric?: {
+      family: 'fabric' | 'legacyfabric'
+      version: string
+      api?: { url: string; size: number; sha1: string; filename: string } | null
+    },
   ) {
     return runDownload(
       versionId,
@@ -286,6 +298,7 @@ export const useTaskManager = defineStore('task-manager', () => {
       { instance_name: instanceName, fabric: fabric || null },
       'install',
       fabric?.family,
+      !!fabric?.api,
     )
   }
 

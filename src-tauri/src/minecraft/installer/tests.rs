@@ -106,6 +106,58 @@ fn failed_installations_clean_only_their_own_directory() {
     fs::remove_dir_all(root).unwrap();
 }
 
+#[test]
+fn fabric_api_is_staged_inside_the_instance_mods_folder() {
+    let install: FabricInstall = serde_json::from_value(json!({
+        "family": "fabric",
+        "version": "0.16",
+        "api": {
+            "url": "https://cdn.modrinth.com/data/P7dR8mSH/versions/test/fabric-api.jar",
+            "size": 1,
+            "sha1": "a".repeat(40),
+            "filename": "fabric-api.jar"
+        }
+    }))
+    .unwrap();
+    let api = install.api.unwrap();
+    assert_eq!(
+        api.file.url,
+        "https://cdn.modrinth.com/data/P7dR8mSH/versions/test/fabric-api.jar"
+    );
+    assert_eq!(api.filename, "fabric-api.jar");
+
+    let file = DownloadFile {
+        url: "https://cdn.modrinth.com/data/P7dR8mSH/versions/test/fabric-api.jar".into(),
+        size: 1,
+        sha1: "a".repeat(40),
+        path: None,
+    };
+    let mut plan = InstallPlan::new();
+    let instance = Path::new("/minecraft/versions/Fabric");
+    add_fabric_api(
+        &mut plan,
+        instance,
+        &FabricApiInstall {
+            file: file.clone(),
+            filename: "fabric-api.jar".into(),
+        },
+    )
+    .unwrap();
+    assert_eq!(plan.files[0].out_path, instance.join("mods/fabric-api.jar"));
+    assert_eq!(plan.stages[&8], [1]);
+    assert!(
+        add_fabric_api(
+            &mut plan,
+            instance,
+            &FabricApiInstall {
+                file,
+                filename: "../fabric-api.jar".into(),
+            },
+        )
+        .is_err()
+    );
+}
+
 #[tokio::test]
 #[ignore = "Downloads an official Minecraft installation; run explicitly"]
 async fn official_vanilla_install_with_custom_name() {
@@ -395,6 +447,7 @@ async fn official_fabric_install(
         let choice = FabricInstall {
             family,
             version: version.into(),
+            api: None,
         };
         install_version(
             &client,
@@ -722,6 +775,7 @@ async fn fabric_install_merges_profile_and_publishes_only_after_verified_files()
         Some(&FabricInstall {
             family: crate::io::net::http::api_client::FabricFamily::Fabric,
             version: "0.16".into(),
+            api: None,
         }),
         1,
         &Channel::new(|_| Ok(())),
@@ -810,7 +864,8 @@ async fn fabric_install_merges_profile_and_publishes_only_after_verified_files()
             "Broken Fabric",
             Some(&FabricInstall {
                 family: crate::io::net::http::api_client::FabricFamily::Fabric,
-                version: "0.16".into()
+                version: "0.16".into(),
+                api: None,
             }),
             2,
             &Channel::new(|_| Ok(()))
@@ -915,6 +970,7 @@ async fn legacy_fabric_list_and_install_use_legacy_intermediary() {
     let choice = FabricInstall {
         family: FabricFamily::Legacyfabric,
         version: "0.16".into(),
+        api: None,
     };
     install_version(
         &client,

@@ -27,6 +27,7 @@ import {
   selectLoader,
 } from '@/api/installSelection'
 import { saveMinecraftVersion } from '@/api/versionActions'
+import { getCompVersions } from '@/api/compProjects'
 import { FloatButtonType, useFloatButton } from '@/composables/useFloatButton'
 
 const props = defineProps<{ manual?: boolean; modify?: boolean }>()
@@ -48,6 +49,9 @@ const plugins = reactive<
   Record<string, { loading: boolean; versions: McPluginReport[]; error: string }>
 >({})
 const selected = reactive<Record<string, string>>({})
+type FabricApiFile = { url: string; size: number; sha1: string; filename: string }
+const fabricApiFiles: Record<string, FabricApiFile> = {}
+let fabricApiAutoSelected = false
 const selectedPlugins = computed(
   () =>
     Object.fromEntries(
@@ -60,6 +64,12 @@ const selectedPlugins = computed(
 const loaderCards: Record<string, InstanceType<typeof PCard> | null> = {}
 function chooseLoader(loader: string, version: string) {
   selectLoader(selected, loader, version)
+  if (loader === 'FabricApi') fabricApiAutoSelected = true
+  if (!selected.Fabric) fabricApiAutoSelected = false
+  if (loader === 'Fabric' && version && !fabricApiAutoSelected && plugins.FabricApi?.versions[0]) {
+    fabricApiAutoSelected = true
+    chooseLoader('FabricApi', plugins.FabricApi.versions[0].version)
+  }
   loaderCards[loader]?.collapse()
   if (!instanceNameEdited.value) instanceName.value = instanceDefaultName(versionId.value, selected)
 }
@@ -128,7 +138,54 @@ function choose(id: string, type: string) {
   void router.push({ path: '/download/game/inner', query: { version_id: id, version_type: type } })
 }
 let request = 0
+async function loadFabricApi(id: string, current: number) {
+  plugins.FabricApi = { loading: true, versions: [], error: '' }
+  try {
+    if (!isTauri()) throw new Error(pclText('Proto.Desktop.Loaders'))
+    const target = id.replace('∞', 'infinite').replace('Combat Test 7c', '1.16_combat-3').toLowerCase()
+    const list = (await getCompVersions('fabric-api'))
+      .filter(
+        (version) =>
+          version.loaders.includes('fabric') &&
+          version.game_versions.some((game) => game.toLowerCase() === target),
+      )
+      .sort((a, b) => Date.parse(b.date_published) - Date.parse(a.date_published))
+    const versions: McPluginReport[] = []
+    const files: Record<string, FabricApiFile> = {}
+    for (const version of list) {
+      const file = version.files.find((file) => file.primary) || version.files[0]
+      const sha1 = file?.hashes?.sha1
+      if (!file || !sha1 || !/^https:\/\//i.test(file.url)) continue
+      files[version.version_number] = {
+        url: file.url,
+        size: file.size,
+        sha1,
+        filename: file.filename,
+      }
+      versions.push({
+        version: version.version_number,
+        stable: version.version_type === 'release',
+        release_time: version.date_published,
+      })
+    }
+    if (current !== request) return
+    Object.assign(fabricApiFiles, files)
+    plugins.FabricApi = { loading: false, versions, error: '' }
+    if (selected.Fabric && !fabricApiAutoSelected && versions[0]) {
+      fabricApiAutoSelected = true
+      chooseLoader('FabricApi', versions[0].version)
+    }
+  } catch (err) {
+    if (current === request)
+      plugins.FabricApi = {
+        loading: false,
+        versions: [],
+        error: pclText('Proto.Error.Versions', [String(err)]),
+      }
+  }
+}
 async function loadLoader(name: string, id: string, current: number) {
+  if (name === 'FabricApi') return loadFabricApi(id, current)
   plugins[name] = { loading: true, versions: [], error: '' }
   try {
     if (!isTauri()) throw new Error(pclText('Proto.Desktop.Loaders'))
@@ -152,10 +209,12 @@ watch(
     instanceName.value = id
     instanceNameEdited.value = false
     Object.keys(selected).forEach((key) => delete selected[key])
+    Object.keys(fabricApiFiles).forEach((key) => delete fabricApiFiles[key])
+    fabricApiAutoSelected = false
     const current = ++request
     if (!id) return
     await Promise.all(
-      ['Forge', 'Fabric', 'LegacyFabric'].map((name) => loadLoader(name, id, current)),
+      ['Forge', 'Fabric', 'LegacyFabric', 'FabricApi'].map((name) => loadLoader(name, id, current)),
     )
   },
   { immediate: true },
@@ -179,10 +238,14 @@ async function install() {
   }
   if (
     Object.entries(selected).some(
-      ([name, value]) => !['Fabric', 'LegacyFabric'].includes(name) && !!value,
+      ([name, value]) => !['Fabric', 'LegacyFabric', 'FabricApi'].includes(name) && !!value,
     )
   ) {
     sideTip.show(pclText('Proto.NotImplemented.LoaderInstall'), 'warn')
+    return
+  }
+  if (selected.FabricApi && !fabricApiFiles[selected.FabricApi]) {
+    sideTip.show(pclText('Download.Comp.QuickDownload.Hint.NoFile'), 'warn')
     return
   }
   installing.value = true
@@ -192,7 +255,11 @@ async function install() {
         versionId.value,
         instanceName.value.trim(),
         selected.Fabric
-          ? { family: 'fabric', version: selected.Fabric }
+          ? {
+              family: 'fabric',
+              version: selected.Fabric,
+              api: fabricApiFiles[selected.FabricApi] || null,
+            }
           : selected.LegacyFabric
             ? { family: 'legacyfabric', version: selected.LegacyFabric }
             : undefined,
@@ -401,7 +468,7 @@ watch(versionId, (id) => {
                 :subtitle="loaderSubtitle(version)"
                 clickable
                 @click="() => chooseLoader(loader, version.version)"
-                ><template #icon-actions
+                ><template v-if="loader !== 'FabricApi'" #icon-actions
                   ><PLoaderVersionActions
                     :loader="loader"
                     :game="versionId"
@@ -411,7 +478,7 @@ watch(versionId, (id) => {
           </template>
           <p v-else class="pcl-empty">
             {{
-              ['Forge', 'Fabric', 'LegacyFabric'].includes(loader)
+              ['Forge', 'Fabric', 'LegacyFabric', 'FabricApi'].includes(loader)
                 ? pclText('Download.Install.State.NoAvailableVersion')
                 : pclText('Proto.NotImplemented.Loader')
             }}
@@ -484,11 +551,14 @@ watch(versionId, (id) => {
 .loader-card :deep(.mycard-title > .description) {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
 }
 .loader-status {
   color: var(--color-text-grey);
   font-size: 12px;
-  display: inline-flex;
+  line-height: 1;
+  display: flex;
   align-items: center;
   gap: 7px;
 }

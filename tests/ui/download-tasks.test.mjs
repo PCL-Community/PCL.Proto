@@ -30,13 +30,26 @@ globalThis.testInvoke = (name, args) => {
   return Promise.resolve()
 }
 const store = useTaskManager()
-const pending = store.startDownloadMCVersion('1.20.1', 'Example', { family: 'fabric', version: '0.16' })
+const pending = store.startDownloadMCVersion('1.20.1', 'Example', {
+  family: 'fabric',
+  version: '0.16',
+  api: {
+    url: 'https://cdn.modrinth.com/data/P7dR8mSH/versions/test/fabric-api.jar',
+    size: 1,
+    sha1: 'a'.repeat(40),
+    filename: 'fabric-api.jar',
+  },
+})
 await Promise.resolve()
-assert.deepEqual(store.tasks[0].items.map((item) => item.id), [0, 1, 2, 3, 5, 6, 7])
+assert.deepEqual(
+  store.tasks[0].items.map((item) => item.id),
+  [0, 1, 2, 3, 5, 6, 8, 7],
+)
 assert.equal(store.tasks[0].items[5].name, 'Minecraft.Download.Stage.AnalyzeFabricLibraries')
+assert.equal(store.tasks[0].items[6].name, 'Minecraft.Download.Stage.DownloadFabricApi')
 const channel = calls.find(([name]) => name === 'download_minecraft_version')[1].on_event
 channel.onmessage({ task_id: store.tasks[0].id, item_id: 3, progress: 0.5, status: 1, files_remaining: 1, speed: 0 })
-assert.equal(store.tasks[0].progress, 9 / 41)
+assert.equal(store.tasks[0].progress, 9 / 44)
 await store.cancelTask(store.tasks[0].id)
 await assert.rejects(pending, isTaskCancelled)
 assert.equal(store.tasks.length, 0)
