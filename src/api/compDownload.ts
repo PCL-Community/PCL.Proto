@@ -8,7 +8,7 @@ import type { CompType, ISearchHit, IVersion } from '@/types/comp'
 import type GameInstance from '@/types/gameInstance'
 import { useSelectedInstance } from '@/stores/gameLaunch'
 import { useRepositoriesStore } from '@/stores/repositories'
-import { useTaskManager } from '@/stores/task'
+import { isTaskCancelled, useTaskManager } from '@/stores/task'
 import { useModal } from '@/composables/useModal'
 import sideTip from '@/composables/sideTip'
 
@@ -69,7 +69,9 @@ function start(file: ResourceFile, destination: string, name: string) {
       destination,
     )
     .then(() => sideTip.show(pclText('Proto.Download.Saved', [destination]), 'success'))
-    .catch((error) => sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn'))
+    .catch((error) => {
+      if (!isTaskCancelled(error)) sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn')
+    })
 }
 
 export async function saveResource(

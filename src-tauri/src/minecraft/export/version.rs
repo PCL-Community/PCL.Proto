@@ -247,9 +247,12 @@ pub async fn export_minecraft_version(
     task_id: i32,
     on_event: Channel<TaskItemReport>,
 ) -> Result<String, String> {
-    export_version(&client, &version_id, &directory, server, task_id, on_event)
-        .await
-        .map_err(|error| error.to_string())
+    crate::io::download::tasks::run(task_id, async {
+        export_version(&client, &version_id, &directory, server, task_id, on_event)
+            .await
+            .map_err(|error| error.to_string())
+    })
+    .await
 }
 
 #[tauri::command]

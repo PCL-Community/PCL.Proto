@@ -2,7 +2,7 @@ import { invoke, isTauri } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { pclLocale, pclText } from './pclLocale'
 import { getMinecraftChangelogUrl } from './gameVersions'
-import { useTaskManager } from '@/stores/task'
+import { isTaskCancelled, useTaskManager } from '@/stores/task'
 import sideTip from '@/composables/sideTip'
 import { openExternal } from '@/util/externalLink'
 
@@ -19,6 +19,7 @@ export async function saveMinecraftVersion(versionId: string, server = false) {
     const path = await download
     sideTip.show(pclText('Proto.Download.Saved', [path]))
   } catch (error) {
+    if (isTaskCancelled(error)) return
     sideTip.show(pclText('Proto.Error.Download', [pclText(String(error), [versionId])]), 'warn')
   }
 }

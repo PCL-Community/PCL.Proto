@@ -64,6 +64,7 @@ impl Default for Downloader {
 mod http_tests;
 mod range;
 pub mod resources;
+pub mod tasks;
 
 use resources::{DOWNLOAD_RESOURCES, DownloadResources, HttpMode};
 use std::sync::{Arc, LazyLock, atomic::Ordering};
@@ -289,7 +290,7 @@ impl Downloader {
                             return Err(McApiError::Sha1Mismatch(path.to_owned()));
                         }
                     }
-                    tokio::fs::rename(&partial.0, path).await?;
+                    std::fs::rename(&partial.0, path)?;
                     return Ok(());
                 }
                 Err(McApiError::RangeUnsupported) => {
@@ -310,12 +311,11 @@ impl Downloader {
         .await?
         .error_for_status()?;
         let partial = partial_file(path);
-        let output = tokio::fs::OpenOptions::new()
+        let output = std::fs::OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(&partial.0)
-            .await?;
-        let mut output = BufWriter::with_capacity(64 * 1024, output);
+            .open(&partial.0)?;
+        let mut output = BufWriter::with_capacity(64 * 1024, tokio::fs::File::from_std(output));
         let mut stream = response.bytes_stream();
         let mut hasher = sha1::Sha1::new();
         let mut bytes = 0_u64;
@@ -351,7 +351,7 @@ impl Downloader {
         output.flush().await?;
         // Download caches are replaceable; avoid an fsync for every tiny asset.
         drop(output);
-        tokio::fs::rename(&partial.0, path).await?;
+        std::fs::rename(&partial.0, path)?;
         Ok(())
     }
 }
@@ -457,23 +457,26 @@ pub async fn download_fabric_installer(
     task_id: i32,
     on_event: tauri::ipc::Channel<TaskItemReport>,
 ) -> Result<(), String> {
-    let url = family
-        .installer_url(&version)
-        .map_err(|error| error.to_string())?;
-    custom_transfer_checked(&url, &destination, 64 * 1024, |bytes, size, speed| {
-        let _ = on_event.send(TaskItemReport {
-            task_id,
-            item_id: 0,
-            files_remaining: 1,
-            progress: size
-                .filter(|size| *size > 0)
-                .map_or(0.0, |size| (bytes as f64 / size as f64).min(1.0)),
-            status: TaskStatus::Running,
-            speed: Some(speed),
-        });
+    tasks::run(task_id, async {
+        let url = family
+            .installer_url(&version)
+            .map_err(|error| error.to_string())?;
+        custom_transfer_checked(&url, &destination, 64 * 1024, |bytes, size, speed| {
+            let _ = on_event.send(TaskItemReport {
+                task_id,
+                item_id: 0,
+                files_remaining: 1,
+                progress: size
+                    .filter(|size| *size > 0)
+                    .map_or(0.0, |size| (bytes as f64 / size as f64).min(1.0)),
+                status: TaskStatus::Running,
+                speed: Some(speed),
+            });
+        })
+        .await
+        .map_err(|error| format!("{error:#}"))
     })
     .await
-    .map_err(|error| format!("{error:#}"))
 }
 
 async fn custom_attempt(
@@ -595,13 +598,12 @@ async fn custom_attempt(
         .error_for_status()?;
     let size = response.content_length();
     let mut stream = response.bytes_stream();
-    let mut output = BufWriter::new(
-        tokio::fs::OpenOptions::new()
+    let mut output = BufWriter::new(tokio::fs::File::from_std(
+        std::fs::OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(partial)
-            .await?,
-    );
+            .open(partial)?,
+    ));
     let mut bytes = 0_u64;
     let mut previous = 0_u64;
     let mut last = std::time::Instant::now();
@@ -636,20 +638,23 @@ pub async fn download_custom_file(
     task_id: i32,
     on_event: tauri::ipc::Channel<TaskItemReport>,
 ) -> Result<(), String> {
-    custom_transfer(&url, &destination, |bytes, size, speed| {
-        let _ = on_event.send(TaskItemReport {
-            task_id,
-            item_id: 0,
-            files_remaining: 1,
-            progress: size
-                .filter(|size| *size > 0)
-                .map_or(0.0, |size| (bytes as f64 / size as f64).min(1.0)),
-            status: TaskStatus::Running,
-            speed: Some(speed),
-        });
+    tasks::run(task_id, async {
+        custom_transfer(&url, &destination, |bytes, size, speed| {
+            let _ = on_event.send(TaskItemReport {
+                task_id,
+                item_id: 0,
+                files_remaining: 1,
+                progress: size
+                    .filter(|size| *size > 0)
+                    .map_or(0.0, |size| (bytes as f64 / size as f64).min(1.0)),
+                status: TaskStatus::Running,
+                speed: Some(speed),
+            });
+        })
+        .await
+        .map_err(|error| format!("{error:#}"))
     })
     .await
-    .map_err(|error| format!("{error:#}"))
 }
 
 #[tauri::command]

@@ -12,7 +12,8 @@ export enum TaskStatus {
   Completed = 2,
   Failed = 3,
 }
-type DownloadKind = 'install' | 'client' | 'server' | 'resource' | 'custom' | 'installer'
+type DownloadKind =
+  'install' | 'modpack' | 'client' | 'server' | 'resource' | 'custom' | 'installer'
 
 export interface ITaskItem {
   id: number
@@ -34,6 +35,7 @@ interface Task {
   items: ITaskItem[]
   progress: number
   error: string
+  cancelling: boolean
 }
 
 interface TaskItemReport {
@@ -45,7 +47,7 @@ interface TaskItemReport {
   speed: number | null
 }
 
-function createTask(id: number, versionId: string, kind: DownloadKind): Task {
+function createTask(id: number, versionId: string, kind: DownloadKind, fabric?: string): Task {
   const keys =
     kind === 'resource' || kind === 'custom' || kind === 'installer'
       ? ['Download.Comp.Detail.DownloadFile']
@@ -55,17 +57,39 @@ function createTask(id: number, versionId: string, kind: DownloadKind): Task {
             ? 'Minecraft.Download.Stage.DownloadServerFile'
             : 'Minecraft.Download.Stage.DownloadCoreJar',
         ]
-  if (kind === 'install')
+  if (kind === 'install' || kind === 'modpack')
     keys.push(
       'Minecraft.Download.Stage.VanillaLibrariesDownload',
       'Minecraft.Download.Stage.DownloadVanillaAssets',
     )
+  const stages = keys.map((key, itemId) => ({ key, itemId }))
+  if (kind === 'modpack')
+    stages.push({ key: 'Minecraft.Download.Modpack.Stage.DownloadAdditions', itemId: 4 })
+  if (fabric) {
+    stages.push({
+      key:
+        fabric === 'legacyfabric'
+          ? 'Minecraft.Download.Stage.ObtainLegacyFabricMainFileUrl'
+          : 'Minecraft.Download.Stage.ObtainFabricMainFileUrl',
+      itemId: 5,
+    })
+    stages.push({
+      key: fabric === 'legacyfabric'
+        ? 'Minecraft.Download.Stage.AnalyzeLegacyFabricLibraries'
+        : 'Minecraft.Download.Stage.AnalyzeFabricLibraries',
+      itemId: 6,
+    })
+  }
+  if (kind === 'install' || kind === 'modpack')
+    stages.push({ key: 'Minecraft.Download.Stage.InstallGame', itemId: 7 })
   return {
     id,
     versionId,
     kind,
     get name() {
       if (kind === 'installer') return versionId
+      if (kind === 'modpack')
+        return pclText('Minecraft.Download.Modpack.Task.ModrinthInstall', [versionId])
       if (kind === 'custom') return pclText('Tools.Test.CustomDownload.LoaderName', [versionId])
       if (kind === 'resource')
         return pclText('Download.Comp.Detail.DownloadResource', ['', versionId])
@@ -80,7 +104,8 @@ function createTask(id: number, versionId: string, kind: DownloadKind): Task {
     speed: 0,
     progress: 0,
     error: '',
-    items: keys.map((key, itemId) => ({
+    cancelling: false,
+    items: stages.map(({ key, itemId }) => ({
       id: itemId,
       task_id: id,
       get name() {
@@ -98,9 +123,13 @@ function isActive(task: Task) {
   return task.status === TaskStatus.Pending || task.status === TaskStatus.Running
 }
 
+export function isTaskCancelled(error: unknown) {
+  return String(error) === 'Download cancelled'
+}
+
 export const useTaskManager = defineStore('task-manager', () => {
   const tasks = ref<Task[]>([])
-  let nextTaskId = 0
+  let nextTaskId = crypto.getRandomValues(new Uint32Array(1))[0]! & 0x7fffffff
   const activeTasks = computed(() => tasks.value.filter(isActive))
   const totalProgress = computed(() => {
     const visible = activeTasks.value.length ? activeTasks.value : tasks.value
@@ -124,13 +153,16 @@ export const useTaskManager = defineStore('task-manager', () => {
     command: string,
     args: Record<string, unknown>,
     kind: DownloadKind,
+    fabric?: string,
   ) {
-    const id = nextTaskId++
-    tasks.value.push(createTask(id, versionId, kind))
+    const id = nextTaskId
+    nextTaskId = (nextTaskId + 1) & 0x7fffffff
+    tasks.value.push(createTask(id, versionId, kind, fabric))
     const task = tasks.value.find((item) => item.id === id)!
     floatButton.setFloatButton(FloatButtonType.TaskManage)
     floatButton.floatButtonState.visible = true
     const onEvent = new Channel<TaskItemReport>()
+    let prepared = false
     onEvent.onmessage = (message) => {
       if (message.task_id !== id || !isActive(task)) return
       const item = task.items.find((item) => item.id === message.item_id)
@@ -150,6 +182,9 @@ export const useTaskManager = defineStore('task-manager', () => {
       // Only the command result commits the overall task to a terminal state.
     }
     try {
+      await invoke('prepare_download_task', { task_id: id })
+      prepared = true
+      if (task.cancelling) await invoke('cancel_download_task', { task_id: id })
       const result = await invoke<
         string | { selected: boolean; selection_error: string | null } | void
       >(command, {
@@ -178,6 +213,10 @@ export const useTaskManager = defineStore('task-manager', () => {
       }
       return result
     } catch (error) {
+      if (isTaskCancelled(error)) {
+        tasks.value = tasks.value.filter((item) => item.id !== id)
+        throw error
+      }
       task.status = TaskStatus.Failed
       task.error = String(error)
       task.items.forEach((item) => {
@@ -186,12 +225,31 @@ export const useTaskManager = defineStore('task-manager', () => {
       })
       throw error
     } finally {
+      if (prepared) void invoke('release_download_task', { task_id: id }).catch(() => {})
+      task.cancelling = false
       task.speed = 0
       if (
         !activeTaskCount.value &&
         floatButton.floatButtonState.type === FloatButtonType.TaskManage
       )
         floatButton.floatButtonState.visible = false
+    }
+  }
+
+  async function cancelTask(id: number) {
+    const task = tasks.value.find((item) => item.id === id)
+    if (!task) return
+    if (!isActive(task)) {
+      tasks.value = tasks.value.filter((item) => item.id !== id)
+      return
+    }
+    if (task.cancelling) return
+    task.cancelling = true
+    try {
+      await invoke('cancel_download_task', { task_id: id })
+    } catch (error) {
+      task.cancelling = false
+      sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn')
     }
   }
 
@@ -205,6 +263,21 @@ export const useTaskManager = defineStore('task-manager', () => {
       'download_minecraft_version',
       { instance_name: instanceName, fabric: fabric || null },
       'install',
+      fabric?.family,
+    )
+  }
+
+  function installModpack(path: string, name: string, optionalFiles: string[], fabric: boolean) {
+    return runDownload(
+      name,
+      'install_modpack',
+      {
+        path,
+        instance_name: name,
+        optional_files: optionalFiles,
+      },
+      'modpack',
+      fabric ? 'fabric' : undefined,
     )
   }
 
@@ -258,7 +331,9 @@ export const useTaskManager = defineStore('task-manager', () => {
     totalSpeed,
     totalRemaining,
     activeTaskCount,
+    cancelTask,
     startDownloadMCVersion,
+    installModpack,
     exportMinecraftVersion,
     downloadResource,
     downloadCustom,

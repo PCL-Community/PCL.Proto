@@ -14,7 +14,7 @@ import PLoading from '@/components/widget/PLoading.vue'
 import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import { getMinecraftVersions, type IVersionShow } from '@/api/gameVersions'
 import { pclFormatLocale, pclText } from '@/api/pclLocale'
-import { useTaskManager } from '@/stores/task'
+import { isTaskCancelled, useTaskManager } from '@/stores/task'
 import sideTip from '@/composables/sideTip'
 import { useSelectedInstance } from '@/stores/gameLaunch'
 import { showIconPath, loaderIcon, instanceIcon, type pluginType } from '@/types/gameInfo'
@@ -197,7 +197,9 @@ async function install() {
             ? { family: 'legacyfabric', version: selected.LegacyFabric }
             : undefined,
       )
-      .catch((err) => sideTip.show(pclText('Proto.Error.Download', [String(err)]), 'warn'))
+      .catch((err) => {
+        if (!isTaskCancelled(err)) sideTip.show(pclText('Proto.Error.Download', [String(err)]), 'warn')
+      })
     await router.push('/download/game')
   } catch (err) {
     sideTip.show(pclText('Proto.Error.Download', [String(err)]), 'warn')

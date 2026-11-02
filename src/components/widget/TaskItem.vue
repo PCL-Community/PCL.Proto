@@ -23,14 +23,16 @@ defineProps<ITaskItem>()
 
 <style scoped>
 .task-item {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 10px;
+  min-height: 26px;
 }
 
 .sub-indicator {
   width: 30px;
+  flex: 0 0 30px;
   display: block;
   color: var(--color-tint);
 }

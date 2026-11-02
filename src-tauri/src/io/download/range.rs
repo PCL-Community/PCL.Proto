@@ -127,12 +127,11 @@ impl Downloader {
                 return Err(McApiError::RangeUnsupported);
             }
         }
-        let output = tokio::fs::OpenOptions::new()
+        let output = std::fs::OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(path)
-            .await?;
-        output.set_len(info.size).await?;
+            .open(path)?;
+        output.set_len(info.size)?;
         drop(output);
         let count = info
             .size
@@ -265,7 +264,8 @@ impl Downloader {
             {
                 return Err(McApiError::RangeUnsupported);
             }
-            let mut output = tokio::fs::OpenOptions::new().write(true).open(path).await?;
+            let mut output =
+                tokio::fs::File::from_std(std::fs::OpenOptions::new().write(true).open(path)?);
             output
                 .seek(std::io::SeekFrom::Start(segment.offset))
                 .await?;

@@ -6,7 +6,7 @@ import { useRouter } from 'vue-router'
 import { invoke, isTauri } from '@tauri-apps/api/core'
 import { basename, dirname, join } from '@tauri-apps/api/path'
 import { open, save } from '@tauri-apps/plugin-dialog'
-import { useTaskManager } from '@/stores/task'
+import { isTaskCancelled, useTaskManager } from '@/stores/task'
 import { usePageSettings } from '@/composables/usePageSettings'
 import { useModal } from '@/composables/useModal'
 import sideTip from '@/composables/sideTip'
@@ -101,7 +101,9 @@ async function startCustomDownload() {
     values.TextDownloadName = ''
     sideTip.show(pclText('Download.Comp.QuickDownload.Hint.DownloadStarted', [name]), 'success')
     void task.then(() => sideTip.show(text('Tools.Test.CustomDownload.Finished', [name]), 'success'))
-      .catch((error) => sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn'))
+      .catch((error) => {
+        if (!isTaskCancelled(error)) sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn')
+      })
   } catch (error) { sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn') }
 }
 

@@ -45,60 +45,64 @@ pub async fn download_resource(
     task_id: i32,
     on_event: Channel<TaskItemReport>,
 ) -> Result<(), String> {
-    async {
-        validate(&info)?;
-        let parent = destination
-            .parent()
-            .filter(|p| p.is_absolute() && p.is_dir())
-            .context("Invalid destination folder")?;
-        ensure!(
-            destination.file_name().is_some() && !destination.try_exists()?,
-            "Destination already exists or is invalid"
-        );
-        let temp = TempFile(parent.join(format!(".pcl-resource-{}.tmp", uuid::Uuid::new_v4())));
-        let size = info.size;
-        let (tx, mut rx) = mpsc::channel(100);
-        let downloader = Downloader::default();
-        let transfer = downloader.start_resource_download(
-            DownloadConfig {
-                file_index: 0,
-                out_path: temp.0.clone(),
-                task_item_id: 0,
-                info,
-            },
-            tx,
-        );
-        let reports = async {
-            let mut last = Instant::now();
-            let mut previous = 0;
-            while let Some(update) = rx.recv().await {
-                let elapsed = last.elapsed();
-                if elapsed.as_millis() < 100 && update.progress.status == TaskStatus::Running {
-                    continue;
+    crate::io::download::tasks::run(task_id, async {
+        async {
+            validate(&info)?;
+            let parent = destination
+                .parent()
+                .filter(|p| p.is_absolute() && p.is_dir())
+                .context("Invalid destination folder")?;
+            ensure!(
+                destination.file_name().is_some() && !destination.try_exists()?,
+                "Destination already exists or is invalid"
+            );
+            let temp = TempFile(parent.join(format!(".pcl-resource-{}.tmp", uuid::Uuid::new_v4())));
+            let size = info.size;
+            let (tx, mut rx) = mpsc::channel(100);
+            let downloader = Downloader::default();
+            let transfer = downloader.start_resource_download(
+                DownloadConfig {
+                    file_index: 0,
+                    out_path: temp.0.clone(),
+                    task_item_id: 0,
+                    info,
+                },
+                tx,
+            );
+            let reports = async {
+                let mut last = Instant::now();
+                let mut previous = 0;
+                while let Some(update) = rx.recv().await {
+                    let elapsed = last.elapsed();
+                    if elapsed.as_millis() < 100 && update.progress.status == TaskStatus::Running {
+                        continue;
+                    }
+                    let bytes = update.progress.downloaded_bytes;
+                    let _ = on_event.send(TaskItemReport {
+                        task_id,
+                        item_id: 0,
+                        files_remaining: 1,
+                        progress: (bytes as f64 / size as f64).min(1.0),
+                        status: TaskStatus::Running,
+                        speed: Some(
+                            bytes.saturating_sub(previous) as f64
+                                / elapsed.as_secs_f64().max(0.001),
+                        ),
+                    });
+                    last = Instant::now();
+                    previous = bytes;
                 }
-                let bytes = update.progress.downloaded_bytes;
-                let _ = on_event.send(TaskItemReport {
-                    task_id,
-                    item_id: 0,
-                    files_remaining: 1,
-                    progress: (bytes as f64 / size as f64).min(1.0),
-                    status: TaskStatus::Running,
-                    speed: Some(
-                        bytes.saturating_sub(previous) as f64 / elapsed.as_secs_f64().max(0.001),
-                    ),
-                });
-                last = Instant::now();
-                previous = bytes;
-            }
-        };
-        let (downloaded, ()) = tokio::join!(transfer, reports);
-        downloaded?;
-        std::fs::hard_link(&temp.0, &destination)
-            .context("Cannot publish resource (the destination may already exist)")?;
-        Ok::<(), anyhow::Error>(())
-    }
+            };
+            let (downloaded, ()) = tokio::join!(transfer, reports);
+            downloaded?;
+            std::fs::hard_link(&temp.0, &destination)
+                .context("Cannot publish resource (the destination may already exist)")?;
+            Ok::<(), anyhow::Error>(())
+        }
+        .await
+        .map_err(|error| format!("{error:#}"))
+    })
     .await
-    .map_err(|error| format!("{error:#}"))
 }
 
 #[cfg(test)]

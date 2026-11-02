@@ -1,4 +1,5 @@
 //! CE's vanilla installation stages, expressed as an async Rust service.
+pub mod modpack;
 use crate::io::files::{check_sha1, safe_join, validate_file_name};
 use crate::{
     io::download::{DownloadConfig, Downloader, StageProgress, TaskItemReport, TaskStatus},
@@ -815,13 +816,29 @@ async fn install_version(
     task_id: i32,
     on_event: &Channel<TaskItemReport>,
 ) -> anyhow::Result<()> {
+    install_version_with_modpack(
+        client, repo, version_id, name, fabric, None, task_id, on_event,
+    )
+    .await
+}
+
+async fn install_version_with_modpack(
+    client: &MinecraftApiClient,
+    repo: &Path,
+    version_id: &str,
+    name: &str,
+    fabric: Option<&FabricInstall>,
+    pack: Option<&modpack::Modpack>,
+    task_id: i32,
+    on_event: &Channel<TaskItemReport>,
+) -> anyhow::Result<()> {
     validate_file_name(version_id)?;
     ensure!(
         repo.is_absolute() && repo.is_dir(),
         "Minecraft folder must be an existing absolute directory"
     );
     let repo = repo.canonicalize()?;
-    let mut directory = InstallDirectory::create(&repo, name)?;
+    let directory = InstallDirectory::create(&repo, name)?;
     log::info!(
         "Installing Minecraft {version_id} as {name} in {}",
         repo.display()
@@ -836,9 +853,33 @@ async fn install_version(
     });
     let mut metadata = client.get_version_metadata(version_id).await?;
     if let Some(loader) = fabric {
+        let _ = on_event.send(TaskItemReport {
+            task_id,
+            item_id: 5,
+            files_remaining: 1,
+            progress: 0.0,
+            status: TaskStatus::Running,
+            speed: None,
+        });
         let profile = client
             .get_fabric_profile(version_id, &loader.version, loader.family)
             .await?;
+        let _ = on_event.send(TaskItemReport {
+            task_id,
+            item_id: 5,
+            files_remaining: 0,
+            progress: 1.0,
+            status: TaskStatus::Completed,
+            speed: None,
+        });
+        let _ = on_event.send(TaskItemReport {
+            task_id,
+            item_id: 6,
+            files_remaining: 1,
+            progress: 0.0,
+            status: TaskStatus::Running,
+            speed: None,
+        });
         merge_fabric_profile(&mut metadata, &profile)?;
     }
     let details: McVersion =
@@ -871,6 +912,16 @@ async fn install_version(
         &downloader,
     )
     .await?;
+    if fabric.is_some() {
+        let _ = on_event.send(TaskItemReport {
+            task_id,
+            item_id: 6,
+            files_remaining: 0,
+            progress: 1.0,
+            status: TaskStatus::Completed,
+            speed: None,
+        });
+    }
     plan.assets(&index, &repo, "https://resources.download.minecraft.net")?;
     let _ = on_event.send(TaskItemReport {
         task_id,
@@ -881,25 +932,59 @@ async fn install_version(
         speed: None,
     });
     download_plan(&mut plan, &downloader, task_id, on_event).await?;
+    let _ = on_event.send(TaskItemReport {
+        task_id,
+        item_id: 7,
+        files_remaining: 1,
+        progress: 0.0,
+        status: TaskStatus::Running,
+        speed: None,
+    });
     let instance_path = directory.path.clone();
     let index_id = details.asset_index.id;
-    tokio::task::spawn_blocking(move || {
+    crate::io::download::tasks::blocking(task_id, move || {
         extract_natives(&plan.natives, &instance_path.join("natives"))?;
         materialize_assets(&index, &repo, &instance_path, &index_id, true)
     })
     .await??;
+    if let Some(pack) = pack {
+        pack.install_files(&directory.path, name, &downloader, task_id, on_event)
+            .await?;
+    }
     // CE preserves the source version separately when the instance has a custom name.
     metadata["id"] = name.into();
     metadata["clientVersion"] = version_id.into();
-    let temporary_json = directory.path.join(".pcl-version.json.part");
-    tokio::fs::write(&temporary_json, serde_json::to_vec_pretty(&metadata)?).await?;
-    // The instance becomes discoverable only after every install stage succeeds.
-    tokio::fs::rename(temporary_json, directory.path.join(format!("{name}.json"))).await?;
-    directory.committed = true;
-    log::info!(
-        "Installed Minecraft {version_id}: {}",
-        directory.path.display()
-    );
+    let json = serde_json::to_vec_pretty(&metadata)?;
+    let filename = format!("{name}.json");
+    let isolated = pack.is_some();
+    let path = directory.path.clone();
+    crate::io::download::tasks::commit(task_id, move || {
+        let mut directory = directory;
+        let temporary_json = directory.path.join(".pcl-version.json.part");
+        fs::write(&temporary_json, json)?;
+        fs::rename(temporary_json, directory.path.join(filename))?;
+        if isolated {
+            let path = directory.path.clone();
+            crate::app::config::ConfigManager::instance()
+                .update(|state| {
+                    state.instance_isolation.insert(path, true);
+                    Ok(())
+                })
+                .map_err(anyhow::Error::msg)?;
+        }
+        directory.committed = true;
+        Ok(())
+    })
+    .await?;
+    let _ = on_event.send(TaskItemReport {
+        task_id,
+        item_id: 7,
+        files_remaining: 0,
+        progress: 1.0,
+        status: TaskStatus::Completed,
+        speed: None,
+    });
+    log::info!("Installed Minecraft {version_id}: {}", path.display());
     Ok(())
 }
 
@@ -914,17 +999,20 @@ pub async fn download_minecraft_version(
     fabric: Option<FabricInstall>,
 ) -> Result<InstallResult, String> {
     let repo = state.lock().await.active_repo_path.clone();
-    install_version(
-        &client,
-        &repo,
-        &version_id,
-        &instance_name,
-        fabric.as_ref(),
-        task_id,
-        &on_event,
-    )
-    .await
-    .map_err(|error| format!("{error:#}"))?;
+    crate::io::download::tasks::run(task_id, async {
+        install_version(
+            &client,
+            &repo,
+            &version_id,
+            &instance_name,
+            fabric.as_ref(),
+            task_id,
+            &on_event,
+        )
+        .await
+        .map_err(|error| format!("{error:#}"))
+    })
+    .await?;
     let should_select = state
         .lock()
         .await
@@ -938,7 +1026,7 @@ pub async fn download_minecraft_version(
             selection_error: None,
         });
     }
-    let selection = tauri::async_runtime::spawn_blocking(move || {
+    let selection = tokio::task::spawn_blocking(move || {
         let repository = crate::minecraft::instance::folder::McFolder::new("", repo.clone());
         let instance = crate::minecraft::instance::McInstance::from_version_folder(
             &repo.join("versions").join(instance_name),

@@ -15,7 +15,7 @@ import { pclText } from '@/api/pclLocale'
 import sideTip from '@/composables/sideTip'
 import { loaderIcon } from '@/types/gameInfo'
 import { openExternal } from '@/util/externalLink'
-import { useTaskManager } from '@/stores/task'
+import { isTaskCancelled, useTaskManager } from '@/stores/task'
 const props = defineProps<{ loader: string; website: string; supported?: boolean }>()
 const localeName = computed(() => (props.loader === 'OptiFine' ? 'Optifine' : props.loader))
 const fabricFamily = computed(() => ['Fabric', 'LegacyFabric'].includes(props.loader))
@@ -92,7 +92,7 @@ async function selectVersion(version: McPluginReport) {
     await download
     sideTip.show(text('Proto.Download.Saved', [destination]), 'success')
   } catch (error) {
-    sideTip.show(text('Proto.Error.Download', [String(error)]), 'warn')
+    if (!isTaskCancelled(error)) sideTip.show(text('Proto.Error.Download', [String(error)]), 'warn')
   }
 }
 </script>

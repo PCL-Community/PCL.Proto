@@ -19,7 +19,7 @@ const mocks = {
   `,
   '@/stores/gameLaunch': `export const useSelectedInstance = () => ({ instance_info: globalThis.testInstance });`,
   '@/stores/repositories': `export const useRepositoriesStore = () => ({});`,
-  '@/stores/task': `export const useTaskManager = () => ({ downloadResource: async (...args) => globalThis.testDownloads.push(args) });`,
+  '@/stores/task': `export const isTaskCancelled = (error) => String(error) === 'Download cancelled'; export const useTaskManager = () => ({ downloadResource: async (...args) => globalThis.testDownloads.push(args) });`,
   '@/composables/useModal': `export const useModal = () => ({});`,
   '@/composables/sideTip': `export default { show() {} };`,
 }
