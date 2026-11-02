@@ -12,7 +12,7 @@ const mocks = {
     export const open = async () => null;
   `,
   './pclLocale': `export const pclText = (key) => key;`,
-  './compProjects': `export const getCompVersions = async () => [globalThis.testVersion];`,
+  './compProjects': `export const getCompVersions = async () => [globalThis.testVersion]; export const compSourceOf = (id) => /^\\d+$/.test(id) ? 'curseforge' : 'modrinth';`,
   './compResources': `
     export const compatibleResource = () => true;
     export const latestResourceVersion = (versions) => versions[0];
@@ -20,6 +20,7 @@ const mocks = {
   '@/stores/gameLaunch': `export const useSelectedInstance = () => ({ instance_info: globalThis.testInstance });`,
   '@/stores/repositories': `export const useRepositoriesStore = () => ({});`,
   '@/stores/task': `export const isTaskCancelled = (error) => String(error) === 'Download cancelled'; export const useTaskManager = () => ({ downloadResource: async (...args) => globalThis.testDownloads.push(args) });`,
+  '@/api/modpack': `export const installOnlineModpack = async (...args) => globalThis.testModpacks.push(args);`,
   '@/composables/useModal': `export const useModal = () => ({});`,
   '@/composables/sideTip': `export default { show() {} };`,
 }
@@ -50,6 +51,7 @@ const download = await import(
 globalThis.testCalls = []
 globalThis.testDialogs = []
 globalThis.testDownloads = []
+globalThis.testModpacks = []
 globalThis.localStorage = { getItem: () => JSON.stringify({ ComboDownloadQuickBehavior: '1' }) }
 globalThis.testInstance = { directory: '/game/instance', version: '1.20.1' }
 const file = {
@@ -60,6 +62,13 @@ const file = {
 }
 globalThis.testVersion = { name: 'Pack', files: [file] }
 const target = { instanceDirectory: '/game/instance', save: 'world' }
+
+await download.saveResource(file, testVersion, 'modpack', undefined, 'My Pack')
+assert.deepEqual(testModpacks, [[file, 'My Pack']])
+await download.quickDownload({ project_id: 'abc', project_type: 'modpack', title: 'Online Pack' })
+assert.deepEqual(testModpacks.at(-1), [file, 'Online Pack'])
+await download.quickDownload({ project_id: '123', project_type: 'modpack', title: 'CurseForge Pack' })
+assert.equal(testModpacks.length, 2)
 
 assert.deepEqual(
   download.datapackTargetFromQuery({ targetInstance: '/game/instance', save: 'world' }),

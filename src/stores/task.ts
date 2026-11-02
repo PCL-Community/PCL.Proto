@@ -13,7 +13,14 @@ export enum TaskStatus {
   Failed = 3,
 }
 type DownloadKind =
-  'install' | 'modpack' | 'client' | 'server' | 'resource' | 'custom' | 'installer'
+  'install' | 'modpack' | 'pack-file' | 'client' | 'server' | 'resource' | 'custom' | 'installer'
+
+export interface ModpackInfo {
+  name: string
+  minecraft: string
+  fabric: boolean
+  optional_files: string[]
+}
 
 export interface ITaskItem {
   id: number
@@ -49,8 +56,12 @@ interface TaskItemReport {
 
 function createTask(id: number, versionId: string, kind: DownloadKind, fabric?: string): Task {
   const keys =
-    kind === 'resource' || kind === 'custom' || kind === 'installer'
-      ? ['Download.Comp.Detail.DownloadFile']
+    kind === 'resource' || kind === 'custom' || kind === 'installer' || kind === 'pack-file'
+      ? [
+          kind === 'pack-file'
+            ? 'Download.Comp.Detail.DownloadModpackFile'
+            : 'Download.Comp.Detail.DownloadFile',
+        ]
       : [
           'Minecraft.Download.Stage.VanillaJsonDownload',
           kind === 'server'
@@ -74,9 +85,10 @@ function createTask(id: number, versionId: string, kind: DownloadKind, fabric?: 
       itemId: 5,
     })
     stages.push({
-      key: fabric === 'legacyfabric'
-        ? 'Minecraft.Download.Stage.AnalyzeLegacyFabricLibraries'
-        : 'Minecraft.Download.Stage.AnalyzeFabricLibraries',
+      key:
+        fabric === 'legacyfabric'
+          ? 'Minecraft.Download.Stage.AnalyzeLegacyFabricLibraries'
+          : 'Minecraft.Download.Stage.AnalyzeFabricLibraries',
       itemId: 6,
     })
   }
@@ -91,7 +103,7 @@ function createTask(id: number, versionId: string, kind: DownloadKind, fabric?: 
       if (kind === 'modpack')
         return pclText('Minecraft.Download.Modpack.Task.ModrinthInstall', [versionId])
       if (kind === 'custom') return pclText('Tools.Test.CustomDownload.LoaderName', [versionId])
-      if (kind === 'resource')
+      if (kind === 'resource' || kind === 'pack-file')
         return pclText('Download.Comp.Detail.DownloadResource', ['', versionId])
       return pclText(
         kind === 'server'
@@ -148,7 +160,9 @@ export const useTaskManager = defineStore('task-manager', () => {
   const activeTaskCount = computed(() => activeTasks.value.length)
   const floatButton = useFloatButton()
 
-  async function runDownload(
+  async function runDownload<
+    T = string | { selected: boolean; selection_error: string | null } | void,
+  >(
     versionId: string,
     command: string,
     args: Record<string, unknown>,
@@ -185,9 +199,7 @@ export const useTaskManager = defineStore('task-manager', () => {
       await invoke('prepare_download_task', { task_id: id })
       prepared = true
       if (task.cancelling) await invoke('cancel_download_task', { task_id: id })
-      const result = await invoke<
-        string | { selected: boolean; selection_error: string | null } | void
-      >(command, {
+      const result = await invoke<T>(command, {
         ...args,
         on_event: onEvent,
         version_id: versionId,
@@ -201,7 +213,13 @@ export const useTaskManager = defineStore('task-manager', () => {
         item.remaining = 0
         item.speed = 0
       })
-      if (kind === 'install' && result && typeof result === 'object') {
+      if (
+        kind === 'install' &&
+        result &&
+        typeof result === 'object' &&
+        'selection_error' in result &&
+        'selected' in result
+      ) {
         if (result.selection_error)
           sideTip.show(pclText('Proto.Install.SelectionFailed', [result.selection_error]), 'warn')
         if (result.selected)
@@ -281,6 +299,34 @@ export const useTaskManager = defineStore('task-manager', () => {
     )
   }
 
+  function prepareOnlineModpack(name: string, info: { url: string; size: number; sha1: string }) {
+    return runDownload<{ token: string; info: ModpackInfo }>(
+      name,
+      'prepare_online_modpack',
+      { info: { ...info, path: null } },
+      'pack-file',
+    )
+  }
+
+  function installOnlineModpack(
+    token: string,
+    name: string,
+    optionalFiles: string[],
+    fabric: boolean,
+  ) {
+    return runDownload(
+      name,
+      'install_online_modpack',
+      {
+        token,
+        instance_name: name,
+        optional_files: optionalFiles,
+      },
+      'modpack',
+      fabric ? 'fabric' : undefined,
+    )
+  }
+
   function exportMinecraftVersion(versionId: string, directory: string, server: boolean) {
     const kind = server ? 'server' : 'client'
     if (activeTasks.value.some((task) => task.versionId === versionId && task.kind === kind))
@@ -334,6 +380,8 @@ export const useTaskManager = defineStore('task-manager', () => {
     cancelTask,
     startDownloadMCVersion,
     installModpack,
+    prepareOnlineModpack,
+    installOnlineModpack,
     exportMinecraftVersion,
     downloadResource,
     downloadCustom,

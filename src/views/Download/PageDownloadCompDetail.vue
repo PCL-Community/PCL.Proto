@@ -14,6 +14,7 @@ import PCompItem from '@/components/widget/PCompItem.vue'
 import PListItem from '@/components/widget/PListItem.vue'
 import PButton from '@/components/widget/PButton.vue'
 import PIconTextButton from '@/components/widget/PIconTextButton.vue'
+import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import PLoading from '@/components/widget/PLoading.vue'
 import PHint from '@/components/widget/PHint.vue'
 import { useRoute } from 'vue-router'
@@ -137,7 +138,7 @@ async function copy(value: string) {
     sideTip.show(pclText('Proto.Clipboard.Unavailable'), 'warn')
   }
 }
-async function download(file: IVersion['files'][number], version: IVersion) {
+async function download(file: IVersion['files'][number], version: IVersion, saveOnly = false) {
   if (!project.value) return
   try {
     await saveResource(
@@ -145,6 +146,9 @@ async function download(file: IVersion['files'][number], version: IVersion) {
       version,
       route.query.type === 'datapack' ? 'datapack' : project.value.project_type,
       route.query.type === 'datapack' ? datapackTargetFromQuery(route.query) : undefined,
+      project.value.project_type === 'modpack' && source.value === 'modrinth' && !saveOnly
+        ? project.value.title
+        : undefined,
     )
   } catch (error) {
     sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn')
@@ -289,7 +293,19 @@ watch(
               :subtitle="`${file.filename} · ${version.loaders.join(', ')} · ${new Date(version.date_published).toLocaleString(pclFormatLocale)}`"
               clickable
               @click="() => download(file, version)"
-            />
+            >
+              <template v-if="project.project_type === 'modpack' && source === 'modrinth'" #icon-actions>
+                <button
+                  class="pcl-icon-button"
+                  type="button"
+                  :title="text('Download.Comp.Detail.DownloadModpackFile')"
+                  :aria-label="text('Download.Comp.Detail.DownloadModpackFile')"
+                  @click.stop="download(file, version, true)"
+                >
+                  <PSvgIcon name="lucide/download" :size="16" />
+                </button>
+              </template>
+            </PListItem>
           </PVirtualList>
         </div>
       </PCard>

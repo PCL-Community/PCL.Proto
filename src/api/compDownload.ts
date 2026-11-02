@@ -2,7 +2,7 @@ import { invoke, isTauri } from '@tauri-apps/api/core'
 import { join } from '@tauri-apps/api/path'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { pclText } from './pclLocale'
-import { getCompVersions } from './compProjects'
+import { compSourceOf, getCompVersions } from './compProjects'
 import { compatibleResource, latestResourceVersion } from './compResources'
 import type { CompType, ISearchHit, IVersion } from '@/types/comp'
 import type GameInstance from '@/types/gameInstance'
@@ -11,6 +11,7 @@ import { useRepositoriesStore } from '@/stores/repositories'
 import { isTaskCancelled, useTaskManager } from '@/stores/task'
 import { useModal } from '@/composables/useModal'
 import sideTip from '@/composables/sideTip'
+import { installOnlineModpack } from '@/api/modpack'
 
 type ResourceFile = IVersion['files'][number]
 export interface DatapackTarget {
@@ -79,6 +80,7 @@ export async function saveResource(
   version: IVersion,
   type: CompType,
   target?: DatapackTarget,
+  installName?: string,
 ) {
   if (!/^https:\/\//i.test(file.url)) throw new Error('Invalid resource URL')
   if (!isTauri()) {
@@ -90,6 +92,7 @@ export async function saveResource(
     link.click()
     return
   }
+  if (type === 'modpack' && installName) return installOnlineModpack(file, installName)
   const instance = useSelectedInstance().instance_info
   if (type === 'datapack' && target && instance?.directory !== target.instanceDirectory)
     throw new Error('The selected instance changed; choose the save again')
@@ -115,6 +118,13 @@ export async function quickDownload(project: ISearchHit, target?: DatapackTarget
   const versions = await getCompVersions(project.project_id)
   if (!versions.length)
     return sideTip.show(pclText('Download.Comp.QuickDownload.Hint.NoFile'), 'warn')
+  if (project.project_type === 'modpack' && compSourceOf(project.project_id) === 'modrinth') {
+    const version = latestResourceVersion(versions)
+    const file = version?.files.find((item) => item.primary) || version?.files[0]
+    if (file) await installOnlineModpack(file, project.title)
+    else sideTip.show(pclText('Download.Comp.QuickDownload.Hint.NoFile'), 'warn')
+    return
+  }
   let behavior = '0'
   try {
     behavior = String(

@@ -394,6 +394,10 @@ impl ConfigManager {
         let config_dirs = directories::ProjectDirs::from("pcl-community", "pcl", "proto")
             .ok_or(ConfigManagerError::ConfigDirNotFound)?;
         let config_dir = config_dirs.config_dir();
+        #[cfg(test)]
+        let test_config_dir = std::env::var_os("PCL_TEST_CONFIG_ROOT").map(PathBuf::from);
+        #[cfg(test)]
+        let config_dir = test_config_dir.as_deref().unwrap_or(config_dir);
         if !config_dir.exists() {
             fs::create_dir_all(config_dir).map_err(|_| ConfigManagerError::ConfigDirNotFound)?;
         }

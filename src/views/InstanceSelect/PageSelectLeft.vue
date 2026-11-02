@@ -6,10 +6,9 @@ import { useRepositoriesStore } from '@/stores/repositories'
 import { computed, h, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { pclText } from '@/api/pclLocale'
-import { invoke, isTauri } from '@tauri-apps/api/core'
+import { isTauri } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
-import { useModal } from '@/composables/useModal'
-import { isTaskCancelled, useTaskManager } from '@/stores/task'
+import { importLocalModpack } from '@/api/modpack'
 const repo = useRepositoriesStore()
 const router = useRouter()
 const route = useRoute()
@@ -29,34 +28,9 @@ async function importModpack() {
       filters: [{ name: 'Modrinth', extensions: ['mrpack', 'zip'] }],
     })
     if (!path) return
-    const info = await invoke<{
-      name: string
-      minecraft: string
-      fabric: boolean
-      optional_files: string[]
-    }>('inspect_modpack', { path })
-    const choice = await useModal().open({
-      title: text('Minecraft.Download.Modpack.InputInstanceName'),
-      showInput: true,
-      defaultInputText: info.name,
-    })
-    if (!choice.confirmed || !choice.input?.trim()) return
-    const optional: string[] = []
-    for (const file of info.optional_files) {
-      const result = await useModal().open({
-        title: text('Minecraft.Download.Modpack.OptionalFile.Title'),
-        content: text('Minecraft.Download.Modpack.OptionalFile.Message', [file]),
-        plainText: true,
-      })
-      if (result.confirmed) optional.push(file)
-    }
-    const name = choice.input.trim()
-    const task = useTaskManager().installModpack(path, name, optional, info.fabric)
-    sideTip.show(text('Download.Comp.QuickDownload.Hint.DownloadStarted', [name]))
-    await task
-    sideTip.show(text('Minecraft.Download.Stage.InstallGame') + ': ' + name, 'success')
+    await importLocalModpack(path)
   } catch (error) {
-    if (!isTaskCancelled(error)) sideTip.show(text('Proto.Error.Download', [String(error)]), 'warn')
+    sideTip.show(text('Proto.Error.Download', [String(error)]), 'warn')
   }
 }
 const groups = computed(() => [

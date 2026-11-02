@@ -2,7 +2,9 @@
 
 > 2026-10-30：Rust 模块与关键类型已按 PCL.Core/CE 结构对齐，详见 [Rust 后端与 PCL.Core 结构对齐](CORE_ALIGNMENT.md)。本文保留原有功能迁移与验收记录；文中 `core/`、`util/`、`setup.rs` 等旧路径为迁移时记录，当前路径以对齐文档为准。
 
-2026-11-02：新增本地 Modrinth 整合包导入，支持原版与 Fabric、可选文件选择、校验下载和覆盖文件；实例隔离与发布受安装事务保护。任务页按行显示阶段并支持取消，Fabric 阶段反映实际 profile 获取和库分析。Forge、NeoForge、其他整合包格式、在线整合包直接安装及真实 Tauri 和游戏启动仍待完成和验证。
+2026-11-02：新增本地和在线 Modrinth 整合包安装，支持原版与 Fabric、可选文件选择、校验下载和覆盖文件；实例隔离与发布受安装事务保护。资源详情保留单独保存整合包文件的入口，CurseForge 继续使用原有下载流程。任务页按行显示阶段并支持取消，Fabric 阶段反映实际 profile 获取和库分析。Forge、NeoForge、其他整合包格式及真实 Tauri 和游戏启动仍待完成或验证。
+
+在线验收：使用 Modrinth 的 `1.20.1 OFF Backport 1.0.0`（Fabric 0.16.10，索引含 41 个文件）在临时仓库完成整合包下载、游戏及附加文件安装，验证实例 JSON、模组文件和隔离配置；安装目录在测试结束后清理。该测试不覆盖原生界面操作或实际启动游戏。
 
 2026-11-02：Fabric 与 LegacyFabric 下载页改为展示独立安装器版本并接入保存对话框和任务中心。Rust 校验元数据的官方 Maven 地址，下载使用临时文件、不覆盖发布与 64 KiB 最小大小检查；这不是散列验证。元数据和短文件清理测试通过，真实 Tauri 对话框与安装器下载仍待验收。
 
@@ -202,7 +204,7 @@ cargo test -p pcl-proto --lib official_native_java25_install_smoke -- --ignored 
 7. 桌面端文件由启动器下载并显示任务进度；详情页选择保存路径，快捷下载可选择实例或文件夹。CF 缺 `downloadUrl` 时按 `files/{id/1000}/{id%1000}/{文件名}` 补全并把 `media*` 域名改写成 `edge.forgecdn.net`。
 8. 未配置密钥（`curseforge_available` 为 false）时禁用 CurseForge 选项并给出提示；网页预览没有可用的密钥通道，因此该来源在预览版始终不可用。
 
-已知边界：没有接 CF 的镜像源（CE 的 `mod.mcimirror.top/curseforge`）、Mod 依赖解析、本地文件指纹更新和在线整合包直接安装；数据包需手动选择存档文件夹，实例选择目前为单选；已有同名文件不会覆盖。CF 的光影加载器筛选按 CE 同样被忽略；详情页最多取 8 页共 400 个文件；CF 的 `-snapshot` 版本标记不进入版本徒章（CE 会拼上「预览版」后缀）。
+已知边界：没有接 CF 的镜像源（CE 的 `mod.mcimirror.top/curseforge`）、Mod 依赖解析、本地文件指纹更新和 CurseForge 整合包直接安装；数据包需手动选择存档文件夹，实例选择目前为单选；已有同名文件不会覆盖。CF 的光影加载器筛选按 CE 同样被忽略；详情页最多取 8 页共 400 个文件；CF 的 `-snapshot` 版本标记不进入版本徒章（CE 会拼上「预览版」后缀）。
 
 验证记录：
 

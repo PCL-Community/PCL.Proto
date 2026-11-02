@@ -14,7 +14,7 @@ impl Drop for TempFile {
     }
 }
 
-fn validate(info: &DownloadFile) -> anyhow::Result<()> {
+pub(crate) fn validate(info: &DownloadFile) -> anyhow::Result<()> {
     let url = reqwest::Url::parse(&info.url)?;
     let host = url.host_str().unwrap_or_default();
     ensure!(
@@ -38,6 +38,52 @@ fn validate(info: &DownloadFile) -> anyhow::Result<()> {
     Ok(())
 }
 
+pub(crate) async fn download_to(
+    info: DownloadFile,
+    destination: PathBuf,
+    task_id: i32,
+    on_event: &Channel<TaskItemReport>,
+) -> anyhow::Result<()> {
+    let size = info.size;
+    let (tx, mut rx) = mpsc::channel(100);
+    let downloader = Downloader::default();
+    let transfer = downloader.start_resource_download(
+        DownloadConfig {
+            file_index: 0,
+            out_path: destination,
+            task_item_id: 0,
+            info,
+        },
+        tx,
+    );
+    let reports = async {
+        let mut last = Instant::now();
+        let mut previous = 0;
+        while let Some(update) = rx.recv().await {
+            let elapsed = last.elapsed();
+            if elapsed.as_millis() < 100 && update.progress.status == TaskStatus::Running {
+                continue;
+            }
+            let bytes = update.progress.downloaded_bytes;
+            let _ = on_event.send(TaskItemReport {
+                task_id,
+                item_id: 0,
+                files_remaining: 1,
+                progress: (bytes as f64 / size as f64).min(1.0),
+                status: TaskStatus::Running,
+                speed: Some(
+                    bytes.saturating_sub(previous) as f64 / elapsed.as_secs_f64().max(0.001),
+                ),
+            });
+            last = Instant::now();
+            previous = bytes;
+        }
+    };
+    let (downloaded, ()) = tokio::join!(transfer, reports);
+    downloaded?;
+    Ok(())
+}
+
 #[tauri::command(rename_all = "snake_case")]
 pub async fn download_resource(
     info: DownloadFile,
@@ -57,44 +103,7 @@ pub async fn download_resource(
                 "Destination already exists or is invalid"
             );
             let temp = TempFile(parent.join(format!(".pcl-resource-{}.tmp", uuid::Uuid::new_v4())));
-            let size = info.size;
-            let (tx, mut rx) = mpsc::channel(100);
-            let downloader = Downloader::default();
-            let transfer = downloader.start_resource_download(
-                DownloadConfig {
-                    file_index: 0,
-                    out_path: temp.0.clone(),
-                    task_item_id: 0,
-                    info,
-                },
-                tx,
-            );
-            let reports = async {
-                let mut last = Instant::now();
-                let mut previous = 0;
-                while let Some(update) = rx.recv().await {
-                    let elapsed = last.elapsed();
-                    if elapsed.as_millis() < 100 && update.progress.status == TaskStatus::Running {
-                        continue;
-                    }
-                    let bytes = update.progress.downloaded_bytes;
-                    let _ = on_event.send(TaskItemReport {
-                        task_id,
-                        item_id: 0,
-                        files_remaining: 1,
-                        progress: (bytes as f64 / size as f64).min(1.0),
-                        status: TaskStatus::Running,
-                        speed: Some(
-                            bytes.saturating_sub(previous) as f64
-                                / elapsed.as_secs_f64().max(0.001),
-                        ),
-                    });
-                    last = Instant::now();
-                    previous = bytes;
-                }
-            };
-            let (downloaded, ()) = tokio::join!(transfer, reports);
-            downloaded?;
+            download_to(info, temp.0.clone(), task_id, &on_event).await?;
             std::fs::hard_link(&temp.0, &destination)
                 .context("Cannot publish resource (the destination may already exist)")?;
             Ok::<(), anyhow::Error>(())

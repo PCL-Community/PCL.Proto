@@ -2,7 +2,7 @@ use super::*;
 use std::{
     collections::{HashMap, HashSet},
     io::Write,
-    sync::Mutex as StdMutex,
+    sync::{LazyLock, Mutex as StdMutex},
 };
 
 #[derive(Deserialize)]
@@ -39,6 +39,20 @@ pub struct Modpack {
     prefix: String,
     index: Index,
     optional: HashSet<String>,
+}
+
+struct PreparedPack {
+    pack: Modpack,
+    _directory: tempfile::TempDir,
+}
+
+static PREPARED: LazyLock<StdMutex<HashMap<String, PreparedPack>>> =
+    LazyLock::new(|| StdMutex::new(HashMap::new()));
+
+#[derive(serde::Serialize)]
+pub struct OnlinePackInfo {
+    token: String,
+    info: PackInfo,
 }
 
 impl Modpack {
@@ -288,6 +302,86 @@ pub async fn inspect_modpack(path: PathBuf) -> Result<PackInfo, String> {
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub async fn prepare_online_modpack(
+    info: DownloadFile,
+    task_id: i32,
+    on_event: Channel<TaskItemReport>,
+) -> Result<OnlinePackInfo, String> {
+    let prepared = crate::io::download::tasks::run(task_id, async {
+        prepare_online_archive(info, task_id, &on_event)
+            .await
+            .map_err(|e| format!("{e:#}"))
+    })
+    .await?;
+    let info = prepared.pack.info();
+    let token = uuid::Uuid::new_v4().to_string();
+    PREPARED
+        .lock()
+        .map_err(|e| e.to_string())?
+        .insert(token.clone(), prepared);
+    Ok(OnlinePackInfo { token, info })
+}
+
+async fn prepare_online_archive(
+    info: DownloadFile,
+    task_id: i32,
+    on_event: &Channel<TaskItemReport>,
+) -> anyhow::Result<PreparedPack> {
+    crate::minecraft::export::resource::validate(&info)?;
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("modpack.zip");
+    crate::minecraft::export::resource::download_to(info, path.clone(), task_id, on_event).await?;
+    crate::io::download::tasks::blocking(task_id, move || {
+        let pack = Modpack::open(&path)?;
+        Ok(PreparedPack {
+            pack,
+            _directory: directory,
+        })
+    })
+    .await?
+}
+
+#[tauri::command]
+pub fn release_online_modpack(token: String) {
+    if let Ok(mut prepared) = PREPARED.lock() {
+        prepared.remove(&token);
+    }
+}
+
+async fn install_pack(
+    mut pack: Modpack,
+    repo: &Path,
+    client: &MinecraftApiClient,
+    instance_name: &str,
+    optional_files: Vec<String>,
+    task_id: i32,
+    on_event: &Channel<TaskItemReport>,
+) -> anyhow::Result<()> {
+    let available: HashSet<_> = pack.info().optional_files.into_iter().collect();
+    ensure_optional(&available, &optional_files)?;
+    pack.optional = optional_files.into_iter().collect();
+    let fabric = pack
+        .index
+        .dependencies
+        .get("fabric-loader")
+        .map(|version| FabricInstall {
+            family: crate::io::net::http::api_client::FabricFamily::Fabric,
+            version: version.clone(),
+        });
+    install_version_with_modpack(
+        client,
+        repo,
+        &pack.index.dependencies["minecraft"],
+        instance_name,
+        fabric.as_ref(),
+        Some(&pack),
+        task_id,
+        on_event,
+    )
+    .await
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub async fn install_modpack(
     state: tauri::State<'_, Arc<Mutex<crate::app::config::AppState>>>,
     client: tauri::State<'_, &MinecraftApiClient>,
@@ -298,34 +392,55 @@ pub async fn install_modpack(
     on_event: Channel<TaskItemReport>,
 ) -> Result<(), String> {
     crate::io::download::tasks::run(task_id, async {
-        let mut pack = crate::io::download::tasks::blocking(task_id, move || Modpack::open(&path))
+        let pack = crate::io::download::tasks::blocking(task_id, move || Modpack::open(&path))
             .await
             .map_err(|error| error.to_string())?
             .map_err(|error| format!("{error:#}"))?;
-        let available: HashSet<_> = pack.info().optional_files.into_iter().collect();
-        ensure_optional(&available, &optional_files).map_err(|error| error.to_string())?;
-        pack.optional = optional_files.into_iter().collect();
-        let fabric = pack
-            .index
-            .dependencies
-            .get("fabric-loader")
-            .map(|version| FabricInstall {
-                family: crate::io::net::http::api_client::FabricFamily::Fabric,
-                version: version.clone(),
-            });
         let repo = state.lock().await.active_repo_path.clone();
-        install_version_with_modpack(
-            &client,
+        install_pack(
+            pack,
             &repo,
-            &pack.index.dependencies["minecraft"],
+            &client,
             &instance_name,
-            fabric.as_ref(),
-            Some(&pack),
+            optional_files,
             task_id,
             &on_event,
         )
         .await
         .map_err(|error| format!("{error:#}"))
+    })
+    .await
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn install_online_modpack(
+    state: tauri::State<'_, Arc<Mutex<crate::app::config::AppState>>>,
+    client: tauri::State<'_, &MinecraftApiClient>,
+    token: String,
+    instance_name: String,
+    optional_files: Vec<String>,
+    task_id: i32,
+    on_event: Channel<TaskItemReport>,
+) -> Result<(), String> {
+    let prepared = PREPARED
+        .lock()
+        .map_err(|e| e.to_string())?
+        .remove(&token)
+        .ok_or("Modpack preparation has expired")?;
+    crate::io::download::tasks::run(task_id, async {
+        let PreparedPack { pack, _directory } = prepared;
+        let repo = state.lock().await.active_repo_path.clone();
+        install_pack(
+            pack,
+            &repo,
+            &client,
+            &instance_name,
+            optional_files,
+            task_id,
+            &on_event,
+        )
+        .await
+        .map_err(|e| format!("{e:#}"))
     })
     .await
 }
@@ -414,5 +529,111 @@ mod tests {
         let (_temp, path) = archive(index(), "", &[("overrides/../escape", b"bad")]);
         let pack = Modpack::open(&path).unwrap();
         assert!(extract_overrides(&pack.archive, &pack.prefix, &target, "instance").is_err());
+    }
+
+    #[test]
+    fn releasing_prepared_pack_removes_its_temporary_directory() {
+        let (directory, path) = archive(index(), "", &[]);
+        let pack = Modpack::open(&path).unwrap();
+        let token = uuid::Uuid::new_v4().to_string();
+        PREPARED.lock().unwrap().insert(
+            token.clone(),
+            PreparedPack {
+                pack,
+                _directory: directory,
+            },
+        );
+        assert!(path.exists());
+        release_online_modpack(token.clone());
+        assert!(!path.exists());
+        release_online_modpack(token);
+    }
+
+    #[test]
+    fn online_prepare_ipc_accepts_task_arguments_and_validates_source() {
+        let app = tauri::test::mock_builder()
+            .invoke_handler(tauri::generate_handler![prepare_online_modpack])
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .unwrap();
+        let window = tauri::WebviewWindowBuilder::new(&app, "main", Default::default())
+            .build()
+            .unwrap();
+        let result = tauri::test::get_ipc_response(
+            &window,
+            tauri::webview::InvokeRequest {
+                cmd: "prepare_online_modpack".into(),
+                callback: tauri::ipc::CallbackFn(0),
+                error: tauri::ipc::CallbackFn(1),
+                url: "tauri://localhost".parse().unwrap(),
+                body: tauri::ipc::InvokeBody::Json(serde_json::json!({
+                    "info": { "url": "https://example.org/pack.mrpack", "size": 1, "sha1": "", "path": null },
+                    "task_id": -2001, "version_id": "Pack", "on_event": "__CHANNEL__:1"
+                })),
+                headers: Default::default(),
+                invoke_key: tauri::test::INVOKE_KEY.to_string(),
+            },
+        );
+        assert_eq!(result.unwrap_err(), "Unsupported resource host");
+    }
+
+    #[tokio::test]
+    #[ignore = "Downloads a public Modrinth pack and a complete Minecraft installation"]
+    async fn online_fabric_pack_installs_in_isolated_configuration() {
+        let root = std::env::var_os("PCL_TEST_CONFIG_ROOT").expect("Set an isolated config root");
+        let root = fs::canonicalize(root).unwrap();
+        let info = DownloadFile {
+            url: "https://cdn.modrinth.com/data/BHtwz1lb/versions/NFFCYkVT/1.20.1%20OFF%20Backport%201.0.0.mrpack".into(),
+            size: 35096,
+            sha1: "09ad6dbe2d7a5b19bc0ae8ec097007d5a373f604".into(),
+            path: None,
+        };
+        let events = Channel::new(|_| Ok(()));
+        let prepared = prepare_online_archive(info, -2000, &events).await.unwrap();
+        assert_eq!(prepared.pack.info().minecraft, "1.20.1");
+        assert!(prepared.pack.info().fabric);
+        let temporary_path = prepared._directory.path().to_owned();
+        let repo = tempfile::tempdir_in(&root).unwrap();
+        let client = MinecraftApiClient::new(
+            reqwest::Client::new(),
+            &crate::io::net::http::api_client::ApiProvider::Official,
+        );
+        let PreparedPack { pack, _directory } = prepared;
+        install_pack(
+            pack,
+            repo.path(),
+            &client,
+            "Online Pack",
+            vec![],
+            -2000,
+            &events,
+        )
+        .await
+        .unwrap();
+        let instance = repo
+            .path()
+            .join("versions/Online Pack")
+            .canonicalize()
+            .unwrap();
+        assert!(instance.join("Online Pack.json").is_file());
+        assert!(
+            instance
+                .join("mods/placeholder-api-2.1.3+1.20.1.jar")
+                .is_file()
+        );
+        assert_eq!(
+            crate::app::config::ConfigManager::instance()
+                .app_state
+                .lock()
+                .await
+                .instance_isolation
+                .get(&instance),
+            Some(&true)
+        );
+        assert_eq!(
+            fs::canonicalize(crate::app::config::ConfigManager::instance().config_dir()).unwrap(),
+            root
+        );
+        drop(_directory);
+        assert!(!temporary_path.exists());
     }
 }
