@@ -9,6 +9,9 @@ import PHint from '@/components/widget/PHint.vue'
 import PIconTextButton from '@/components/widget/PIconTextButton.vue'
 import PLoading, { type LoadingState } from '@/components/widget/PLoading.vue'
 import PTextBox from '@/components/widget/PTextBox.vue'
+import PSearchBox from '@/components/widget/PSearchBox.vue'
+import PListItem from '@/components/widget/PListItem.vue'
+import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import sideTip from '@/composables/sideTip'
 import { useModal } from '@/composables/useModal'
 
@@ -18,6 +21,10 @@ const loading = ref<LoadingState>('loading')
 const playerName = ref('Player')
 const editable = ref(true)
 const edition = ref('release')
+const search = ref('')
+const volume = ref(50)
+const radio = ref('first')
+const selected = ref(false)
 const editions = computed(() => [
   { key: 'release', text: pclText('Download.Comp.Detail.FileList.ReleaseType.Release') },
   { key: 'snapshot', text: pclText('Download.Comp.Detail.VersionGroup.Snapshot') },
@@ -73,6 +80,19 @@ async function showDialog(withInput: boolean) {
             pclText('Proto.Demo.ButtonWarning')
           }}</PButton>
           <PButton disabled>{{ pclText('Proto.Demo.ButtonDisabled') }}</PButton>
+          <PButton compact type="tint">{{ pclText('Proto.Demo.CompactButton') }}</PButton>
+          <PButton inline @click="() => sideTip.show(pclText('Proto.Demo.Notification'))">{{
+            pclText('Proto.Demo.TextButton')
+          }}</PButton>
+          <button
+            class="pcl-icon-button"
+            type="button"
+            :title="pclText('Common.Action.Refresh')"
+            :aria-label="pclText('Common.Action.Refresh')"
+            @click="() => sideTip.show(pclText('Proto.Demo.Notification'))"
+          >
+            <PSvgIcon name="lucide/refresh-cw" :size="16" />
+          </button>
           <PIconTextButton
             icon="lucide/heart"
             :title="pclText('Proto.Demo.Tooltip')"
@@ -101,6 +121,19 @@ async function showDialog(withInput: boolean) {
           v-model="editable"
           :label="pclText('Proto.Demo.EnableInput')"
         />
+        <div class="demo-row">
+          <label
+            ><input v-model="radio" type="radio" value="first" />
+            {{ pclText('Proto.Demo.RadioFirst') }}</label
+          >
+          <label
+            ><input v-model="radio" type="radio" value="second" />
+            {{ pclText('Proto.Demo.RadioSecond') }}</label
+          >
+          <label><input type="radio" disabled /> {{ pclText('Proto.Demo.ButtonDisabled') }}</label>
+        </div>
+        <label :for="`${id}-range`">{{ pclText('Proto.Demo.Slider') }}: {{ volume }}</label>
+        <input :id="`${id}-range`" v-model="volume" type="range" min="0" max="100" />
         <PCheckBox
           :id="`${id}-disabled`"
           :model-value="true"
@@ -110,6 +143,35 @@ async function showDialog(withInput: boolean) {
         <p class="demo-value">
           {{ playerName || 'Player' }} · {{ editions.find((item) => item.key === edition)?.text }}
         </p>
+      </div>
+    </PCard>
+    <PSearchBox
+      v-model="search"
+      :placeholder="pclText('Common.Action.Search')"
+      search-button
+      @search="() => sideTip.show(search || pclText('Common.Action.Search'))"
+    />
+    <PCard :title="pclText('Proto.Demo.ListItems')" default-fold-status="unfold">
+      <div class="demo-content">
+        <PListItem
+          :title="pclText('Proto.Demo.ListItem')"
+          :subtitle="pclText('Proto.Demo.ListDescription')"
+          clickable
+          :selected="selected"
+          @click="selected = !selected"
+        >
+          <template #icon><PSvgIcon name="lucide/box" :size="28" /></template>
+          <template #icon-actions
+            ><button
+              type="button"
+              class="pcl-icon-button"
+              :title="pclText('Common.Action.Refresh')"
+              :aria-label="pclText('Common.Action.Refresh')"
+              @click.stop="() => sideTip.show(pclText('Proto.Demo.Notification'))"
+            >
+              <PSvgIcon name="lucide/refresh-cw" :size="15" /></button
+          ></template>
+        </PListItem>
       </div>
     </PCard>
     <PCard :title="pclText('Proto.Demo.Loading')" default-fold-status="unfold">

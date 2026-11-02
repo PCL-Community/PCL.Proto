@@ -119,7 +119,7 @@ async function createProfile() {
     <PCard hide-title class="create-card">
       <button
         type="button"
-        class="create-profile"
+        class="pcl-icon-button create-profile"
         :title="text('Launch.Account.Profile.Create')"
         :aria-label="text('Launch.Account.Profile.Create')"
         @click="createProfile"
@@ -168,31 +168,10 @@ async function createProfile() {
 .create-card {
   align-self: center;
   margin-top: auto;
+  padding: 3px 9px 3px 10px;
 }
 .create-profile {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 43px;
-  height: 30px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--color-tint-light);
-  cursor: pointer;
-  /* CE MyIconButton：悬停颜色 120/150 ms，按下 400 ms，松开回弹 250 ms。 */
-  transition:
-    color 150ms linear,
-    transform 250ms cubic-bezier(0.34, 2, 0.64, 1);
-}
-.create-profile:hover,
-.create-profile:focus-visible {
-  color: var(--color-tint-dark);
-  transition-duration: 120ms, 250ms;
-}
-.create-profile:active {
-  transform: scale(0.8);
-  transition-duration: 150ms, 400ms;
-  transition-timing-function: linear, cubic-bezier(0.25, 1, 0.5, 1);
+  width: 24px;
+  height: 24px;
 }
 </style>

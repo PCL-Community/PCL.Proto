@@ -99,6 +99,8 @@ summary::-webkit-details-marker {
   top: 100%;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: 8px;
   min-width: 130px;
   padding: 6px;
   background: var(--color-background-soft);

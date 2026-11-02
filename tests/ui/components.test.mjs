@@ -10,6 +10,10 @@ try {
   const { default: MemorySettings } = await server.ssrLoadModule(
     '/src/components/widget/PMemorySettings.vue',
   )
+  const { default: Button } = await server.ssrLoadModule('/src/components/widget/PButton.vue')
+  const renderButton = (props) => renderToString(createSSRApp({ render: () => h(Button, props) }))
+  assert.match(await renderButton({ compact: true }), /class="[^"]*\bcompact\b/)
+  assert.doesNotMatch(await renderButton({}), /class="[^"]*\bcompact\b/)
   const render = (props) => renderToString(createSSRApp({ render: () => h(MemorySettings, props) }))
   const global = await render({ java64: null })
   const instance = await render({ instance: true, directory: '/example', java64: true })
@@ -89,5 +93,8 @@ assert.equal((java.match(/:disabled="saving \|\| loading"/g) || []).length, 2)
 const profile = read('src/views/Home/PageLoginProfileSkin.vue')
 assert.equal((profile.match(/class="pcl-icon-button profile-action"/g) || []).length, 3)
 assert.doesNotMatch(profile, /color: var\(--color-tint-dark\)/)
+const profileList = read('src/views/Home/PageLoginProfile.vue')
+assert.match(profileList, /class="pcl-icon-button create-profile"/)
+assert.doesNotMatch(profileList, /color: var\(--color-tint-dark\)/)
 
 console.log('Hover/press overlays, Java busy icon colors and shared Home icon hover checked.')

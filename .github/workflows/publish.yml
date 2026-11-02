@@ -30,12 +30,17 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
+            const changelog = require('fs').readFileSync('CHANGELOG.md', 'utf8')
+            const heading = `## ${process.env.PACKAGE_VERSION}`
+            const section = changelog.split(heading)[1]?.split(/^## /m)[0]?.trim()
+            if (!section) throw new Error(`Missing changelog for ${heading}`)
             const { data } = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: `v${process.env.PACKAGE_VERSION}`,
+              target_commitish: context.sha,
               name: `PCL.Proto v${process.env.PACKAGE_VERSION}`,
-              body: 'PCL.Proto builds',
+              body: section,
               draft: true,
               prerelease: false
             })

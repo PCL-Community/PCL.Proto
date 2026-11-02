@@ -24,8 +24,10 @@ function create() {
 }
 </script>
 <template>
-  <form class="offline-form" @submit.prevent="create">
-    <label>{{ text('Launch.Account.Offline.PlayerId') }}<PTextBox v-model="username" /></label
+  <form class="account-form offline-form" @submit.prevent="create">
+    <label class="form-row"
+      ><span>{{ text('Launch.Account.Offline.PlayerId') }}</span
+      ><PTextBox v-model="username" /></label
     ><strong>{{ text('Launch.Account.Offline.UuidStandard') }}</strong>
     <div class="uuid-types">
       <label v-for="kind in ['standard', 'legacy', 'custom']" :key="kind"
@@ -38,12 +40,16 @@ function create() {
         }}</label
       >
     </div>
-    <label v-if="uuidType === 'custom'">UUID<PTextBox v-model="uuid" /></label>
+    <label v-if="uuidType === 'custom'" class="form-row"
+      ><span>UUID</span><PTextBox v-model="uuid"
+    /></label>
     <div class="form-actions">
-      <PButton @click="() => emit('view', 'profiles')">{{
+      <PButton compact @click="() => emit('view', 'profiles')">{{
         text('Launch.Account.Offline.Back')
       }}</PButton
-      ><PButton type="tint" @click="create">{{ text('Launch.Account.Offline.Create') }}</PButton>
+      ><PButton compact type="tint" @click="create">{{
+        text('Launch.Account.Offline.Create')
+      }}</PButton>
     </div>
   </form>
 </template>
@@ -51,24 +57,44 @@ function create() {
 .offline-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
   width: 100%;
 }
-.offline-form > label {
-  display: flex;
-  gap: 10px;
+.form-row {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
   align-items: center;
 }
-.offline-form > label > :last-child {
-  flex: 1;
+.form-row > span {
+  text-align: center;
+}
+.form-row :deep(input) {
+  height: 28px;
+  padding: 0 8px;
 }
 .offline-form > strong {
   text-align: center;
+  font-weight: bold;
+  margin-top: 10px;
 }
 .uuid-types,
 .form-actions {
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
+}
+.uuid-types {
+  margin: 4px 0 20px;
+}
+.uuid-types label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.form-actions {
+  margin-top: 20px;
+}
+.form-actions > button {
+  width: 50px;
+  padding: 0;
 }
 </style>

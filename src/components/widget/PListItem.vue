@@ -2,6 +2,7 @@
 import PButton from './PButton.vue'
 import PSelectionIndicator from './PSelectionIndicator.vue'
 import PListActions from './PListActions.vue'
+import { openExternal } from '@/util/externalLink'
 
 withDefaults(
   defineProps<{
@@ -46,7 +47,7 @@ const emit = defineEmits<{ click: [event: MouseEvent | KeyboardEvent] }>()
             slot(name="actions")
             PListActions(v-if="$slots['icon-actions']")
                 slot(name="icon-actions")
-            a(v-if="btn" :href="btn.link"): PButton(:inline="true") {{btn.text}}
+            PButton(v-if="btn" compact @click="openExternal(btn.link)") {{btn.text}}
 
 </template>
 

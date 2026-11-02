@@ -17,19 +17,26 @@ function login() {
 </script>
 <template>
   <section class="ms-login">
-    <PPath :data="loginShape" class="login-avatar" /><PButton type="tint" @click="login">{{
-      text('Launch.Account.Microsoft.Start')
-    }}</PButton
-    ><PButton inline @click="() => openExternal('https://www.minecraft.net')">{{
-      text('Launch.Account.Microsoft.Website')
-    }}</PButton
-    ><PButton
-      inline
-      @click="
-        () => openExternal('https://www.minecraft.net/store/minecraft-java-bedrock-edition-pc')
-      "
-      >{{ text('Launch.Account.Microsoft.Purchase') }}</PButton
-    ><PButton inline @click="() => emit('view', 'profiles')">{{
+    <PPath :data="loginShape" class="login-avatar" /><PButton
+      class="login-button"
+      type="tint"
+      compact
+      @click="login"
+      >{{ text('Launch.Account.Microsoft.Start') }}</PButton
+    >
+    <div class="account-links login-links">
+      <PButton
+        inline
+        @click="
+          () => openExternal('https://www.minecraft.net/store/minecraft-java-bedrock-edition-pc')
+        "
+        >{{ text('Launch.Account.Microsoft.Purchase') }}</PButton
+      >
+      <PButton inline @click="() => openExternal('https://www.minecraft.net')">{{
+        text('Launch.Account.Microsoft.Website')
+      }}</PButton>
+    </div>
+    <PButton class="account-back login-back" inline @click="() => emit('view', 'profiles')">{{
       text('Launch.Account.Back')
     }}</PButton>
   </section>
@@ -38,16 +45,25 @@ function login() {
 .ms-login {
   display: flex;
   flex-direction: column;
-  gap: 12px;
   align-items: center;
   width: 100%;
-}
-.ms-login > button {
-  width: 100%;
+  margin-top: 10px;
 }
 .login-avatar {
   width: 40px;
   height: 40px;
   opacity: 0.7;
+  color: var(--ce-color-2);
+  margin-left: 4px;
+}
+.login-button {
+  width: 100px;
+  margin-top: 25px;
+}
+.login-links {
+  margin-top: 30px;
+}
+.login-back {
+  margin-top: 15px;
 }
 </style>

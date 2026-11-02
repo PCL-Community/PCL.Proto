@@ -341,6 +341,24 @@ function settings() {
   overflow-y: auto;
   padding: 15px 0;
 }
+.login-panel :deep(.account-form),
+.login-panel :deep(.account-form input:not([type='radio'])) {
+  font-size: 13px;
+}
+.login-panel :deep(.account-links) {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  opacity: 0.3;
+}
+.login-panel :deep(.account-links .mybutton.inline),
+.login-panel :deep(.mybutton.inline.account-text),
+.login-panel :deep(.mybutton.inline.account-back) {
+  font-size: 13px;
+}
+.login-panel :deep(.mybutton.inline.account-back:not(:hover):not(:active)) {
+  color: var(--color-text-black);
+}
 /* CE PageLaunchLeft.PageChange: 100 ms fade-out, swap, 20 ms pause, 100 ms fade-in. */
 .login-page-leave-active {
   animation: login-page-leave 100ms cubic-bezier(0.33, 1, 0.68, 1) forwards;

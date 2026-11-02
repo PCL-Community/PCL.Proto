@@ -26,7 +26,7 @@ section.pcl-page.proto-about
                 title="一只会魔法的梨 | AMagicPear"
                 :subtitle="pclText('Proto.About.ProtoAuthor')"
                 :roundImg="true"
-                :btn="{text: pclText('Proto.About.Website'), link:'https://www.amagicpear.sbs/'}"
+                :btn="{text: pclText('Proto.About.Website'), link:'https://amagicpear.top/'}"
                 )
             PListItem(:icon="picPCLProto"
                 title="Plain Craft Launcher: Edition Prototype"

@@ -6,6 +6,7 @@ import PCard from '@/components/widget/PCard.vue'
 import PButton from '@/components/widget/PButton.vue'
 import PIconTextButton from '@/components/widget/PIconTextButton.vue'
 import PLoading from '@/components/widget/PLoading.vue'
+import PHint from '@/components/widget/PHint.vue'
 
 import PComboBox from '@/components/widget/PComboBox.vue'
 import PListItem from '@/components/widget/PListItem.vue'
@@ -173,20 +174,14 @@ const text = pclText
       <div style="display: grid">
         <div data-control="PanContent" style="grid-row: 1 / span 1; grid-column: 1 / span 1">
           <div style="margin: 10px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto">
-            <div
-              style="
-                min-height: 36px;
-                max-height: 64px;
-                margin: 10px;
-                grid-row: 1 / span 1;
-                grid-column: 1 / span 1;
-                justify-self: stretch;
-              "
+            <PHint
+              :severity="error ? 'error' : 'info'"
+              style="min-height: 36px; margin: 10px; grid-row: 1; grid-column: 1"
             >
               <span>{{
                 error || (isTauri() ? pclText('Proto.Lobby.Title') : pclText('Proto.Desktop.Lobby'))
               }}</span>
-            </div>
+            </PHint>
             <div
               data-control="PanSelect"
               v-if="!connected && !operation"
@@ -198,14 +193,9 @@ const text = pclText
                 flex-direction: column;
               "
             >
-              <div
-                style="margin: 4px 10px; display: flex; flex-direction: row; align-items: center"
-              >
+              <div class="lobby-status">
                 <PCard data-control="BtnNatTest" style="margin: 0px 12px" hide-title>
-                  <div
-                    style="display: flex; flex-direction: row; align-items: center"
-                    :title="text('Tools.GameLink.Nat.Title')"
-                  >
+                  <div class="lobby-status-item" :title="text('Tools.GameLink.Nat.Title')">
                     <PSvgIcon
                       style="width: 14px; margin: 0px 7px 0px 12px"
                       name="lucide/ethernet-port"
@@ -219,10 +209,7 @@ const text = pclText
                   </div>
                 </PCard>
                 <PCard data-control="BtnNatayarkUserName" hide-title>
-                  <div
-                    style="display: flex; flex-direction: row; align-items: center"
-                    :title="text('Tools.GameLink.Natayark.Account')"
-                  >
+                  <div class="lobby-status-item" :title="text('Tools.GameLink.Natayark.Account')">
                     <PSvgIcon style="width: 14px; margin: 0px 7px 0px 12px" name="lucide/user" />
                     <div style="margin: 0px 12px 0px 0px; color: var(--color-text-grey)">
                       <span>{{ account.username || text('Tools.GameLink.Natayark.Login') }}</span>
@@ -239,9 +226,10 @@ const text = pclText
                   <span style="margin: 10px 10px -2px 10px; font-size: 14px" class="pcl-text">{{
                     text('Tools.GameLink.Join.Description')
                   }}</span>
-                  <div style="height: 28px; margin: 10px; display: flex; flex-direction: column">
+                  <div class="lobby-controls">
                     <PButton
                       data-control="BtnJoin"
+                      compact
                       style="width: 50px; margin: 0px 0px 0px 10px"
                       @click="connect(values.TextJoinLobbyId)"
                       type="tint"
@@ -249,12 +237,14 @@ const text = pclText
                     >
                     <PButton
                       data-control="BtnPaste"
+                      compact
                       style="width: 50px; margin: 0px 0px 0px 10px"
                       @click="pasteLobbyId"
                       >{{ text('Tools.GameLink.Join.Paste') }}</PButton
                     >
                     <PButton
                       data-control="BtnClearLobbyId"
+                      compact
                       style="width: 50px; margin: 0px 0px 0px 10px"
                       @click="clearLobbyId"
                       >{{ text('Tools.GameLink.Join.Clear') }}</PButton
@@ -263,6 +253,8 @@ const text = pclText
                       data-control="TextJoinLobbyId"
                       :placeholder="text('Tools.GameLink.Join.IdHint')"
                       v-model="values.TextJoinLobbyId"
+                      :aria-label="text('Tools.GameLink.Join.IdHint')"
+                      @keydown.enter="connect(values.TextJoinLobbyId)"
                     />
                   </div>
                 </div>
@@ -277,9 +269,10 @@ const text = pclText
                   <span style="margin: 10px 10px 0px 10px; font-size: 14px" class="pcl-text">{{
                     text('Tools.GameLink.Create.Description')
                   }}</span>
-                  <div style="height: 28px; margin: 10px; display: flex; flex-direction: column">
+                  <div class="lobby-controls">
                     <PButton
                       data-control="BtnCreate"
+                      compact
                       style="width: 50px; margin: 0px 0px 0px 10px"
                       @click="create(selectedPort)"
                       type="tint"
@@ -287,17 +280,23 @@ const text = pclText
                     >
                     <PButton
                       data-control="BtnRefresh"
+                      compact
                       style="width: 50px; margin: 0px 0px 0px 10px"
                       @click="refreshPorts"
                       >{{ text('Common.Action.Refresh') }}</PButton
                     >
                     <PButton
                       data-control="BtnInputPort"
+                      compact
                       style="width: 80px; margin: 0px 0px 0px 10px"
                       @click="inputPort"
                       >{{ text('Tools.GameLink.Create.ManualInput') }}</PButton
                     >
-                    <div><PComboBox :options="options" v-model="selectedPort" /></div>
+                    <PComboBox
+                      :options="options"
+                      v-model="selectedPort"
+                      :aria-label="text('Tools.GameLink.Create.Title')"
+                    />
                   </div>
                 </div>
               </PCard>
@@ -308,9 +307,7 @@ const text = pclText
               hide-title
             >
               <div style="margin: 8px; opacity: 0.75; display: flex; flex-direction: column">
-                <div
-                  style="margin: 6px 15px; display: flex; flex-direction: row; align-items: center"
-                >
+                <div class="lobby-footer-line">
                   <PButton @click="openWebsite('https://qm.qq.com/q/zfml1KaPWS')" inline>{{
                     text('Tools.GameLink.Link.Report')
                   }}</PButton>
@@ -329,9 +326,7 @@ const text = pclText
                     text('Tools.GameLink.Link.Disable')
                   }}</PButton>
                 </div>
-                <div
-                  style="margin: 6px 15px; display: flex; flex-direction: row; align-items: center"
-                >
+                <div class="lobby-footer-line">
                   <span class="pcl-text">{{ text('Tools.GameLink.Link.Friends') }}</span>
                   <PButton @click="openWebsite('https://easytier.cn/')" inline>{{
                     text('Tools.GameLink.Link.EasyTier')
@@ -343,7 +338,7 @@ const text = pclText
                 </div>
               </div>
             </PCard>
-            <PCard v-if="operation" hide-title style="margin: 25px"
+            <PCard v-if="operation" hide-title style="margin: 25px; grid-row: 2; grid-column: 1"
               ><PLoading
                 :card="false"
                 :loading-text="
@@ -357,6 +352,7 @@ const text = pclText
             <div
               data-control="PanFinish"
               v-if="connected"
+              class="lobby-finish"
               style="
                 grid-row: 2 / span 1;
                 grid-column: 1 / span 1;
@@ -498,12 +494,7 @@ const text = pclText
               </PCard>
               <PCard
                 data-control="CardPlayerList"
-                style="
-                  min-width: 300px;
-                  margin: 10px;
-                  grid-row: 2 / span 4;
-                  grid-column: 2 / span 1;
-                "
+                style="margin: 10px; grid-row: 2 / span 4; grid-column: 2 / span 1"
                 :title="
                   terracotta.profiles
                     ? text('Tools.GameLink.Member.ListCount', [terracotta.profiles.length])
@@ -526,3 +517,83 @@ const text = pclText
     </div>
   </section>
 </template>
+
+<style scoped>
+.lobby-status {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 0;
+  margin: 4px 10px;
+  min-height: 36px;
+}
+
+.lobby-status-item {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  white-space: nowrap;
+}
+
+.lobby-controls {
+  display: flex;
+  align-items: center;
+  margin: 10px;
+}
+
+.lobby-controls > :deep(.mybutton) {
+  flex-shrink: 0;
+}
+
+.lobby-controls > :deep(.input-wrapper),
+.lobby-controls > :deep(.dropdown-wrapper) {
+  order: -1;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.lobby-controls > :deep([data-control='BtnClearLobbyId']),
+.lobby-controls > :deep([data-control='BtnInputPort']) {
+  order: 0;
+}
+
+.lobby-controls > :deep([data-control='BtnPaste']),
+.lobby-controls > :deep([data-control='BtnRefresh']) {
+  order: 1;
+}
+
+.lobby-controls > :deep([data-control='BtnJoin']),
+.lobby-controls > :deep([data-control='BtnCreate']) {
+  order: 2;
+}
+
+.lobby-footer-line {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 6px 15px;
+}
+
+@media (max-width: 700px) {
+  .lobby-controls {
+    flex-wrap: wrap;
+    gap: 8px 0;
+  }
+
+  .lobby-controls > :deep(.input-wrapper),
+  .lobby-controls > :deep(.dropdown-wrapper) {
+    flex-basis: 100%;
+  }
+
+  .lobby-finish {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .lobby-finish > :deep([data-control='CardPlayerList']) {
+    grid-column: 1 !important;
+    grid-row: 5 !important;
+  }
+}
+</style>

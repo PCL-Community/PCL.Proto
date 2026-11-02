@@ -6,6 +6,7 @@ export type ButtonType = 'default' | 'tint' | 'warn'
 defineProps<{
   type?: ButtonType
   inline?: boolean
+  compact?: boolean
   tooltip?: string
   disabled?: boolean
 }>()
@@ -22,17 +23,25 @@ const baseColor = {
 <template>
   <motion.button
     type="button"
-    :class="['mybutton', inline && 'inline', type ?? 'default']"
+    :class="['mybutton', inline && 'inline', compact && 'compact', type ?? 'default']"
     :title="tooltip"
     :disabled="disabled"
     :style="{
-      color: disabled ? 'var(--color-text-grey)' : baseColor[type ?? 'default'],
-      borderColor: disabled ? 'var(--color-text-grey)' : baseColor[type ?? 'default'],
+      color: inline
+        ? undefined
+        : disabled
+          ? 'var(--color-text-grey)'
+          : baseColor[type ?? 'default'],
+      borderColor: inline
+        ? undefined
+        : disabled
+          ? 'var(--color-text-grey)'
+          : baseColor[type ?? 'default'],
       cursor: disabled ? 'not-allowed' : 'pointer',
     }"
     @click="!disabled && emit('click', $event)"
     :while-press="
-      !disabled
+      !disabled && !inline
         ? {
             scale: 0.955,
             transition: { scale: { type: 'tween', duration: 0.08, ease: [0.22, 1, 0.36, 1] } },
@@ -73,12 +82,6 @@ const baseColor = {
   background-color: var(--color-warn-lighter);
 }
 
-.inline {
-  border: 0;
-  padding-block: 5px;
-  padding-inline: 10px;
-}
-
 .mybutton:disabled {
   color: var(--color-text-grey);
   border-color: var(--color-text-grey);
@@ -92,5 +95,49 @@ const baseColor = {
   justify-content: center;
   gap: 7px;
   font: inherit;
+}
+
+.mybutton.compact {
+  height: 28px;
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+.mybutton.inline,
+.pcl-page .mybutton.inline {
+  display: inline;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ce-color-1);
+  font: inherit;
+  line-height: inherit;
+  transition: color 200ms linear;
+}
+
+.mybutton.inline.warn {
+  color: var(--color-warn);
+}
+
+.mybutton.inline:not(:disabled):is(:hover, :active) {
+  background: transparent;
+  color: var(--ce-color-3);
+  transition-duration: 100ms;
+}
+
+.mybutton.inline:not(:disabled):active {
+  color: var(--ce-color-4);
+  transition-duration: 30ms;
+}
+
+.mybutton.inline:focus-visible {
+  outline: 2px solid var(--color-tint);
+  outline-offset: 2px;
+}
+
+.mybutton.inline:disabled {
+  color: var(--color-text-grey);
 }
 </style>

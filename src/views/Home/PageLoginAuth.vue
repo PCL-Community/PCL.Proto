@@ -29,76 +29,125 @@ function login() {
 }
 </script>
 <template>
-  <form class="auth-form" @submit.prevent="login">
-    <label
-      >{{ text('Launch.Account.Auth.SelectServer')
-      }}<PTextBox v-model="server" placeholder="https://" /></label
-    ><template v-if="!oauthMode"
-      ><label>{{ text('Launch.Account.Auth.Email') }}<PTextBox v-model="username" /></label
-      ><label
-        >{{ text('Launch.Account.Auth.Password')
-        }}<input type="password" v-model="password" autocomplete="off"
+  <form class="account-form auth-form" @submit.prevent="login">
+    <label class="server-row">
+      <span>{{ text('Launch.Account.Auth.SelectServer') }}</span>
+      <PTextBox v-model="server" placeholder="https://" />
+    </label>
+    <template v-if="!oauthMode">
+      <label class="auth-row"
+        ><span>{{ text('Launch.Account.Auth.Email') }}</span
+        ><PTextBox v-model="username"
       /></label>
-      <PButton v-if="registerUrl" inline @click="() => openExternal(registerUrl)">{{
-        text('Launch.Account.Auth.Register')
-      }}</PButton>
-      <PButton inline @click="() => (oauthMode = true)">{{
-        text('Launch.Account.Auth.UseOAuth')
-      }}</PButton>
+      <label class="auth-row"
+        ><span>{{ text('Launch.Account.Auth.Password') }}</span
+        ><PTextBox type="password" v-model="password" autocomplete="off"
+      /></label>
+      <PButton
+        v-if="registerUrl"
+        class="account-text register-link"
+        inline
+        @click="() => openExternal(registerUrl)"
+        >{{ text('Launch.Account.Auth.Register') }}</PButton
+      >
+      <div class="account-links auth-links">
+        <PButton v-if="website" inline @click="() => openExternal(website)">{{
+          text('Launch.Account.Microsoft.Website')
+        }}</PButton>
+        <PButton inline @click="() => (oauthMode = true)">{{
+          text('Launch.Account.Auth.UseOAuth')
+        }}</PButton>
+      </div>
     </template>
     <div v-else class="oauth-login">
-      <PPath :data="loginShape" /><PButton type="tint" @click="login">{{
+      <PPath :data="loginShape" /><PButton type="tint" compact @click="login">{{
         text('Launch.Account.Auth.OAuthLogin')
-      }}</PButton
-      ><PButton inline @click="() => (oauthMode = false)">{{
-        text('Launch.Account.Auth.UsePassword')
       }}</PButton>
+      <div class="account-links auth-links">
+        <PButton v-if="website" inline @click="() => openExternal(website)">{{
+          text('Launch.Account.Microsoft.Website')
+        }}</PButton>
+        <PButton inline @click="() => (oauthMode = false)">{{
+          text('Launch.Account.Auth.UsePassword')
+        }}</PButton>
+      </div>
     </div>
-    <PButton v-if="website" inline @click="() => openExternal(website)">{{
-      text('Launch.Account.Microsoft.Website')
-    }}</PButton>
-    <div>
-      <PButton @click="() => emit('view', 'profiles')">{{
+    <div v-if="!oauthMode" class="auth-actions">
+      <PButton compact @click="() => emit('view', 'profiles')">{{
         text('Launch.Account.Auth.Back')
       }}</PButton
-      ><PButton v-if="!oauthMode" type="tint" @click="login">{{
-        text('Launch.Account.Auth.Login')
-      }}</PButton>
+      ><PButton compact type="tint" @click="login">{{ text('Launch.Account.Auth.Login') }}</PButton>
     </div>
+    <PButton
+      v-else
+      class="account-back oauth-back"
+      inline
+      @click="() => emit('view', 'profiles')"
+      >{{ text('Launch.Account.Back') }}</PButton
+    >
   </form>
 </template>
 <style scoped>
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
 }
-.auth-form label {
+.server-row {
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
-.auth-form > div {
+.auth-row {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  align-items: center;
+}
+.auth-form :deep(input) {
+  height: 28px;
+  padding: 0 8px;
+}
+.register-link {
+  align-self: flex-end;
+}
+.auth-actions,
+.auth-links {
   display: flex;
   justify-content: center;
-  gap: 12px;
 }
-.auth-form > .oauth-login {
+.auth-actions {
+  gap: 10px;
+  margin-top: 10px;
+}
+.auth-actions > button {
+  width: 50px;
+  padding: 0;
+}
+.auth-links {
+  margin-top: 10px;
+}
+.oauth-login {
+  display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
+  margin-top: 10px;
 }
 .oauth-login > svg {
   width: 40px;
   height: 40px;
   opacity: 0.7;
+  color: var(--ce-color-2);
 }
-.auth-form input {
-  padding: 6px 8px;
-  border: 1px solid var(--color-tint-lightist);
-  border-radius: 4px;
-  color: inherit;
-  background: transparent;
+.oauth-login > button {
+  width: 120px;
+  margin-top: 25px;
+}
+.oauth-login .auth-links {
+  margin-top: 30px;
+}
+.oauth-back {
+  align-self: center;
+  margin-top: 20px;
 }
 </style>

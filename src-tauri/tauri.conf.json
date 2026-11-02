@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "pcl-proto",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "identifier": "pcl-community.pcl.proto",
   "build": {
     "frontendDist": "../dist",
@@ -23,7 +23,7 @@
   "app": {
     "windows": [
       {
-        "userAgent": "PCL-Community/PCL.Proto/0.9.2",
+        "userAgent": "PCL-Community/PCL.Proto/0.9.3",
         "label": "main"
       }
     ]

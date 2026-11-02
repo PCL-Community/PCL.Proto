@@ -176,6 +176,7 @@ const items = computed(() =>
   border-radius: 5px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 4px;
   padding: 8px;
 }

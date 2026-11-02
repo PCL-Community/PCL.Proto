@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { pclText } from '@/api/pclLocale'
+import PButton from './PButton.vue'
 
 defineProps<{ error?: string | null }>()
 defineEmits<{ retry: [] }>()
@@ -8,8 +9,8 @@ defineEmits<{ retry: [] }>()
 <template>
   <p v-if="error" role="alert">
     {{ error }}
-    <button type="button" @click="$emit('retry')">
+    <PButton inline @click="$emit('retry')">
       {{ pclText('Launch.Homepage.LoadFailed.Retry') }}
-    </button>
+    </PButton>
   </p>
 </template>
