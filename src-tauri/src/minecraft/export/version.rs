@@ -6,10 +6,8 @@ use anyhow::{Context, bail, ensure};
 use std::{
     fs,
     path::{Path, PathBuf},
-    time::Instant,
 };
 use tauri::{State, ipc::Channel};
-use tokio::sync::mpsc;
 
 // Only directories created by this operation are removed when a download fails.
 struct ExportDirectory {
@@ -91,44 +89,27 @@ async fn download_jar(
     downloader: &Downloader,
 ) -> anyhow::Result<()> {
     let size = info.size;
-    let (tx, mut rx) = mpsc::channel(100);
-    let download = downloader.start_download(
-        DownloadConfig {
-            file_index: 0,
-            task_item_id: 1,
-            out_path: path.clone(),
-            info,
-        },
-        tx,
-    );
-    let report = async {
-        let mut last = Instant::now();
-        let mut previous_bytes = 0;
-        while let Some(update) = rx.recv().await {
-            let elapsed = last.elapsed();
-            if elapsed.as_millis() < 100 && update.progress.status == TaskStatus::Running {
-                continue;
-            }
-            let bytes = update.progress.downloaded_bytes;
-            on_event.send(TaskItemReport {
-                task_id,
-                item_id: 1,
-                files_remaining: 1,
-                progress: (bytes as f64 / size as f64).min(1.0),
-                // Publication of the verified files is the final completion step.
-                status: TaskStatus::Running,
-                speed: Some(
-                    bytes.saturating_sub(previous_bytes) as f64 / elapsed.as_secs_f64().max(0.001),
-                ),
-            })?;
-            last = Instant::now();
-            previous_bytes = bytes;
-        }
-        anyhow::Ok(())
-    };
-    let (downloaded, reported) = tokio::join!(download, report);
-    downloaded?;
-    reported?;
+    downloader
+        .download_with_progress(
+            DownloadConfig {
+                file_index: 0,
+                task_item_id: 1,
+                out_path: path.clone(),
+                info,
+            },
+            |bytes, _, speed| {
+                let _ = on_event.send(TaskItemReport {
+                    task_id,
+                    item_id: 1,
+                    files_remaining: 1,
+                    progress: (bytes as f64 / size as f64).min(1.0),
+                    // Publication of the verified files is the final completion step.
+                    status: TaskStatus::Running,
+                    speed: Some(speed),
+                });
+            },
+        )
+        .await?;
     ensure!(
         fs::metadata(path)?.len() == size,
         "Downloaded file size mismatch"
@@ -278,6 +259,7 @@ mod tests {
     use super::*;
     use sha1::Digest;
     use std::io::{Read, Write};
+    use std::time::Instant;
 
     fn temp_directory() -> ExportDirectory {
         ExportDirectory::create(

@@ -60,6 +60,62 @@ impl Drop for RateLease<'_> {
 }
 
 impl Downloader {
+    pub(super) async fn probe_range(
+        &self,
+        url: &str,
+        expected: Option<u64>,
+    ) -> Result<Option<u64>, McApiError> {
+        // A one-byte probe avoids opening several full responses on non-Range servers.
+        let _lease = self.resources.acquire().await;
+        let response = send_request(
+            self.resources.settings().http_mode,
+            true,
+            url,
+            Some((0, 0)),
+            None,
+        )
+        .await?;
+        if matches!(
+            response.status(),
+            reqwest::StatusCode::OK | reqwest::StatusCode::RANGE_NOT_SATISFIABLE
+        ) {
+            return Ok(None);
+        }
+        let response = response.error_for_status()?;
+        let total = response
+            .headers()
+            .get(reqwest::header::CONTENT_RANGE)
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.strip_prefix("bytes 0-0/"))
+            .and_then(|value| value.parse::<u64>().ok())
+            .filter(|size| *size > 0);
+        if response.status() != reqwest::StatusCode::PARTIAL_CONTENT
+            || total.is_none_or(|size| expected.is_some_and(|expected| size != expected))
+            || response.content_length().is_some_and(|length| length != 1)
+            || response
+                .headers()
+                .get(reqwest::header::CONTENT_ENCODING)
+                .is_some_and(|v| v != "identity")
+        {
+            return Ok(None);
+        }
+        let mut stream = response.bytes_stream();
+        let mut count = 0;
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk?;
+            self.resources.record_bytes(chunk.len());
+            count += chunk.len();
+            if count > 1 {
+                return Ok(None);
+            }
+            self.resources.throttle(chunk.len()).await;
+        }
+        let Some(total) = total else {
+            return Ok(None);
+        };
+        Ok((count == 1).then_some(total))
+    }
+
     pub(super) async fn download_ranges(
         &self,
         info: &DownloadFile,
@@ -67,66 +123,6 @@ impl Downloader {
         url: &str,
         progress: ProgressSink<'_>,
     ) -> Result<(), McApiError> {
-        self.download_ranges_inner(info, path, url, progress, true)
-            .await
-    }
-
-    pub(super) async fn download_ranges_inner(
-        &self,
-        info: &DownloadFile,
-        path: &Path,
-        url: &str,
-        progress: ProgressSink<'_>,
-        probe: bool,
-    ) -> Result<(), McApiError> {
-        // A one-byte probe avoids opening eight full responses on non-Range servers.
-        if probe {
-            let _lease = self.resources.acquire().await;
-            let response = send_request(
-                self.resources.settings().http_mode,
-                true,
-                url,
-                Some((0, 0)),
-                None,
-            )
-            .await?;
-            if matches!(
-                response.status(),
-                reqwest::StatusCode::OK | reqwest::StatusCode::RANGE_NOT_SATISFIABLE
-            ) {
-                return Err(McApiError::RangeUnsupported);
-            }
-            let response = response.error_for_status()?;
-            let expected = format!("bytes 0-0/{}", info.size);
-            if response.status() != reqwest::StatusCode::PARTIAL_CONTENT
-                || response
-                    .headers()
-                    .get(reqwest::header::CONTENT_RANGE)
-                    .and_then(|v| v.to_str().ok())
-                    != Some(&expected)
-                || response.content_length().is_some_and(|length| length != 1)
-                || response
-                    .headers()
-                    .get(reqwest::header::CONTENT_ENCODING)
-                    .is_some_and(|v| v != "identity")
-            {
-                return Err(McApiError::RangeUnsupported);
-            }
-            let mut stream = response.bytes_stream();
-            let mut count = 0;
-            while let Some(chunk) = stream.next().await {
-                let chunk = chunk?;
-                self.resources.record_bytes(chunk.len());
-                count += chunk.len();
-                if count > 1 {
-                    return Err(McApiError::RangeUnsupported);
-                }
-                self.resources.throttle(chunk.len()).await;
-            }
-            if count != 1 {
-                return Err(McApiError::RangeUnsupported);
-            }
-        }
         let output = std::fs::OpenOptions::new()
             .write(true)
             .create_new(true)

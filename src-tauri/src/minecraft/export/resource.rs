@@ -3,9 +3,8 @@ use crate::{
     minecraft::version::DownloadFile,
 };
 use anyhow::{Context, ensure};
-use std::{path::PathBuf, time::Instant};
+use std::path::PathBuf;
 use tauri::ipc::Channel;
-use tokio::sync::mpsc;
 
 struct TempFile(PathBuf);
 impl Drop for TempFile {
@@ -44,43 +43,29 @@ pub(crate) async fn download_to(
     task_id: i32,
     on_event: &Channel<TaskItemReport>,
 ) -> anyhow::Result<()> {
-    let size = info.size;
-    let (tx, mut rx) = mpsc::channel(100);
     let downloader = Downloader::default();
-    let transfer = downloader.start_resource_download(
-        DownloadConfig {
-            file_index: 0,
-            out_path: destination,
-            task_item_id: 0,
-            info,
-        },
-        tx,
-    );
-    let reports = async {
-        let mut last = Instant::now();
-        let mut previous = 0;
-        while let Some(update) = rx.recv().await {
-            let elapsed = last.elapsed();
-            if elapsed.as_millis() < 100 && update.progress.status == TaskStatus::Running {
-                continue;
-            }
-            let bytes = update.progress.downloaded_bytes;
-            let _ = on_event.send(TaskItemReport {
-                task_id,
-                item_id: 0,
-                files_remaining: 1,
-                progress: (bytes as f64 / size as f64).min(1.0),
-                status: TaskStatus::Running,
-                speed: Some(
-                    bytes.saturating_sub(previous) as f64 / elapsed.as_secs_f64().max(0.001),
-                ),
-            });
-            last = Instant::now();
-            previous = bytes;
-        }
-    };
-    let (downloaded, ()) = tokio::join!(transfer, reports);
-    downloaded?;
+    downloader
+        .download_with_progress(
+            DownloadConfig {
+                file_index: 0,
+                out_path: destination,
+                task_item_id: 0,
+                info,
+            },
+            |bytes, size, speed| {
+                let _ = on_event.send(TaskItemReport {
+                    task_id,
+                    item_id: 0,
+                    files_remaining: 1,
+                    progress: size
+                        .filter(|size| *size > 0)
+                        .map_or(0.0, |size| (bytes as f64 / size as f64).min(1.0)),
+                    status: TaskStatus::Running,
+                    speed: Some(speed),
+                });
+            },
+        )
+        .await?;
     Ok(())
 }
 

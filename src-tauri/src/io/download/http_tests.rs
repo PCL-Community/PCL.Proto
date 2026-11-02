@@ -128,6 +128,14 @@ fn payload(size: usize) -> Arc<Vec<u8>> {
     Arc::new((0..size).map(|i| (i % 251) as u8).collect())
 }
 
+async fn custom_transfer(
+    url: &str,
+    destination: &Path,
+    on_progress: impl Fn(u64, Option<u64>, f64),
+) -> anyhow::Result<()> {
+    custom_transfer_checked(url, destination, 0, on_progress).await
+}
+
 #[tokio::test]
 async fn installer_minimum_size_does_not_publish_short_files() {
     let server = Server::new(payload(1024), Behavior::Ignore, Duration::ZERO).await;
@@ -164,7 +172,7 @@ async fn custom_download_parallelizes_and_recovers_interrupted_ranges() {
     .await;
     let temp = Temp::new();
     let downloader = downloader(2, 3);
-    custom_attempt(&downloader, &server.url, &temp.file(), &|_, _, _| {})
+    download_unknown(&downloader, &server.url, &temp.file())
         .await
         .unwrap();
     assert_eq!(std::fs::read(temp.file()).unwrap(), *body);
@@ -192,7 +200,7 @@ async fn custom_download_falls_back_when_ranges_are_unreliable() {
         let server = Server::new(body.clone(), behavior, Duration::ZERO).await;
         let temp = Temp::new();
         let downloader = downloader(2, 2);
-        custom_attempt(&downloader, &server.url, &temp.file(), &|_, _, _| {})
+        download_unknown(&downloader, &server.url, &temp.file())
             .await
             .unwrap();
         assert_eq!(std::fs::read(temp.file()).unwrap(), *body);
@@ -329,6 +337,29 @@ fn downloader(max: usize, file: usize) -> Downloader {
     downloader
 }
 
+async fn download_unknown(
+    downloader: &Downloader,
+    url: &str,
+    path: &Path,
+) -> Result<(), McApiError> {
+    downloader
+        .download_with_progress(
+            DownloadConfig {
+                file_index: 0,
+                out_path: path.to_owned(),
+                task_item_id: 0,
+                info: DownloadFile {
+                    url: url.into(),
+                    size: 0,
+                    sha1: String::new(),
+                    path: None,
+                },
+            },
+            |_, _, _| {},
+        )
+        .await
+}
+
 #[tokio::test]
 async fn resource_without_hash_still_checks_size_and_cleans_failed_transfers() {
     let body = payload(1024);
@@ -345,7 +376,7 @@ async fn resource_without_hash_still_checks_size_and_cleans_failed_transfers() {
         info,
     };
     downloader
-        .start_resource_download(config(metadata.clone()), tx)
+        .start_download(config(metadata.clone()), tx)
         .await
         .unwrap();
     while rx.try_recv().is_ok() {}
@@ -355,7 +386,7 @@ async fn resource_without_hash_still_checks_size_and_cleans_failed_transfers() {
     let (tx, _rx) = mpsc::channel(100);
     assert!(
         downloader
-            .start_resource_download(config(metadata), tx)
+            .start_download(config(metadata), tx)
             .await
             .is_err()
     );
@@ -538,7 +569,7 @@ async fn controlled_custom_download_benchmark() {
         let output = Temp::new();
         let downloader = downloader(64, connections);
         let started = std::time::Instant::now();
-        custom_attempt(&downloader, &server.url, &output.file(), &|_, _, _| {})
+        download_unknown(&downloader, &server.url, &output.file())
             .await
             .unwrap();
         let elapsed = started.elapsed();

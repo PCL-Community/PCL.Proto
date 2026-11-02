@@ -140,7 +140,6 @@ impl Downloader {
                 &options.out_path,
                 Some((&options, &progress_tx)),
                 true,
-                false,
             )
             .await;
         report(
@@ -155,10 +154,41 @@ impl Downloader {
         .await;
         result.map(|_| ())
     }
+    pub async fn download_with_progress(
+        &self,
+        options: DownloadConfig,
+        mut on_progress: impl FnMut(u64, Option<u64>, f64),
+    ) -> Result<(), McApiError> {
+        let size = (options.info.size > 0).then_some(options.info.size);
+        let (tx, mut rx) = mpsc::channel(100);
+        let download = self.start_download(options, tx);
+        let report = async {
+            let mut last = tokio::time::Instant::now();
+            let mut previous = 0;
+            while let Some(update) = rx.recv().await {
+                if update.progress.status == TaskStatus::Running
+                    && last.elapsed() < Duration::from_millis(100)
+                {
+                    continue;
+                }
+                let bytes = update.progress.downloaded_bytes.max(previous);
+                let elapsed = last.elapsed().as_secs_f64().max(0.001);
+                let total =
+                    size.or((update.progress.status == TaskStatus::Completed).then_some(bytes));
+                on_progress(
+                    bytes,
+                    total,
+                    bytes.saturating_sub(previous) as f64 / elapsed,
+                );
+                previous = bytes;
+                last = tokio::time::Instant::now();
+            }
+        };
+        let (result, ()) = tokio::join!(download, report);
+        result
+    }
     pub async fn download(&self, info: &DownloadFile, path: &Path) -> Result<(), McApiError> {
-        self.transfer(info, path, None, true, false)
-            .await
-            .map(|_| ())
+        self.transfer(info, path, None, true).await.map(|_| ())
     }
     /// Instance setting "disable file verification": reuse existing files as-is.
     pub async fn download_unverified(
@@ -166,47 +196,17 @@ impl Downloader {
         info: &DownloadFile,
         path: &Path,
     ) -> Result<(), McApiError> {
-        self.transfer(info, path, None, false, false)
-            .await
-            .map(|_| ())
+        self.transfer(info, path, None, false).await.map(|_| ())
     }
-    pub async fn start_resource_download(
-        &self,
-        options: DownloadConfig,
-        progress_tx: mpsc::Sender<ProgressUpdate>,
-    ) -> Result<(), McApiError> {
-        let result = self
-            .transfer(
-                &options.info,
-                &options.out_path,
-                Some((&options, &progress_tx)),
-                true,
-                true,
-            )
-            .await;
-        report(
-            Some((&options, &progress_tx)),
-            result.as_ref().copied().unwrap_or(0),
-            if result.is_ok() {
-                TaskStatus::Completed
-            } else {
-                TaskStatus::Failed
-            },
-        )
-        .await;
-        result.map(|_| ())
-    }
+    /// `size == 0` defers length discovery; an empty SHA-1 selects size-only verification.
     async fn transfer(
         &self,
         info: &DownloadFile,
         path: &Path,
         progress: ProgressSink<'_>,
         verify: bool,
-        allow_missing_hash: bool,
     ) -> Result<u64, McApiError> {
-        if !(allow_missing_hash && info.sha1.is_empty())
-            && !crate::minecraft::version::valid_sha1(&info.sha1)
-        {
+        if !info.sha1.is_empty() && !crate::minecraft::version::valid_sha1(&info.sha1) {
             return Err(McApiError::InvalidMetadata("Invalid download SHA-1".into()));
         }
         let verify = verify && !info.sha1.is_empty();
@@ -246,7 +246,7 @@ impl Downloader {
                 report(progress, 0, TaskStatus::Running).await;
                 let result = self.transfer_from(info, path, url, progress, verify).await;
                 match result {
-                    Ok(()) => return Ok(info.size),
+                    Ok(size) => return Ok(size),
                     Err(error) => {
                         if matches!(&error, McApiError::IoError(_)) {
                             return Err(error);
@@ -273,10 +273,30 @@ impl Downloader {
         url: &str,
         progress: ProgressSink<'_>,
         verify: bool,
-    ) -> Result<(), McApiError> {
-        if info.size >= SMALL_FILE_THRESHOLD && self.resources.settings().file_connections > 1 {
+    ) -> Result<u64, McApiError> {
+        if self.resources.settings().file_connections > 1
+            && (info.size == 0 || info.size >= SMALL_FILE_THRESHOLD)
+        {
+            let Some(size) = self
+                .probe_range(url, (info.size > 0).then_some(info.size))
+                .await?
+            else {
+                return self
+                    .transfer_sequential(info, path, url, progress, verify)
+                    .await;
+            };
+            if size < SMALL_FILE_THRESHOLD {
+                return self
+                    .transfer_sequential(info, path, url, progress, verify)
+                    .await;
+            }
+            let mut ranged = info.clone();
+            ranged.size = size;
             let partial = partial_file(path);
-            match self.download_ranges(info, &partial.0, url, progress).await {
+            match self
+                .download_ranges(&ranged, &partial.0, url, progress)
+                .await
+            {
                 Ok(()) => {
                     if verify {
                         let check_path = partial.0.clone();
@@ -291,7 +311,7 @@ impl Downloader {
                         }
                     }
                     std::fs::rename(&partial.0, path)?;
-                    return Ok(());
+                    return Ok(size);
                 }
                 Err(McApiError::RangeUnsupported) => {
                     log::debug!("Range unavailable, using sequential download: {url}");
@@ -300,16 +320,31 @@ impl Downloader {
                 Err(error) => return Err(error),
             }
         }
+        self.transfer_sequential(info, path, url, progress, verify)
+            .await
+    }
+
+    async fn transfer_sequential(
+        &self,
+        info: &DownloadFile,
+        path: &Path,
+        url: &str,
+        progress: ProgressSink<'_>,
+        verify: bool,
+    ) -> Result<u64, McApiError> {
         let _lease = self.resources.acquire().await;
         let response = send_request(
             self.resources.settings().http_mode,
-            info.size >= SMALL_FILE_THRESHOLD,
+            info.size == 0 || info.size >= SMALL_FILE_THRESHOLD,
             url,
             None,
             None,
         )
         .await?
         .error_for_status()?;
+        let expected = (info.size > 0)
+            .then_some(info.size)
+            .or(response.content_length());
         let partial = partial_file(path);
         let output = std::fs::OpenOptions::new()
             .write(true)
@@ -324,7 +359,7 @@ impl Downloader {
             let chunk = chunk?;
             self.resources.record_bytes(chunk.len());
             bytes += chunk.len() as u64;
-            if bytes > info.size {
+            if expected.is_some_and(|size| bytes > size) {
                 return Err(McApiError::InvalidMetadata(format!(
                     "Download exceeds expected size: {}",
                     path.display()
@@ -338,7 +373,7 @@ impl Downloader {
                 last_report = tokio::time::Instant::now();
             }
         }
-        if bytes != info.size {
+        if expected.is_some_and(|size| bytes != size) {
             return Err(McApiError::InvalidMetadata(format!(
                 "Download size mismatch: {}",
                 path.display()
@@ -352,7 +387,7 @@ impl Downloader {
         // Download caches are replaceable; avoid an fsync for every tiny asset.
         drop(output);
         std::fs::rename(&partial.0, path)?;
-        Ok(())
+        Ok(bytes)
     }
 }
 pub(crate) async fn send_request(
@@ -393,14 +428,6 @@ fn partial_file(path: &Path) -> PartialFile {
     PartialFile(path.with_file_name(format!(".pcl-download-{}.part", uuid::Uuid::new_v4())))
 }
 
-async fn custom_transfer(
-    url: &str,
-    destination: &Path,
-    on_progress: impl Fn(u64, Option<u64>, f64),
-) -> anyhow::Result<()> {
-    custom_transfer_checked(url, destination, 0, on_progress).await
-}
-
 async fn custom_transfer_checked(
     url: &str,
     destination: &Path,
@@ -420,33 +447,55 @@ async fn custom_transfer_checked(
     crate::io::files::validate_file_name(name)?;
     ensure!(!destination.try_exists()?, "Destination already exists");
     let partial = PartialFile(parent.join(format!(".pcl-custom-{}.part", uuid::Uuid::new_v4())));
-    let downloader = Downloader::default();
-    let mut last_error = None;
-    for attempt in 0..4 {
-        if attempt > 0 {
-            let _ = tokio::fs::remove_file(&partial.0).await;
-            on_progress(0, None, 0.0);
-            tokio::time::sleep(Duration::from_millis(300 * attempt)).await;
-        }
-        match custom_attempt(&downloader, url, &partial.0, &on_progress).await {
-            Ok(()) => {
-                ensure!(
-                    tokio::fs::metadata(&partial.0).await?.len() >= min_size,
-                    "Downloaded file is too small"
-                );
-                std::fs::hard_link(&partial.0, destination)
-                    .context("Cannot publish download (the destination may already exist)")?;
-                return Ok(());
-            }
-            Err(error) => {
-                if matches!(&error, McApiError::IoError(_)) || permanent_http_error(&error) {
-                    return Err(error.into());
-                }
-                last_error = Some(error);
-            }
-        }
-    }
-    Err(last_error.context("Download failed")?.into())
+    Downloader::default()
+        .download_with_progress(
+            DownloadConfig {
+                file_index: 0,
+                out_path: partial.0.clone(),
+                task_item_id: 0,
+                info: DownloadFile {
+                    url: url.to_owned(),
+                    size: 0,
+                    sha1: String::new(),
+                    path: None,
+                },
+            },
+            on_progress,
+        )
+        .await?;
+    ensure!(
+        tokio::fs::metadata(&partial.0).await?.len() >= min_size,
+        "Downloaded file is too small"
+    );
+    std::fs::hard_link(&partial.0, destination)
+        .context("Cannot publish download (the destination may already exist)")?;
+    Ok(())
+}
+
+async fn run_custom_download(
+    url: String,
+    destination: PathBuf,
+    min_size: u64,
+    task_id: i32,
+    on_event: tauri::ipc::Channel<TaskItemReport>,
+) -> Result<(), String> {
+    tasks::run(task_id, async {
+        custom_transfer_checked(&url, &destination, min_size, |bytes, size, speed| {
+            let _ = on_event.send(TaskItemReport {
+                task_id,
+                item_id: 0,
+                files_remaining: 1,
+                progress: size
+                    .filter(|size| *size > 0)
+                    .map_or(0.0, |size| (bytes as f64 / size as f64).min(1.0)),
+                status: TaskStatus::Running,
+                speed: Some(speed),
+            });
+        })
+        .await
+        .map_err(|error| format!("{error:#}"))
+    })
+    .await
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -457,178 +506,10 @@ pub async fn download_fabric_installer(
     task_id: i32,
     on_event: tauri::ipc::Channel<TaskItemReport>,
 ) -> Result<(), String> {
-    tasks::run(task_id, async {
-        let url = family
-            .installer_url(&version)
-            .map_err(|error| error.to_string())?;
-        custom_transfer_checked(&url, &destination, 64 * 1024, |bytes, size, speed| {
-            let _ = on_event.send(TaskItemReport {
-                task_id,
-                item_id: 0,
-                files_remaining: 1,
-                progress: size
-                    .filter(|size| *size > 0)
-                    .map_or(0.0, |size| (bytes as f64 / size as f64).min(1.0)),
-                status: TaskStatus::Running,
-                speed: Some(speed),
-            });
-        })
-        .await
-        .map_err(|error| format!("{error:#}"))
-    })
-    .await
-}
-
-async fn custom_attempt(
-    downloader: &Downloader,
-    url: &str,
-    partial: &Path,
-    on_progress: &impl Fn(u64, Option<u64>, f64),
-) -> Result<(), McApiError> {
-    let resources = &downloader.resources;
-    if resources.settings().file_connections > 1 {
-        let size = {
-            let _lease = resources.acquire().await;
-            let response = send_request(
-                resources.settings().http_mode,
-                true,
-                url,
-                Some((0, 0)),
-                None,
-            )
-            .await?;
-            if response.status() == reqwest::StatusCode::PARTIAL_CONTENT {
-                let size = response
-                    .headers()
-                    .get(reqwest::header::CONTENT_RANGE)
-                    .and_then(|value| value.to_str().ok())
-                    .and_then(|value| value.strip_prefix("bytes 0-0/"))
-                    .and_then(|value| value.parse::<u64>().ok())
-                    .filter(|size| *size > 0);
-                if size.is_some()
-                    && response.content_length().is_none_or(|length| length == 1)
-                    && response
-                        .headers()
-                        .get(reqwest::header::CONTENT_ENCODING)
-                        .is_none_or(|v| v == "identity")
-                {
-                    let mut stream = response.bytes_stream();
-                    let mut bytes = 0;
-                    while let Some(chunk) = stream.next().await {
-                        let chunk = chunk?;
-                        bytes += chunk.len();
-                        if bytes > 1 {
-                            break;
-                        }
-                        resources.record_bytes(chunk.len());
-                        resources.throttle(chunk.len()).await;
-                    }
-                    if bytes == 1 { size } else { None }
-                } else {
-                    None
-                }
-            } else if response.status().is_success()
-                || response.status() == reqwest::StatusCode::RANGE_NOT_SATISFIABLE
-            {
-                None
-            } else {
-                response.error_for_status()?;
-                None
-            }
-        };
-        if let Some(size) = size.filter(|size| *size >= SMALL_FILE_THRESHOLD) {
-            let config = DownloadConfig {
-                file_index: 0,
-                out_path: partial.to_owned(),
-                task_item_id: 0,
-                info: DownloadFile {
-                    url: url.to_owned(),
-                    size,
-                    sha1: String::new(),
-                    path: None,
-                },
-            };
-            let (tx, mut rx) = mpsc::channel::<ProgressUpdate>(100);
-            let reports = async {
-                let mut last = std::time::Instant::now();
-                let mut previous = 0_u64;
-                while let Some(update) = rx.recv().await {
-                    let bytes = update.progress.downloaded_bytes.max(previous);
-                    if last.elapsed() >= Duration::from_millis(100) {
-                        on_progress(
-                            bytes,
-                            Some(size),
-                            bytes.saturating_sub(previous) as f64
-                                / last.elapsed().as_secs_f64().max(0.001),
-                        );
-                        previous = bytes;
-                        last = std::time::Instant::now();
-                    }
-                }
-            };
-            let (result, ()) = tokio::join!(
-                async {
-                    let result = downloader
-                        .download_ranges_inner(
-                            &config.info,
-                            partial,
-                            url,
-                            Some((&config, &tx)),
-                            false,
-                        )
-                        .await;
-                    drop(tx);
-                    result
-                },
-                reports
-            );
-            match result {
-                Ok(()) => return Ok(()),
-                Err(McApiError::RangeUnsupported) => {
-                    let _ = tokio::fs::remove_file(partial).await;
-                    on_progress(0, None, 0.0);
-                }
-                Err(error) => return Err(error),
-            }
-        }
-    }
-    let _lease = resources.acquire().await;
-    let response = send_request(resources.settings().http_mode, true, url, None, None)
-        .await?
-        .error_for_status()?;
-    let size = response.content_length();
-    let mut stream = response.bytes_stream();
-    let mut output = BufWriter::new(tokio::fs::File::from_std(
-        std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(partial)?,
-    ));
-    let mut bytes = 0_u64;
-    let mut previous = 0_u64;
-    let mut last = std::time::Instant::now();
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk?;
-        resources.record_bytes(chunk.len());
-        resources.throttle(chunk.len()).await;
-        output.write_all(&chunk).await?;
-        bytes += chunk.len() as u64;
-        if last.elapsed() >= Duration::from_millis(100) {
-            on_progress(
-                bytes,
-                size,
-                (bytes - previous) as f64 / last.elapsed().as_secs_f64().max(0.001),
-            );
-            previous = bytes;
-            last = std::time::Instant::now();
-        }
-    }
-    if size.is_some_and(|size| size != bytes) {
-        return Err(McApiError::InvalidMetadata("Download size mismatch".into()));
-    }
-    output.flush().await?;
-    drop(output);
-    Ok(())
+    let url = family
+        .installer_url(&version)
+        .map_err(|error| error.to_string())?;
+    run_custom_download(url, destination, 64 * 1024, task_id, on_event).await
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -638,23 +519,7 @@ pub async fn download_custom_file(
     task_id: i32,
     on_event: tauri::ipc::Channel<TaskItemReport>,
 ) -> Result<(), String> {
-    tasks::run(task_id, async {
-        custom_transfer(&url, &destination, |bytes, size, speed| {
-            let _ = on_event.send(TaskItemReport {
-                task_id,
-                item_id: 0,
-                files_remaining: 1,
-                progress: size
-                    .filter(|size| *size > 0)
-                    .map_or(0.0, |size| (bytes as f64 / size as f64).min(1.0)),
-                status: TaskStatus::Running,
-                speed: Some(speed),
-            });
-        })
-        .await
-        .map_err(|error| format!("{error:#}"))
-    })
-    .await
+    run_custom_download(url, destination, 0, task_id, on_event).await
 }
 
 #[tauri::command]
