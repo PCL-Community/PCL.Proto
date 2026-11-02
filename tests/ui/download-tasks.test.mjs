@@ -34,6 +34,9 @@ const pending = store.startDownloadMCVersion('1.20.1', 'Example', { family: 'fab
 await Promise.resolve()
 assert.deepEqual(store.tasks[0].items.map((item) => item.id), [0, 1, 2, 3, 5, 6, 7])
 assert.equal(store.tasks[0].items[5].name, 'Minecraft.Download.Stage.AnalyzeFabricLibraries')
+const channel = calls.find(([name]) => name === 'download_minecraft_version')[1].on_event
+channel.onmessage({ task_id: store.tasks[0].id, item_id: 3, progress: 0.5, status: 1, files_remaining: 1, speed: 0 })
+assert.equal(store.tasks[0].progress, 9 / 41)
 await store.cancelTask(store.tasks[0].id)
 await assert.rejects(pending, isTaskCancelled)
 assert.equal(store.tasks.length, 0)

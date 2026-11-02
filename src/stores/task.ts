@@ -190,7 +190,11 @@ export const useTaskManager = defineStore('task-manager', () => {
         message.status === TaskStatus.Running && Number.isFinite(message.speed)
           ? Math.max(0, message.speed || 0)
           : 0
-      task.progress = task.items.reduce((sum, item) => sum + item.progress, 0) / task.items.length
+      const weights = kind === 'install' || kind === 'modpack'
+        ? [5, 5, 9, 18, 1, 1, 1, 2]
+        : kind === 'client' || kind === 'server' ? [2, 5] : [1]
+      task.progress = task.items.reduce((sum, item) => sum + item.progress * (weights[item.id] || 1), 0) /
+        task.items.reduce((sum, item) => sum + (weights[item.id] || 1), 0)
       task.speed = task.items.reduce((sum, item) => sum + (item.speed || 0), 0)
       // File stages can finish before native extraction and instance publication.
       // Only the command result commits the overall task to a terminal state.

@@ -1,14 +1,24 @@
 <script setup lang="ts">
 import { FloatButtonType, type FloatButtonState } from '@/composables/useFloatButton'
-import { ref, watch } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import useSideNavState from '@/stores/windowState'
 import PPrimaryAction from './PPrimaryAction.vue'
+import { useTaskManager } from '@/stores/task'
 
 const props = defineProps<FloatButtonState>()
 const router = useRouter()
 const sideNavState = useSideNavState()
 const rippleVisible = ref(false)
+const tasks = useTaskManager()
+const progress = ref(0)
+const progressTimer = window.setInterval(() => {
+  const target = Number(tasks.totalProgress) / 100
+  progress.value = target <= 0 || target >= 1 || progress.value > target
+    ? target
+    : progress.value * 0.9 + target * 0.1
+}, 50)
+onUnmounted(() => window.clearInterval(progressTimer))
 
 watch([() => props.type, () => props.visible], ([type, visible], [previousType]) => {
   rippleVisible.value =
@@ -35,6 +45,9 @@ watch([() => props.type, () => props.visible], ([type, visible], [previousType])
       :aria-label="title || text"
       @click="type === FloatButtonType.TaskManage ? router.push('/downloading') : action?.()"
     >
+      <span v-if="type === FloatButtonType.TaskManage && progress > 0" class="progress-clip" aria-hidden="true">
+        <span class="progress-fill" :style="{ height: `${progress * 100}%` }" />
+      </span>
       <span class="float-icon"><component :is="icon" /></span>
       <Transition name="float-label">
         <span v-if="text" class="float-label">{{ text }}</span>
@@ -60,7 +73,7 @@ watch([() => props.type, () => props.visible], ([type, visible], [previousType])
     0 3px 10px var(--color-tint-lightist),
     0 2px 5px rgb(0 0 0 / 12%);
   transition:
-    right 550ms cubic-bezier(0.22, 1.2, 0.36, 1),
+    right 900ms cubic-bezier(0.22, 1.45, 0.36, 1),
     width 320ms ease,
     height 320ms ease,
     padding 320ms ease,
@@ -85,11 +98,48 @@ watch([() => props.type, () => props.visible], ([type, visible], [previousType])
     0 3px 7px rgb(0 0 0 / 16%);
 }
 
+.float-button.pcl-primary-action:hover:not(:disabled),
+.float-button.pcl-primary-action:active:not(:disabled) {
+  transition-duration: 900ms, 320ms, 320ms, 320ms, 180ms, 160ms, 180ms, 180ms, 160ms;
+}
+
 .float-icon {
+  position: relative;
   display: grid;
   place-items: center;
   flex: 0 0 16px;
   height: 16px;
+}
+
+.progress-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.progress-fill {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgb(255 255 255 / 19%);
+}
+
+.progress-fill::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: 4px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='4' viewBox='0 0 40 4'%3E%3Cpath d='M0 2C10 2 10 0 20 0S30 2 40 2V4H0Z' fill='white' fill-opacity='.19'/%3E%3C/svg%3E") repeat-x;
+  animation: progress-wave 3s linear infinite;
+}
+
+@keyframes progress-wave {
+  to { background-position-x: 40px; }
 }
 
 .float-label {
@@ -130,7 +180,7 @@ watch([() => props.type, () => props.visible], ([type, visible], [previousType])
   border-radius: 50%;
   background: var(--color-tint-lighter);
   opacity: 0;
-  animation: float-ripple 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: float-ripple 800ms cubic-bezier(0.16, 1, 0.3, 1) 450ms both;
 }
 
 @keyframes float-ripple {
@@ -149,10 +199,15 @@ watch([() => props.type, () => props.visible], ([type, visible], [previousType])
 
 @media (prefers-reduced-motion: reduce) {
   .float-button.pcl-primary-action,
+  .float-button.pcl-primary-action:hover:not(:disabled),
+  .float-button.pcl-primary-action:active:not(:disabled),
   .float-label {
     transition: none;
   }
   .float-ripple {
+    animation: none;
+  }
+  .progress-fill::before {
     animation: none;
   }
 }
