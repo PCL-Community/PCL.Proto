@@ -10,6 +10,11 @@ withDefaults(defineProps<{ severity: Severity; closable?: boolean }>(), {
 })
 
 const visibility = ref(true)
+const emit = defineEmits<{ close: [] }>()
+function close() {
+  visibility.value = false
+  emit('close')
+}
 </script>
 
 <template>
@@ -20,7 +25,7 @@ const visibility = ref(true)
       :aria-label="pclText('Proto.Action.CloseHint')"
       class="button-animated"
       v-if="closable"
-      @click="visibility = false"
+      @click="close"
     >
       <PSvgIcon name="lucide/x" :size="14" />
     </button>

@@ -1,6 +1,7 @@
 //! IPC adapters grouped by business responsibility; command names stay stable.
 
 pub mod account;
+pub mod homepage;
 pub mod instance_resources;
 pub mod instances;
 pub mod java;

@@ -91,6 +91,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             system_fonts,
+            commands::homepage::load_custom_homepage,
+            commands::homepage::save_custom_homepage,
             commands::launch::begin_launch,
             commands::launch::cancel_launch,
             commands::launch::launch_game,

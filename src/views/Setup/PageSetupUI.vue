@@ -3,8 +3,9 @@ import { useRouter } from 'vue-router'
 import { showUnavailable } from '@/util/showUnavailable'
 import { pclText } from '@/api/pclLocale'
 import { appearance } from '@/api/appearance'
+import { homepagePresets, homepageRevision } from '@/api/customHomepage'
 import { isTauri, invoke } from '@tauri-apps/api/core'
-import { computed, ref } from 'vue'
+import { computed, ref, toRef } from 'vue'
 import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PCheckBox from '@/components/widget/PCheckBox.vue'
@@ -12,17 +13,54 @@ import PComboBox from '@/components/widget/PComboBox.vue'
 import PHint from '@/components/widget/PHint.vue'
 import PTextBox from '@/components/widget/PTextBox.vue'
 import { openExternal } from '@/util/externalLink'
+import sideTip from '@/composables/sideTip'
 withDefaults(defineProps<{ hasBackground?: boolean; hasMusic?: boolean }>(), {
   hasBackground: false,
   hasMusic: false,
 })
-const { values } = appearance
+const values = toRef(appearance, 'values')
+function editHomepage() {
+  void router.push('/homepageeditor')
+}
+const homepageOptions = [
+  { key: '0', title: 'Setup.Ui.Homepage.Blank' },
+  { key: '3', title: 'Setup.Ui.Homepage.Preset' },
+  { key: '1', title: 'Setup.Ui.Homepage.LocalFile' },
+  { key: '2', title: 'Setup.Ui.Homepage.NetUpdate' },
+]
+const homepagePresetOptions = computed(() =>
+  homepagePresets.map((preset) => ({
+    key: preset.key,
+    text: pclText(`Setup.Ui.Homepage.Preset.${preset.name}`),
+  })),
+)
+function setHomepageType(value: string) {
+  values.value.UiCustomType = value
+}
+function refreshHomepage() {
+  homepageRevision.value++
+  sideTip.show(pclText('Setup.Ui.Homepage.Refresh.Success'), 'success')
+}
+const homepageWarningDismissed = ref(false)
+try {
+  homepageWarningDismissed.value = localStorage.getItem('pcl-homepage:warning-dismissed') === 'true'
+} catch {
+  /* Keep the warning visible when storage is unavailable. */
+}
+function dismissHomepageWarning() {
+  homepageWarningDismissed.value = true
+  try {
+    localStorage.setItem('pcl-homepage:warning-dismissed', 'true')
+  } catch {
+    /* The dismissal remains active for this session. */
+  }
+}
 const fonts = ref<string[]>([])
 const fontOptions = computed(() => [
   { key: '', text: pclText('Common.Option.Default') },
   ...Array.from(
     new Set(
-      [...fonts.value, values.ComboUiFont, values.ComboUiMotdFont].filter(
+      [...fonts.value, values.value.ComboUiFont, values.value.ComboUiMotdFont].filter(
         (font) => font && font !== 'system-ui',
       ),
     ),
@@ -464,39 +502,23 @@ const text = pclText
     </PCard>
     <PCard :title="text('Setup.Ui.Logo.Title')">
       <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
-        <div
-          style="
-            margin: 0px 0px 0px -1px;
-            display: grid;
-            grid-template-columns:
-              minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)
-              minmax(0, 0.2fr);
-          "
-        >
-          <label
-            style="height: 22px; grid-row: 1 / span 1; grid-column: 1 / span 1"
-            class="pcl-radio"
+        <div class="setup-radio-options">
+          <label class="pcl-radio"
             ><input disabled type="radio" v-model="values['UiLogoType']" value="0" />{{
               text('Setup.Ui.Logo.None')
             }}</label
           >
-          <label
-            style="height: 22px; grid-row: 1 / span 1; grid-column: 2 / span 1"
-            class="pcl-radio"
+          <label class="pcl-radio"
             ><input disabled type="radio" v-model="values['UiLogoType']" value="1" />{{
               text('Common.Option.Default')
             }}</label
           >
-          <label
-            style="height: 22px; grid-row: 1 / span 1; grid-column: 3 / span 1"
-            class="pcl-radio"
+          <label class="pcl-radio"
             ><input disabled type="radio" v-model="values['UiLogoType']" value="2" />{{
               text('Setup.Ui.Logo.Text')
             }}</label
           >
-          <label
-            style="height: 22px; grid-row: 1 / span 1; grid-column: 4 / span 1"
-            class="pcl-radio"
+          <label class="pcl-radio"
             ><input disabled type="radio" v-model="values['UiLogoType']" value="3" />{{
               text('Setup.Ui.Logo.Image')
             }}</label
@@ -573,158 +595,65 @@ const text = pclText
       </div>
     </PCard>
     <PCard :title="text('Setup.Ui.Homepage.Title')">
-      <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
-        <div
-          style="
-            margin: 0px 0px 0px -1px;
-            display: grid;
-            grid-template-columns:
-              minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)
-              minmax(0, 0.2fr);
-          "
-        >
-          <label
-            style="height: 22px; grid-row: 1 / span 1; grid-column: 1 / span 1"
-            class="pcl-radio"
-            ><input disabled type="radio" v-model="values['UiCustomType']" value="0" />{{
-              text('Setup.Ui.Homepage.Blank')
-            }}</label
-          >
-          <label
-            style="height: 22px; grid-row: 1 / span 1; grid-column: 2 / span 1"
-            class="pcl-radio"
-            ><input disabled type="radio" v-model="values['UiCustomType']" value="3" />{{
-              text('Setup.Ui.Homepage.Preset')
-            }}</label
-          >
-          <label
-            style="height: 22px; grid-row: 1 / span 1; grid-column: 3 / span 1"
-            class="pcl-radio"
-            ><input disabled type="radio" v-model="values['UiCustomType']" value="1" />{{
-              text('Setup.Ui.Homepage.LocalFile')
-            }}</label
-          >
-          <label
-            style="height: 22px; grid-row: 1 / span 1; grid-column: 4 / span 1"
-            class="pcl-radio"
-            ><input disabled type="radio" v-model="values['UiCustomType']" value="2" />{{
-              text('Setup.Ui.Homepage.NetUpdate')
-            }}</label
-          >
+      <div class="homepage-settings">
+        <div class="setup-radio-options homepage-options">
+          <label v-for="option in homepageOptions" :key="option.key" class="pcl-radio">
+            <input
+              type="radio"
+              name="homepage-type"
+              :checked="values.UiCustomType === option.key"
+              :value="option.key"
+              @change="setHomepageType(option.key)"
+            />{{ text(option.title) }}
+          </label>
         </div>
-        <PHint style="margin: 15px 0px -4px 0px" severity="info">{{
-          text('Setup.Ui.Homepage.HintReferToModSetup')
+        <PHint v-if="values.UiCustomType === '1'" severity="info" class="homepage-hint">{{
+          text('Proto.Homepage.LocalHint')
         }}</PHint>
+        <PHint v-else-if="values.UiCustomType === '2'" severity="info" class="homepage-hint">
+          {{ text('Setup.Ui.Homepage.NetUpdate.Hint') }}
+          <button
+            type="button"
+            class="homepage-hint-link"
+            @click="openExternal('https://github.com/PCL-Community/PCL-CE/discussions')"
+          >
+            {{ text('Proto.Homepage.Submit') }}
+          </button>
+        </PHint>
         <PHint
-          v-if="values.UiCustomType === '2'"
-          style="margin: 15px 0px 6px 0px"
+          v-if="
+            (values.UiCustomType === '1' || values.UiCustomType === '2') &&
+            !homepageWarningDismissed
+          "
           severity="warning"
           closable
+          @close="dismissHomepageWarning"
           >{{ text('Setup.Ui.Homepage.NetWarning') }}</PHint
         >
-        <div
-          style="
-            height: 35px;
-            margin: 10px 0px 5px 0px;
-            display: grid;
-            grid-template-columns: auto auto auto;
-          "
-          v-if="values.UiCustomType === '1'"
-        >
-          <PButton
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-              justify-self: start;
-            "
-            @click="() => router.push('/home')"
-            type="tint"
-            >{{ text('Setup.Ui.Homepage.Refresh') }}</PButton
-          >
-          <PButton
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 2 / span 1;
-              justify-self: start;
-            "
-            @click="() => openExternal('https://github.com/Hex-Dragon/PCL2/wiki/自定义主页')"
-            >{{ text('Setup.Ui.Homepage.Tutorial') }}</PButton
-          >
-        </div>
-        <div
-          style="
-            margin: 10px 0px 5px 0px;
-            display: grid;
-            grid-template-columns: auto minmax(0, 1fr);
-          "
-          v-if="values.UiCustomType === '2'"
-        >
-          <span
-            style="
-              margin: 0px 25px 0px 0px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-              justify-self: start;
-              align-self: center;
-            "
-            class="pcl-text"
-            >{{ text('Setup.Ui.Homepage.DownloadUrl') }}</span
-          >
+        <div v-if="values.UiCustomType === '2'" class="pcl-form-row">
+          <label for="homepage-url">{{ text('Setup.Ui.Homepage.DownloadUrl') }}</label>
           <PTextBox
-            disabled
-            style="max-height: 28px; grid-row: 1 / span 1; grid-column: 2 / span 1"
-            :placeholder="text('')"
+            input-id="homepage-url"
             v-model="values.TextCustomNet"
+            placeholder="https://example.com/Custom.xaml"
           />
         </div>
-        <div
-          style="
-            height: 28px;
-            margin: 12px 10px 5px 0px;
-            display: grid;
-            grid-template-columns: auto minmax(0, 1fr);
-          "
-          v-if="values.UiCustomType === '3'"
-        >
-          <span
-            style="
-              margin: 0px 25px 0px 0px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-              justify-self: start;
-              align-self: center;
-            "
-            class="pcl-text"
-            >{{ text('Setup.Ui.Homepage.PresetLabel') }}</span
-          >
+        <div v-if="values.UiCustomType === '3'" class="pcl-form-row">
+          <label>{{ text('Setup.Ui.Homepage.PresetLabel') }}</label>
           <PComboBox
-            disabled
-            style="grid-row: 1 / span 1; grid-column: 2 / span 2"
-            :options="[
-              { key: '0', text: text('Setup.Ui.Homepage.Preset.Trivia') },
-              { key: '1', text: text('Setup.Ui.Homepage.Preset.McNews') },
-              { key: '2', text: text('Setup.Ui.Homepage.Preset.DailyModpack') },
-              { key: '3', text: text('Setup.Ui.Homepage.Preset.McSkin') },
-              { key: '4', text: text('Setup.Ui.Homepage.Preset.OpenBmclapi') },
-              { key: '5', text: text('Setup.Ui.Homepage.Preset.PclManual') },
-              { key: '6', text: text('Setup.Ui.Homepage.Preset.Magazine') },
-              { key: '7', text: text('Setup.Ui.Homepage.Preset.GitHub') },
-              { key: '8', text: text('Setup.Ui.Homepage.Preset.McUpdateSummary') },
-              { key: '9', text: text('Setup.Ui.Homepage.Preset.NewsToday') },
-              { key: '10', text: text('Setup.Ui.Homepage.Preset.MinecraftKnowledge') },
-              { key: '11', text: text('Setup.Ui.Homepage.Preset.ModpackRecommendation') },
-              { key: '12', text: text('Setup.Ui.Homepage.Preset.Bangumi') },
-              { key: '13', text: text('Setup.Ui.Homepage.Preset.PclAnnouncement') },
-              { key: '14', text: text('Setup.Ui.Homepage.Preset.McOfficialFeed') },
-            ]"
             v-model="values.ComboCustomPreset"
+            :options="homepagePresetOptions"
+            :aria-label="text('Setup.Ui.Homepage.PresetLabel')"
           />
+        </div>
+        <div v-if="values.UiCustomType === '1'" class="homepage-actions">
+          <PButton type="tint" @click="refreshHomepage">{{
+            text('Setup.Ui.Homepage.Refresh')
+          }}</PButton>
+          <PButton @click="editHomepage">{{ text('Proto.Title.HomepageEditor') }}</PButton>
+          <PButton @click="openExternal('https://docs.pclc.cc/ce/customization/xaml-format')">{{
+            text('Setup.Ui.Homepage.Tutorial')
+          }}</PButton>
         </div>
       </div>
     </PCard>
@@ -1000,5 +929,46 @@ const text = pclText
 <style scoped>
 .logo-image-actions {
   justify-content: start;
+}
+</style>
+
+<style scoped>
+.homepage-settings {
+  display: flex;
+  container-type: inline-size;
+  flex-direction: column;
+  gap: 15px;
+  padding: 0 25px 20px;
+}
+.setup-radio-options {
+  display: flex;
+  margin-left: -1px;
+}
+.setup-radio-options > .pcl-radio {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 22px;
+}
+.homepage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.homepage-actions :deep(.mybutton) {
+  min-height: 35px;
+  min-width: 140px;
+  padding: 0 13px;
+}
+.homepage-hint {
+  white-space: pre-line;
+}
+.homepage-hint-link {
+  border: 0;
+  background: none;
+  color: inherit;
+  padding: 0 0 0 6px;
+  cursor: pointer;
+  text-decoration: underline;
+  font: inherit;
 }
 </style>

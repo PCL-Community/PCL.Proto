@@ -1,10 +1,13 @@
 <script lang="ts" setup>
-import { onUnmounted, ref, useTemplateRef, watch } from 'vue'
+import { ref, useAttrs, useTemplateRef, watch } from 'vue'
 import IconUnfold from '../icons/control/IconUnfold.vue'
+import { observeCardResize } from '@/util/cardResize'
 
 export type FoldStatus = 'unfold' | 'fold' | 'unfoldable'
 export type FoldArrow = 'down' | 'right'
 
+defineOptions({ inheritAttrs: false })
+const attrs = useAttrs()
 const props = withDefaults(
   defineProps<{
     hideTitle?: boolean
@@ -25,22 +28,14 @@ const props = withDefaults(
 const foldState = ref<FoldStatus>(props.defaultFoldStatus)
 // Keep opened content alive so folding preserves form and selection state.
 const contentMounted = ref(props.defaultFoldStatus !== 'fold')
-const cardHeight = ref<number>(40)
 const mycardInnerRef = useTemplateRef<HTMLElement>('mycardInner')
-const shouldSpring = ref<boolean>(true)
-
-let observer: ResizeObserver | null = null
+const cardRef = useTemplateRef<HTMLElement>('card')
 
 function toggleFold() {
   if (props.disabled) return
   switch (foldState.value) {
     case 'unfold':
       foldState.value = 'fold'
-      // 卡片折叠状态固定为高度40
-      // 在此处赋值是因为卡片内容有过渡时间
-      // 切换时就赋值可以让卡片高度和内容的过渡同时进行
-      shouldSpring.value = cardHeight.value < 500
-      cardHeight.value = 40
       break
     case 'fold':
       contentMounted.value = true
@@ -57,37 +52,23 @@ watch(
 )
 function collapse() {
   if (foldState.value !== 'unfold') return
-  shouldSpring.value = cardHeight.value < 500
   foldState.value = 'fold'
-  cardHeight.value = 40
 }
 defineExpose({ collapse })
 
 watch(
-  [mycardInnerRef, contentMounted],
-  ([inner, mounted]) => {
-    observer?.disconnect()
-    // Only opened, foldable cards need height measurement.
-    if (!inner || !mounted || foldState.value === 'unfoldable') return
-    observer = new ResizeObserver(() => {
-      // 若非折叠状态需要根据内容调整高度
-      // 为了方便使高度动画具有回弹动效，使用observer侦测内容来赋值而非让其自动撑开
-      if (foldState.value != 'fold') {
-        const height = inner.offsetHeight
-        shouldSpring.value = height < 500
-        cardHeight.value = height
-      }
-    })
-    observer.observe(inner)
+  [mycardInnerRef, cardRef],
+  ([inner, card], _, onCleanup) => {
+    if (inner && card) onCleanup(observeCardResize(inner, card))
   },
   { flush: 'post' },
 )
-
-onUnmounted(() => observer?.disconnect())
 </script>
 
 <template>
   <div
+    ref="card"
+    v-bind="attrs"
     :class="[
       'mycard-container',
       foldState,
@@ -97,14 +78,7 @@ onUnmounted(() => observer?.disconnect())
         'fold-arrow-right': foldArrow === 'right',
       },
     ]"
-    :style="
-      foldState === 'unfoldable'
-        ? undefined
-        : {
-            height: `${cardHeight}px`,
-            '--card-height-easing': shouldSpring ? 'cubic-bezier(0.34, 1.56, 0.64, 1)' : 'ease',
-          }
-    "
+    :style="foldState === 'fold' ? { height: 'auto' } : undefined"
   >
     <div class="mycard" ref="mycardInner" :class="{ 'hide-title': hideTitle }">
       <header
@@ -129,50 +103,32 @@ onUnmounted(() => observer?.disconnect())
           <i v-if="!disabled && foldState !== 'unfoldable'"><IconUnfold /></i>
         </div>
       </header>
-      <Transition name="card-content">
-        <section
-          class="mycard-content"
-          v-if="contentMounted && ($slots.content || $slots.default)"
-          v-show="foldState == 'unfold' || foldState == 'unfoldable'"
-        >
-          <!-- 此处为兼容性设计：content被设置时显示content内容，否则显示默认插槽内容 -->
-          <slot name="content"><slot></slot></slot>
-        </section>
-      </Transition>
+      <section
+        class="mycard-content"
+        v-if="contentMounted && ($slots.content || $slots.default)"
+        :inert="foldState === 'fold' || undefined"
+        :aria-hidden="foldState === 'fold' || undefined"
+      >
+        <!-- 此处为兼容性设计：content被设置时显示content内容，否则显示默认插槽内容 -->
+        <slot name="content"><slot></slot></slot>
+      </section>
     </div>
   </div>
 </template>
 
 <style>
-.card-content-enter-active,
-.card-content-leave-active {
-  transition: opacity 0.2s;
-}
-
-.card-content-enter-from,
-.card-content-leave-to {
-  opacity: 0;
-}
-
 .mycard-container {
   flex-shrink: 0;
-  transition:
-    height 0.4s var(--card-height-easing, ease),
-    box-shadow 90ms linear;
+  transition: box-shadow 90ms linear;
   border-radius: 6px;
   background: var(--color-background-soft);
   box-shadow: 0px 0px 6px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
-.mycard-container.overflow-visible,
-.mycard-container.overflow-visible > .mycard > .mycard-content {
+.mycard-container.overflow-visible:not(.fold),
+.mycard-container.overflow-visible:not(.fold) > .mycard > .mycard-content {
   overflow: visible;
-}
-
-.mycard-container.fold {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 40px;
 }
 
 .mycard-container:hover {
@@ -184,7 +140,13 @@ onUnmounted(() => observer?.disconnect())
 }
 
 .mycard {
+  position: relative;
   padding: 0;
+}
+
+.mycard-container.fold .mycard-content {
+  position: absolute;
+  width: 100%;
 }
 
 .mycard.hide-title {

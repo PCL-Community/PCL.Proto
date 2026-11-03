@@ -218,7 +218,7 @@ watch(
     if (!pending) return
     launchState.pendingServer = null
     if (pending.directory === instance.instance_info?.directory && !preparing.value) {
-      void launch(pending.address)
+      void launch(pending.address || undefined)
     } else {
       sideTip.show(text('Instance.Server.Card.LaunchFailed'), 'warn')
     }
