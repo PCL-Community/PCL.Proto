@@ -91,16 +91,9 @@ impl Identify {
 }
 
 pub fn get_pcl_hash(str: &str) -> u64 {
-    let mut result = 5381 as u64;
+    let mut result = 5381_u64;
     for c in str.chars() {
         result = (result << 5) ^ result ^ c as u64;
     }
-    result ^ 0xA98F501BC684032F as u64
-}
-
-#[test]
-fn serial_test() {
-    let serial = get_board_serial().unwrap();
-    let pcl_hash = get_pcl_hash(&serial);
-    println!("serial: {}, pcl_hash: {:?}", serial, pcl_hash);
+    result ^ 0xA98F501BC684032F_u64
 }

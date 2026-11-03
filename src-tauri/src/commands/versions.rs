@@ -27,7 +27,7 @@ pub async fn get_version_manifest(
         .await
     {
         Ok(manifest) => Ok(manifest),
-        Err(e) => return Err(format!("get_version_manifest: {:?}", e)),
+        Err(e) => Err(format!("get_version_manifest: {:?}", e)),
     }
 }
 
@@ -38,7 +38,7 @@ pub async fn handle_clicked_on_version(
     id: &str,
 ) -> Result<api_client::game::McVersion, String> {
     let temp_dir = std::env::temp_dir().join(format!("pcl-proto-{}", id));
-    log::debug!("selected tmp: {:?}", &temp_dir);
+    log::debug!("selected tmp: {:?}", temp_dir);
     let version_detail = client
         .get_version_details(id, &temp_dir)
         .await

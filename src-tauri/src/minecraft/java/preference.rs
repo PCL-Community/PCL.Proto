@@ -170,7 +170,7 @@ pub fn select(
         .filter_map(|j| reprobe(&j.java_exe, known))
         .filter(|j| requirements.accepts(j.parsed_version()))
         .collect::<Vec<_>>();
-    candidates.sort_by(|a, b| candidate_order(a, b));
+    candidates.sort_by(candidate_order);
     (candidates.into_iter().next(), warnings)
 }
 

@@ -104,8 +104,7 @@ impl JavaRequirements {
             min = JavaVersion::major(16);
         } else if release >= "2017" || vanilla.is_some_and(|v| v.0 >= 12) {
             min = JavaVersion::major(8);
-        } else if (release >= "2001" && release <= "2013-05-01")
-            || vanilla.is_some_and(|v| v <= (5, 2))
+        } else if ("2001"..="2013-05-01").contains(&release) || vanilla.is_some_and(|v| v <= (5, 2))
         {
             max = JavaVersion::upper(8);
         }
@@ -149,7 +148,7 @@ impl JavaRequirements {
         }
         if let Some(forge) = loader(&["net.minecraftforge", "forge"]) {
             match vanilla {
-                Some(v) if v >= (6, 1) && v <= (7, 2) => {
+                Some(v) if ((6, 1)..=(7, 2)).contains(&v) => {
                     min = min.max(JavaVersion::major(7));
                     max = max.min(JavaVersion::upper(7));
                 }

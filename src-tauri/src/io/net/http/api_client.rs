@@ -488,10 +488,8 @@ impl MinecraftApiClient {
         allow_from_cache: bool,
     ) -> McApiResult<T> {
         let now = Instant::now();
-        if allow_from_cache {
-            if let Some(data) = self.cache_hit(url) {
-                return Ok(data);
-            }
+        if allow_from_cache && let Some(data) = self.cache_hit(url) {
+            return Ok(data);
         }
         let data = self.get_inner(url).await?;
         self.cache_store(url, now, &data);
@@ -594,7 +592,7 @@ impl MinecraftApiClient {
                 let xml_text = response.text().await?;
                 let metadata: plugins::forge_xml::Metadata = quick_xml::de::from_str(&xml_text)?;
                 let matched_versions = metadata.find_versions_of_game(version_id);
-                return Ok(matched_versions);
+                Ok(matched_versions)
             }
             ApiProvider::BMCLApi => {
                 drop(guard);
@@ -608,14 +606,14 @@ impl MinecraftApiClient {
                     .get(&format!("{forge_base}/minecraft/{version_id}"), true)
                     .await?;
                 log::debug!("BMCL forge info count: {:?}", forge_info.len());
-                return Ok(forge_info
+                Ok(forge_info
                     .iter()
                     .map(|info| McPluginReport {
                         version: info.version.clone(),
                         stable: None,
                         release_time: Some(info.modified.clone()),
                     })
-                    .collect());
+                    .collect())
             }
         }
     }

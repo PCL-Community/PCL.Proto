@@ -194,7 +194,7 @@ fn forge_update_limits_and_declared_major_sets_are_not_continuous_ranges() {
 
 #[test]
 fn candidate_sorting_prefers_the_lowest_compatible_major_and_native_architecture() {
-    let mut list = vec![
+    let mut list = [
         runtime("25.0.1", "Eclipse", true),
         runtime("21.0.8", "Azul", true),
         runtime("21.0.1", "Eclipse", false),
@@ -257,15 +257,15 @@ fn platform_runtime_keys_and_compatibility_are_explicit() {
     }
     assert_eq!(install::platform_key("linux", "aarch64"), None);
     assert!(matches!(
-        compatibility_for(OS::macOS, "aarch64", &Architecture::Arm64),
+        compatibility_for(OS::MacOs, "aarch64", &Architecture::Arm64),
         Compatibility::Perfect
     ));
     assert!(matches!(
-        compatibility_for(OS::macOS, "aarch64", &Architecture::X64),
+        compatibility_for(OS::MacOs, "aarch64", &Architecture::X64),
         Compatibility::Translation
     ));
     assert!(matches!(
-        compatibility_for(OS::macOS, "x86_64", &Architecture::X86),
+        compatibility_for(OS::MacOs, "x86_64", &Architecture::X86),
         Compatibility::No
     ));
     assert!(matches!(

@@ -117,7 +117,7 @@ fn mod_details(path: &Path) -> ModDetails {
                     .as_object()?
                     .values()
                     .filter_map(|v| v.as_str())
-                    .last()
+                    .next_back()
                     .map(str::to_owned)
             })
             .or_else(|| field(metadata, "logoFile"));

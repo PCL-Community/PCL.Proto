@@ -785,16 +785,17 @@ fn merge_fabric_profile(
                     .iter()
                     .cloned(),
             );
-        } else if key == "game" && !merged.is_empty() {
-            if let Some(legacy) = metadata.get("minecraftArguments") {
-                let legacy = legacy.as_str().context("Invalid legacy game arguments")?;
-                merged.extend(
-                    shlex::split(legacy)
-                        .context("Invalid legacy game arguments")?
-                        .into_iter()
-                        .map(serde_json::Value::String),
-                );
-            }
+        } else if key == "game"
+            && !merged.is_empty()
+            && let Some(legacy) = metadata.get("minecraftArguments")
+        {
+            let legacy = legacy.as_str().context("Invalid legacy game arguments")?;
+            merged.extend(
+                shlex::split(legacy)
+                    .context("Invalid legacy game arguments")?
+                    .into_iter()
+                    .map(serde_json::Value::String),
+            );
         }
         arguments[key] = merged.into();
     }
@@ -845,6 +846,8 @@ async fn install_version(
     .await
 }
 
+// 安装流程的参数本来就是一路透传的上下文，拆成结构体只会多一层解构。
+#[allow(clippy::too_many_arguments)]
 async fn install_version_with_modpack(
     client: &MinecraftApiClient,
     repo: &Path,

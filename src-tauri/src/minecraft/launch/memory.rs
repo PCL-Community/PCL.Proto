@@ -59,16 +59,17 @@ pub struct MemorySnapshot {
 
 impl MemorySettings {
     pub fn validate(&self) -> Result<(), String> {
-        if let Self::Custom {
+        let Self::Custom {
             maximum_mib,
             initial_mib,
         } = self
+        else {
+            return Ok(());
+        };
+        if !(307..=49152).contains(maximum_mib)
+            || initial_mib.is_some_and(|value| value < 307 || value > *maximum_mib)
         {
-            if !(307..=49152).contains(maximum_mib)
-                || initial_mib.is_some_and(|value| value < 307 || value > *maximum_mib)
-            {
-                return Err("Invalid game memory allocation".into());
-            }
+            return Err("Invalid game memory allocation".into());
         }
         Ok(())
     }

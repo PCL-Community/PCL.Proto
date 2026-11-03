@@ -58,12 +58,12 @@ pub async fn set_memory_settings(
         Some(custom),
     ) = (&settings, &custom)
     {
-        if *maximum_mib != custom.maximum_mib
+        let mismatch = *maximum_mib != custom.maximum_mib
             || *initial_mib
                 != custom
                     .initial_mib
-                    .map(|value| value.min(custom.maximum_mib))
-        {
+                    .map(|value| value.min(custom.maximum_mib));
+        if mismatch {
             return Err("Custom memory values do not match the active settings".into());
         }
     }

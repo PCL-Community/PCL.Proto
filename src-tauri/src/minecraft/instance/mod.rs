@@ -46,6 +46,8 @@ pub struct McInstance {
 }
 
 #[derive(Debug)]
+// 三个变体都以 InvalidVersion 开头是有意的：它们都表示“这个版本装不起来”。
+#[allow(clippy::enum_variant_names)]
 pub enum McInstanceError {
     InvalidVersionFolder,
     InvalidVersionJson,
@@ -351,10 +353,7 @@ pub fn prepare_shortcut_directory(
         match fs::create_dir(&directory) {
             Ok(()) => (),
             Err(error)
-                if error.kind() == std::io::ErrorKind::AlreadyExists && directory.is_dir() =>
-            {
-                ()
-            }
+                if error.kind() == std::io::ErrorKind::AlreadyExists && directory.is_dir() => {}
             Err(error) => return Err(error),
         }
     }
@@ -749,17 +748,6 @@ mod inheritance_tests {
         assert!(incomplete.resolved_metadata().is_err());
         fs::remove_dir_all(root).unwrap();
     }
-}
-
-#[cfg(test)]
-#[test]
-fn from_version_folder() {
-    let version_folder =
-        PathBuf::from("/Users/amagicpear/HMCL/.minecraft/versions/Fabulously Optimized 1.21.5");
-    let game_repo = McFolder::new("HMCL", PathBuf::from("/Users/amagicpear/HMCL/.minecraft"));
-    let game_repo = Arc::new(game_repo);
-    let instance = McInstance::from_version_folder(&version_folder, &game_repo);
-    println!("{:?}", instance);
 }
 
 #[cfg(test)]

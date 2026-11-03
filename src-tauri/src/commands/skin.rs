@@ -32,11 +32,11 @@ pub async fn fetch_uuid_profile(
     client: tauri::State<'_, &MinecraftApiClient>,
 ) -> Result<Value, String> {
     let session_url = format!("https://sessionserver.mojang.com/session/minecraft/profile/{uuid}");
-    let session_data = client
+
+    client
         .get::<Value>(&session_url, true)
         .await
-        .map_err(|err| err.to_string());
-    session_data
+        .map_err(|err| err.to_string())
 }
 
 #[tauri::command]

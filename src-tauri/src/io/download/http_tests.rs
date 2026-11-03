@@ -15,9 +15,11 @@ enum Behavior {
     DisconnectOnce,
     Corrupt,
 }
+/// 每次请求记录的 `(起始, 结束)` 字节区间；`None` 表示一次无效请求。
+type RequestLog = Arc<Mutex<Vec<Option<(u64, u64)>>>>;
 struct Server {
     url: String,
-    requests: Arc<Mutex<Vec<Option<(u64, u64)>>>>,
+    requests: RequestLog,
     peak: Arc<AtomicUsize>,
     task: tokio::task::JoinHandle<()>,
 }
@@ -324,8 +326,10 @@ fn info(server: &Server, body: &[u8]) -> DownloadFile {
     }
 }
 fn downloader(max: usize, file: usize) -> Downloader {
-    let mut downloader = Downloader::default();
-    downloader.resources = Arc::new(DownloadResources::default());
+    let downloader = Downloader {
+        resources: Arc::new(DownloadResources::default()),
+        ..Default::default()
+    };
     downloader
         .resources
         .configure(resources::DownloadSettings {

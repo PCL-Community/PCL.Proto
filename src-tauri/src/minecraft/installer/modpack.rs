@@ -255,7 +255,7 @@ fn extract_overrides(
         let mut seen = HashSet::new();
         for i in 0..archive.len() {
             let mut entry = archive.by_index(i)?;
-            let entry_name = entry.name()?.to_owned();
+            let entry_name = entry.name()?.into_owned();
             let Some(relative) = entry_name.strip_prefix(&prefix) else {
                 continue;
             };

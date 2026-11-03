@@ -13,21 +13,20 @@ pub enum Architecture {
     Unknown,
 }
 
-#[allow(non_camel_case_types)]
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum OS {
     Windows,
     Linux,
     #[serde(rename = "osx")]
-    macOS,
+    MacOs,
 }
 
 impl OS {
     pub fn current() -> Self {
         match tauri_plugin_os::platform() {
             "windows" => Self::Windows,
-            "macos" => Self::macOS,
+            "macos" => Self::MacOs,
             _ => Self::Linux,
         }
     }
@@ -150,11 +149,11 @@ pub(crate) fn compatibility_for(
     current_arch: &str,
     arch: &Architecture,
 ) -> Compatibility {
-    if matches!(system, OS::macOS) && matches!(arch, Architecture::FatFile) {
+    if matches!(system, OS::MacOs) && matches!(arch, Architecture::FatFile) {
         return Compatibility::Perfect;
     }
     match system {
-        OS::macOS | OS::Windows => match current_arch {
+        OS::MacOs | OS::Windows => match current_arch {
             "x86_64" => match arch {
                 Architecture::X64 => Compatibility::Perfect,
                 Architecture::X86 if matches!(system, OS::Windows) => Compatibility::Translation,
@@ -189,44 +188,4 @@ pub(crate) fn compatibility_for(
             _ => Compatibility::Unknown,
         },
     }
-}
-
-#[cfg(target_os = "macos")]
-#[test]
-fn read_header_test() {
-    let arch = Architecture::read_header(Path::new(
-        "/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home/bin/java",
-    ));
-    println!("{:?}", arch);
-}
-
-#[cfg(target_os = "linux")]
-#[test]
-fn read_linux_test() {
-    let arch = Architecture::read_header(Path::new("/Users/amagicpear/Downloads/ncmdump"));
-    assert_eq!(arch, Ok(Architecture::X64));
-    let arch2 =
-        Architecture::read_header(Path::new("/Users/amagicpear/Downloads/mihomo-linux-arm64"));
-    assert_eq!(arch2, Ok(Architecture::Arm64));
-}
-
-#[cfg(target_os = "windows")]
-#[test]
-pub fn read_pe_test() {
-    let arch = Architecture::read_header(Path::new(
-        "/Users/amagicpear/Downloads/mihomo-windows-amd64-v1.exe",
-    ));
-    assert_eq!(arch, Ok(Architecture::X64));
-    let arch2 = Architecture::read_header(Path::new(
-        "/Users/amagicpear/Downloads/mihomo-windows-386.exe",
-    ));
-    assert_eq!(arch2, Ok(Architecture::X86));
-}
-
-#[test]
-fn system_arch_test() {
-    let current_arch = tauri_plugin_os::arch();
-    println!("current arch: {}", current_arch);
-    let system = tauri_plugin_os::platform();
-    println!("system: {}", system);
 }

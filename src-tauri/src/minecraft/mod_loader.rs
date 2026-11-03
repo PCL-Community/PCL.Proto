@@ -1,6 +1,7 @@
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ModLoaderType {
+    #[default]
     Vanilla,
     Forge,
     NeoForge,
@@ -8,10 +9,4 @@ pub enum ModLoaderType {
     LegacyFabric,
     Quilt,
     Optifine,
-}
-
-impl Default for ModLoaderType {
-    fn default() -> Self {
-        ModLoaderType::Vanilla
-    }
 }

@@ -174,7 +174,7 @@ pub async fn set_instance_java_settings(
     .map_err(|e| e.to_string())?;
     tauri::async_runtime::spawn_blocking(move || {
         ConfigManager::instance().update(|state| {
-            current_instance(&state, &instance_directory).map_err(|e| e.to_string())?;
+            current_instance(state, &instance_directory).map_err(|e| e.to_string())?;
             state.java_preferences.insert(instance_directory, settings);
             Ok(())
         })

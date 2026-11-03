@@ -16,6 +16,9 @@ use crate::{
 };
 use std::sync::Arc;
 
+/// `(自定义 JVM 参数, JVM 参数, 游戏参数)`，由 `metadata_arguments` 一次算好。
+type ArgumentGroups = (Vec<String>, Vec<String>, Vec<String>);
+
 /// Essential options for launching a Minecraft game
 pub struct LaunchOption {
     account: Arc<McProfile>,
@@ -411,10 +414,7 @@ impl LaunchOption {
         })
     }
 
-    fn metadata_arguments(
-        &self,
-        classpath: &str,
-    ) -> Result<(Vec<String>, Vec<String>, Vec<String>), GameLaunchError> {
+    fn metadata_arguments(&self, classpath: &str) -> Result<ArgumentGroups, GameLaunchError> {
         let instance = &self.game_instance;
         let assets = instance.global_dir.join("assets");
         let xuid = match self.account.as_ref() {
@@ -975,52 +975,6 @@ fn build_classpath(
     joined
         .into_string()
         .map_err(|_| GameLaunchError::InvalidMetadata("Classpath is not valid Unicode".into()))
-}
-
-#[cfg(test)]
-#[test]
-#[ignore = "Requires a specific local Minecraft installation and starts a real game"]
-pub fn game_launch_test() {
-    use crate::minecraft::instance::folder::McFolder;
-    use std::path::PathBuf;
-    use std::sync::Arc;
-
-    let account = Arc::new(McProfile::offline(
-        "AMagicPear",
-        "12345678-1234-1234-1234-123456789012",
-    ));
-
-    let game_repo = McFolder::new("HMCL", PathBuf::from("/Users/amagicpear/HMCL/.minecraft"));
-    let game_repo = Arc::new(game_repo);
-    let version_folder = PathBuf::from("/Users/amagicpear/HMCL/.minecraft/versions/1.21.8");
-    let game_instance =
-        Arc::new(McInstance::from_version_folder(&version_folder, &game_repo).unwrap());
-    let launch_option = LaunchOption {
-        account,
-        authlib: None,
-        java_runtime: Arc::new(JavaEntry::try_from("/usr/bin/java").unwrap()),
-        game_instance: game_instance.clone(),
-        game_directory: game_instance.directory.clone(),
-        max_memory: 4096,
-        initial_memory: None,
-        width: None,
-        height: None,
-        launcher_size: false,
-        version_details: game_instance.read_version_json().unwrap(),
-        natives_path: game_instance.natives_path.clone(),
-        arguments: crate::minecraft::launch::arguments::LaunchArguments::global_default(),
-        extras: Default::default(),
-        server: None,
-    }
-    .with_window_size(1280, 720);
-    if let Ok(mut child) = launch_option.launch() {
-        child.wait().unwrap();
-    } else {
-        eprintln!(
-            "launch failed, instance id:{:?}",
-            launch_option.game_instance.id
-        );
-    }
 }
 
 #[cfg(test)]

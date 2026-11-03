@@ -18,12 +18,13 @@ pub fn curseforge_api_key() -> Option<String> {
 
 /// 微软 OAuth 的 Client ID，对照 CE 的 `Secrets.MSOAuthClientId`。
 ///
-/// 优先使用编译期配置，其次运行环境变量，最后使用公开客户端。
-pub fn ms_oauth_client_id() -> String {
+/// 优先使用编译期配置，其次运行环境变量。没有内置默认值：旧版公开客户端
+/// `00000000402b5328` 已被微软设备码端点拒绝（`AADSTS700016`），回退到它只会
+/// 把配置缺失伪装成登录失败。CE 在未配置时同样直接报错。
+pub fn ms_oauth_client_id() -> Option<String> {
     usable_key(option_env!("MS_CLIENT_ID").map(str::to_owned))
         .or_else(|| usable_key(std::env::var("MS_CLIENT_ID").ok()))
         .or_else(|| usable_key(std::env::var("PCL_MS_CLIENT_ID").ok()))
-        .unwrap_or_else(|| "00000000402b5328".to_owned())
 }
 
 /// CurseForge 是否可用，供界面隐藏或禁用相关选项（对照 CE 的 SupportCurseForge）。
@@ -46,12 +47,12 @@ mod tests {
     }
 
     #[test]
-    fn microsoft_client_id_has_a_default() {
+    fn microsoft_client_id_has_no_fallback() {
         if usable_key(option_env!("MS_CLIENT_ID").map(str::to_owned)).is_none()
             && usable_key(std::env::var("MS_CLIENT_ID").ok()).is_none()
             && usable_key(std::env::var("PCL_MS_CLIENT_ID").ok()).is_none()
         {
-            assert_eq!(ms_oauth_client_id(), "00000000402b5328");
+            assert_eq!(ms_oauth_client_id(), None);
         }
     }
 }

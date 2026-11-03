@@ -71,7 +71,7 @@ pnpm dev
 > The CurseForge resource source needs an API key: set `CURSEFORGE_API_KEY` in the environment or in the git-ignored root `.env` before building. The key is embedded in the desktop binary, with a runtime environment fallback. Without it CurseForge is unavailable; the web preview cannot use it.
 
 > [!NOTE]
-> Microsoft login falls back to a legacy public client ID, but the current Microsoft device-code endpoint does not accept it. Set `MS_CLIENT_ID` in the build environment or the git-ignored root `.env`, or set `MS_CLIENT_ID` / `PCL_MS_CLIENT_ID` at runtime. The Azure app registration must support the device-code flow and the `XboxLive.signin offline_access` scope.
+> Microsoft login requires a Microsoft OAuth client ID and has no built-in default: the old public client ID is rejected by the Microsoft device-code endpoint, so login fails with `configuration_error` when unset. Set `MS_CLIENT_ID` in the build environment or the git-ignored root `.env`, or set `MS_CLIENT_ID` / `PCL_MS_CLIENT_ID` at runtime. The Azure app registration must support the device-code flow and the `XboxLive.signin offline_access` scope, and must be approved at <https://aka.ms/mce-reviewappid>; otherwise `login_with_xbox` returns 403.
 
 ### Build Tauri App
 

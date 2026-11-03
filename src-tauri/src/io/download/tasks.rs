@@ -70,13 +70,12 @@ pub async fn run<T>(
     struct Remove(i32, Arc<Task>);
     impl Drop for Remove {
         fn drop(&mut self) {
-            if let Ok(mut tasks) = TASKS.lock() {
-                if tasks
+            if let Ok(mut tasks) = TASKS.lock()
+                && tasks
                     .get(&self.0)
                     .is_some_and(|task| Arc::ptr_eq(task, &self.1))
-                {
-                    tasks.remove(&self.0);
-                }
+            {
+                tasks.remove(&self.0);
             }
         }
     }
@@ -113,10 +112,10 @@ pub async fn commit<T: Send + 'static>(
     tokio::task::spawn_blocking(move || {
         let _guard = guard;
         let result = operation();
-        if result.is_ok() {
-            if let Some(task) = task {
-                task.committed.store(true, Ordering::Release);
-            }
+        if result.is_ok()
+            && let Some(task) = task
+        {
+            task.committed.store(true, Ordering::Release);
         }
         result
     })

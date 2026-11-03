@@ -71,9 +71,13 @@ pub struct MicrosoftProvider {
 }
 
 impl MicrosoftProvider {
-    /// 使用配置的 Client ID，未配置时使用公开客户端。
+    /// 使用配置的 Client ID，未配置时直接报配置错误（CE 同样不接受空配置）。
     pub fn new() -> AuthResult<Self> {
-        let client_id = crate::app::secrets::ms_oauth_client_id();
+        let client_id = crate::app::secrets::ms_oauth_client_id().ok_or_else(|| {
+            AuthError::configuration(
+                "未配置微软 OAuth 的 Client ID：请在构建时设置 MS_CLIENT_ID，或通过 .env / 运行环境变量提供",
+            )
+        })?;
         Ok(Self {
             client: super::http_client()?,
             client_id,
@@ -436,11 +440,28 @@ impl MicrosoftProvider {
 mod tests {
     use super::*;
 
+    #[test]
+    fn provider_requires_a_configured_client_id() {
+        if crate::app::secrets::ms_oauth_client_id().is_some() {
+            return;
+        }
+        match MicrosoftProvider::new() {
+            Ok(_) => panic!("未配置 Client ID 时不应构造出 Provider"),
+            Err(error) => assert_eq!(error.code, "configuration_error"),
+        }
+    }
+
     /// 真实微软端点冒烟测试：只申请设备码，不完成登录。
     #[tokio::test]
-    #[ignore = "需要网络与微软端点"]
+    #[ignore = "需要网络、微软端点与已配置的 MS_CLIENT_ID"]
     async fn device_code_endpoint_returns_a_user_code() {
-        let provider = MicrosoftProvider::new().unwrap();
+        let provider = match MicrosoftProvider::new() {
+            Ok(provider) => provider,
+            Err(error) => {
+                eprintln!("跳过：未配置可用于冒烟测试的 Client ID（{error}）");
+                return;
+            }
+        };
         let data = provider.device_code().await.unwrap();
         assert!(!data.user_code.unwrap_or_default().is_empty());
         assert!(!data.verification_uri.unwrap_or_default().is_empty());

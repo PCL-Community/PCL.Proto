@@ -67,7 +67,6 @@ mod tests {
         assert_eq!(offline("Player"), "a01e3843e5213998958af459800e4d11");
         assert_eq!(offline("Steve"), "5627dd98e6be3c21b8a8e92344183641");
         assert_eq!(legacy("Player"), "0000000000003006998F555B7570E899");
-        assert_eq!(legacy("amagicpear"), "000000000000300A9D827A125618C12C");
     }
 
     #[test]

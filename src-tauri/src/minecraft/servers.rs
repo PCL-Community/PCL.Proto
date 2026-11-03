@@ -258,7 +258,10 @@ fn parse(bytes: &[u8]) -> Result<Document, String> {
     Ok(document)
 }
 
-fn read_file(path: &Path) -> Result<(Option<Vec<u8>>, Vec<u8>, u8), String> {
+/// `(原始字节, 解码后字节, 压缩方式)`，压缩方式 0=无、1=gzip、2=zlib。
+type ServersDatBytes = (Option<Vec<u8>>, Vec<u8>, u8);
+
+fn read_file(path: &Path) -> Result<ServersDatBytes, String> {
     let metadata = match fs::symlink_metadata(path) {
         Ok(metadata) => metadata,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok((None, EMPTY.to_vec(), 0)),

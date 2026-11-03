@@ -417,7 +417,8 @@ mod tests {
                         .set_read_timeout(Some(std::time::Duration::from_secs(1)))
                         .unwrap();
                     let mut request = [0u8; 4096];
-                    stream.read(&mut request).unwrap();
+                    // 只为了把请求读出来，内容不关心；读多少算多少。
+                    let _ = stream.read(&mut request).unwrap();
                     stream.write_all(&response).unwrap();
                     stream.write_all(&body).unwrap();
                     served += 1;
