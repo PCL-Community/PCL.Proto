@@ -31,7 +31,7 @@ type Feedback = {
 }
 const issues = ref<Feedback[]>([])
 const loading = ref(true)
-const error = ref('')
+const error = ref<string | null>(null)
 let controller: AbortController | undefined
 const groups = computed(() =>
   statuses
@@ -46,7 +46,7 @@ async function load() {
   const request = new AbortController()
   controller = request
   loading.value = true
-  error.value = ''
+  error.value = null
   try {
     const pages = await Promise.all(
       [1, 2].map(async (page) => {

@@ -17,7 +17,7 @@ export function useMemorySettings(
   const maximum = ref(15)
   const initial = ref(0)
   const ready = ref(false)
-  const error = ref('')
+  const error = ref<string | null>(null)
   const preview = ref<MemoryPreview | null>(null)
   const segments = computed(() => {
     if (!preview.value) return { used: 0, game: 0, empty: 100 }
@@ -41,7 +41,7 @@ export function useMemorySettings(
     preview.value = null
     const path = directory ? directory.value : null
     ready.value = false
-    error.value = ''
+    error.value = null
     if (!isTauri() || path === undefined) return
     try {
       const { settings: result, error: saveError } = await memorySettingsStorage.read(path)
@@ -76,7 +76,7 @@ export function useMemorySettings(
     if (!ready.value || path === undefined) return
     const current = generation
     const revision = ++saveRevision
-    error.value = ''
+    error.value = null
     void memorySettingsStorage.write(snapshot(), path).catch((failure) => {
       if (current === generation && revision === saveRevision) error.value = String(failure)
     })

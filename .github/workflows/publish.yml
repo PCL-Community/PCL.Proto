@@ -19,13 +19,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: setup node
-        uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: lts/*
+          bun-version: 1.4.4
 
       - name: get version
-        run: echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+        run: |
+          bun -e "console.log('PACKAGE_VERSION=' + (await Bun.file('package.json').json()).version)" >> $GITHUB_ENV
 
       - name: create release
         id: create-release
@@ -82,10 +82,9 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: setup node
-        uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: lts/*
+          bun-version: 1.4.4
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -125,17 +124,17 @@ jobs:
           echo "设置 LIB 环境变量为: $npcapLibPath"
 
       - name: install frontend dependencies
-        run: |
-          corepack enable pnpm
-          pnpm install
+        run: bun install --frozen-lockfile
 
       - name: generate icons
         run: |
-          pnpm tauri icon
+          bun run tauri icon
 
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
+          MS_CLIENT_ID: ${{ secrets.MS_CLIENT_ID }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}

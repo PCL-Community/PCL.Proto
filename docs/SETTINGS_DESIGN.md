@@ -70,8 +70,8 @@
 | 项目                     | 旧字段                                                                                                                                                                                                   | 实际情况                                                                             |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | 版本隔离                 | `ComboArgumentIndieV2`                                                                                                                                                                                   | 已接入 Rust 默认策略，首次访问或修改默认值时持久化现有实例决定；旧页面草稿未自动迁移 |
-| 窗口标题               | `TextArgumentTitle`                                                                                                                                                                                      | 仅同步到 `useSetup().launch`，需要 Win32 改写游戏窗口标题，控件保持禁用             |
-| 自定义信息             | `TextArgumentInfo`                                                                                                                                                                                       | 接入 Rust `version_info` 与 `${version_type}`；留空时按 CE 移除 `--versionType`      |
+| 窗口标题                 | `TextArgumentTitle`                                                                                                                                                                                      | 仅同步到 `useSetup().launch`，需要 Win32 改写游戏窗口标题，控件保持禁用              |
+| 自定义信息               | `TextArgumentInfo`                                                                                                                                                                                       | 接入 Rust `version_info` 与 `${version_type}`；留空时按 CE 移除 `--versionType`      |
 | 启动器可见性、进程优先级 | `ComboArgumentVisibie`, `ComboArgumentPriority`                                                                                                                                                          | 可见性部分接入，依赖日志识别就绪；立即关闭和进程优先级尚不可用                       |
 | 窗口模式与尺寸           | `ComboArgumentWindowType`, `TextArgumentWindowWidth`, `TextArgumentWindowHeight`                                                                                                                         | 默认、自定义及同启动器尺寸已接入；全屏和最大化仍不可用                               |
 | 微软认证方式、IP 栈      | `ComboMsAuthType`, `ComboPreferredIpStack`                                                                                                                                                               | 登录/启动未读取                                                                      |
@@ -392,7 +392,7 @@ P3 在 P1 稳定后可与 P2 独立推进；P4 的客户端策略可先于 P2 �
 | 视觉/平台       | 真实主题、字体、显隐/恢复、背景/音量效果；Windows/macOS/Linux 的窗口、硬件与进程能力各自记录，浏览器测试不能替代 Tauri                         |
 | 导入导出        | 凭据不出现在配置快照/导出/日志；未知字段/版本拒绝；先验证后一次提交，失败原配置和游戏文件保持                                                  |
 
-继续运行现有 `pnpm check:ui` / `pnpm ui:build`、对应 Rust 离线回归和 `git diff --check`。设置回归应验证“已提交快照 → 消费者行为”，保留迁移覆盖；不要把源码包含某个字段名当成生效验收。
+继续运行现有 `bun run check:ui` / `bun run ui:build`、对应 Rust 离线回归和 `git diff --check`。设置回归应验证“已提交快照 → 消费者行为”，保留迁移覆盖；不要把源码包含某个字段名当成生效验收。
 
 ## 9. 最终删除/替换清单
 

@@ -12,9 +12,7 @@
       }
     },
     "extract": {
-      "exclude": [
-        "META-INF/"
-      ]
+      "exclude": ["META-INF/"]
     },
     "natives": {
       "osx": "osx-arm64"
@@ -33,9 +31,7 @@
       }
     },
     "extract": {
-      "exclude": [
-        "META-INF/"
-      ]
+      "exclude": ["META-INF/"]
     },
     "natives": {
       "osx": "osx-arm64"
@@ -54,9 +50,7 @@
       }
     },
     "extract": {
-      "exclude": [
-        "META-INF/"
-      ]
+      "exclude": ["META-INF/"]
     },
     "natives": {
       "osx": "osx-arm64"

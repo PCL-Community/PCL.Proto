@@ -29,7 +29,7 @@ const servers = ref<DisplayServer[]>([])
 const revision = ref('')
 const loading = ref(false)
 const busy = ref(false)
-const loadError = ref('')
+const loadError = ref<string | null>(null)
 let generation = 0
 let disposed = false
 
@@ -84,7 +84,7 @@ async function refresh() {
   const directory = instance.instance_info?.directory
   servers.value = []
   revision.value = ''
-  loadError.value = ''
+  loadError.value = null
   loading.value = false
   if (!directory || !isTauri()) return
   loading.value = true

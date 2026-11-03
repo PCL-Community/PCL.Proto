@@ -7,7 +7,7 @@ export function useLaunchArguments(directory?: Ref<string | undefined>) {
   const game = ref('')
   const classpath = ref('')
   const ready = ref(false)
-  const error = ref('')
+  const error = ref<string | null>(null)
   let generation = 0
   let hydrating = false
   let dirty = false
@@ -17,7 +17,7 @@ export function useLaunchArguments(directory?: Ref<string | undefined>) {
     const revision = ++generation
     const path = currentPath()
     ready.value = false
-    error.value = ''
+    error.value = null
     dirty = false
     if (!isTauri() || path === undefined) return
     try {
@@ -58,7 +58,7 @@ export function useLaunchArguments(directory?: Ref<string | undefined>) {
       )
       editRevision++
       dirty = true
-      error.value = ''
+      error.value = null
     },
     { flush: 'sync' },
   )

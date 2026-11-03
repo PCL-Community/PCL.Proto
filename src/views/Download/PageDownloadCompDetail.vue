@@ -33,7 +33,7 @@ const versions = shallowRef<IVersion[]>([])
 /// 当前详情的来源：CF 的工程 ID 是纯数字。
 const source = ref<CompSource>('modrinth')
 const loading = ref(false)
-const error = ref('')
+const error = ref<string | null>(null)
 const versionFilter = ref('')
 const requestedVersion = ref('')
 const requestedLoader = ref('')
@@ -95,7 +95,7 @@ onScopeDispose(() => {
 async function load() {
   const current = ++request
   loading.value = true
-  error.value = ''
+  error.value = null
   project.value = undefined
   versions.value = []
   try {
@@ -294,7 +294,10 @@ watch(
               clickable
               @click="() => download(file, version)"
             >
-              <template v-if="project.project_type === 'modpack' && source === 'modrinth'" #icon-actions>
+              <template
+                v-if="project.project_type === 'modpack' && source === 'modrinth'"
+                #icon-actions
+              >
                 <button
                   class="pcl-icon-button"
                   type="button"

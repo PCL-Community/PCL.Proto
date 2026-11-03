@@ -71,7 +71,8 @@ function start(file: ResourceFile, destination: string, name: string) {
     )
     .then(() => sideTip.show(pclText('Proto.Download.Saved', [destination]), 'success'))
     .catch((error) => {
-      if (!isTaskCancelled(error)) sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn')
+      if (!isTaskCancelled(error))
+        sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn')
     })
 }
 

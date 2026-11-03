@@ -6,8 +6,8 @@
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173/",
-    "beforeDevCommand": "pnpm ui:dev",
-    "beforeBuildCommand": "pnpm ui:build"
+    "beforeDevCommand": "bun run ui:dev",
+    "beforeBuildCommand": "bun run ui:build"
   },
   "bundle": {
     "active": true,

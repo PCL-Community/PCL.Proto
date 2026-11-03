@@ -66,7 +66,7 @@ const visibilityChoices: Record<string, Visibility> = {
 }
 const visibilityReady = ref(false)
 const visibilityBusy = ref(false)
-const visibilityError = ref('')
+const visibilityError = ref<string | null>(null)
 const visibilityValue = ref('4')
 const visibilityRevision = ref(0)
 let visibilityDraft: string | undefined
@@ -77,7 +77,7 @@ async function loadVisibility() {
     if (!key) throw new Error('Unknown launcher visibility')
     visibilityValue.value = key
     visibilityReady.value = true
-    visibilityError.value = ''
+    visibilityError.value = null
   } catch (error) {
     visibilityError.value = String(error)
   }
@@ -91,7 +91,7 @@ async function changeVisibility(key: string | undefined) {
     await invoke('set_launcher_visibility', { mode })
     visibilityValue.value = key
     visibilityDraft = undefined
-    visibilityError.value = ''
+    visibilityError.value = null
   } catch (error) {
     visibilityError.value = String(error)
   } finally {
@@ -115,7 +115,7 @@ function resetJvmArguments() {
 const isolationValue = ref('4')
 const isolationReady = ref(false)
 const isolationBusy = ref(false)
-const isolationError = ref('')
+const isolationError = ref<string | null>(null)
 const isolationControlRevision = ref(0)
 async function loadIsolation() {
   try {
@@ -124,7 +124,7 @@ async function loadIsolation() {
     if (index < 0) throw new Error('Unknown isolation setting')
     isolationValue.value = String(index)
     isolationReady.value = true
-    isolationError.value = ''
+    isolationError.value = null
   } catch (error) {
     isolationError.value = String(error)
   }
@@ -136,7 +136,7 @@ async function changeIsolation(value: string | undefined) {
   try {
     await setIsolationDefault(setting)
     isolationValue.value = String(isolationChoices.indexOf(setting))
-    isolationError.value = ''
+    isolationError.value = null
   } catch (error) {
     isolationError.value = String(error)
   } finally {
@@ -147,7 +147,7 @@ async function changeIsolation(value: string | undefined) {
 if (desktop) void loadIsolation()
 
 const infoReady = ref(false)
-const infoError = ref('')
+const infoError = ref<string | null>(null)
 let hydratingInfo = false
 async function loadVersionInfo() {
   try {
@@ -156,7 +156,7 @@ async function loadVersionInfo() {
     values.TextArgumentInfo = settings
     hydratingInfo = false
     infoReady.value = true
-    infoError.value = ''
+    infoError.value = null
   } catch (error) {
     infoError.value = String(error)
   }
@@ -181,7 +181,7 @@ watch(
 const memoryJava64 = computed(() => (java.runtimes.length ? java.globalIs64Bit : null))
 
 const windowReady = ref(false)
-const windowError = ref('')
+const windowError = ref<string | null>(null)
 let hydratingWindow = false
 function loadWindowSettings() {
   void windowSettingsStorage
@@ -193,7 +193,7 @@ function loadWindowSettings() {
       values.TextArgumentWindowHeight = String(settings.height)
       hydratingWindow = false
       windowReady.value = true
-      windowError.value = ''
+      windowError.value = null
     })
     .catch((error) => {
       windowError.value = String(error)
@@ -220,7 +220,7 @@ function applyWindowSettings() {
     { '1': 'default', '2': 'launcher', '3': 'custom' } as Record<string, WindowSettings['mode']>
   )[values.ComboArgumentWindowType]
   if (!mode) return
-  windowError.value = ''
+  windowError.value = null
   void windowSettingsStorage
     .write({ mode, width, height })
     .catch((error) => sideTip.show(String(error), 'warn'))

@@ -67,7 +67,11 @@ await download.saveResource(file, testVersion, 'modpack', undefined, 'My Pack')
 assert.deepEqual(testModpacks, [[file, 'My Pack']])
 await download.quickDownload({ project_id: 'abc', project_type: 'modpack', title: 'Online Pack' })
 assert.deepEqual(testModpacks.at(-1), [file, 'Online Pack'])
-await download.quickDownload({ project_id: '123', project_type: 'modpack', title: 'CurseForge Pack' })
+await download.quickDownload({
+  project_id: '123',
+  project_type: 'modpack',
+  title: 'CurseForge Pack',
+})
 assert.equal(testModpacks.length, 2)
 
 assert.deepEqual(

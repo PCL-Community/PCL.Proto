@@ -28,7 +28,7 @@ const router = useRouter()
 const modal = useModal()
 const repos = useRepositoriesStore()
 const { isFavorite, toggleFavorite } = useInstanceFavorites()
-const busy = ref('')
+const busy = ref<string | null>(null)
 const description = ref('')
 
 const text = pclText
@@ -72,7 +72,7 @@ async function exportScript() {
   } catch (error) {
     sideTip.show(`${text('Instance.Overall.Script.ExportFailed')}: ${error}`, 'warn')
   } finally {
-    busy.value = ''
+    busy.value = null
   }
 }
 
@@ -87,7 +87,7 @@ async function repairFiles() {
   } catch (error) {
     sideTip.show(`${text('Instance.Overall.Repair.Failed')} ${error}`, 'warn')
   } finally {
-    busy.value = ''
+    busy.value = null
   }
 }
 
@@ -116,7 +116,7 @@ async function renameInstance() {
   } catch (error) {
     sideTip.show(`${text('Instance.Overall.Error.OperationFailed')} ${error}`, 'warn')
   } finally {
-    busy.value = ''
+    busy.value = null
   }
 }
 
@@ -143,7 +143,7 @@ async function editDescription() {
   } catch (error) {
     sideTip.show(`${text('Instance.Overall.Error.OperationFailed')} ${error}`, 'warn')
   } finally {
-    busy.value = ''
+    busy.value = null
   }
 }
 
@@ -192,7 +192,7 @@ async function deleteInstance() {
   } catch (error) {
     sideTip.show(`${text('Instance.Overall.Error.OperationFailed')} ${error}`, 'warn')
   } finally {
-    busy.value = ''
+    busy.value = null
   }
 }
 async function openFolder(kind: 'instance' | 'saves' | 'mods') {

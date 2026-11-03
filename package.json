@@ -9,16 +9,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node scripts/check-icons.js && tauri dev",
-    "build": "node scripts/check-icons.js && tauri build",
+    "dev": "bun scripts/check-icons.js && bun run tauri dev",
+    "build": "bun scripts/check-icons.js && bun run tauri build",
     "ui:dev": "vite",
-    "ui:build": "pnpm check:ui && run-p type-check \"ui:build-only {@}\" --",
+    "ui:build": "bun run check:ui && bun run --parallel type-check ui:build-only",
     "ui:build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "format": "prettier --write src/",
-    "deploy": "pnpm ui:build && gh-pages -d dist",
+    "format": "bun fmt src/",
+    "deploy": "bun run ui:build && gh-pages -d dist",
     "tauri": "tauri",
-    "check:ui": "node --test --test-concurrency=1 tests/ui/*.test.mjs"
+    "check:ui": "bun test --max-concurrency=1 tests/ui/*.test.mjs"
   },
   "dependencies": {
     "@lucide/vue": "^1.65.0",
@@ -45,8 +45,6 @@
     "@vue/language-plugin-pug": "^3.3.14",
     "@vue/tsconfig": "^0.9.1",
     "gh-pages": "^6.3.0",
-    "npm-run-all2": "^9.0.4",
-    "prettier": "3.9.10",
     "pug": "^3.0.4",
     "sass-embedded": "^1.107.1",
     "typescript": "~6.0.3",
@@ -54,11 +52,9 @@
     "vite-svg-loader": "^5.1.3",
     "vue-tsc": "^3.3.14"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@parcel/watcher",
-      "esbuild"
-    ]
-  },
-  "packageManager": "pnpm@10.29.2+sha512.bef43fa759d91fd2da4b319a5a0d13ef7a45bb985a3d7342058470f9d2051a3ba8674e629672654686ef9443ad13a82da2beb9eeb3e0221c87b8154fff9d74b8"
+  "trustedDependencies": [
+    "@parcel/watcher",
+    "esbuild"
+  ],
+  "packageManager": "bun@1.4.4"
 }

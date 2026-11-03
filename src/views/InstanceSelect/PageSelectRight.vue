@@ -25,7 +25,7 @@ const selected = useSelectedInstance()
 const text = pclText
 const instances = ref<GameInstance[]>([])
 const loading = ref(false)
-const error = ref('')
+const error = ref<string | null>(null)
 const selecting = ref(false)
 const query = ref('')
 const { favorites, toggleFavorite: toggleFavoritePath } = useInstanceFavorites()
@@ -96,7 +96,7 @@ async function load() {
   const cachedRepository = repos.repositories?.[index]
   instances.value = cachedRepository ? repos.instancesByPath[cachedRepository.path] || [] : []
   loading.value = true
-  error.value = ''
+  error.value = null
   try {
     if (!isTauri()) return
     if (!repos.repositories) await repos.fetchFromBackend()

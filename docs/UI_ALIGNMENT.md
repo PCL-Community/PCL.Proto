@@ -30,8 +30,8 @@
 
 ```sh
 python3 scripts/sync-pcl-ui.py ../PCL2-CE
-pnpm check:ui
-pnpm ui:build
+bun run check:ui
+bun run ui:build
 git diff --check
 ```
 
@@ -48,7 +48,7 @@ git diff --check
 
 ## 验证范围与限制
 
-已执行源资源一致性检查、Vue 类型检查和 Vite 生产构建。组件整理后新增原生属性转发、标签 ID、设置持久化/重置与实例隔离回归检查，并纳入 `pnpm check:ui`。浏览器复核了设置表单、标签聚焦、卡片折叠、按钮单次触发、输入禁用、皮肤菜单、资源下载跳转与大厅空值校验。浏览器在 850×600 检查主要设置、实例、存档、资源、日志、账号及联机页面的空状态、资源加载和横向溢出。
+已执行源资源一致性检查、Vue 类型检查和 Vite 生产构建。组件整理后新增原生属性转发、标签 ID、设置持久化/重置与实例隔离回归检查，并纳入 `bun run check:ui`。浏览器复核了设置表单、标签聚焦、卡片折叠、按钮单次触发、输入禁用、皮肤菜单、资源下载跳转与大厅空值校验。浏览器在 850×600 检查主要设置、实例、存档、资源、日志、账号及联机页面的空状态、资源加载和横向溢出。
 真实服务验证包含 Modrinth 列表与 Sodium 详情、游戏版本/加载器筛选、收藏添加与取消、Proto Release 与 Issue 获取。另已验证 OAuth/密码模式切换、皮肤与新建档案菜单、LittleSkin 预设覆盖的确认/取消、侧栏刷新，以及联机完成页在窄窗口下无横向溢出。收藏与认证字段测试数据已恢复。
 
 没有运行 Windows WPF 参考程序，未进行逐像素截图比较。未验证真实游戏启动/安装、Java 扫描、联机建房与账号认证，未运行 Rust 构建。生产构建仍有现有 SkinViewer 与入口 chunk 大小告警。
@@ -62,24 +62,24 @@ git diff --check
 | `PCompItem`                 | `src/components/widget/PCompItem.vue`                     |
 | `PageComp`                  | `src/views/Download/PageComp.vue`                         |
 | `PageDownloadCompDetail`    | `src/views/Download/PageDownloadCompDetail.vue`           |
-| `PageDownloadDataPack`      | `src/views/Download/PageDownloadDataPack.vue`             |
-| `PageDownloadMod`           | `src/views/Download/PageDownloadMod.vue`                  |
-| `PageDownloadPack`          | `src/views/Download/PageDownloadPack.vue`                 |
-| `PageDownloadResourcePack`  | `src/views/Download/PageDownloadResourcePack.vue`         |
-| `PageDownloadShader`        | `src/views/Download/PageDownloadShader.vue`               |
-| `PageDownloadWorld`         | `src/views/Download/PageDownloadWorld.vue`                |
-| `PageDownloadCleanroom`     | `src/views/Download/PageDownloadCleanroom.vue`            |
-| `PageDownloadClient`        | `src/views/Download/PageDownloadClient.vue`               |
+| `PageDownloadDataPack`      | `PageComp.vue` via router props                           |
+| `PageDownloadMod`           | `PageComp.vue` via router props                           |
+| `PageDownloadPack`          | `PageComp.vue` via router props                           |
+| `PageDownloadResourcePack`  | `PageComp.vue` via router props                           |
+| `PageDownloadShader`        | `PageComp.vue` via router props                           |
+| `PageDownloadWorld`         | `PageComp.vue` via router props                           |
+| `PageDownloadCleanroom`     | `PageDownloadVersionList.vue` via router props            |
+| `PageDownloadClient`        | `PageDownloadInstall.vue` via router props                |
 | `PageDownloadCompFavorites` | `src/views/Download/PageDownloadCompFavorites.vue`        |
-| `PageDownloadFabric`        | `src/views/Download/PageDownloadFabric.vue`               |
-| `PageDownloadForge`         | `src/views/Download/PageDownloadForge.vue`                |
+| `PageDownloadFabric`        | `PageDownloadVersionList.vue` via router props            |
+| `PageDownloadForge`         | `PageDownloadVersionList.vue` via router props            |
 | `PageDownloadInstall`       | `src/views/Download/PageDownloadInstall.vue`              |
-| `PageDownloadLabyMod`       | `src/views/Download/PageDownloadLabyMod.vue`              |
 | `PageDownloadLeft`          | `src/views/Download/PageDownloadLeft.ts`                  |
-| `PageDownloadLegacyFabric`  | `src/views/Download/PageDownloadLegacyFabric.vue`         |
-| `PageDownloadLiteLoader`    | `src/views/Download/PageDownloadLiteLoader.vue`           |
-| `PageDownloadNeoForge`      | `src/views/Download/PageDownloadNeoForge.vue`             |
-| `PageDownloadOptiFine`      | `src/views/Download/PageDownloadOptiFine.vue`             |
+| `PageDownloadLabyMod`       | `PageDownloadVersionList.vue` via router props            |
+| `PageDownloadLegacyFabric`  | `PageDownloadVersionList.vue` via router props            |
+| `PageDownloadLiteLoader`    | `PageDownloadVersionList.vue` via router props            |
+| `PageDownloadNeoForge`      | `PageDownloadVersionList.vue` via router props            |
+| `PageDownloadOptiFine`      | `PageDownloadVersionList.vue` via router props            |
 | `PageHelpDetail`            | `src/views/Tools/PageHelpDetail.vue`                      |
 | `PageHomepageNewsView`      | `src/views/Home/PageHomepageNewsView.vue`                 |
 | `PLocalModItem`             | `src/components/widget/PLocalModItem.vue`                 |

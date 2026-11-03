@@ -22,14 +22,14 @@ const props = defineProps<{
   latency?: string
   versionMismatch?: boolean
 }>()
-const operation = ref<'create' | 'join' | ''>('')
+const operation = ref<'create' | 'join' | null>(null)
 const router = useRouter()
 const route = useRoute()
 const account = useAccountInfo()
 const terracotta = useTerracottaStore()
 const values = reactive({ TextJoinLobbyId: '' })
 const selectedPort = ref('')
-const error = ref('')
+const error = ref<string | null>(null)
 const roomCode = computed(() => String(route.query.code || terracotta.room || ''))
 const options = computed(() =>
   terracotta.avaliable_mc_ports.map((port) => ({ key: String(port), text: String(port) })),
@@ -39,7 +39,7 @@ watch(options, (list) => {
     selectedPort.value = list[0]?.key || ''
 })
 async function connect(code: string) {
-  error.value = ''
+  error.value = null
   code = code.trim()
   if (!code) {
     sideTip.show(pclText('Proto.Lobby.EnterCode'), 'warn')
@@ -55,11 +55,11 @@ async function connect(code: string) {
       await router.push({ path: '/tools/lobby/inner', query: { code } })
     else error.value = pclText('Proto.Lobby.JoinFailed')
   } finally {
-    operation.value = ''
+    operation.value = null
   }
 }
 async function create(port: string) {
-  error.value = ''
+  error.value = null
   const n = Number(port)
   if (!/^\d+$/.test(port) || !Number.isInteger(n) || n < 1 || n > 65535) {
     sideTip.show(pclText('Proto.Lobby.InvalidPort'), 'warn')
@@ -76,11 +76,11 @@ async function create(port: string) {
   } catch (err) {
     error.value = pclText('Proto.Lobby.CreateFailed', [err])
   } finally {
-    operation.value = ''
+    operation.value = null
   }
 }
 async function copy(text: string) {
-  error.value = ''
+  error.value = null
   try {
     await navigator.clipboard.writeText(text)
     sideTip.show(pclText('Proto.Clipboard.CopySuccess'), 'success')
@@ -89,15 +89,15 @@ async function copy(text: string) {
   }
 }
 async function refreshPorts() {
-  error.value = ''
+  error.value = null
   if (!(await terracotta.setHostScanning())) error.value = pclText('Proto.Lobby.ScanFailed')
 }
 function clearLobbyId() {
-  error.value = ''
+  error.value = null
   values.TextJoinLobbyId = ''
 }
 async function pasteLobbyId() {
-  error.value = ''
+  error.value = null
   try {
     values.TextJoinLobbyId = await navigator.clipboard.readText()
   } catch {
@@ -105,7 +105,7 @@ async function pasteLobbyId() {
   }
 }
 async function inputPort() {
-  error.value = ''
+  error.value = null
   const modal = useModal()
   const result = await modal.open({
     title: pclText('Proto.Lobby.EnterPort'),
@@ -126,12 +126,12 @@ async function inputPort() {
   if (result.confirmed && result.input) await create(result.input)
 }
 async function copyIp() {
-  error.value = ''
+  error.value = null
   if (terracotta.url) await copy(terracotta.url)
   else sideTip.show(pclText('Proto.Lobby.NoVirtualIP'), 'warn')
 }
 async function leave() {
-  error.value = ''
+  error.value = null
   try {
     await terracotta.setWaiting()
     await router.push('/tools/lobby')
@@ -140,11 +140,11 @@ async function leave() {
   }
 }
 function openWebsite(url: string) {
-  error.value = ''
+  error.value = null
   void openExternal(url)
 }
 function disableLobby() {
-  error.value = ''
+  error.value = null
   sideTip.show(pclText('Proto.NotImplemented.Action'))
 }
 let disposed = false

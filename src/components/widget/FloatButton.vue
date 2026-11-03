@@ -14,9 +14,10 @@ const tasks = useTaskManager()
 const progress = ref(0)
 const progressTimer = window.setInterval(() => {
   const target = Number(tasks.totalProgress) / 100
-  progress.value = target <= 0 || target >= 1 || progress.value > target
-    ? target
-    : progress.value * 0.9 + target * 0.1
+  progress.value =
+    target <= 0 || target >= 1 || progress.value > target
+      ? target
+      : progress.value * 0.9 + target * 0.1
 }, 50)
 onUnmounted(() => window.clearInterval(progressTimer))
 
@@ -45,7 +46,11 @@ watch([() => props.type, () => props.visible], ([type, visible], [previousType])
       :aria-label="title || text"
       @click="type === FloatButtonType.TaskManage ? router.push('/downloading') : action?.()"
     >
-      <span v-if="type === FloatButtonType.TaskManage && progress > 0" class="progress-clip" aria-hidden="true">
+      <span
+        v-if="type === FloatButtonType.TaskManage && progress > 0"
+        class="progress-clip"
+        aria-hidden="true"
+      >
         <span class="progress-fill" :style="{ height: `${progress * 100}%` }" />
       </span>
       <span class="float-icon"><component :is="icon" /></span>
@@ -125,12 +130,15 @@ watch([() => props.type, () => props.visible], ([type, visible], [previousType])
   bottom: 100%;
   left: 0;
   height: 4px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='4' viewBox='0 0 40 4'%3E%3Cpath d='M0 2C10 2 10 0 20 0S30 2 40 2V4H0Z' fill='white' fill-opacity='.19'/%3E%3C/svg%3E") repeat-x;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='4' viewBox='0 0 40 4'%3E%3Cpath d='M0 2C10 2 10 0 20 0S30 2 40 2V4H0Z' fill='white' fill-opacity='.19'/%3E%3C/svg%3E")
+    repeat-x;
   animation: progress-wave 3s linear infinite;
 }
 
 @keyframes progress-wave {
-  to { background-position-x: 40px; }
+  to {
+    background-position-x: 40px;
+  }
 }
 
 .float-label {

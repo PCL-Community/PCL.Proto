@@ -11,7 +11,7 @@ const appVersion = __APP_VERSION__
 const repository = 'https://github.com/PCL-Community/PCL.Proto'
 const latest = ref<{ version: string; body: string; url: string }>()
 const loading = ref(false)
-const error = ref('')
+const error = ref<string | null>(null)
 const status = computed(() =>
   loading.value
     ? pclText('Proto.Update.Checking')
@@ -27,7 +27,7 @@ async function check() {
   const request = new AbortController()
   controller = request
   loading.value = true
-  error.value = ''
+  error.value = null
   try {
     const response = await fetch(
       'https://api.github.com/repos/PCL-Community/PCL.Proto/releases/latest',

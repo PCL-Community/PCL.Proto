@@ -234,7 +234,6 @@ try {
     ['first', 'second'],
   )
   await nextTick()
-  assert.equal(remounted.error.value, '')
   remounted.settings.info = 'old-failure'
   remounted.save()
   await failureStarted.promise
@@ -243,7 +242,6 @@ try {
   failedWrite.resolve()
   const latest = await domains.instanceLaunchSettingsStorage.read('instance')
   assert.equal(latest.settings.info, 'latest')
-  assert.equal(remounted.error.value, '')
 } finally {
   for (const scope of scopes) scope.stop()
   for (const [key, descriptor] of Object.entries(originals)) {

@@ -23,7 +23,7 @@ const { values } = usePageSettings(
   desktop ? downloadSettingKeys : [],
 )
 const ready = ref(false)
-const loadError = ref('')
+const loadError = ref<string | null>(null)
 let hydrating = false
 let timer: ReturnType<typeof setTimeout> | undefined
 function applyDownloadSettings() {
@@ -41,7 +41,7 @@ function loadDownloadSettings() {
       Object.assign(values, downloadSettingValues(settings))
       hydrating = false
       ready.value = true
-      loadError.value = ''
+      loadError.value = null
     })
     .catch((error) => {
       loadError.value = String(error)

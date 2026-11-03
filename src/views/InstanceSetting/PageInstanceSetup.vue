@@ -207,13 +207,13 @@ async function changeDebugLog(value: boolean) {
 const isolationValue = ref('0')
 const isolationReady = ref(false)
 const isolationBusy = ref(false)
-const isolationError = ref('')
+const isolationError = ref<string | null>(null)
 const isolationControlRevision = ref(0)
 let isolationRevision = 0
 async function loadIsolation(path = directory.value) {
   const revision = ++isolationRevision
   isolationReady.value = false
-  isolationError.value = ''
+  isolationError.value = null
   if (!path || !isTauri()) return
   try {
     const enabled = await getInstanceIsolation(path)
@@ -259,7 +259,7 @@ async function changeIsolation(value: string | undefined) {
     await setInstanceIsolation(path, value === '0')
     if (revision === isolationRevision) {
       isolationValue.value = value
-      isolationError.value = ''
+      isolationError.value = null
     }
   } catch (error) {
     if (revision === isolationRevision) isolationError.value = String(error)

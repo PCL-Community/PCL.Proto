@@ -24,7 +24,7 @@ const instance = useSelectedInstance()
 const save = computed(() => (typeof route.query.id === 'string' ? route.query.id : ''))
 const directory = computed(() => instance.instance_info?.directory)
 const info = ref<SaveInfo | null>(null)
-const error = ref('')
+const error = ref<string | null>(null)
 const loading = ref(false)
 const saving = ref(false)
 let generation = 0
@@ -35,7 +35,7 @@ watch(
   async ([path, name]) => {
     const current = ++generation
     info.value = null
-    error.value = ''
+    error.value = null
     loading.value = false
     if (!isTauri() || !path || !name) return
     loading.value = true

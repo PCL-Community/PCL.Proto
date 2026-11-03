@@ -23,14 +23,14 @@ const text = pclText
 const minecraft = ref('')
 const minecraftOptions = ref<{ key: string; text: string }[]>([])
 const versions = shallowRef<McPluginReport[]>([])
-const error = ref('')
+const error = ref<string | null>(null)
 const loading = ref(false)
 let request = 0
 async function load() {
   if (!props.supported || (!fabricFamily.value && !minecraft.value)) return
   const current = ++request
   loading.value = true
-  error.value = ''
+  error.value = null
   try {
     if (!isTauri()) throw new Error(pclText('Proto.Desktop.Loaders'))
     const data = fabricFamily.value

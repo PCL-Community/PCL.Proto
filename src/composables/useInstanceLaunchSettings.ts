@@ -9,7 +9,7 @@ import {
 export function useInstanceLaunchSettings(directory?: Ref<string | undefined>) {
   const settings = reactive<InstanceLaunchSettings>(emptyInstanceLaunchSettings())
   const ready = ref(false)
-  const error = ref('')
+  const error = ref<string | null>(null)
   let generation = 0
   let saveRevision = 0
   const currentPath = () => (directory ? directory.value : undefined)
@@ -18,7 +18,7 @@ export function useInstanceLaunchSettings(directory?: Ref<string | undefined>) {
     const revision = ++generation
     const path = currentPath()
     ready.value = false
-    error.value = ''
+    error.value = null
     Object.assign(settings, emptyInstanceLaunchSettings())
     if (!isTauri() || !path) return
     try {
@@ -37,7 +37,7 @@ export function useInstanceLaunchSettings(directory?: Ref<string | undefined>) {
     if (!ready.value || !path) return
     const revision = generation
     const edit = ++saveRevision
-    error.value = ''
+    error.value = null
     void instanceLaunchSettingsStorage.write({ ...settings }, path).catch((failure) => {
       if (revision === generation && edit === saveRevision) error.value = String(failure)
     })

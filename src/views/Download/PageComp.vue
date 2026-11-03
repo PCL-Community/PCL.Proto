@@ -44,8 +44,8 @@ const values = reactive({
   tag: '',
 })
 const hits = ref<ISearchHit[]>([])
-const error = ref('')
-const warning = ref('')
+const error = ref<string | null>(null)
+const warning = ref<string | null>(null)
 /// 未配置 API Key 时收起 CurseForge 选项（对照 CE 的 SupportCurseForge）。
 const curseforgeReady = ref(true)
 const loading = ref(false)
@@ -88,8 +88,8 @@ const loaderOptions = computed(() =>
 )
 async function search() {
   const current = ++request
-  error.value = ''
-  warning.value = ''
+  error.value = null
+  warning.value = null
   loading.value = true
   try {
     curseforgeReady.value = await curseforgeApi.available()

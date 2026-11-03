@@ -96,7 +96,7 @@ cargo test -p pcl-proto --lib core:: -- \
   --skip core::launcher::game_launch_test \
   --skip core::platform::read_header_test
 cargo test -p pcl-proto --lib util::file::path_tests
-pnpm ui:build
+bun run ui:build
 git diff --check
 ```
 
@@ -156,16 +156,16 @@ cargo test -p pcl-proto --lib official_large_client_range_smoke -- --ignored --n
 
 本次 26.3 故障的直接原因是实际执行了 Java 21（最高 class 65），游戏要求 Java 25（class 69）。本机旧配置曾将 `/usr/bin/java` 缓存为 25，但实际探测为 Zulu 21.0.7；新逻辑只迁移旧选择路径，版本与架构重新从可执行文件所属目录读取，不再由 JVM 自报。
 
-| 链路     | 当前行为                                                                                                                                                                                                                                        |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 链路     | 当前行为                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 探测     | 优先只读文件：从 `bin/java` 定位 Java Home 读 `release`（`JAVA_VERSION`、`IMPLEMENTOR`、`OS_ARCH`），Java 8 嵌套 `jre` 回退父 JDK 的 `release`；架构取 `OS_ARCH`，缺失时读 PE/ELF/Mach-O 头部（goblin）；JDK/JRE 由 `bin/javac` 是否存在判定。没有可用 `release`（缺失或版本不可解析）时回退执行 `-XshowSettings:properties -version`（Java 6 退到 `-version`），并用它报告的 `java.home` 解析出真实可执行文件，macOS `/usr/bin/java` 这类系统 stub 由此去重；两条路都失败仍登记，版本与发行商留空 |
-| 扫描     | 环境变量、PATH、系统 JVM 根、SDKMAN/asdf/jabba/mise、Minecraft 与启动器 runtime；Windows 追加注册表和 Store runtime，macOS 追加 JDK bundles、Applications、Homebrew。关键词遍历有深度限制并防链接循环；自动扫描间隔至少 13 秒，手动刷新强制重扫 |
-| 状态     | 统一 Rust 配置保存全局路径、运行时启用/禁用和实例偏好；扫描保留禁用状态与并发导入，失效项移除。配置写入临时文件后替换，序列化失败保留原文件                                                                                   |
-| 需求     | 原版/快照日期、OptiFine、Forge（含 Java 7 和 8u321 上限）、Fabric、LiteLoader、Cleanroom、LabyMod；读取 JSON `javaVersion`、非连续 `compatibleJavaMajors` 集合与 JAR `version.json`。仅为 Java 需求解析父版本元数据，并检查继承循环             |
-| 选择     | 实例指定/启动器目录内相对路径 → 全局指定 → 自动候选；每次选择重新探测实际 executable。自动候选按最低可接受 major、原生架构、JDK、最新补丁、路径排序；不再按发行商偏好排序，发行商只用于显示。禁用、失效或不能运行的候选不会启动 |
-| 手动覆盖 | 与当前 CE 一致：指定版本越界时警告后仍使用，忽略兼容性只跳过警告。CE 当前 `AutoSelect` 在启动选择时仍继续检查全局指定；实例 Auto 不会绕过全局手动覆盖                                                                                           |
-| 补全     | 缺失时重扫；用户确认后按平台/架构及 Mojang component 下载，再重新选择。复用共享下载源、连接/带宽配额、大小/SHA-1 校验；独立 staging、失败/取消清理、Unix 执行权限与安全链接处理。旧 Java 和受限 Java 8 更新范围要求手动安装                     |
-| 界面     | 全局自动/指定、导入、刷新、详情、打开目录、启用/禁用；实例全局/自动/相对/指定、忽略兼容性；32 位内存警告读取后端 Java 信息。启动前提供下载进度和取消，拒绝异步期间切换到其他实例后继续启动                                                      |
+| 扫描     | 环境变量、PATH、系统 JVM 根、SDKMAN/asdf/jabba/mise、Minecraft 与启动器 runtime；Windows 追加注册表和 Store runtime，macOS 追加 JDK bundles、Applications、Homebrew。关键词遍历有深度限制并防链接循环；自动扫描间隔至少 13 秒，手动刷新强制重扫                                                                                                                                                                                                                                                    |
+| 状态     | 统一 Rust 配置保存全局路径、运行时启用/禁用和实例偏好；扫描保留禁用状态与并发导入，失效项移除。配置写入临时文件后替换，序列化失败保留原文件                                                                                                                                                                                                                                                                                                                                                        |
+| 需求     | 原版/快照日期、OptiFine、Forge（含 Java 7 和 8u321 上限）、Fabric、LiteLoader、Cleanroom、LabyMod；读取 JSON `javaVersion`、非连续 `compatibleJavaMajors` 集合与 JAR `version.json`。仅为 Java 需求解析父版本元数据，并检查继承循环                                                                                                                                                                                                                                                                |
+| 选择     | 实例指定/启动器目录内相对路径 → 全局指定 → 自动候选；每次选择重新探测实际 executable。自动候选按最低可接受 major、原生架构、JDK、最新补丁、路径排序；不再按发行商偏好排序，发行商只用于显示。禁用、失效或不能运行的候选不会启动                                                                                                                                                                                                                                                                    |
+| 手动覆盖 | 与当前 CE 一致：指定版本越界时警告后仍使用，忽略兼容性只跳过警告。CE 当前 `AutoSelect` 在启动选择时仍继续检查全局指定；实例 Auto 不会绕过全局手动覆盖                                                                                                                                                                                                                                                                                                                                              |
+| 补全     | 缺失时重扫；用户确认后按平台/架构及 Mojang component 下载，再重新选择。复用共享下载源、连接/带宽配额、大小/SHA-1 校验；独立 staging、失败/取消清理、Unix 执行权限与安全链接处理。旧 Java 和受限 Java 8 更新范围要求手动安装                                                                                                                                                                                                                                                                        |
+| 界面     | 全局自动/指定、导入、刷新、详情、打开目录、启用/禁用；实例全局/自动/相对/指定、忽略兼容性；32 位内存警告读取后端 Java 信息。启动前提供下载进度和取消，拒绝异步期间切换到其他实例后继续启动                                                                                                                                                                                                                                                                                                         |
 
 平台处理：Windows x86/x64/ARM64、macOS Intel/Apple Silicon、Linux x86/x64/ARM64 的本地 Java 均可识别，架构兼容性按实际主机 CPU 判断（包含 Rosetta/Windows 模拟下的启动器）。发行商直接显示 `release` 里写的原文（如 `Azul Systems, Inc.`），不再映射成固定品牌枚举；读不到就显示"未知"，不影响识别。只读文件能识别但不能代替实际执行：损坏的 JVM、缺失的 native 库仍会在启动游戏时暴露。Mojang 当前没有 Linux ARM64 运行时，也未必提供每个平台的所有 Java major；这种情况明确提示手动安装，不使用其他架构冒充原生运行时。Linux ARM64 可导入本地 ARM64 Java。选择 ARM Java 并不代表实例已有的 native 库也已经匹配 ARM，二者联动仍属于后续启动链路工作。
 
@@ -212,7 +212,7 @@ cargo test -p pcl-proto --lib official_native_java25_install_smoke -- --ignored 
 
 验证记录：
 
-- `node tests/ui/curseforge.test.mjs`（已加入 `pnpm check:ui`）用假 invoke 覆盖归一化、参数构造、分页停止条件、双来源合并与只一侧失败时的警告。
+- `bun run check:ui` 用假 invoke 覆盖归一化、参数构造、分页停止条件、双来源合并与只一侧失败时的警告。
 - 字段名与枚举值对照 2026-10-31 的真实响应核实（`pagination.totalCount/index/pageSize/resultCount`、`latestFilesIndexes[].modLoader` 无 `loaderName`、`File.fileLength`、`gameVersions` 混有 `Client`/`Server`/`Forge`、classId 6/4471/12/6552/17/6945、`index + pageSize > 10000` 直接报错）。
 - 带 `.env` 密钥的只读搜索请求返回 HTTP 403（响应服务器标识为 Kestrel），尚不能判定是网络代理还是 API 拒绝；真实搜索及 CF 文件下载尚未验收。
 
@@ -235,7 +235,6 @@ cargo test -p pcl-proto --lib official_native_java25_install_smoke -- --ignored 
 后续进展：实例列表使用目录而非元数据 ID 作为行标识，选择 IPC 校验目录名并在指定仓库中定位对应实例，避免不同目录的相同 JSON ID 导致选错；事务成功后返回实际选择。前端防止过期读取覆盖新选择，并抑制重复点击。离线测试覆盖同 ID 实例和异步响应倒序；旧页面设置仍按 ID 存储，实例设置隔离并未因此完成。
 
 后续进展：全局窗口默认、自定义和同启动器尺寸已连接配置事务及启动参数；同启动器尺寸通过 Tauri 获取物理像素，旧版元数据按 CE 的发布日期条件补充尺寸。受控进程与配置测试覆盖实际参数、迁移、范围及写盘失败。全屏和最大化仍不可用，早期版本或不支持尺寸参数的加载器不能保证效果，未验证真实游戏或各平台窗口行为。
-
 
 后续进展：实例概览的实例、存档和 Mod 目录快捷方式已接入后端，并与游戏启动共用当前游戏目录解析；存档和 Mod 目录按需创建，不覆盖已有内容。命令只接受当前选择的实例与预定义目录类型；测试覆盖目录不存在、同名文件、原有数据保护和实例切换。文件管理器启动后的系统错误及真实 Tauri、Windows/Linux 桌面交互尚未验收。
 
@@ -262,24 +261,24 @@ Windows/Linux 真实桌面行为与 Java 扫描、macOS WebView 安装交互、�
 
 对应 CE 源文件：`PCL.Core/Minecraft/Profile/{ProfileService,ProfileManagement}.cs`、`Profile/Authentication/{MicrosoftProvider,AuthlibProvider,YggdrasilConnectProvider,IAuthenticateProvider}.cs`、`PCL.Core/Minecraft/IdentityModel/**`、`Plain Craft Launcher 2/Modules/Minecraft/{ProfileUi,ModSkin}.cs`、`Pages/PageLaunch/{PageLoginMs,PageLoginAuth,PageLoginOffline,PageLoginProfile,PageLoginProfileSkin,MyMsgLogin}.xaml.cs`。
 
-| 文件                                                       | 职责                                                                                                                       |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `src-tauri/src/minecraft/profile/service.rs`               | 档案增删改查与选择，全部走 `ConfigManager::update` 事务；`apply`/`find_matching` 对应 CE 的 `ApplyAuthenticationResult`      |
-| `src-tauri/src/minecraft/profile/uuid.rs`                  | 离线 UUID（MD5 v3 与旧版 PCL 哈希两套）与 `McSkinSex` 的默认皮肤推导                                                        |
-| `src-tauri/src/minecraft/profile/auth/oauth.rs`            | 设备码/令牌响应的必须字段校验、轮询错误分类（`authorization_pending`/`slow_down`/`expired_token`/`access_denied`）           |
-| `src-tauri/src/minecraft/profile/auth/microsoft.rs`        | OAuth 设备码与刷新、Xbox Live、XSTS（含 `xsts_<XErr>` 错误码）、Mojang 登录/许可/档案与改名                                 |
-| `src-tauri/src/minecraft/profile/auth/yggdrasil.rs`        | 传统 Yggdrasil 的 authenticate/refresh/validate 端点封装                                                                     |
-| `src-tauri/src/minecraft/profile/auth/authlib.rs`          | authlib-injector 提供者：地址归一化、`X-Authlib-Injector-Api-Location` 跟随、多角色选择、`meta.serverName`                   |
-| `src-tauri/src/minecraft/profile/auth/connect.rs`          | Yggdrasil Connect：OpenID 发现与校验、设备码、JWKS 签名验证（拒绝 HS*）、用户信息回退与角色选择                              |
-| `src-tauri/src/minecraft/profile/auth/session/`            | 登录会话：`mod.rs` 状态机与设备码/角色选择/取消，`login.rs` 复用、刷新与重新认证（`login_for_launch` 供启动流程无界面刷新）   |
-| `src-tauri/src/commands/skin.rs`                           | 按档案类型解析皮肤（Mojang / 认证服务器 sessionserver / 内置），缓存、另存与正版皮肤上传                                     |
-| `src-tauri/src/minecraft/launch/authlib.rs`                | authlib-injector.jar 的下载与 sha256 校验、prefetched 元数据与 javaagent 参数                                                |
-| `src-tauri/src/commands/account.rs`                        | 档案与登录会话命令、认证服务器探测                                                                                           |
-| `src-tauri/src/app/secrets.rs` + `src-tauri/build.rs`      | `MS_CLIENT_ID` 编译期烧录 + 运行环境变量兜底（与 CurseForge 同一套机制）                                                     |
-| `src/stores/account.ts`                                    | 档案列表、当前档案、皮肤缓存与登录会话轮询                                                                                   |
-| `src/composables/useLoginSession.ts`                       | 设备码弹窗、角色选择弹窗、结果提示与登录按钮百分比（CE 的 0%→5%→98%）                                                        |
-| `src/util/loginErrors.ts`                                  | `xsts_*`、`minecraft_not_owned`、`profile_not_created` 等错误码到 CE 弹窗的映射                                              |
-| `src/views/Home/PageLogin*.vue`                            | 四个登录页与档案列表/皮肤页的实际行为                                                                                        |
+| 文件                                                  | 职责                                                                                                                        |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `src-tauri/src/minecraft/profile/service.rs`          | 档案增删改查与选择，全部走 `ConfigManager::update` 事务；`apply`/`find_matching` 对应 CE 的 `ApplyAuthenticationResult`     |
+| `src-tauri/src/minecraft/profile/uuid.rs`             | 离线 UUID（MD5 v3 与旧版 PCL 哈希两套）与 `McSkinSex` 的默认皮肤推导                                                        |
+| `src-tauri/src/minecraft/profile/auth/oauth.rs`       | 设备码/令牌响应的必须字段校验、轮询错误分类（`authorization_pending`/`slow_down`/`expired_token`/`access_denied`）          |
+| `src-tauri/src/minecraft/profile/auth/microsoft.rs`   | OAuth 设备码与刷新、Xbox Live、XSTS（含 `xsts_<XErr>` 错误码）、Mojang 登录/许可/档案与改名                                 |
+| `src-tauri/src/minecraft/profile/auth/yggdrasil.rs`   | 传统 Yggdrasil 的 authenticate/refresh/validate 端点封装                                                                    |
+| `src-tauri/src/minecraft/profile/auth/authlib.rs`     | authlib-injector 提供者：地址归一化、`X-Authlib-Injector-Api-Location` 跟随、多角色选择、`meta.serverName`                  |
+| `src-tauri/src/minecraft/profile/auth/connect.rs`     | Yggdrasil Connect：OpenID 发现与校验、设备码、JWKS 签名验证（拒绝 HS*）、用户信息回退与角色选择                             |
+| `src-tauri/src/minecraft/profile/auth/session/`       | 登录会话：`mod.rs` 状态机与设备码/角色选择/取消，`login.rs` 复用、刷新与重新认证（`login_for_launch` 供启动流程无界面刷新） |
+| `src-tauri/src/commands/skin.rs`                      | 按档案类型解析皮肤（Mojang / 认证服务器 sessionserver / 内置），缓存、另存与正版皮肤上传                                    |
+| `src-tauri/src/minecraft/launch/authlib.rs`           | authlib-injector.jar 的下载与 sha256 校验、prefetched 元数据与 javaagent 参数                                               |
+| `src-tauri/src/commands/account.rs`                   | 档案与登录会话命令、认证服务器探测                                                                                          |
+| `src-tauri/src/app/secrets.rs` + `src-tauri/build.rs` | `MS_CLIENT_ID` 编译期烧录 + 运行环境变量兜底（与 CurseForge 同一套机制）                                                    |
+| `src/stores/account.ts`                               | 档案列表、当前档案、皮肤缓存与登录会话轮询                                                                                  |
+| `src/composables/useLoginSession.ts`                  | 设备码弹窗、角色选择弹窗、结果提示与登录按钮百分比（CE 的 0%→5%→98%）                                                       |
+| `src/util/loginErrors.ts`                             | `xsts_*`、`minecraft_not_owned`、`profile_not_created` 等错误码到 CE 弹窗的映射                                             |
+| `src/views/Home/PageLogin*.vue`                       | 四个登录页与档案列表/皮肤页的实际行为                                                                                       |
 
 已改变的行为与有意保留的差异：
 

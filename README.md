@@ -16,7 +16,7 @@ The project is also ready for preview at [PCL.Proto](https://amagicpear.top/PCL.
 
 The website and desktop client are maintained together on `main`. Browsers show the project introduction, launcher preview, and interactive component demos on the home page. The PCL homepage editor is also available from the toolbox. The desktop client shows only the launcher.
 
-Run `pnpm run deploy` to check, build, and publish the website to `origin`'s `gh-pages` branch.
+Run `bun run deploy` to check, build, and publish the website to `origin`'s `gh-pages` branch.
 
 ## Prototype
 
@@ -28,7 +28,7 @@ In case you would like to modify the prototype design file, you are welcome to [
 
 ### Prerequisites
 
-- First, please ensure that `nodejs` or `bun` is installed on your device. If you use `bun` as the package manager, you can replace all `pnpm` commands below with `bun`.
+- Install Bun 1.4.4 or later. The project uses Bun for package management, scripts, formatting, and UI checks.
 - The device should have a usable rust toolchain installed.
 
 ### Platform Specific
@@ -51,12 +51,12 @@ git submodule update --init --recursive
 Currently, the project is a Tauri + Vue3 + Vite project. Before running the project for the first time, please run the following command to install the front-end dependencies:
 
 ```sh
-pnpm install
+bun install --frozen-lockfile
 ```
 
 The backend dependencies will be managed by `cargo` automatically.
 
-Then, use `pnpm run tauri icon` to automatically generate icons. You can then start the development and build processes.
+Then, use `bun run tauri icon` to automatically generate icons. You can then start the development and build processes.
 
 > [!WARNING]
 > The icons in this repository are excluded. Therefore, if you do not perform this step after cloning the repository, the `icons` folder will be empty, and the Tauri application will throw an error when it starts!
@@ -64,7 +64,7 @@ Then, use `pnpm run tauri icon` to automatically generate icons. You can then st
 ### Hot Reload Development
 
 ```sh
-pnpm dev
+bun run dev
 ```
 
 > [!NOTE]
@@ -78,7 +78,7 @@ pnpm dev
 See [Application packaging](docs/PACKAGING.md) for the macOS bundle layout. Distribute
 the complete `.app` or DMG.
 
-If only `bun` is installed on your device but `nodejs` is not installed, please change the`build/foreBuildCommand` content in `src-auri/tauri.conf.json `from `pnpm run build` to `bun run build-only`.
+Tauri's development and build hooks use Bun directly.
 
 ## HELP WANTED!!
 

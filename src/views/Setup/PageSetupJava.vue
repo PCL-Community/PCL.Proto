@@ -15,7 +15,7 @@ const java = useJavaStore()
 const modal = useModal()
 const loading = ref(false)
 const saving = ref(false)
-const error = ref('')
+const error = ref<string | null>(null)
 const text = pclText
 const architectureLabels = {
   X86: 'x86',
@@ -30,7 +30,7 @@ async function load(refresh = false) {
     return
   }
   loading.value = true
-  error.value = ''
+  error.value = null
   try {
     await java.load(undefined, refresh)
   } catch (err) {

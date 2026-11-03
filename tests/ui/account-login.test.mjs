@@ -89,10 +89,12 @@ try {
   globalThis.testInvoke = (name, args) => {
     calls.push([name, args])
     if (name === 'start_login') return Promise.resolve('session-1')
-    if (name === 'login_state') return states.length ? Promise.resolve(states.shift()) : Promise.reject({ code: 'session_not_found', message: 'gone' })
+    if (name === 'login_state')
+      return states.length
+        ? Promise.resolve(states.shift())
+        : Promise.reject({ code: 'session_not_found', message: 'gone' })
     if (name === 'get_profiles') return Promise.resolve({ profiles: [profile], current: 'p1' })
-    if (name === 'fetch_profile_skin')
-      return Promise.resolve({ skin: null, default: 'Alex' })
+    if (name === 'fetch_profile_skin') return Promise.resolve({ skin: null, default: 'Alex' })
     return Promise.resolve()
   }
   const account = useAccountInfo()
@@ -159,7 +161,9 @@ try {
   await cancelling.cancelLogin()
   assert.equal(cancelling.loginState.status, 'cancelled')
   assert.equal(cancelling.loggingIn, false)
-  assert.ok(cancelCalls.some(([name, args]) => name === 'cancel_login' && args.sessionId === 'session-2'))
+  assert.ok(
+    cancelCalls.some(([name, args]) => name === 'cancel_login' && args.sessionId === 'session-2'),
+  )
   const timersBefore = timers.length
   await drain(2)
   assert.equal(timers.length, timersBefore, '取消后不再继续轮询')
@@ -202,9 +206,7 @@ try {
   assert.equal(selecting.loginState.status, 'selectProfile')
   await selecting.chooseCandidate('b')
   assert.ok(
-    selectCalls.some(
-      ([name, args]) => name === 'select_login_profile' && args.candidateId === 'b',
-    ),
+    selectCalls.some(([name, args]) => name === 'select_login_profile' && args.candidateId === 'b'),
   )
 
   // ⑤ 取消选择档案时传 null（CE 的 Select(null)）

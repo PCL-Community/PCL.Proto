@@ -14,7 +14,7 @@
 
 网站与桌面客户端统一在 `main` 分支维护。浏览器中会显示项目介绍、启动器预览和首页组件演示，PCL 主页制作器也可从百宝箱进入；桌面客户端只显示启动器界面。
 
-更新 GitHub Pages 时运行 `pnpm run deploy`，检查和构建通过后会将网站发布到 `origin` 的 `gh-pages` 分支。
+更新 GitHub Pages 时运行 `bun run deploy`，检查和构建通过后会将网站发布到 `origin` 的 `gh-pages` 分支。
 
 ## 原型
 
@@ -26,7 +26,7 @@
 
 ### 前置环境
 
-- 请确保你的设备上已安装`nodejs`或`bun`。如果你使用`bun`作为包管理器，可以将下面出现的所有`pnpm`命令替换为`bun`。
+- 请安装 Bun 1.4.4 或更新版本。项目使用 Bun 管理依赖、运行脚本、格式化和执行 UI 检查。
 - 设备应已安装可用的`rust`工具链。对于 Windows，需要使用 MSVC 版本的工具链。并确保你已经在 Visual Studio 安装器中安装了 C++ 开发工具中的 MSVC 套件以及 Windows SDK；对于 macOS，需要确保已安装 Xcode。
 
 - 对于 Windows 平台，你还需要下载并配置 [Npcap SDK](https://npcap.com/#download)；对于 macOS，你需要通过 Homebrew 安装 protobuf（`brew install protobuf`）；对于 Ubuntu，你需要安装以下软件包：`libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf protobuf-compiler`。
@@ -45,12 +45,12 @@ git submodule update --init --recursive
 目前，项目已成为 Tauri + Vue3 + Vite 结合项目。在首次运行本项目之前，请先运行下面的命令安装前端依赖：
 
 ```sh
-pnpm install
+bun install --frozen-lockfile
 ```
 
 后端依赖会由 cargo 自动安装，无需手动管理。
 
-然后，使用 `pnpm run tauri icon`自动生成图标。接下来就可以开始正式的开发和构建了。
+然后，使用 `bun run tauri icon` 自动生成图标。接下来就可以开始正式的开发和构建了。
 
 > [!WARNING]
 > 本仓库已排除图标文件。因此如果你在克隆仓库后不进行此步，icons文件夹内为空的话，在 **Tauri 应用启动时会报错**！
@@ -58,7 +58,7 @@ pnpm install
 ### 开发时热重载
 
 ```sh
-pnpm dev
+bun run dev
 ```
 
 > [!NOTE]
@@ -69,10 +69,10 @@ pnpm dev
 
 ### 构建 Tauri 应用
 
-如果你的设备上只安装了`bun`但没有安装`nodejs`，那么请将`src-tauri/tauri.conf.json`中的`build/beforeBuildCommand`内容从`pnpm run build`更改为`bun run build-only`。
+Tauri 的开发和构建钩子已直接使用 Bun。
 
 ```sh
-pnpm run tauri build
+bun run tauri build
 ```
 
 macOS 打包目录与资源读取方式见 [应用打包说明](docs/PACKAGING.md)。请分发完整的 `.app` 或 DMG。

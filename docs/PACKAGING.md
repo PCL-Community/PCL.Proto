@@ -1,6 +1,6 @@
 # Application packaging
 
-Use `pnpm build` (or `pnpm tauri build`) to build distributable applications.
+Use `bun run build` (or `bun run tauri build`) to build distributable applications.
 Tauri automatically merges `src-tauri/tauri.macos.conf.json` on macOS, including
 Intel, Apple Silicon, and universal builds. No separate resource-copy step is needed.
 
@@ -29,7 +29,7 @@ renaming the complete `.app` is supported. Distribute the complete `.app` via th
 DMG or Tauri's app archive; the executable in `Contents/MacOS` alone is insufficient.
 Bundle resources are read-only at runtime and must be included before code signing.
 
-`pnpm dev` continues to use Vite and source-tree launcher resources.
+`bun run dev` continues to use Vite and source-tree launcher resources.
 Configuration, accounts, Minecraft instances, downloaded runtime files, and caches
 stay in their existing writable locations. Existing extracted launcher resources
 are left in place for older installed versions, but the macOS app no longer uses them.
@@ -51,11 +51,11 @@ On startup, existing launcher-local directories and these official Java Edition
 default game directories are added to the folder list without changing an existing
 selection or duplicating a path:
 
-| Platform | Official default game directory |
-| --- | --- |
-| Windows | `%APPDATA%\.minecraft` (the user's roaming application-data directory) |
-| Linux | `~/.minecraft` |
-| macOS | `~/Library/Application Support/minecraft` |
+| Platform | Official default game directory                                        |
+| -------- | ---------------------------------------------------------------------- |
+| Windows  | `%APPDATA%\.minecraft` (the user's roaming application-data directory) |
+| Linux    | `~/.minecraft`                                                         |
+| macOS    | `~/Library/Application Support/minecraft`                              |
 
 Official directories are added only when their `versions` subdirectory exists;
 the launcher does not create an empty official directory. These are default game

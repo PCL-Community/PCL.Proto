@@ -47,7 +47,7 @@ export function useInstanceResources(options: {
   const messages = { ...defaultMessages, ...options.messages }
   const items = ref<InstanceResourceEntry[]>([])
   const loading = ref(false)
-  const error = ref('')
+  const error = ref<string | null>(null)
   let generation = 0
 
   const directory = () => instance.instance_info?.directory
@@ -60,7 +60,7 @@ export function useInstanceResources(options: {
     const path = directory()
     const revision = ++generation
     if (!silent) items.value = []
-    error.value = ''
+    error.value = null
     if (!isTauri() || !path || missingSave()) return
     if (!silent) loading.value = true
     try {

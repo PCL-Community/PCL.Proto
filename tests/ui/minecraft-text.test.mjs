@@ -32,8 +32,12 @@ assert.deepEqual(runs('§lX§r§9Z'), [
 ])
 assert.deepEqual(runs('plain'), [['plain', undefined, undefined, undefined, undefined, undefined]])
 assert.deepEqual(runs(''), [])
-assert.deepEqual(runs('ends with §'), [['ends with §', undefined, undefined, undefined, undefined, undefined]])
-assert.deepEqual(runs('未知码 §z stays'), [['未知码 §z stays', undefined, undefined, undefined, undefined, undefined]])
+assert.deepEqual(runs('ends with §'), [
+  ['ends with §', undefined, undefined, undefined, undefined, undefined],
+])
+assert.deepEqual(runs('未知码 §z stays'), [
+  ['未知码 §z stays', undefined, undefined, undefined, undefined, undefined],
+])
 // JSON description 的基底样式与 §代码共用一次解析。
 assert.deepEqual(runs('A', { color: '#FFAA00', bold: true }), [
   ['A', '#FFAA00', true, undefined, undefined, undefined],
@@ -48,4 +52,4 @@ const style = minecraftTextStyle({ text: 'A', underline: true, strikethrough: tr
 assert.equal(style.textDecoration, 'underline line-through')
 assert.equal(style.color, undefined)
 assert.equal(minecraftTextStyle({ text: 'A', italic: true }).fontStyle, 'italic')
-console.log("Minecraft text codes, palette and idempotent rendering passed.")
+console.log('Minecraft text codes, palette and idempotent rendering passed.')

@@ -7,7 +7,7 @@ export function useProxySettings() {
   const address = ref('')
   const ready = ref(false)
   const busy = ref(false)
-  const error = ref('')
+  const error = ref<string | null>(null)
 
   async function load() {
     if (!isTauri()) return
@@ -15,7 +15,7 @@ export function useProxySettings() {
       const settings = await getProxySettings()
       mode.value = settings.mode
       address.value = settings.address
-      error.value = ''
+      error.value = null
     } catch (failure) {
       error.value = String(failure)
     } finally {
@@ -30,7 +30,7 @@ export function useProxySettings() {
       const settings = await setProxySettings({ mode: mode.value, address: address.value.trim() })
       mode.value = settings.mode
       address.value = settings.address
-      error.value = ''
+      error.value = null
     } catch (failure) {
       error.value = String(failure)
     } finally {

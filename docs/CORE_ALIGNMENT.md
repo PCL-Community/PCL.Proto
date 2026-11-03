@@ -91,7 +91,7 @@ src-tauri/src/
 | `Profile.ProfileService` / `ProfileManagement`  | `minecraft::profile::service`                                     | 档案增删改查与选择，写入走 `ConfigManager::update` 事务。                                             |
 | `Profile.Authentication.*Provider`              | `minecraft::profile::auth::{microsoft, authlib, connect}`         | 微软 OAuth+Xbox+Mojang、authlib-injector、Yggdrasil Connect 三种登录方式。                            |
 | `IdentityModel.OAuth` / `Yggdrasil`             | `minecraft::profile::auth::{oauth, yggdrasil}`                    | 设备码/令牌响应校验与传统 Yggdrasil 端点封装。                                                        |
-| `MyMsgLogin` 弹窗轮询                            | `minecraft::profile::auth::session`                               | 登录会话状态机：设备码、角色选择、取消，前端轮询状态。                                                |
+| `MyMsgLogin` 弹窗轮询                           | `minecraft::profile::auth::session`                               | 登录会话状态机：设备码、角色选择、取消，前端轮询状态。                                                |
 | `Utils.Result`                                  | Rust 原生 `Result`                                                | 不重复造 `Result` 类型。                                                                              |
 | `Utils.Secret.Identify`                         | `utils::secret::Identify`                                         | 设备序列号与启动器标识派生；保留 Proto 的平台实现。                                                   |
 | `Link.McPing.Model.McPing*`                     | `link::mcping::model::{McPingResult, McPingPlayerResult, ...}`    | 服务器状态 JSON 的类型化结果；`description` 保留原始 chat component。                                 |
@@ -126,9 +126,9 @@ src-tauri/src/
 cd src-tauri && cargo test --lib          # 128 passed, 13 ignored
 cd src-tauri && cargo check --all-targets # 无 warning
 cd src-tauri && cargo clippy -p pcl-proto --all-targets  # 本 crate 无 warning
-pnpm type-check
-pnpm check:ui
-pnpm ui:build-only
+bun run type-check
+bun run check:ui
+bun run ui:build-only
 ```
 
 未执行真实游戏启动、Windows/Linux 桌面运行及外部服务全量验收。Java 运行时安装测试中标记 `ignored` 的官方网络用例仍需按需显式运行。

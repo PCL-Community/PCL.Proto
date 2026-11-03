@@ -36,7 +36,7 @@ const router = useRouter()
 const text = pclText
 const versions = shallowRef<IVersionShow>()
 const loading = ref(false)
-const error = ref('')
+const error = ref<string | null>(null)
 const installing = ref(false)
 const { floatButtonState, setFloatButton } = useFloatButton()
 const instance = useSelectedInstance()
@@ -121,7 +121,7 @@ const latest = computed(() => {
 })
 async function load() {
   loading.value = true
-  error.value = ''
+  error.value = null
   try {
     versions.value = await getMinecraftVersions()
   } catch (err) {
@@ -142,7 +142,10 @@ async function loadFabricApi(id: string, current: number) {
   plugins.FabricApi = { loading: true, versions: [], error: '' }
   try {
     if (!isTauri()) throw new Error(pclText('Proto.Desktop.Loaders'))
-    const target = id.replace('∞', 'infinite').replace('Combat Test 7c', '1.16_combat-3').toLowerCase()
+    const target = id
+      .replace('∞', 'infinite')
+      .replace('Combat Test 7c', '1.16_combat-3')
+      .toLowerCase()
     const list = (await getCompVersions('fabric-api'))
       .filter(
         (version) =>
@@ -265,7 +268,8 @@ async function install() {
             : undefined,
       )
       .catch((err) => {
-        if (!isTaskCancelled(err)) sideTip.show(pclText('Proto.Error.Download', [String(err)]), 'warn')
+        if (!isTaskCancelled(err))
+          sideTip.show(pclText('Proto.Error.Download', [String(err)]), 'warn')
       })
     await router.push('/download/game')
   } catch (err) {

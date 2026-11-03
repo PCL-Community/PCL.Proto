@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { maxLogLines } from '@/util/logLines'
 
 export const logSlider = ref(13)
-export const logSaveError = ref('')
+export const logSaveError = ref<string | null>(null)
 let pending: Promise<void> = Promise.resolve()
 let timer: ReturnType<typeof setTimeout> | undefined
 
@@ -28,7 +28,7 @@ export function saveLogSettings() {
   if (!isTauri()) return
   const value = logSlider.value
   const lines = maxLogLines(value)
-  logSaveError.value = ''
+  logSaveError.value = null
   pending = pending.then(async () => {
     try {
       await invoke('set_log_max_lines', { lines: Number.isFinite(lines) ? lines : 0 })

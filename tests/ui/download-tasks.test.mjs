@@ -14,18 +14,36 @@ const mocks = {
   `,
 }
 const result = await build({
-  entryPoints: ['src/stores/task.ts'], bundle: true, write: false, platform: 'node', format: 'esm',
-  plugins: [{ name: 'mocks', setup(builder) {
-    builder.onResolve({ filter: /.*/ }, (args) => Object.hasOwn(mocks, args.path) ? { path: args.path, namespace: 'mock' } : undefined)
-    builder.onLoad({ filter: /.*/, namespace: 'mock' }, (args) => ({ contents: mocks[args.path] }))
-  } }],
+  entryPoints: ['src/stores/task.ts'],
+  bundle: true,
+  write: false,
+  platform: 'node',
+  format: 'esm',
+  plugins: [
+    {
+      name: 'mocks',
+      setup(builder) {
+        builder.onResolve({ filter: /.*/ }, (args) =>
+          Object.hasOwn(mocks, args.path) ? { path: args.path, namespace: 'mock' } : undefined,
+        )
+        builder.onLoad({ filter: /.*/, namespace: 'mock' }, (args) => ({
+          contents: mocks[args.path],
+        }))
+      },
+    },
+  ],
 })
-const { useTaskManager, isTaskCancelled } = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].contents).toString('base64')}`)
+const { useTaskManager, isTaskCancelled } = await import(
+  `data:text/javascript;base64,${Buffer.from(result.outputFiles[0].contents).toString('base64')}`
+)
 let rejectDownload
 const calls = []
 globalThis.testInvoke = (name, args) => {
   calls.push([name, args])
-  if (name === 'download_minecraft_version') return new Promise((_, reject) => { rejectDownload = reject })
+  if (name === 'download_minecraft_version')
+    return new Promise((_, reject) => {
+      rejectDownload = reject
+    })
   if (name === 'cancel_download_task') rejectDownload('Download cancelled')
   return Promise.resolve()
 }
@@ -42,9 +60,24 @@ const pending = store.startDownloadMCVersion('1.20.1', 'Example', {
 })
 await Promise.resolve()
 const channel = calls.find(([name]) => name === 'download_minecraft_version')[1].on_event
-channel.onmessage({ task_id: store.tasks[0].id, item_id: 3, progress: 0.5, status: 1, files_remaining: 1, speed: 0 })
+channel.onmessage({
+  task_id: store.tasks[0].id,
+  item_id: 3,
+  progress: 0.5,
+  status: 1,
+  files_remaining: 1,
+  speed: 0,
+})
 assert.equal(store.tasks[0].progress, 9 / 44)
 await store.cancelTask(store.tasks[0].id)
 await assert.rejects(pending, isTaskCancelled)
 assert.equal(store.tasks.length, 0)
-assert.deepEqual(calls.map(([name]) => name), ['prepare_download_task', 'download_minecraft_version', 'cancel_download_task', 'release_download_task'])
+assert.deepEqual(
+  calls.map(([name]) => name),
+  [
+    'prepare_download_task',
+    'download_minecraft_version',
+    'cancel_download_task',
+    'release_download_task',
+  ],
+)
