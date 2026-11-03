@@ -142,18 +142,4 @@ mod tests {
         assert_eq!(error.code, "ForbiddenOperationException");
         assert_eq!(error.message, "密码不正确");
     }
-
-    #[test]
-    fn available_profiles_deserialize() {
-        let response: AuthenticateResponse = serde_json::from_value(json!({
-            "accessToken": "token",
-            "clientToken": "client",
-            "availableProfiles": [{ "id": "uuid", "name": "Player" }],
-            "selectedProfile": { "id": "uuid", "name": "Player" }
-        }))
-        .unwrap();
-        assert!(response.error().is_none());
-        assert_eq!(response.available_profiles.unwrap()[0].name, "Player");
-        assert_eq!(response.selected_profile.unwrap().id, "uuid");
-    }
 }

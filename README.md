@@ -75,6 +75,9 @@ pnpm dev
 
 ### Build Tauri App
 
+See [Application packaging](docs/PACKAGING.md) for the macOS bundle layout. Distribute
+the complete `.app` or DMG.
+
 If only `bun` is installed on your device but `nodejs` is not installed, please change the`build/foreBuildCommand` content in `src-auri/tauri.conf.json `from `pnpm run build` to `bun run build-only`.
 
 ## HELP WANTED!!

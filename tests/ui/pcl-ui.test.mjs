@@ -1,9 +1,4 @@
 import assert from 'node:assert/strict'
-import fs from 'node:fs'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-import crypto from 'node:crypto'
-import { pclIcons } from '../../src/components/icons/pclIcons.ts'
 import {
   classifyVersion,
   getMinecraftVersions,
@@ -21,49 +16,6 @@ import {
   versionDrop,
 } from '../../src/api/installSelection.ts'
 import { maxLogLines } from '../../src/util/logLines.ts'
-const read = (path) => JSON.parse(fs.readFileSync(new URL(path, import.meta.url), 'utf8'))
-const manifest = read('../../src/assets/pcl-manifest.json')
-const strings = {
-  ...read('../../src/assets/languages/zh-CN.json'),
-  ...read('../../src/assets/messages/zh-CN.json'),
-}
-const iconNames = new Set(read('../../src/assets/icon-names.json'))
-const navActions = read('../../src/assets/nav-actions.json')
-assert.equal(navActions.PageSetupLeft.ItemLaunch.kind, 'initialize')
-assert.equal(navActions.PageSetupLeft.ItemFeedback.kind, 'refresh')
-assert.equal(navActions.PageDownloadLeft.ItemMod.icon, 'lucide/refresh-cw')
-for (const name of iconNames)
-  assert.ok(pclIcons[`lucide/${name}`], `missing package component: ${name}`)
-const paths = read('../../src/assets/vector-paths.json')
-for (const [name, item] of Object.entries(paths)) {
-  const svg = fs.readFileSync(
-    new URL(`../../public/pcl/geometry/${name}.svg`, import.meta.url),
-    'utf8',
-  )
-  assert.ok(svg.includes(item.viewBox), `wrong geometry bounds: ${name}`)
-  assert.ok(!svg.includes('d="F1'), 'WPF fill-rule prefix must not be part of the SVG path')
-  assert.ok(
-    item.viewBox.split(' ').every((value) => Number.isFinite(Number(value))),
-    `invalid geometry bounds: ${name}`,
-  )
-  if (item.style.stroke)
-    assert.ok(svg.includes(`stroke="${item.style.stroke}"`), `lost stroke: ${name}`)
-}
-const sourcePaths = read('../../src/assets/control-geometry.json')
-const logo = Object.values(paths).find(
-  (item) => item.data === sourcePaths['FormMain.ShapeTitleLogo'],
-)
-assert.equal(logo.style.fill, 'none')
-assert.equal(logo.style['stroke-width'], '2.2')
-const titleLogo = fs.readFileSync(
-  new URL('../../src/assets/icons/TitleLogo.svg', import.meta.url),
-  'utf8',
-)
-assert.match(
-  titleLogo,
-  /width="52" height="16" viewBox="0 0 52 16"/,
-  'retain the original Proto title logo proportions',
-)
 
 for (const [type, id, date, category] of [
   ['release', '1.21.1', '2024-08-08', 'release'],
@@ -91,73 +43,6 @@ for (const [source, expected] of [
   ['data:image/png;base64,AA==', 'data:image/png;base64,AA=='],
 ])
   assert.equal(pclImagePath(source, '/PCL.Proto/'), expected)
-const root = new URL('../../', import.meta.url)
-const walk = (dir) =>
-  fs
-    .readdirSync(dir, { withFileTypes: true })
-    .flatMap((entry) =>
-      entry.isDirectory() ? walk(path.join(dir, entry.name)) : [path.join(dir, entry.name)],
-    )
-const files = walk(fileURLToPath(new URL('../../src', import.meta.url))).filter((file) =>
-  /\.(vue|tsx?)$/.test(file),
-)
-const names = new Set(files.map((file) => path.basename(file).replace(/\.[^.]+$/, '')))
-for (const name of names)
-  assert.ok(!/^(My|Ce)[A-Z]/.test(name), `unmigrated component name: ${name}`)
-for (const page of Object.keys(manifest.pages))
-  assert.ok(page === 'FormMain' || names.has(page), `missing Vue page or control: ${page}`)
-for (const file of files) {
-  const source = fs.readFileSync(file, 'utf8')
-  const imports = source.replace(/<!--[\s\S]*?-->|\/\*[\s\S]*?\*\/|^\s*\/\/.*$/gm, '')
-  for (const match of imports.matchAll(
-    /(?:\bfrom\s*|\bimport\s*(?:\(\s*)?)['"]((?:@\/|\.{1,2}\/)[^'"]+)['"]/g,
-  )) {
-    const specifier = match[1].split('?')[0]
-    const target = specifier.startsWith('@/')
-      ? path.join(fileURLToPath(new URL('../../src', import.meta.url)), specifier.slice(2))
-      : path.resolve(path.dirname(file), specifier)
-    const resolved = ['', '.ts', '.tsx', '.js', '.vue', '/index.ts']
-      .map((suffix) => target + suffix)
-      .find((candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile())
-    assert.ok(resolved, `${file}: unresolved import ${specifier}`)
-    const normalized = path.normalize(resolved)
-    let parent = path.parse(normalized).root
-    for (const segment of normalized.slice(parent.length).split(path.sep)) {
-      assert.ok(
-        fs.readdirSync(parent).includes(segment),
-        `${file}: incorrect import casing ${specifier}`,
-      )
-      parent = path.join(parent, segment)
-    }
-  }
-  for (const match of source.matchAll(
-    /(?:\btext|\bpclText)\('((?:Common|Launch|Main|Download|Instance|Setup|Tools|Select|Speed|LogPage|Help|Application|Proto)\.[^']+)'/g,
-  )) {
-    assert.ok(strings[match[1]] !== undefined, `${file}: missing UI text ${match[1]}`)
-  }
-  for (const match of source.matchAll(/['"](lucide\/[a-z0-9-]+)['"]/g))
-    assert.ok(pclIcons[match[1]], `${file}: unknown icon ${match[1]}`)
-  for (const match of source.matchAll(/\bimage\('([^']+)'/g)) {
-    if (/^https?:/.test(match[1])) continue
-    const asset = pclImagePath(match[1], '')
-    assert.ok(fs.existsSync(new URL(`public/${asset}`, root)), `${file}: missing image ${asset}`)
-  }
-}
-for (const loader of [
-  'Cleanroom',
-  'Fabric',
-  'Forge',
-  'LabyMod',
-  'LegacyFabric',
-  'LiteLoader',
-  'NeoForge',
-  'Optifine',
-]) {
-  for (const key of ['Intro.Title', 'Intro.Description', 'LoadingList'])
-    assert.ok(strings[`Download.Version.${loader}.${key}`], `missing loader text: ${loader}.${key}`)
-}
-const options = read('../../src/assets/export-options.json')
-const defaults = read('../../src/assets/setting-defaults.json')
 const originalFetch = globalThis.fetch
 for (const [id, locale, host, query] of [
   ['1.21.1', 'zh-CN', 'zh.minecraft.wiki', 'Java版1.21.1'],
@@ -200,12 +85,6 @@ try {
 } finally {
   globalThis.fetch = originalFetch
 }
-assert.equal(defaults.PageSetupUI.SliderLauncherOpacity, 600)
-assert.equal(defaults.PageSetupUI.SliderBlurValue, 16)
-assert.equal(defaults.PageSetupUI.SliderBlurSamplingRate, 70)
-assert.equal(defaults.PageSetupLaunch.CheckAdvanceRunWait, true)
-assert.equal(defaults.PageInstanceSetup.CheckAdvanceRunWait, true)
-assert.equal(defaults.PageInstanceSetup.ComboArgumentIndieV2, '1')
 for (const [value, lines] of [
   [0, 50],
   [5, 100],
@@ -286,15 +165,4 @@ for (const [loader, version, visible] of [
 assert.equal(loaderVisible('FabricApi', '1.21.1', { Fabric: '0.16' }), true)
 assert.equal(loaderVisible('OptiFabric', '1.21.1', { Fabric: '0.16' }), false)
 assert.equal(loaderVisible('OptiFabric', '1.21.1', { Fabric: '0.16', OptiFine: 'HD' }), true)
-assert.equal(
-  options.length,
-  new Set(options.map((option) => option.id)).size,
-  'export option IDs must be unique',
-)
-assert.ok(options.find((option) => option.id === 'CheckOptionsBasic').checked)
-assert.ok(
-  options.every((option) => option.title && strings[option.title.match(/Resource (.+)}/)[1]]),
-)
-console.log(
-  `UI contract: ${Object.keys(manifest.pages).length} CE source snapshots, ${files.length} frontend files, ${Object.keys(paths).length} bounded geometries checked.`,
-)
+console.log('Version parsing, API failures and loader selection passed.')

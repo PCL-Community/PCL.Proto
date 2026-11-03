@@ -95,7 +95,6 @@
   "Proto.Lobby.ScanFailed": "Scanning failed. Retry in the desktop app.",
   "Proto.Lobby.EnterPort": "Enter a port manually",
   "Proto.Lobby.NoVirtualIP": "No virtual IP available yet.",
-  "Proto.Lobby.Title": "PCL.Proto multiplayer lobby",
   "Proto.Update.Checking": "Checking for updates…",
   "Proto.Update.Current": "You are up to date",
   "Proto.Update.Latest": "Latest release: {0}",

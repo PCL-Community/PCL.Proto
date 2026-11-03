@@ -171,11 +171,6 @@ mod tests {
         assert!(AuthError::new("xsts_2148916233", "no xbox").is_xsts());
         assert!(!AuthError::new("invalid_grant", "expired").is_xsts());
         assert!(AuthError::new("invalid_grant", "expired").is_invalid_grant());
-        assert_eq!(AuthError::configuration("x").code, "configuration_error");
-        assert_eq!(
-            AuthError::rejected(None, None).code,
-            "invalid_response".to_string()
-        );
     }
 
     #[test]

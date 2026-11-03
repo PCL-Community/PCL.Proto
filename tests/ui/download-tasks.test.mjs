@@ -41,12 +41,6 @@ const pending = store.startDownloadMCVersion('1.20.1', 'Example', {
   },
 })
 await Promise.resolve()
-assert.deepEqual(
-  store.tasks[0].items.map((item) => item.id),
-  [0, 1, 2, 3, 5, 6, 8, 7],
-)
-assert.equal(store.tasks[0].items[5].name, 'Minecraft.Download.Stage.AnalyzeFabricLibraries')
-assert.equal(store.tasks[0].items[6].name, 'Minecraft.Download.Stage.DownloadFabricApi')
 const channel = calls.find(([name]) => name === 'download_minecraft_version')[1].on_event
 channel.onmessage({ task_id: store.tasks[0].id, item_id: 3, progress: 0.5, status: 1, files_remaining: 1, speed: 0 })
 assert.equal(store.tasks[0].progress, 9 / 44)

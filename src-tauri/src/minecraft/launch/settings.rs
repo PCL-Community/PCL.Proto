@@ -1,6 +1,7 @@
 //! Per-instance launch settings that CE keeps outside the plain launch arguments.
+#[cfg(not(target_os = "macos"))]
+use std::io::Write;
 use std::{
-    io::Write,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -151,6 +152,7 @@ fn resource_dir() -> PathBuf {
         .join("resources")
 }
 
+#[cfg(not(target_os = "macos"))]
 fn bundled(name: &str, bytes: &[u8]) -> std::io::Result<PathBuf> {
     let path = resource_dir().join(name);
     if std::fs::metadata(&path).is_ok_and(|metadata| metadata.len() == bytes.len() as u64) {
@@ -166,38 +168,36 @@ fn bundled(name: &str, bytes: &[u8]) -> std::io::Result<PathBuf> {
     Ok(path)
 }
 
+macro_rules! bundled_resource {
+    ($name:literal) => {{
+        #[cfg(target_os = "macos")]
+        {
+            crate::app::resources::launcher($name)
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            bundled($name, include_bytes!(concat!("../../../resources/", $name)))
+        }
+    }};
+}
+
 pub fn java_wrapper() -> std::io::Result<PathBuf> {
-    bundled(
-        "java-wrapper.jar",
-        include_bytes!("../../../resources/java-wrapper.jar"),
-    )
+    bundled_resource!("java-wrapper.jar")
 }
 
 pub fn legacy_fix() -> std::io::Result<PathBuf> {
-    bundled(
-        "legacyfix.jar",
-        include_bytes!("../../../resources/legacyfix.jar"),
-    )
+    bundled_resource!("legacyfix.jar")
 }
 
 pub fn lwjgl_unsafe_agent() -> std::io::Result<PathBuf> {
-    bundled(
-        "lwjgl-unsafe-agent.jar",
-        include_bytes!("../../../resources/lwjgl-unsafe-agent.jar"),
-    )
+    bundled_resource!("lwjgl-unsafe-agent.jar")
 }
 
 pub fn log4j2_config(legacy: bool) -> std::io::Result<PathBuf> {
     if legacy {
-        bundled(
-            "log4j2-legacy-debug.xml",
-            include_bytes!("../../../resources/log4j2-legacy-debug.xml"),
-        )
+        bundled_resource!("log4j2-legacy-debug.xml")
     } else {
-        bundled(
-            "log4j2-debug.xml",
-            include_bytes!("../../../resources/log4j2-debug.xml"),
-        )
+        bundled_resource!("log4j2-debug.xml")
     }
 }
 

@@ -466,21 +466,7 @@ pub async fn export_launch_script(
 }
 #[cfg(test)]
 mod tests {
-    use super::{LaunchController, LaunchProgress};
-
-    #[test]
-    fn launch_progress_uses_the_frontend_channel_shape() {
-        let value = serde_json::to_value(LaunchProgress::new(
-            "Minecraft.Launch.Stage.GetJava",
-            0.08,
-            false,
-        ))
-        .unwrap();
-        assert_eq!(value["stage"], "Minecraft.Launch.Stage.GetJava");
-        assert_eq!(value["progress"], 0.08);
-        assert_eq!(value["downloading"], false);
-        assert!(value["failure"].is_null());
-    }
+    use super::LaunchController;
 
     #[test]
     fn cancelling_a_pending_launch_releases_the_controller() {

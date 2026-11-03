@@ -8,9 +8,10 @@ Copied from [PCL2-CE](https://github.com/PCL-Community/PCL2-CE) `Plain Craft Lau
 - `lwjgl-unsafe-agent.jar` — LWJGL 3.4.1 unsafe-memory agent (`CheckAdvanceDisableLwjglUnsafeAgent`)
 - `log4j2-debug.xml`, `log4j2-legacy-debug.xml` — debug logging configs (`CheckUseDebugLog4j2Config`)
 
-They are embedded in the binary with `include_bytes!` and extracted to
-`<config dir>/resources` on first use. The renderer agent (mesa-loader) is downloaded from the
-Tencent maven mirror at launch time instead of being bundled.
+On macOS they are copied to `.app/Contents/Resources/launcher/` and read directly
+from the bundle. Other platforms embed them with `include_bytes!` and extract them
+to `<config dir>/resources` on first use. The renderer agent (mesa-loader) is
+downloaded to the writable config directory at launch time instead of being bundled.
 
 `macos-arm64-libraries.json` contains the macOS ARM64 library coordinates and
 checksums from HMCL's `HMCL/src/main/resources/assets/natives.json`. They are

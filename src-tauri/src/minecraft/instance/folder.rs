@@ -1,6 +1,97 @@
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use crate::minecraft::instance::McInstance;
+use crate::utils::platform::OS;
+
+pub fn launcher_minecraft_directory() -> Option<PathBuf> {
+    let executable = tauri::utils::platform::current_exe().ok()?;
+    let appimage = std::env::var_os("APPIMAGE").map(PathBuf::from);
+    let os = OS::current();
+    if os == OS::macOS {
+        return None;
+    }
+    // An AppImage's executable lives in a temporary, read-only mount.
+    let executable = if os == OS::Linux {
+        appimage
+            .as_deref()
+            .filter(|path| path.is_absolute() && path.is_file())
+            .unwrap_or(&executable)
+    } else {
+        &executable
+    };
+    Some(executable.parent()?.join(".minecraft"))
+}
+
+pub fn official_minecraft_directory() -> Option<PathBuf> {
+    let dirs = directories::BaseDirs::new()?;
+    Some(match OS::current() {
+        OS::Windows => dirs.config_dir().join(".minecraft"),
+        OS::Linux => dirs.home_dir().join(".minecraft"),
+        OS::macOS => dirs
+            .home_dir()
+            .join("Library/Application Support/minecraft"),
+    })
+}
+
+pub fn create_default_directory(
+    config_dir: &Path,
+    portable: Option<&Path>,
+) -> std::io::Result<PathBuf> {
+    let prepare = |path: &Path| -> std::io::Result<PathBuf> {
+        fs::create_dir_all(path.join("versions"))?;
+        tempfile::tempfile_in(path)?;
+        path.canonicalize()
+    };
+    if let Some(path) = portable {
+        match prepare(path) {
+            Ok(path) => return Ok(path),
+            Err(error) => log::warn!(
+                "Cannot use launcher-local Minecraft directory {}: {error}; using config directory",
+                path.display()
+            ),
+        }
+    }
+    prepare(&config_dir.join(".minecraft"))
+}
+
+pub fn discover_repositories(
+    known: &[McFolder],
+    portable: Option<&Path>,
+    official: Option<&Path>,
+) -> Vec<McFolder> {
+    let mut discovered: Vec<McFolder> = Vec::new();
+    for (name, path, needs_versions) in [
+        (".minecraft", portable, false),
+        ("Official Launcher", official, true),
+    ] {
+        let Some(path) = path
+            .filter(|path| path.is_dir() && (!needs_versions || path.join("versions").is_dir()))
+        else {
+            continue;
+        };
+        let Ok(path) = path.canonicalize() else {
+            continue;
+        };
+        if known.iter().chain(&discovered).any(|repo| {
+            repo.path == path
+                || repo
+                    .path
+                    .canonicalize()
+                    .is_ok_and(|existing| existing == path)
+        }) {
+            continue;
+        }
+        discovered.push(McFolder {
+            name: name.into(),
+            path,
+            kind: McFolderType::Original,
+        });
+    }
+    discovered
+}
 
 /// Provenance of a Minecraft folder, mirroring CE `ModFolder.McFolder.Types`.
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]

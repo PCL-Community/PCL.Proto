@@ -95,7 +95,6 @@
   "Proto.Lobby.ScanFailed": "扫描失败，请在桌面客户端中重试。",
   "Proto.Lobby.EnterPort": "手动输入端口",
   "Proto.Lobby.NoVirtualIP": "尚未获取到虚拟 IP。",
-  "Proto.Lobby.Title": "PCL.Proto 联机大厅",
   "Proto.Update.Checking": "正在检查更新…",
   "Proto.Update.Current": "当前已是最新版本",
   "Proto.Update.Latest": "最新发布：{0}",

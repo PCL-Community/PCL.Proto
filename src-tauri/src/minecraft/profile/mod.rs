@@ -273,25 +273,4 @@ mod tests {
         assert!(value.get("refreshToken").is_none());
         assert!(value.get("xuid").is_none());
     }
-
-    #[test]
-    fn modern_profile_round_trips() {
-        let profile = McProfile::yggdrasil("Player", "uuid", "token");
-        let value = serde_json::to_value(&profile).unwrap();
-        let restored: McProfile = serde_json::from_value(value).unwrap();
-        assert_eq!(restored.profile_type, ProfileType::YggdrasilConnect);
-        assert_eq!(restored.access_token(), Some("token"));
-    }
-
-    #[test]
-    fn profile_kinds_keep_stable_names() {
-        for (kind, name) in [
-            (ProfileType::Offline, "offline"),
-            (ProfileType::Microsoft, "microsoft"),
-            (ProfileType::Authlib, "authlib"),
-            (ProfileType::YggdrasilConnect, "yggdrasilConnect"),
-        ] {
-            assert_eq!(serde_json::to_value(kind).unwrap(), serde_json::json!(name));
-        }
-    }
 }

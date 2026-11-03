@@ -781,12 +781,16 @@ fn patch_macos_arm_libraries(
         return Ok(());
     }
     // Library coordinates and checksums follow HMCL's macos-arm64 native mappings.
+    #[cfg(target_os = "macos")]
+    let mapping = std::fs::read_to_string(crate::app::resources::launcher(
+        "macos-arm64-libraries.json",
+    )?)?;
+    #[cfg(not(target_os = "macos"))]
+    let mapping = include_str!("../../../resources/macos-arm64-libraries.json");
     let replacements: std::collections::HashMap<
         String,
         Option<crate::minecraft::version::McLibrary>,
-    > = serde_json::from_str(include_str!(
-        "../../../resources/macos-arm64-libraries.json"
-    ))?;
+    > = serde_json::from_str(&mapping)?;
     let mut libraries = Vec::new();
     for library in &details.libraries {
         if !library.rule_allow(context)? {

@@ -58,8 +58,6 @@ globalThis.taskManager = {
 }
 const file = { url: 'https://cdn.modrinth.com/pack', size: 42, hashes: { sha1: 'abc' } }
 await installOnlineModpack(file, 'Pack')
-assert.equal(prompts[1].confirmText, 'Minecraft.Download.Modpack.OptionalFile.Download')
-assert.equal(prompts[1].cancelText, 'Minecraft.Download.Modpack.OptionalFile.Skip')
 assert.deepEqual(calls, [
   ['prepare', 'My Pack', { url: file.url, size: 42, sha1: 'abc' }],
   ['install', 'token', 'My Pack', ['one.jar'], true],

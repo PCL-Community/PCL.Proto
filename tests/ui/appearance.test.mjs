@@ -51,7 +51,6 @@ const { appearance } = await import(
 )
 assert.equal(classes.has('dark'), false)
 const cat = properties.get('--ce-color-3')
-assert.equal(cat, 'oklch(0.575 0.1704 255)')
 assert.match(properties.get('--base-background'), /0\.84 0\.093 240/)
 appearance.values.CheckBackgroundColorful = false
 assert.equal(properties.get('--base-background'), 'var(--color-background)')

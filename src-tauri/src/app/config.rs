@@ -6,12 +6,15 @@ use tokio::sync::Mutex;
 use crate::{
     app::config::constants::USER_AGENT,
     io::net::http::api_client::{ApiProvider, MinecraftApiClient},
-    minecraft::instance::{McInstance, folder::McFolder},
+    minecraft::instance::{
+        McInstance,
+        folder::{self, McFolder, McFolderType},
+    },
 };
 use std::{
     fs,
     io::Write,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{Arc, LazyLock},
 };
 
@@ -195,7 +198,10 @@ impl ConfigManager {
             ),
             pcl_identifier,
         };
-        instance.load_or_init()?;
+        instance.load_or_init(
+            folder::launcher_minecraft_directory().as_deref(),
+            folder::official_minecraft_directory().as_deref(),
+        )?;
         // The API client is built before the proxy policy is loaded.
         instance
             .api_client
@@ -241,31 +247,50 @@ impl ConfigManager {
         Ok(settings)
     }
 
-    fn load_or_init(&self) -> Result<(), ConfigManagerError> {
+    fn load_or_init(
+        &self,
+        portable: Option<&Path>,
+        official: Option<&Path>,
+    ) -> Result<(), ConfigManagerError> {
         match self.load() {
             Ok(()) => Ok(()),
             Err(ConfigManagerError::ConfigFileNotFound) => {
                 match fs::symlink_metadata(&self.config_path) {
                     Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                        self.init()?;
+                        self.init(portable)?;
                         self.save()
                     }
                     _ => Err(ConfigManagerError::ConfigFileCorrupted),
                 }
             }
             Err(error) => Err(error),
+        }?;
+        let discovered = folder::discover_repositories(
+            &self.app_state.blocking_lock().repositories,
+            portable,
+            official,
+        );
+        if !discovered.is_empty() {
+            self.update(|state| {
+                state.repositories.extend(discovered);
+                Ok(())
+            })
+            .map_err(|_| ConfigManagerError::ConfigFileCorrupted)?;
         }
+        Ok(())
     }
 
     /// initialize the config file, for those who never use this launcher
-    fn init(&self) -> Result<(), ConfigManagerError> {
-        let game_dir = self.config_dir.join(".minecraft");
-        if !game_dir.exists() {
-            fs::create_dir_all(&game_dir).map_err(|_| ConfigManagerError::ConfigDirNotFound)?;
-        }
+    fn init(&self, portable: Option<&Path>) -> Result<(), ConfigManagerError> {
+        let game_dir = folder::create_default_directory(&self.config_dir, portable)
+            .map_err(|_| ConfigManagerError::ConfigDirNotFound)?;
         let mut state = self.app_state.blocking_lock();
         state.active_repo_path = game_dir.clone();
-        state.repositories.push(McFolder::new("Default", game_dir));
+        state.repositories.push(McFolder {
+            name: "Default".into(),
+            path: game_dir,
+            kind: McFolderType::Original,
+        });
         // CE 一致：首次运行不预置账号，由用户自行登录。
         Ok(())
     }
@@ -495,26 +520,6 @@ fn save_config_atomically(
     result
 }
 
-#[test]
-fn test_config_manager() {
-    // Keep the test away from the real per-user config and from the global
-    // download resources configured by the singleton.
-    let root = std::env::temp_dir().join(format!("pcl-config-{}", uuid::Uuid::new_v4()));
-    fs::create_dir_all(&root).unwrap();
-    let config_path = root.join("config.json");
-    let config_manager = ConfigManager {
-        config_path: config_path.clone(),
-        config_dir: root.clone(),
-        app_state: Arc::new(Mutex::new(AppState::default())),
-        api_client: MinecraftApiClient::new(reqwest::Client::new(), &ApiProvider::default()),
-        pcl_identifier: String::new(),
-    };
-    config_manager.save().unwrap();
-    config_manager.load().unwrap();
-    assert!(config_path.is_file());
-    fs::remove_dir_all(root).unwrap();
-}
-
 #[cfg(test)]
 mod java_config_tests {
     use super::*;
@@ -714,15 +719,35 @@ mod java_config_tests {
         };
         fs::write(&path, b"invalid json").unwrap();
         assert!(matches!(
-            manager.load_or_init(),
+            manager.load_or_init(None, None),
             Err(ConfigManagerError::ConfigFileCorrupted)
         ));
         assert_eq!(fs::read(&path).unwrap(), b"invalid json");
         fs::remove_file(&path).unwrap();
-        manager.load_or_init().unwrap();
-        assert!(serde_json::from_slice::<AppState>(&fs::read(&path).unwrap()).is_ok());
+        let portable = root.join("portable/.minecraft");
+        let official = root.join("official/.minecraft");
+        fs::create_dir_all(official.join("versions")).unwrap();
+        manager
+            .load_or_init(Some(&portable), Some(&official))
+            .unwrap();
+        // Restart discovery must preserve selection and deduplicate canonical paths.
+        manager.select_repository(1).unwrap();
+        manager
+            .load_or_init(Some(&portable.join(".")), Some(&official))
+            .unwrap();
+        let restored: AppState = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        assert_eq!(restored.repositories.len(), 2);
+        assert_eq!(restored.active_repo_path, official.canonicalize().unwrap());
+        assert!(portable.join("versions").is_dir());
+        let blocked = root.join("blocked");
+        fs::write(&blocked, b"file").unwrap();
+        assert_eq!(
+            folder::create_default_directory(&root, Some(&blocked)).unwrap(),
+            root.join(".minecraft").canonicalize().unwrap()
+        );
         fs::remove_dir_all(root).unwrap();
     }
+
     #[test]
     fn failed_saves_preserve_previous_config_and_successful_saves_replace_it() {
         let root =

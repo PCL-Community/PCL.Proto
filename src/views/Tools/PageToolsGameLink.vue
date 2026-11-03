@@ -6,8 +6,6 @@ import PCard from '@/components/widget/PCard.vue'
 import PButton from '@/components/widget/PButton.vue'
 import PIconTextButton from '@/components/widget/PIconTextButton.vue'
 import PLoading from '@/components/widget/PLoading.vue'
-import PHint from '@/components/widget/PHint.vue'
-
 import PComboBox from '@/components/widget/PComboBox.vue'
 import PListItem from '@/components/widget/PListItem.vue'
 import sideTip from '@/composables/sideTip'
@@ -174,14 +172,6 @@ const text = pclText
       <div style="display: grid">
         <div data-control="PanContent" style="grid-row: 1 / span 1; grid-column: 1 / span 1">
           <div style="margin: 10px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto">
-            <PHint
-              :severity="error ? 'error' : 'info'"
-              style="min-height: 36px; margin: 10px; grid-row: 1; grid-column: 1"
-            >
-              <span>{{
-                error || (isTauri() ? pclText('Proto.Lobby.Title') : pclText('Proto.Desktop.Lobby'))
-              }}</span>
-            </PHint>
             <div
               data-control="PanSelect"
               v-if="!connected && !operation"

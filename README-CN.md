@@ -75,6 +75,8 @@ pnpm dev
 pnpm run tauri build
 ```
 
+macOS 打包目录与资源读取方式见 [应用打包说明](docs/PACKAGING.md)。请分发完整的 `.app` 或 DMG。
+
 ## 项目打包求助！
 
 我想把这个项目做成 Vue 组件的 npm 包，但是我不会做，如果有大佬会做组件库的话，欢迎联系我！！！

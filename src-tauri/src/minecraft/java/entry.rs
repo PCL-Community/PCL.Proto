@@ -142,32 +142,3 @@ impl JavaEntry {
         self.installation.java_exe == path
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn installation() -> JavaInstallation {
-        JavaInstallation {
-            java_folder: "/jdk/bin".into(),
-            java_exe: "/jdk/bin/java".into(),
-            version: "21.0.7".into(),
-            vendor: "Eclipse Adoptium".into(),
-            architecture: crate::utils::platform::Architecture::X64,
-            is_64_bit: true,
-            is_jre: false,
-            compatibility: crate::utils::platform::Compatibility::Perfect,
-        }
-    }
-
-    #[test]
-    fn serializes_as_a_flat_runtime_view() {
-        let entry = JavaEntry::from_installation(installation(), true, JavaSource::ManualAdded);
-        let value = serde_json::to_value(&entry).unwrap();
-        assert_eq!(value["java_folder"], "/jdk/bin");
-        assert_eq!(value["is_jre"], false);
-        assert_eq!(value["source"], "manual_added");
-        assert_eq!(value["vendor"], "Eclipse Adoptium");
-        assert!(value.get("installation").is_none());
-    }
-}

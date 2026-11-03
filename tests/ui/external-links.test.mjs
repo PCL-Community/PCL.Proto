@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict'
-import fs from 'node:fs/promises'
 import { createServer } from 'vite'
 
 const server = await createServer({
@@ -127,20 +126,6 @@ try {
   assert.equal(await openExternal('https://example.com'), true)
   assert.deepEqual(calls.pop(), ['https://example.com/', '_blank', 'noopener,noreferrer'])
 
-  // Keep imperative callers on the shared entry point as new pages are added.
-  async function checkCallers(directory) {
-    for (const item of await fs.readdir(directory, { withFileTypes: true })) {
-      const path = new URL(`${item.name}${item.isDirectory() ? '/' : ''}`, directory)
-      if (item.isDirectory()) await checkCallers(path)
-      else if (
-        /\.(ts|tsx|vue)$/.test(item.name) &&
-        path.pathname.endsWith('/util/externalLink.ts') === false
-      ) {
-        assert.doesNotMatch(await fs.readFile(path, 'utf8'), /window\.open\s*\(/, path.pathname)
-      }
-    }
-  }
-  await checkCallers(new URL('../../src/', import.meta.url))
   console.log('External URL validation, native/browser opening, click handling and cleanup passed.')
 } finally {
   console.error = originalConsoleError

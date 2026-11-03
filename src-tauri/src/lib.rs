@@ -38,6 +38,14 @@ async fn system_fonts() -> Result<Vec<String>, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(all(target_os = "macos", not(dev)))]
+    let context = tauri::generate_context!(
+        assets = app::resources::FrontendAssets::new()
+            .expect("could not load frontend resources from the .app bundle")
+    );
+    #[cfg(not(all(target_os = "macos", not(dev))))]
+    let context = tauri::generate_context!();
+
     tauri::Builder::default()
         .register_uri_scheme_protocol("pclinstance", |_app, request| protocol::serve(request))
         .plugin(tauri_plugin_dialog::init())
@@ -202,6 +210,6 @@ pub fn run() {
             link::scaffolding::set_terracotta_host_starting,
             link::scaffolding::set_terracotta_guesting,
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running tauri application");
 }

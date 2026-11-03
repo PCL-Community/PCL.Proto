@@ -14,7 +14,7 @@
 - Lucide 通用图标通过官方 `@lucide/vue` 包具名导入。`pclIcons.ts` 注册 92 个名称（包括源图标和前端辅助图标）；不复制 Lucide SVG 到 public。
 - Logo、镐头等自定义 WPF Geometry 从源代码或 XML 提取，保留填充规则、描边与边界，生成 26 份 SVG；图片保留源目录结构。资源来源及许可证见 `public/pcl/LICENCE`。
 - 悬停与按下背景（`--color-tint-lighter`、`--half-transparent-blue`）取主题色的半透明叠加，而不是源色阶 `ColorBrush6/7` 的纯色：深色主题下这些纯色阶比卡片表面更暗，会把按钮、列表项和下拉框的悬停画成一块黑。同步 CE 色板时不要改回 `--ce-color-6/7`。
-- 交互表面的静止态使用 `--color-tint-rest`，与悬停态同色、仅 alpha 为 0。按钮背景过渡由 CSS `:hover/:active` 承担，`PButton` 只把 scale 交给 Motion。相关样式约定由 `tests/ui/components.test.mjs` 检查；Java 行回弹时图标变灰的原因是禁用状态改色，见下条。
+- 交互表面的静止态使用 `--color-tint-rest`，与悬停态同色、仅 alpha 为 0。按钮背景过渡由 CSS `:hover/:active` 承担，`PButton` 只把 scale 交给 Motion。Java 行回弹时图标变灰的原因是禁用状态改色，见下条。
 - 图标操作统一复用 `.pcl-icon-button`：对齐 CE `MyIconButton` 的 `ColorBrush4` 常态与 `ColorBrush2` hover，不为 disabled 增加改色规则。Java 行保存时仍临时禁用操作，但图标保持原色；Home 三个账户操作不再单独覆盖为最深的 `--color-tint-dark`。
 - 原有自定义主页 XAML 输入仍兼容 `My*`，也接受 `P*`；这是用户主页功能，不是整套源页面的运行时解释器。
 
@@ -30,13 +30,13 @@
 
 ```sh
 python3 scripts/sync-pcl-ui.py ../PCL2-CE
-node tests/ui/pcl-ui.test.mjs ../PCL2-CE
+pnpm check:ui
 pnpm ui:build
 git diff --check
 ```
 
 同步脚本只更新提取资源和图标映射，不生成或覆盖手工 Vue 页面。已验证连续两次同步的 248 个相关文件哈希一致。
-检查脚本覆盖源布局哈希、文案引用、图片路径、图标映射、Geometry 边界与填充规则、同构命名、import 文件名大小写、关键默认值、导出选项、导航辅助操作、版本分类、加载器互斥/显隐/警告和公开 API 的畸形响应与 HTTP 错误。
+当前测试保留版本分类、加载器互斥/显隐/警告、公开 API 的畸形响应与 HTTP 错误，以及登录、下载取消和配置持久化等行为检查；静态配置、源码字符串和样式常量的机械断言已移除。
 
 ## 接口范围
 

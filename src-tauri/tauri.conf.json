@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "pcl-proto",
+  "productName": "PCL.Proto",
   "version": "0.9.3",
   "identifier": "pcl-community.pcl.proto",
   "build": {

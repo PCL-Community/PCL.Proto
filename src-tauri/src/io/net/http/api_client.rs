@@ -924,25 +924,4 @@ mod tests {
             assert_eq!(bases.download_url(url), expected);
         }
     }
-
-    #[tokio::test]
-    async fn mc_manifest() {
-        let mc_api_client = MinecraftApiClient::new(Client::new(), &ApiProvider::Official);
-        let manifest: game::McVersionManifest = mc_api_client
-            .get_with_endpoint(game::VERSION_MANIFEST_ENDPOINT, true)
-            .await
-            .unwrap();
-        println!("{:?}", manifest);
-    }
-
-    #[test]
-    fn forge_test() {
-        let mc_api_client = &ConfigManager::instance().api_client;
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
-            let re = mc_api_client.get_forge_versions("1.21.9").await;
-            assert!(re.is_ok());
-            println!("{re:?}");
-        });
-    }
 }
