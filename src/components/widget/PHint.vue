@@ -32,6 +32,13 @@ button.button-animated {
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 3px;
+  scale: 0.8;
+  color: inherit;
+  transition: opacity 150ms linear;
 }
 
 .hint-container {
@@ -47,52 +54,49 @@ button.button-animated {
 }
 
 .theme-blue .hint-container.error {
-  background-color: #feeaeb;
-  border-left-color: #f31628;
-  color: #f31628;
+  background-color: #fee6e8;
+  border-left-color: #f42b3c;
+  color: #f42b3c;
 }
 
 .theme-blue .hint-container.warning {
-  background-color: #fff4e6;
-  border-left-color: #f39c16;
-  color: #f39c16;
+  background-color: #fdf1d8;
+  border-left-color: #c1840a;
+  color: #c1840a;
 }
 
 .theme-blue .hint-container.info {
-  background-color: var(--lighter-blue);
-  border-left-color: var(--tint-blue);
-  color: var(--tint-blue);
+  background-color: hsl(from #dcedfd calc(h + var(--hint-hue-offset, 0)) s l);
+  color: hsl(from #0b6ed0 calc(h + var(--hint-hue-offset, 0)) s l);
 }
 
+.theme-blue.dark .hint-container.error {
+  background-color: #7f0711;
+  border-left-color: #f9959d;
+  color: #f9959d;
+}
+.theme-blue.dark .hint-container.warning {
+  background-color: #573c05;
+  border-left-color: #f6c35d;
+  color: #f6c35d;
+}
+.theme-blue.dark .hint-container.info {
+  background-color: hsl(from #05315e calc(h + var(--hint-hue-offset, 0)) s l);
+  color: hsl(from #6eb3f7 calc(h + var(--hint-hue-offset, 0)) s l);
+}
 .theme-orange .hint-container.info {
   background-color: #ed931d3d;
   border-left-color: #ff9626;
   color: #ff9626;
 }
 
-button.button-animated {
-  scale: 0.8;
-  color: var(--light-blue);
-  /* CE MyIconButton：移出 150 ms、指向 120 ms。 */
-  transition: color 150ms linear;
-}
-
 button.button-animated:hover {
-  color: var(--color-titlebar);
+  opacity: 0.7;
   transition-duration: 120ms;
 }
 
 .pcl-page .hint-container {
   margin-top: 0;
   margin-bottom: 0;
-}
-</style>
-
-<style scoped>
-button.button-animated {
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  padding: 3px;
 }
 </style>

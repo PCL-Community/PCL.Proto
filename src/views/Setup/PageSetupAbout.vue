@@ -82,12 +82,6 @@ section.pcl-page.proto-about
 </template>
 
 <style scoped>
-.proto-about {
-  padding: 25px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
 .proto-about :deep(.mycard-content) {
   padding: 0 20px 20px;
 }

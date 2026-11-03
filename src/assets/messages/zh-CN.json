@@ -43,7 +43,6 @@
   "Proto.Session.BufferLimit": "游戏会话日志最多保留 1000 行或 1 MiB；显示行数不会改变缓冲上限。",
   "Proto.Storage.FavoritesFailed": "收藏保存失败，请检查可用存储空间。",
   "Proto.NotImplemented.Action": "此操作尚未接入 PCL.Proto。",
-  "Proto.Settings.Unavailable": "灰色设置尚未接入，当前不可使用。",
   "Proto.Settings.InvalidWindowSize": "窗口宽度和高度必须为 100 至 16384 的整数。",
   "Proto.Settings.MemoryEstimate": "估计分配",
   "Proto.NotImplemented.Initialize": "初始化设置尚未接入 PCL.Proto。",

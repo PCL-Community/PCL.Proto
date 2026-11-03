@@ -46,7 +46,7 @@ const router = useRouter()
 const text = pclText
 </script>
 <template>
-  <section class="pcl-page jar-page">
+  <section class="pcl-page">
     <PLoading v-if="loading" :loading-text="text('Instance.Resource.Loading')" />
     <PHint v-else-if="error" severity="error"
       >{{ error
@@ -101,26 +101,26 @@ const text = pclText
         {{ pclText('Download.Comp.List.NoMatchingResults') }}
       </p>
     </template>
-    <PCard v-else hide-title class="empty-card"
-      ><div class="empty-content">
-        <h2>{{ text('Instance.Resource.Mod.JarInJar.Empty.Title') }}</h2>
+    <PCard v-else hide-title class="pcl-empty-state-card"
+      ><div class="pcl-empty-state">
+        <h2 class="pcl-empty-state-title">
+          {{ text('Instance.Resource.Mod.JarInJar.Empty.Title') }}
+        </h2>
         <div class="pcl-divider" />
-        <p>{{ text('Instance.Resource.Mod.JarInJar.Empty.Message') }}</p>
-        <PButton type="tint" @click="() => router.back()">{{
-          text('Instance.Resource.BackToParent')
-        }}</PButton>
+        <p class="pcl-empty-state-message">
+          {{ text('Instance.Resource.Mod.JarInJar.Empty.Message') }}
+        </p>
+        <div class="pcl-empty-state-actions">
+          <PButton type="tint" @click="() => router.back()">{{
+            text('Instance.Resource.BackToParent')
+          }}</PButton>
+        </div>
       </div></PCard
     >
   </section>
 </template>
 <style scoped>
-.jar-page {
-  padding: 25px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-h2 {
+section > h2 {
   font-size: 16px;
   color: var(--color-tint);
 }
@@ -136,15 +136,5 @@ h2 {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-.empty-card {
-  margin: 15px auto;
-  max-width: 520px;
-}
-.empty-content {
-  padding: 17px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
 }
 </style>

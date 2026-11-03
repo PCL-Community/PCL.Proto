@@ -167,7 +167,6 @@ async function createProfile() {
     <PHint v-if="account.profiles.length === 0" severity="info">{{
       text('Launch.Account.Profile.CreateAndSelectHint')
     }}</PHint>
-    <PHint v-else severity="info" closable>{{ text('Launch.Account.Profile.SelectHint') }}</PHint>
     <PListItem
       v-for="item in account.profiles"
       :key="item.profileId"

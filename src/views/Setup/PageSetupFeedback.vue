@@ -148,12 +148,6 @@ const image = (value: string) => pclImagePath(value, import.meta.env.BASE_URL)
   </section>
 </template>
 <style scoped>
-.feedback-page {
-  padding: 25px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
 .submit-content {
   padding: 0 20px 22px;
   display: flex;

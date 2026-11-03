@@ -169,10 +169,6 @@ function exportText(value: string, filename: string) {
 </template>
 <style scoped>
 .log-page {
-  padding: 25px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
   height: 100%;
   overflow-y: auto;
 }

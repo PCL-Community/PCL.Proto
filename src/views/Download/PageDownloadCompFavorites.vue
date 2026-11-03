@@ -141,9 +141,6 @@ const items = computed(() =>
   </section>
 </template>
 <style scoped>
-.favorites-page {
-  padding: 25px;
-}
 .search-row {
   display: flex;
   gap: 15px;

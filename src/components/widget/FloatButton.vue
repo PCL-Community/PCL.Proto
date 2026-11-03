@@ -69,9 +69,7 @@ watch([() => props.type, () => props.visible], ([type, visible], [previousType])
   padding: 0 12px;
   gap: 8px;
   border-radius: 999px;
-  box-shadow:
-    0 3px 10px var(--color-tint-lightist),
-    0 2px 5px rgb(0 0 0 / 12%);
+  box-shadow: 0 0 10px rgb(0 0 0 / 20%);
   transition:
     right 900ms cubic-bezier(0.22, 1.45, 0.36, 1),
     width 320ms ease,
@@ -80,7 +78,6 @@ watch([() => props.type, () => props.visible], ([type, visible], [previousType])
     gap 180ms ease,
     opacity 160ms ease,
     background-color 180ms ease,
-    box-shadow 180ms ease,
     transform 160ms ease;
 }
 
@@ -92,15 +89,9 @@ watch([() => props.type, () => props.visible], ([type, visible], [previousType])
   gap: 0;
 }
 
-.float-button:hover {
-  box-shadow:
-    0 4px 14px var(--color-tint-lightist),
-    0 3px 7px rgb(0 0 0 / 16%);
-}
-
 .float-button.pcl-primary-action:hover:not(:disabled),
 .float-button.pcl-primary-action:active:not(:disabled) {
-  transition-duration: 900ms, 320ms, 320ms, 320ms, 180ms, 160ms, 180ms, 180ms, 160ms;
+  transition-duration: 900ms, 320ms, 320ms, 320ms, 180ms, 160ms, 180ms, 160ms;
 }
 
 .float-icon {

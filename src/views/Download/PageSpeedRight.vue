@@ -35,10 +35,6 @@ const tasks = useTaskManager()
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  padding: 25px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
 }
 .task-items {
   padding: 0 20px 15px;

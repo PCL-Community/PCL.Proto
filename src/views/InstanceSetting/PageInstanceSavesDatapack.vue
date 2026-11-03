@@ -155,204 +155,128 @@ const visibleDatapacks = computed(() =>
 const text = pclText
 </script>
 <template>
-  <div class="pcl-page datapack-page">
-    <PLoading
-      v-if="loading"
-      data-control="PanLoad"
-      :loading-text="text('Instance.Resource.Datapack.Loading')"
-    />
-    <div v-else>
-      <div style="display: grid">
-        <div
-          data-control="PanAllBack"
-          style="grid-row: 1 / span 1; grid-column: 1 / span 1; display: grid"
-        >
-          <div data-control="PanBack" style="grid-row: 1 / span 1; grid-column: 1 / span 1">
-            <PCard
-              data-control="PanSaveSelect"
-              style="margin: 15px 25px 0px 25px"
-              :title="text('Instance.Saves.Info.LevelName')"
-            >
-              <div style="margin: 0px 15px 15px 15px">
-                <PComboBox v-model="selectedSave" :options="saveOptions" />
-              </div>
-            </PCard>
-            <div
-              v-if="datapacks.length"
-              data-control="PanMain"
-              style="margin: 10px 25px 10px 25px; display: flex; flex-direction: column"
-            >
-              <PSearchBox
-                data-control="SearchBox"
-                style="margin: 15px 0px"
-                :placeholder="text('Instance.Resource.Search.Hint')"
-                @search="(query: string) => (values.SearchBox = query || '')"
-              />
-              <PCard data-control="PanManage" style="margin: 0px 0px 15px 0px" hide-title>
-                <div
-                  style="
-                    margin: 8px 0px 15px 15px;
-                    display: flex;
-                    flex-direction: row;
-                    align-items: center;
-                    flex-wrap: wrap;
-                  "
-                >
-                  <PButton
-                    data-control="BtnManageOpen"
-                    style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
-                    @click="resources.openFolder()"
-                    type="tint"
-                    >{{ text('Common.Action.OpenFolder') }}</PButton
-                  >
-                  <PButton
-                    data-control="BtnManageInstall"
-                    style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
-                    @click="resources.importFiles()"
-                    >{{ text('Instance.Resource.InstallFromFiles') }}</PButton
-                  >
-                  <PButton
-                    data-control="BtnManageDownload"
-                    style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
-                    @click="downloadDatapacks"
-                    :disabled="!selectedSave"
-                    >{{ text('Instance.Resource.Datapack.DownloadNew') }}</PButton
-                  >
-                  <PButton
-                    data-control="BtnManageSelectAll"
-                    style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
-                    @click="() => visibleDatapacks.forEach((pack) => selected.add(pack.id))"
-                    >{{ text('Instance.Resource.SelectAll') }}</PButton
-                  >
-                  <PButton
-                    data-control="BtnManageInfoExport"
-                    style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
-                    :title="text('Instance.Resource.Datapack.ExportInfo.ToolTip')"
-                    @click="showUnavailable"
-                    >{{ text('Instance.Resource.ExportInfo') }}</PButton
-                  >
-                </div>
-              </PCard>
-              <PCard
-                data-control="PanListBack"
-                style="min-height: 55px; margin: 0px 0px 14px 0px"
-                hide-title
-              >
-                <div data-control="PanFilter" class="datapack-filter">
-                  <div>
-                    <button
-                      v-for="filter in ['All', 'Enabled', 'Disabled']"
-                      :key="filter"
-                      type="button"
-                      class="pcl-chip"
-                      :class="{ active: values.filter === filter }"
-                      @click="values.filter = filter"
-                    >
-                      {{ text(`Instance.Resource.Filter.${filter}`) }}
-                    </button>
-                  </div>
-                  <PIconTextButton
-                    data-control="BtnSort"
-                    icon="lucide/arrow-up-down"
-                    @click="chooseSort"
-                    >{{
-                      text('Instance.Resource.Sort.Text', [text(`Instance.Resource.Sort.${sort}`)])
-                    }}</PIconTextButton
-                  >
-                </div>
-                <div
-                  data-control="PanList"
-                  style="margin: 8px 18px 22px 20px; display: flex; flex-direction: column"
-                >
-                  <PLocalModItem
-                    v-for="pack in visibleDatapacks"
-                    :key="pack.id"
-                    :id="pack.id"
-                    :title="pack.name"
-                    :description="pack.description"
-                    :icon="pack.icon"
-                    :enabled="pack.enabled"
-                    :selected="selected.has(pack.id)"
-                    togglable
-                    @select="(checked) => select(pack.id, checked)"
-                    @toggle="toggleItem(pack.id)"
-                    @open="resources.openFolder()"
-                    @info="showUnavailable()"
-                    @remove="
-                      () => {
-                        const entry = resources.items.value.find((item) => item.path === pack.id)
-                        if (entry) void resources.remove([entry])
-                      }
-                    "
-                  />
-                  <p v-if="!visibleDatapacks.length" class="pcl-empty">
-                    {{ pclText('Download.Comp.List.NoMatchingResults') }}
-                  </p>
-                </div>
-              </PCard>
-            </div>
-          </div>
-          <PCard
-            v-if="!datapacks.length"
-            data-control="PanEmpty"
-            style="
-              margin: 40px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-              justify-self: center;
-              align-self: center;
-            "
-            hide-title
-          >
-            <div style="margin: 17px 20px; display: flex; flex-direction: column">
-              <span
-                data-control="TxtEmptyTitle"
-                style="margin: 0px 0px 9px 0px; font-size: 19px; color: var(--color-tint)"
-                class="pcl-text"
-                >{{ text('Instance.Resource.Datapack.Empty.Title') }}</span
-              >
-              <div style="height: 2px" class="pcl-divider" />
-              <span
-                data-control="TxtEmptyDescription"
-                style="margin: 10px 10px 0px 10px"
-                class="pcl-text"
-                >{{ text('Instance.Resource.Datapack.Empty.Description') }}</span
-              >
-              <div
-                style="
-                  margin: 20px 10px 5px 10px;
-                  display: flex;
-                  flex-direction: row;
-                  align-items: center;
-                  flex-wrap: wrap;
-                "
-              >
-                <PButton
-                  data-control="BtnHintInstall"
-                  style="height: 35px; min-width: 130px; margin: 0px 5px; padding: 0px 12px"
-                  @click="resources.importFiles()"
-                  type="tint"
-                  >{{ text('Instance.Resource.InstallFromFiles') }}</PButton
-                >
-                <PButton
-                  data-control="BtnHintDownload"
-                  style="height: 35px; min-width: 130px; margin: 0px 5px; padding: 0px 12px"
-                  @click="downloadDatapacks"
-                  :disabled="!selectedSave"
-                  >{{ text('Instance.Resource.Datapack.DownloadNew') }}</PButton
-                >
-                <PButton
-                  data-control="BtnHintOpen"
-                  style="height: 35px; min-width: 130px; margin: 0px 5px; padding: 0px 12px"
-                  @click="resources.openFolder()"
-                  >{{ text('Common.Action.OpenFolder') }}</PButton
-                >
-              </div>
-            </div>
-          </PCard>
+  <div class="pcl-page">
+    <PLoading v-if="loading" :loading-text="text('Instance.Resource.Datapack.Loading')" />
+    <template v-else>
+      <PCard :title="text('Instance.Saves.Info.LevelName')">
+        <div style="margin: 0px 15px 15px 15px">
+          <PComboBox v-model="selectedSave" :options="saveOptions" />
         </div>
-      </div>
-    </div>
+      </PCard>
+      <template v-if="datapacks.length">
+        <PSearchBox
+          :placeholder="text('Instance.Resource.Search.Hint')"
+          @search="(query: string) => (values.SearchBox = query || '')"
+        />
+        <PCard hide-title>
+          <div
+            style="
+              margin: 8px 0px 15px 15px;
+              display: flex;
+              flex-direction: row;
+              align-items: center;
+              flex-wrap: wrap;
+            "
+          >
+            <PButton
+              style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
+              @click="resources.openFolder()"
+              type="tint"
+              >{{ text('Common.Action.OpenFolder') }}</PButton
+            >
+            <PButton
+              style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
+              @click="resources.importFiles()"
+              >{{ text('Instance.Resource.InstallFromFiles') }}</PButton
+            >
+            <PButton
+              style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
+              @click="downloadDatapacks"
+              :disabled="!selectedSave"
+              >{{ text('Instance.Resource.Datapack.DownloadNew') }}</PButton
+            >
+            <PButton
+              style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
+              @click="() => visibleDatapacks.forEach((pack) => selected.add(pack.id))"
+              >{{ text('Instance.Resource.SelectAll') }}</PButton
+            >
+            <PButton
+              style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
+              :title="text('Instance.Resource.Datapack.ExportInfo.ToolTip')"
+              @click="showUnavailable"
+              >{{ text('Instance.Resource.ExportInfo') }}</PButton
+            >
+          </div>
+        </PCard>
+        <PCard style="min-height: 55px" hide-title>
+          <div class="datapack-filter">
+            <div>
+              <button
+                v-for="filter in ['All', 'Enabled', 'Disabled']"
+                :key="filter"
+                type="button"
+                class="pcl-chip"
+                :class="{ active: values.filter === filter }"
+                @click="values.filter = filter"
+              >
+                {{ text(`Instance.Resource.Filter.${filter}`) }}
+              </button>
+            </div>
+            <PIconTextButton icon="lucide/arrow-up-down" @click="chooseSort">{{
+              text('Instance.Resource.Sort.Text', [text(`Instance.Resource.Sort.${sort}`)])
+            }}</PIconTextButton>
+          </div>
+          <div style="margin: 8px 18px 22px 20px; display: flex; flex-direction: column">
+            <PLocalModItem
+              v-for="pack in visibleDatapacks"
+              :key="pack.id"
+              :id="pack.id"
+              :title="pack.name"
+              :description="pack.description"
+              :icon="pack.icon"
+              :enabled="pack.enabled"
+              :selected="selected.has(pack.id)"
+              togglable
+              @select="(checked) => select(pack.id, checked)"
+              @toggle="toggleItem(pack.id)"
+              @open="resources.openFolder()"
+              @info="showUnavailable()"
+              @remove="
+                () => {
+                  const entry = resources.items.value.find((item) => item.path === pack.id)
+                  if (entry) void resources.remove([entry])
+                }
+              "
+            />
+            <p v-if="!visibleDatapacks.length" class="pcl-empty">
+              {{ pclText('Download.Comp.List.NoMatchingResults') }}
+            </p>
+          </div>
+        </PCard>
+      </template>
+      <PCard v-if="!datapacks.length" class="pcl-empty-state-card" hide-title>
+        <div class="pcl-empty-state">
+          <h2 class="pcl-empty-state-title pcl-text">
+            {{ text('Instance.Resource.Datapack.Empty.Title') }}
+          </h2>
+          <div class="pcl-divider" />
+          <p class="pcl-empty-state-message pcl-text">
+            {{ text('Instance.Resource.Datapack.Empty.Description') }}
+          </p>
+          <div class="pcl-empty-state-actions">
+            <PButton @click="resources.importFiles()" type="tint">{{
+              text('Instance.Resource.InstallFromFiles')
+            }}</PButton>
+            <PButton @click="downloadDatapacks" :disabled="!selectedSave">{{
+              text('Instance.Resource.Datapack.DownloadNew')
+            }}</PButton>
+            <PButton @click="resources.openFolder()">{{
+              text('Common.Action.OpenFolder')
+            }}</PButton>
+          </div>
+        </div>
+      </PCard>
+    </template>
     <PSelectionToolbar :count="selected.size">
       <PIconTextButton
         v-for="action in selectionActions"
@@ -369,10 +293,6 @@ const text = pclText
 </template>
 
 <style scoped>
-.datapack-page {
-  display: flex;
-  flex-direction: column;
-}
 .datapack-filter {
   display: flex;
   align-items: center;

@@ -97,7 +97,7 @@ async function selectVersion(version: McPluginReport) {
 }
 </script>
 <template>
-  <section class="pcl-page loader-page">
+  <section class="pcl-page">
     <PCard :title="text(`Download.Version.${localeName}.Intro.Title`)"
       ><div class="intro">
         <p>{{ text(`Download.Version.${localeName}.Intro.Description`) }}</p>
@@ -153,12 +153,6 @@ async function selectVersion(version: McPluginReport) {
   </section>
 </template>
 <style scoped>
-.loader-page {
-  padding: 25px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
 .intro {
   padding: 0 25px 20px;
 }

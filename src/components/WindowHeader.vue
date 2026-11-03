@@ -217,7 +217,7 @@ header #main-nav a {
 }
 
 #main-nav a.router-link-active {
-  background-color: var(--color-background);
+  background-color: white;
   color: var(--color-titlebar);
 }
 

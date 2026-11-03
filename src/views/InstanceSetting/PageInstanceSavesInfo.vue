@@ -167,101 +167,91 @@ function openSeedMap() {
 
 <template>
   <div class="pcl-page">
-    <div data-control="PanBack">
-      <div data-control="PanMain" class="save-info">
-        <PLoading v-if="loading" :loading-text="text('Instance.Saves.Status.Refreshing')" />
-        <PHint v-else-if="error" severity="error">{{ error }}</PHint>
-        <template v-else-if="info">
-          <PHint v-if="!info.versionName" severity="info">{{
-            text(
-              info.difficulty !== null
-                ? 'Instance.Saves.Info.VersionHint.1_9'
-                : info.canEditCommands
-                  ? 'Instance.Saves.Info.VersionHint.1_8'
-                  : 'Instance.Saves.Info.VersionHint.1_3',
-            )
-          }}</PHint>
-          <PCard data-control="PanContent" :title="text('Instance.Saves.Info.Details.Title')">
-            <dl data-control="PanList" class="details">
-              <template v-for="[label, value] in details" :key="label"
-                ><dt>{{ label }}</dt>
-                <dd>{{ value }}</dd></template
-              >
-              <dt>{{ text('Instance.Saves.Info.Seed') }}</dt>
-              <dd class="seed">
-                <button
-                  v-if="info.seed !== null"
-                  class="seed-value"
-                  type="button"
-                  @click="copySeed"
-                >
-                  {{ info.seed }}
-                </button>
-                <span v-else>{{ text('Instance.Saves.Info.GetFailed') }}</span>
-                <button
-                  v-if="info.seed !== null"
-                  class="pcl-icon-button"
-                  type="button"
-                  :title="text('Instance.Saves.Info.Chunkbase.ToolTip')"
-                  :aria-label="text('Instance.Saves.Info.Chunkbase.ToolTip')"
-                  @click="openSeedMap"
-                >
-                  <PSvgIcon name="lucide/external-link" :size="15" />
-                </button>
-              </dd>
-            </dl>
-          </PCard>
-          <PCard
-            v-if="info.canEditCommands || info.canEditDifficulty"
-            :title="text('Instance.Saves.Info.Settings.Title')"
+    <PLoading v-if="loading" :loading-text="text('Instance.Saves.Status.Refreshing')" />
+    <PHint v-else-if="error" severity="error">{{ error }}</PHint>
+    <template v-else-if="info">
+      <PHint v-if="!info.versionName" severity="info">{{
+        text(
+          info.difficulty !== null
+            ? 'Instance.Saves.Info.VersionHint.1_9'
+            : info.canEditCommands
+              ? 'Instance.Saves.Info.VersionHint.1_8'
+              : 'Instance.Saves.Info.VersionHint.1_3',
+        )
+      }}</PHint>
+      <PCard :title="text('Instance.Saves.Info.Details.Title')">
+        <dl class="details">
+          <template v-for="[label, value] in details" :key="label"
+            ><dt>{{ label }}</dt>
+            <dd>{{ value }}</dd></template
           >
-            <div class="settings" :title="text('Instance.Saves.Info.Modify.BeforeSave')">
-              <template v-if="info.canEditCommands">
-                <span>{{ text('Instance.Saves.Info.AllowCommands') }}</span>
-                <PComboBox
-                  :model-value="String(info.allowCommands)"
-                  :options="commandOptions"
-                  :disabled="saving"
-                  :aria-label="text('Instance.Saves.Info.AllowCommands')"
-                  @update:model-value="(value) => update({ allowCommands: value === 'true' })"
-                />
-              </template>
-              <template v-if="info.canEditDifficulty && info.difficulty !== null">
-                <span>{{ text('Instance.Saves.Info.GameDifficultyLabel') }}</span>
-                <div class="difficulty">
-                  <PComboBox
-                    :model-value="String(info.difficulty)"
-                    :options="difficultyOptions"
-                    :disabled="saving"
-                    :aria-label="text('Instance.Saves.Info.GameDifficultyLabel')"
-                    @update:model-value="(value) => update({ difficulty: Number(value) })"
-                  />
-                  <PCheckBox
-                    v-if="info.canEditLock && !info.hardcore"
-                    :model-value="info.difficultyLocked"
-                    :disabled="saving"
-                    :label="text('Instance.Saves.Info.LockDifficulty')"
-                    :title="text('Instance.Saves.Info.LockDifficulty.ToolTip')"
-                    @update:model-value="(value) => update({ difficultyLocked: value })"
-                  />
-                </div>
-              </template>
+          <dt>{{ text('Instance.Saves.Info.Seed') }}</dt>
+          <dd class="seed">
+            <button v-if="info.seed !== null" class="seed-value" type="button" @click="copySeed">
+              {{ info.seed }}
+            </button>
+            <span v-else>{{ text('Instance.Saves.Info.GetFailed') }}</span>
+            <button
+              v-if="info.seed !== null"
+              class="pcl-icon-button"
+              type="button"
+              :title="text('Instance.Saves.Info.Chunkbase.ToolTip')"
+              :aria-label="text('Instance.Saves.Info.Chunkbase.ToolTip')"
+              @click="openSeedMap"
+            >
+              <PSvgIcon name="lucide/external-link" :size="15" />
+            </button>
+          </dd>
+        </dl>
+      </PCard>
+      <PCard
+        v-if="info.canEditCommands || info.canEditDifficulty"
+        :title="text('Instance.Saves.Info.Settings.Title')"
+      >
+        <div class="settings" :title="text('Instance.Saves.Info.Modify.BeforeSave')">
+          <template v-if="info.canEditCommands">
+            <span>{{ text('Instance.Saves.Info.AllowCommands') }}</span>
+            <PComboBox
+              :model-value="String(info.allowCommands)"
+              :options="commandOptions"
+              :disabled="saving"
+              :aria-label="text('Instance.Saves.Info.AllowCommands')"
+              @update:model-value="(value) => update({ allowCommands: value === 'true' })"
+            />
+          </template>
+          <template v-if="info.canEditDifficulty && info.difficulty !== null">
+            <span>{{ text('Instance.Saves.Info.GameDifficultyLabel') }}</span>
+            <div class="difficulty">
+              <PComboBox
+                :model-value="String(info.difficulty)"
+                :options="difficultyOptions"
+                :disabled="saving"
+                :aria-label="text('Instance.Saves.Info.GameDifficultyLabel')"
+                @update:model-value="(value) => update({ difficulty: Number(value) })"
+              />
+              <PCheckBox
+                v-if="info.canEditLock && !info.hardcore"
+                :model-value="info.difficultyLocked"
+                :disabled="saving"
+                :label="text('Instance.Saves.Info.LockDifficulty')"
+                :title="text('Instance.Saves.Info.LockDifficulty.ToolTip')"
+                @update:model-value="(value) => update({ difficultyLocked: value })"
+              />
             </div>
-          </PCard>
-        </template>
-        <p v-else class="pcl-empty">{{ text('Proto.Empty.SaveInfo') }}</p>
+          </template>
+        </div>
+      </PCard>
+    </template>
+    <PCard v-else class="pcl-empty-state-card" hide-title>
+      <div class="pcl-empty-state">
+        <h2 class="pcl-empty-state-title">{{ text('Proto.Empty.SaveInfo') }}</h2>
+        <div class="pcl-divider" />
       </div>
-    </div>
+    </PCard>
   </div>
 </template>
 
 <style scoped>
-.save-info {
-  margin: 25px 25px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
 .details,
 .settings {
   margin: 0 15px 15px;

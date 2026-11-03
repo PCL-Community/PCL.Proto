@@ -63,21 +63,19 @@ const text = pclText
 </script>
 <template>
   <section class="pcl-page update-page">
-    <PCard data-control="CardCheck" hide-title
+    <PCard hide-title
       ><div class="version-check">
         <img :src="appIcon" alt="PCL.Proto" />
         <div>
           <h2>PCL.Proto {{ appVersion }}</h2>
           <p>{{ status }}</p>
         </div>
-        <PButton data-control="BtnCheckAgain" type="tint" :disabled="loading" @click="check">{{
+        <PButton type="tint" :disabled="loading" @click="check">{{
           text('Setup.Update.CheckAgain')
         }}</PButton
-        ><PButton
-          data-control="BtnChangelog"
-          @click="() => openExternal(latest?.url || `${repository}/releases`)"
-          >{{ text('Setup.Update.Changelog.View') }}</PButton
-        >
+        ><PButton @click="() => openExternal(latest?.url || `${repository}/releases`)">{{
+          text('Setup.Update.Changelog.View')
+        }}</PButton>
       </div></PCard
     >
     <PHint v-if="error" severity="error">{{ error }}</PHint>
@@ -101,12 +99,6 @@ const text = pclText
   </section>
 </template>
 <style scoped>
-.update-page {
-  padding: 25px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
 .version-check {
   padding: 20px;
   display: flex;

@@ -21,12 +21,6 @@ const topics = ['Join', 'Start', 'Server', 'Identity', 'Launchers', 'Nat']
   </section>
 </template>
 <style scoped>
-.help-page {
-  padding: 25px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
 .help-content {
   padding: 0 25px 15px;
   white-space: pre-line;

@@ -306,7 +306,7 @@ watch(versionId, (id) => {
 })
 </script>
 <template>
-  <section class="pcl-page install-page">
+  <section class="pcl-page">
     <p v-if="modify && !versionId" class="pcl-empty">{{ pclText('Proto.Instance.SelectFirst') }}</p>
     <template v-else-if="!versionId">
       <PLoading v-if="loading" :loading-text="text('Download.Version.LoadingList')" />
@@ -489,12 +489,6 @@ watch(versionId, (id) => {
   </section>
 </template>
 <style scoped>
-.install-page {
-  padding: 25px 25px 80px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
 .version-list {
   padding: 0 18px 12px 20px;
 }

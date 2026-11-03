@@ -315,11 +315,7 @@ watch(
 </template>
 <style scoped>
 .detail-page {
-  padding: 25px;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
   height: 100%;
 }
 .intro {

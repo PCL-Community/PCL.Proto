@@ -81,192 +81,103 @@ const text = pclText
 </script>
 <template>
   <div class="pcl-page">
-    <div>
-      <div data-control="PanBack">
-        <div style="display: grid">
-          <PLoading
-            v-if="resources.loading.value"
-            :loading-text="text('Instance.Saves.Status.Refreshing')"
-          />
-          <PHint v-else-if="resources.error.value" severity="error">{{
-            resources.error.value
-          }}</PHint>
-          <div v-else-if="saves.length" class="saves-list">
-            <PSearchBox v-model="query" :placeholder="text('Instance.Saves.SearchHint')" />
-            <PCard :title="text('Instance.Saves.QuickActions')"
-              ><div class="saves-actions">
-                <PButton type="tint" @click="resources.openFolder()">{{
-                  text('Instance.Saves.OpenFolder')
-                }}</PButton
-                ><PButton
-                  @click="
-                    () => router.push({ path: '/download/world', query: { instance: 'selected' } })
-                  "
-                  >{{ text('Instance.Resource.DownloadNew') }}</PButton
-                ><PButton @click="resources.importFiles()">{{
-                  text('Instance.Resource.InstallFromFiles')
-                }}</PButton>
-              </div></PCard
-            >
-            <PCard
-              :title="
-                text(query ? 'Instance.Saves.SearchResultTitle' : 'Instance.Saves.SaveListTitle', [
-                  savesSorted.length,
-                ])
-              "
-            >
-              <template #header-actions>
-                <PIconTextButton icon="lucide/arrow-up-down" @click="chooseSort">
-                  {{
-                    text('Instance.Saves.SortBy', [
-                      text(
-                        sort === 'name'
-                          ? 'Instance.Saves.SortFileName'
-                          : 'Instance.Saves.SortModifyTime',
-                      ),
-                    ])
-                  }}
-                </PIconTextButton>
-              </template>
-              <div class="save-items">
-                <PListItem
-                  v-for="save in savesSorted"
-                  :key="save.id"
-                  :title="save.name"
-                  :subtitle="save.description"
-                  :icon="save.icon"
-                  clickable
-                  @click="
-                    () => router.push({ path: '/instance_save/info', query: { id: save.name } })
-                  "
-                >
-                  <template #icon-actions>
-                    <button
-                      class="pcl-icon-button"
-                      type="button"
-                      :title="text('Common.Action.OpenFolder')"
-                      :aria-label="text('Common.Action.OpenFolder')"
-                      @click="openSave(save.id)"
-                    >
-                      <PSvgIcon name="lucide/folder-open" :size="15" />
-                    </button>
-                    <button
-                      class="pcl-icon-button"
-                      type="button"
-                      :title="text('Common.Action.Delete')"
-                      :aria-label="text('Common.Action.Delete')"
-                      @click="removeSave(save.id)"
-                    >
-                      <PSvgIcon name="lucide/trash-2" :size="15" />
-                    </button>
-                  </template>
-                </PListItem></div
-            ></PCard>
-          </div>
-          <PCard
-            v-else
-            data-control="PanNoWorld"
-            style="
-              margin: 40px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-              justify-self: center;
-              align-self: center;
-            "
-            hide-title
+    <PLoading
+      v-if="resources.loading.value"
+      :loading-text="text('Instance.Saves.Status.Refreshing')"
+    />
+    <PHint v-else-if="resources.error.value" severity="error">{{ resources.error.value }}</PHint>
+    <div v-else-if="saves.length" class="saves-list">
+      <PSearchBox v-model="query" :placeholder="text('Instance.Saves.SearchHint')" />
+      <PCard :title="text('Instance.Saves.QuickActions')"
+        ><div class="saves-actions">
+          <PButton type="tint" @click="resources.openFolder()">{{
+            text('Instance.Saves.OpenFolder')
+          }}</PButton
+          ><PButton
+            @click="() => router.push({ path: '/download/world', query: { instance: 'selected' } })"
+            >{{ text('Instance.Resource.DownloadNew') }}</PButton
+          ><PButton @click="resources.importFiles()">{{
+            text('Instance.Resource.InstallFromFiles')
+          }}</PButton>
+        </div></PCard
+      >
+      <PCard
+        :title="
+          text(query ? 'Instance.Saves.SearchResultTitle' : 'Instance.Saves.SaveListTitle', [
+            savesSorted.length,
+          ])
+        "
+      >
+        <template #header-actions>
+          <PIconTextButton icon="lucide/arrow-up-down" @click="chooseSort">
+            {{
+              text('Instance.Saves.SortBy', [
+                text(
+                  sort === 'name' ? 'Instance.Saves.SortFileName' : 'Instance.Saves.SortModifyTime',
+                ),
+              ])
+            }}
+          </PIconTextButton>
+        </template>
+        <div class="save-items">
+          <PListItem
+            v-for="save in savesSorted"
+            :key="save.id"
+            :title="save.name"
+            :subtitle="save.description"
+            :icon="save.icon"
+            clickable
+            @click="() => router.push({ path: '/instance_save/info', query: { id: save.name } })"
           >
-            <div
-              style="
-                margin: 17px 20px;
-                display: grid;
-                grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
-                grid-template-rows: auto auto auto auto;
-              "
-            >
-              <span
-                style="
-                  margin: 0px 0px 9px 0px;
-                  font-size: 19px;
-                  grid-row: 1 / span 1;
-                  grid-column: 1 / span 4;
-                  justify-self: center;
-                  color: var(--color-tint);
-                "
-                class="pcl-text"
-                >{{ text('Instance.Saves.Empty.Title') }}</span
+            <template #icon-actions>
+              <button
+                class="pcl-icon-button"
+                type="button"
+                :title="text('Common.Action.OpenFolder')"
+                :aria-label="text('Common.Action.OpenFolder')"
+                @click="openSave(save.id)"
               >
-              <div
-                style="
-                  height: 2px;
-                  grid-row: 2 / span 1;
-                  grid-column: 1 / span 4;
-                  justify-self: stretch;
-                "
-                class="pcl-divider"
-              />
-              <span
-                style="
-                  margin: 15px 10px 5px 10px;
-                  grid-row: 3 / span 1;
-                  grid-column: 1 / span 4;
-                  justify-self: center;
-                "
-                class="pcl-text"
-                >{{ text('Instance.Saves.Empty.Message') }}</span
+                <PSvgIcon name="lucide/folder-open" :size="15" />
+              </button>
+              <button
+                class="pcl-icon-button"
+                type="button"
+                :title="text('Common.Action.Delete')"
+                :aria-label="text('Common.Action.Delete')"
+                @click="removeSave(save.id)"
               >
-              <PButton
-                style="
-                  height: 35px;
-                  min-width: 140px;
-                  margin: 10px 10px 0px 10px;
-                  padding: 0px 13px;
-                  grid-row: 4 / span 1;
-                  grid-column: 2 / span 1;
-                  justify-self: center;
-                "
-                @click="resources.openFolder()"
-                type="tint"
-                >{{ text('Instance.Saves.OpenFolder') }}</PButton
-              >
-              <PButton
-                style="
-                  height: 35px;
-                  min-width: 140px;
-                  margin: 10px 10px 0px 10px;
-                  padding: 0px 13px;
-                  grid-row: 4 / span 1;
-                  grid-column: 3 / span 1;
-                  justify-self: center;
-                "
-                @click="
-                  () => router.push({ path: '/download/world', query: { instance: 'selected' } })
-                "
-                >{{ text('Instance.Resource.DownloadNew') }}</PButton
-              >
-              <PButton
-                style="
-                  height: 35px;
-                  min-width: 140px;
-                  margin: 10px 10px 0px 10px;
-                  padding: 0px 13px;
-                  grid-row: 4 / span 1;
-                  grid-column: 4 / span 1;
-                  justify-self: center;
-                "
-                @click="resources.importFiles()"
-                >{{ text('Instance.Resource.InstallFromFiles') }}</PButton
-              >
-            </div>
-          </PCard>
+                <PSvgIcon name="lucide/trash-2" :size="15" />
+              </button>
+            </template>
+          </PListItem></div
+      ></PCard>
+    </div>
+    <PCard v-else class="pcl-empty-state-card" hide-title>
+      <div class="pcl-empty-state">
+        <span class="pcl-empty-state-title pcl-text">{{ text('Instance.Saves.Empty.Title') }}</span>
+        <div class="pcl-divider" />
+        <span class="pcl-empty-state-message pcl-text">{{
+          text('Instance.Saves.Empty.Message')
+        }}</span>
+        <div class="pcl-empty-state-actions">
+          <PButton @click="resources.openFolder()" type="tint">{{
+            text('Instance.Saves.OpenFolder')
+          }}</PButton>
+          <PButton
+            @click="() => router.push({ path: '/download/world', query: { instance: 'selected' } })"
+            >{{ text('Instance.Resource.DownloadNew') }}</PButton
+          >
+          <PButton @click="resources.importFiles()">{{
+            text('Instance.Resource.InstallFromFiles')
+          }}</PButton>
         </div>
       </div>
-    </div>
+    </PCard>
   </div>
 </template>
 
 <style scoped>
 .saves-list {
-  padding: 25px 25px 10px;
   display: flex;
   flex-direction: column;
   gap: 15px;

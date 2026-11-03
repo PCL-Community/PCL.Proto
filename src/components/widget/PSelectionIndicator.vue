@@ -37,8 +37,10 @@
     visibility 0s linear 0s;
 }
 @media (prefers-reduced-motion: reduce) {
-  .selection-indicator {
-    transition: none !important;
+  .selection-indicator,
+  :global(a.router-link-active > .selection-indicator),
+  :global(.gameinfo-container[aria-pressed='true'] > .selection-indicator) {
+    transition: none;
   }
 }
 </style>

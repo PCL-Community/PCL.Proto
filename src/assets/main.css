@@ -94,8 +94,3 @@ html {
     transform: scale(1);
   }
 }
-.settings-unavailable {
-  margin: 10px 25px 0;
-  color: var(--color-text-grey);
-  font-size: 12px;
-}

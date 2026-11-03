@@ -14,7 +14,7 @@ const ComponentShowcase = defineAsyncComponent(
 const text = pclText
 </script>
 <template>
-  <section class="pcl-page launch-cards">
+  <section class="pcl-page">
     <PCard :title="pclText('Proto.About.Welcome')" default-fold-status="unfold"
       ><div class="proto-introduction">
         <PHint severity="info">{{ pclText('Proto.About.Intro') }}</PHint>
@@ -28,12 +28,6 @@ const text = pclText
   </section>
 </template>
 <style scoped>
-.launch-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  padding: 25px 25px 10px;
-}
 .launch-log {
   padding: 0 20px 18px;
   white-space: pre-wrap;

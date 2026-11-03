@@ -43,7 +43,6 @@
   "Proto.Session.BufferLimit": "Game session logs retain at most 1000 lines or 1 MiB; the display limit does not change this buffer.",
   "Proto.Storage.FavoritesFailed": "Cannot save favorites. Check available storage space.",
   "Proto.NotImplemented.Action": "This action is not yet available in PCL.Proto.",
-  "Proto.Settings.Unavailable": "Disabled settings are not yet available.",
   "Proto.Settings.InvalidWindowSize": "Window width and height must be integers from 100 to 16384.",
   "Proto.Settings.MemoryEstimate": "Estimated allocation",
   "Proto.NotImplemented.Initialize": "Resetting settings is not yet available in PCL.Proto.",

@@ -28,7 +28,7 @@ const model = defineModel<boolean>({ default: false })
   align-items: center;
   gap: 8px;
   position: relative;
-  min-height: 20px;
+  min-height: 28px;
 }
 .checkable {
   position: absolute;

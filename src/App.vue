@@ -106,21 +106,25 @@ html.website,
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: var(--color-tint-lightist);
+    background-color: color-mix(in srgb, var(--ce-color-4) 50%, transparent);
     background-clip: padding-box;
     border: 2px solid transparent;
     border-radius: 999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background-color: var(--color-tint-light);
+    background-color: color-mix(in srgb, var(--ce-color-3) 90%, transparent);
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background-color: var(--ce-color-4);
   }
 }
 
 @supports (scrollbar-width: thin) and (not selector(::-webkit-scrollbar)) {
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-tint-lightist) transparent;
+    scrollbar-color: color-mix(in srgb, var(--ce-color-4) 50%, transparent) transparent;
   }
 }
 </style>

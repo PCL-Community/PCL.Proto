@@ -301,12 +301,6 @@ watch(
   </section>
 </template>
 <style scoped>
-.comp-page {
-  padding: 25px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
 .filters {
   display: grid;
   grid-template-columns:

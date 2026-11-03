@@ -205,181 +205,146 @@ const error = computed(() => resources.error.value)
 const text = pclText
 </script>
 <template>
-  <div class="pcl-page resource-page">
+  <div class="pcl-page">
     <PLoading v-if="loading" :loading-text="text('Instance.Resource.Loading')" />
-    <div v-else>
+    <template v-else>
       <PCard
         v-if="route.meta.resourceType === 'Schematic' && !schematicAvailable"
         hide-title
-        class="pcl-unavailable"
-        ><h2>{{ text('Instance.Resource.Schematic.Unavailable.Title') }}</h2>
-        <div class="pcl-divider" />
-        <p>{{ text('Instance.Resource.Schematic.Unavailable.Message') }}</p>
-        <div class="resource-actions">
-          <PButton type="tint" @click="downloadResources">{{
-            text('Instance.Resource.Schematic.DownloadMod')
-          }}</PButton
-          ><PButton @click="() => router.push('/instance_select')">{{
-            text('Instance.Resource.Mod.Disabled.SelectInstance')
-          }}</PButton>
-        </div></PCard
+        class="pcl-empty-state-card"
       >
-      <div v-else style="display: grid">
-        <div
-          data-control="PanAllBack"
-          style="grid-row: 1 / span 1; grid-column: 1 / span 1; display: grid"
+        <div class="pcl-empty-state">
+          <h2 class="pcl-empty-state-title">
+            {{ text('Instance.Resource.Schematic.Unavailable.Title') }}
+          </h2>
+          <div class="pcl-divider" />
+          <p class="pcl-empty-state-message">
+            {{ text('Instance.Resource.Schematic.Unavailable.Message') }}
+          </p>
+          <div class="pcl-empty-state-actions">
+            <PButton type="tint" @click="downloadResources">{{
+              text('Instance.Resource.Schematic.DownloadMod')
+            }}</PButton>
+            <PButton @click="() => router.push('/instance_select')">{{
+              text('Instance.Resource.Mod.Disabled.SelectInstance')
+            }}</PButton>
+          </div>
+        </div>
+      </PCard>
+      <template v-else>
+        <template v-if="items.length && !error">
+          <PSearchBox v-model="query" :placeholder="text('Instance.Resource.Search.Hint')" />
+          <PCard hide-title class="resource-manage"
+            ><div class="resource-actions">
+              <PButton
+                v-for="action in [
+                  {
+                    id: 'BtnManageOpen',
+                    key: 'Common.Action.OpenFolder',
+                    run: () => resources.openFolder(),
+                  },
+                  {
+                    id: 'BtnManageInstall',
+                    key: 'Instance.Resource.InstallFromFiles',
+                    run: () => resources.importFiles(),
+                  },
+                  {
+                    id: 'BtnManageDownload',
+                    key: 'Instance.Resource.DownloadNew',
+                    run: downloadResources,
+                  },
+                  {
+                    id: 'BtnManageSelectAll',
+                    key: 'Instance.Resource.SelectAll',
+                    run: () => visibleItems.forEach((item) => selected.add(item.id)),
+                  },
+                  {
+                    id: 'BtnManageInfoExport',
+                    key: 'Instance.Resource.ExportInfo',
+                    run: showUnavailable,
+                  },
+                ]"
+                :key="action.id"
+                :type="action.id === 'BtnManageOpen' ? 'tint' : 'default'"
+                @click="action.run()"
+                >{{ text(action.key) }}</PButton
+              ><PButton
+                v-if="kind === 'mod'"
+                :title="text('Instance.Resource.Mod.JarInJar.Entry.ToolTip')"
+                @click="router.push('/instance_setting/mod/jarinjar')"
+                >{{ text('Instance.Resource.Mod.JarInJar.Entry') }}</PButton
+              >
+            </div></PCard
+          >
+          <PCard hide-title
+            ><div class="resource-actions">
+              <div class="resource-filter">
+                <button
+                  v-for="option in filterOptions"
+                  v-show="option.visible || filter === option.key"
+                  :key="option.key"
+                  type="button"
+                  class="pcl-chip"
+                  :class="{ active: filter === option.key }"
+                  @click="filter = option.key"
+                >
+                  {{ filterLabel(option) }}
+                </button>
+              </div>
+              <PIconTextButton icon="lucide/arrow-up-down" @click="chooseSort">{{
+                text('Instance.Resource.Sort.Text', [text(`Instance.Resource.Sort.${sort}`)])
+              }}</PIconTextButton>
+            </div>
+            <div class="resource-list">
+              <PLocalModItem
+                v-for="item in visibleItems"
+                :key="item.id"
+                v-bind="item"
+                :togglable="kind === 'mod'"
+                :selected="selected.has(item.id)"
+                @select="(value) => select(item.id, value)"
+                @toggle="toggleItem(item.id)"
+                @update="showUnavailable()"
+                @info="showInfo(item.id)"
+                @open="resources.openFolder()"
+                @remove="removeItem(item.id)"
+              />
+              <p v-if="!visibleItems.length" class="pcl-empty">
+                {{ pclText('Download.Comp.List.NoMatchingResults') }}
+              </p>
+            </div></PCard
+          >
+        </template>
+        <PHint v-if="error" severity="error" class="resource-status"
+          >{{ error
+          }}<PButton inline @click="resources.refresh()">{{
+            text('Common.Action.Refresh')
+          }}</PButton></PHint
         >
-          <div data-control="PanBack" style="grid-row: 1 / span 1; grid-column: 1 / span 1">
-            <div v-if="items.length && !error" class="resource-main">
-              <PSearchBox v-model="query" :placeholder="text('Instance.Resource.Search.Hint')" />
-              <PCard hide-title class="resource-manage"
-                ><div class="resource-actions">
-                  <PButton
-                    v-for="action in [
-                      {
-                        id: 'BtnManageOpen',
-                        key: 'Common.Action.OpenFolder',
-                        run: () => resources.openFolder(),
-                      },
-                      {
-                        id: 'BtnManageInstall',
-                        key: 'Instance.Resource.InstallFromFiles',
-                        run: () => resources.importFiles(),
-                      },
-                      {
-                        id: 'BtnManageDownload',
-                        key: 'Instance.Resource.DownloadNew',
-                        run: downloadResources,
-                      },
-                      {
-                        id: 'BtnManageSelectAll',
-                        key: 'Instance.Resource.SelectAll',
-                        run: () => visibleItems.forEach((item) => selected.add(item.id)),
-                      },
-                      {
-                        id: 'BtnManageInfoExport',
-                        key: 'Instance.Resource.ExportInfo',
-                        run: showUnavailable,
-                      },
-                    ]"
-                    :key="action.id"
-                    :type="action.id === 'BtnManageOpen' ? 'tint' : 'default'"
-                    @click="action.run()"
-                    >{{ text(action.key) }}</PButton
-                  ><PButton
-                    v-if="kind === 'mod'"
-                    :title="text('Instance.Resource.Mod.JarInJar.Entry.ToolTip')"
-                    @click="router.push('/instance_setting/mod/jarinjar')"
-                    >{{ text('Instance.Resource.Mod.JarInJar.Entry') }}</PButton
-                  >
-                </div></PCard
-              >
-              <PCard hide-title
-                ><div class="resource-actions">
-                  <div class="resource-filter">
-                    <button
-                      v-for="option in filterOptions"
-                      v-show="option.visible || filter === option.key"
-                      :key="option.key"
-                      type="button"
-                      class="pcl-chip"
-                      :class="{ active: filter === option.key }"
-                      @click="filter = option.key"
-                    >
-                      {{ filterLabel(option) }}
-                    </button>
-                  </div>
-                  <PIconTextButton icon="lucide/arrow-up-down" @click="chooseSort">{{
-                    text('Instance.Resource.Sort.Text', [text(`Instance.Resource.Sort.${sort}`)])
-                  }}</PIconTextButton>
-                </div>
-                <div class="resource-list">
-                  <PLocalModItem
-                    v-for="item in visibleItems"
-                    :key="item.id"
-                    v-bind="item"
-                    :togglable="kind === 'mod'"
-                    :selected="selected.has(item.id)"
-                    @select="(value) => select(item.id, value)"
-                    @toggle="toggleItem(item.id)"
-                    @update="showUnavailable()"
-                    @info="showInfo(item.id)"
-                    @open="resources.openFolder()"
-                    @remove="removeItem(item.id)"
-                  />
-                  <p v-if="!visibleItems.length" class="pcl-empty">
-                    {{ pclText('Download.Comp.List.NoMatchingResults') }}
-                  </p>
-                </div></PCard
-              >
+        <PCard v-if="!error && !items.length" class="pcl-empty-state-card" hide-title>
+          <div class="pcl-empty-state">
+            <h2 class="pcl-empty-state-title pcl-text">
+              {{ text('Instance.Resource.Empty.Title') }}
+            </h2>
+            <div class="pcl-divider" />
+            <p class="pcl-empty-state-message pcl-text">
+              {{ text('Instance.Resource.Empty.Description') }}
+            </p>
+            <div class="pcl-empty-state-actions">
+              <PButton @click="resources.importFiles()" type="tint">{{
+                text('Instance.Resource.InstallFromFiles')
+              }}</PButton>
+              <PButton @click="downloadResources">{{
+                text('Instance.Resource.DownloadNew')
+              }}</PButton>
+              <PButton @click="resources.openFolder()">{{
+                text('Common.Action.OpenFolder')
+              }}</PButton>
             </div>
           </div>
-          <PHint v-if="error" severity="error" class="resource-status"
-            >{{ error
-            }}<PButton inline @click="resources.refresh()">{{
-              text('Common.Action.Refresh')
-            }}</PButton></PHint
-          >
-          <PCard
-            v-if="!error && !items.length"
-            data-control="PanEmpty"
-            style="
-              margin: 40px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-              justify-self: center;
-              align-self: center;
-            "
-            hide-title
-          >
-            <div style="margin: 17px 20px; display: flex; flex-direction: column">
-              <span
-                data-control="TxtEmptyTitle"
-                style="margin: 0px 0px 9px 0px; font-size: 19px; color: var(--color-tint)"
-                class="pcl-text"
-                >{{ text('Instance.Resource.Empty.Title') }}</span
-              >
-              <div style="height: 2px" class="pcl-divider" />
-              <span
-                data-control="TxtEmptyDescription"
-                style="margin: 10px 10px 0px 10px"
-                class="pcl-text"
-                >{{ text('Instance.Resource.Empty.Description') }}</span
-              >
-              <div
-                style="
-                  margin: 20px 10px 5px 10px;
-                  display: flex;
-                  flex-direction: row;
-                  align-items: center;
-                  flex-wrap: wrap;
-                "
-              >
-                <PButton
-                  data-control="BtnHintInstall"
-                  style="height: 35px; min-width: 130px; margin: 0px 5px; padding: 0px 12px"
-                  @click="resources.importFiles()"
-                  type="tint"
-                  >{{ text('Instance.Resource.InstallFromFiles') }}</PButton
-                >
-                <PButton
-                  data-control="BtnHintDownload"
-                  style="height: 35px; min-width: 130px; margin: 0px 5px; padding: 0px 12px"
-                  @click="downloadResources"
-                  >{{ text('Instance.Resource.DownloadNew') }}</PButton
-                >
-                <PButton
-                  data-control="BtnHintOpen"
-                  style="height: 35px; min-width: 130px; margin: 0px 5px; padding: 0px 12px"
-                  @click="resources.openFolder()"
-                  >{{ text('Common.Action.OpenFolder') }}</PButton
-                >
-              </div>
-            </div>
-          </PCard>
-        </div>
-      </div>
-    </div>
+        </PCard>
+      </template>
+    </template>
     <PSelectionToolbar :count="selected.size">
       <PIconTextButton
         v-for="action in selectionActions.filter(
@@ -400,17 +365,6 @@ const text = pclText
 </template>
 
 <style scoped>
-.resource-page {
-  display: flex;
-  flex-direction: column;
-}
-
-.resource-main {
-  padding: 25px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
 .resource-actions {
   display: flex;
   flex-wrap: wrap;
@@ -429,9 +383,5 @@ const text = pclText
 }
 .resource-list {
   padding: 0 20px 20px;
-}
-.resource-status {
-  margin: 40px;
-  grid-area: 1 / 1;
 }
 </style>

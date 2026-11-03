@@ -194,7 +194,7 @@ watch(
 )
 </script>
 <template>
-  <section class="pcl-page select-page">
+  <section class="pcl-page">
     <PSearchBox
       v-if="instances.length || query"
       v-model="query"
@@ -301,14 +301,9 @@ watch(
   </section>
 </template>
 <style scoped>
-.select-page {
-  padding: 15px 25px 25px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
 .empty-card {
-  margin: 25px 15px;
+  align-self: center;
+  margin-block: auto;
 }
 .empty-content {
   padding: 17px 20px;

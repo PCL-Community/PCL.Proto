@@ -15,21 +15,17 @@ const { mode, maximum, initial, ready, error, preview, segments, load, save } = 
 <template>
   <div class="memory-settings">
     <div class="memory-options">
-      <label v-if="instance" data-control="RadioRamType2" class="pcl-radio inherit">
+      <label v-if="instance" class="pcl-radio inherit">
         <input v-model="mode" :disabled="!ready" type="radio" value="inherit" @change="save" />{{
           text('Instance.Setup.FollowGlobal')
         }}
       </label>
-      <label
-        data-control="RadioRamType0"
-        class="pcl-radio"
-        :title="text('Setup.Launch.Memory.Auto.ToolTip')"
-      >
+      <label class="pcl-radio" :title="text('Setup.Launch.Memory.Auto.ToolTip')">
         <input v-model="mode" :disabled="!ready" type="radio" value="auto" @change="save" />{{
           text('Setup.Launch.Memory.Auto')
         }}
       </label>
-      <label data-control="RadioRamType1" class="pcl-radio">
+      <label class="pcl-radio">
         <input v-model="mode" :disabled="!ready" type="radio" value="custom" @change="save" />{{
           text('Common.Option.Customize')
         }}
@@ -40,7 +36,6 @@ const { mode, maximum, initial, ready, error, preview, segments, load, save } = 
       >
       <input
         v-model.number="maximum"
-        data-control="SliderRamCustom"
         :disabled="!ready || mode !== 'custom'"
         type="range"
         min="0"
@@ -57,7 +52,6 @@ const { mode, maximum, initial, ready, error, preview, segments, load, save } = 
       >
       <input
         v-model.number="initial"
-        data-control="SliderRamInitialCustom"
         :disabled="!ready || mode !== 'custom'"
         :title="text('Setup.Launch.Memory.Initial.ToolTip')"
         type="range"
@@ -67,37 +61,25 @@ const { mode, maximum, initial, ready, error, preview, segments, load, save } = 
       />
     </div>
     <PErrorRetry :error="error" @retry="ready ? save() : load()" />
-    <div data-control="PanRamDisplay" class="memory-display">
+    <div class="memory-display">
+      <div class="pcl-divider bar" :style="{ width: `${segments.used}%` }" />
       <div
-        data-control="RectRamUsed"
-        class="pcl-divider bar"
-        :style="{ width: `${segments.used}%` }"
-      />
-      <div
-        data-control="RectRamGame"
         class="pcl-divider bar game"
         :style="{ width: `${segments.game}%`, marginLeft: `${segments.used}%` }"
       />
       <div
-        data-control="RectRamEmpty"
         class="pcl-divider bar empty"
         :style="{ width: `${segments.empty}%`, marginLeft: `${segments.used + segments.game}%` }"
       />
-      <span data-control="LabRamUsedTitle" class="memory-title used-title">{{
+      <span class="memory-title used-title">{{
         text(instance ? 'Instance.Setup.Memory.Used' : 'Setup.Launch.Memory.UsedTotal')
       }}</span>
-      <span data-control="LabRamGameTitle" class="memory-title game-title">{{
-        text('Proto.Settings.MemoryEstimate')
-      }}</span>
+      <span class="memory-title game-title">{{ text('Proto.Settings.MemoryEstimate') }}</span>
       <div class="memory-used">
-        <span data-control="LabRamUsed">{{
-          preview ? memoryGiB(preview.total_bytes - preview.available_bytes) : '—'
-        }}</span
-        ><span data-control="LabRamTotal">{{
-          preview ? ` / ${memoryGiB(preview.total_bytes)}` : ' / —'
-        }}</span>
+        <span>{{ preview ? memoryGiB(preview.total_bytes - preview.available_bytes) : '—' }}</span
+        ><span>{{ preview ? ` / ${memoryGiB(preview.total_bytes)}` : ' / —' }}</span>
       </div>
-      <span data-control="LabRamGame" class="memory-game">{{
+      <span class="memory-game">{{
         preview?.allocation_mib != null ? memoryGiB(preview.allocation_mib * 1048576) : '—'
       }}</span>
     </div>

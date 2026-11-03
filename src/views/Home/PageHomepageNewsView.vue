@@ -42,12 +42,6 @@ withDefaults(
   </section>
 </template>
 <style scoped>
-.news-page {
-  padding: 25px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
 .news-content {
   padding: 0 20px 20px;
 }

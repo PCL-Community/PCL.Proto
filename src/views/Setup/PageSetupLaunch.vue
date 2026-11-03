@@ -244,10 +244,18 @@ watch(
 )
 const router = useRouter()
 const text = pclText
+const unavailableAdvancedOptions = [
+  ['CheckAdvanceDisableJLW', 'DisableJlw'],
+  ['CheckAdvanceDisableLF', 'DisableLF'],
+  ['CheckAdvanceGraphicCard', 'GpuPreference'],
+  ['CheckAdvanceNoJavaw', 'UseJavaExe'],
+  ['CheckAdvanceDisableLwjglUnsafeAgent', 'DisableLwjglUnsafeAgent'],
+  ['CheckAdvanceDisableCrashAnalysis', 'DisableCrashAnalysis'],
+  ['CheckAdvanceLockMemory', 'LockMemory'],
+] as const
 </script>
 <template>
   <div class="pcl-page">
-    <p class="settings-unavailable">{{ text('Proto.Settings.Unavailable') }}</p>
     <PErrorRetry
       :error="visibilityError"
       @retry="visibilityReady ? changeVisibility(visibilityDraft) : loadVisibility()"
@@ -262,405 +270,305 @@ const text = pclText
       :error="windowError || windowSettingsStorage.errors.get(null)"
       @retry="windowReady ? applyWindowSettings() : loadWindowSettings()"
     />
-    <div>
-      <div data-control="PanBack">
-        <div
-          data-control="PanMain"
-          style="margin: 25px 25px 10px 25px; display: flex; flex-direction: column"
-        >
-          <PCard
-            data-control="CardArgument"
-            style="margin: 0px 0px 15px 0px"
-            :title="text('Setup.Launch.Options.Title')"
-          >
-            <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
-              <div class="settings-grid">
-                <SetupItem
-                  :label="text('Setup.Launch.Options.InstanceIsolation.Label')"
-                  v-slot="{ id }"
-                  ><PComboBox
-                    :disabled="!desktop || !isolationReady || isolationBusy"
-                    :key="isolationControlRevision"
-                    :input-id="id"
-                    data-control="ComboArgumentIndieV2"
-                    :title="text('Setup.Launch.Options.InstanceIsolation.ToolTip')"
-                    :options="[
-                      {
-                        key: '0',
-                        text: text('Common.Action.Close'),
-                        title: text('Setup.Launch.Options.InstanceIsolation.None.ToolTip'),
-                      },
-                      {
-                        key: '1',
-                        text: text('Setup.Launch.Options.InstanceIsolation.ModdedOnly'),
-                        title: text('Setup.Launch.Options.InstanceIsolation.ModdedOnly.ToolTip'),
-                      },
-                      {
-                        key: '2',
-                        text: text('Setup.Launch.Options.InstanceIsolation.NonRelease'),
-                        title: text('Setup.Launch.Options.InstanceIsolation.NonRelease.ToolTip'),
-                      },
-                      {
-                        key: '3',
-                        text: text('Setup.Launch.Options.InstanceIsolation.ModdedAndNonRelease'),
-                      },
-                      {
-                        key: '4',
-                        text: text('Setup.Launch.Options.InstanceIsolation.All'),
-                        title: text('Setup.Launch.Options.InstanceIsolation.All.ToolTip'),
-                      },
-                    ]"
-                    :model-value="isolationValue"
-                    @update:model-value="changeIsolation"
-                /></SetupItem>
-                <SetupItem :label="text('Setup.Launch.Options.WindowTitle.Label')" v-slot="{ id }"
-                  ><PTextBox
-                    disabled
-                    :input-id="id"
-                    data-control="TextArgumentTitle"
-                    :suggestions="[text('Setup.Launch.Options.WindowTitle.SampleFormat')]"
-                    :title="text('Setup.Launch.Options.WindowTitle.ToolTip')"
-                    :placeholder="text('Common.Option.Default')"
-                    v-model="values.TextArgumentTitle"
-                /></SetupItem>
-                <SetupItem :label="text('Setup.Launch.Options.CustomInfo.Label')" v-slot="{ id }"
-                  ><PTextBox
-                    :disabled="!desktop || !infoReady"
-                    :input-id="id"
-                    data-control="TextArgumentInfo"
-                    :title="text('Setup.Launch.Options.CustomInfo.ToolTip')"
-                    :placeholder="text('')"
-                    v-model="values.TextArgumentInfo"
-                /></SetupItem>
-                <SetupItem :label="text('Setup.Launch.Options.Visibility.Label')" v-slot="{ id }"
-                  ><PComboBox
-                    :disabled="!desktop || !visibilityReady || visibilityBusy"
-                    :key="visibilityRevision"
-                    :input-id="id"
-                    data-control="ComboArgumentVisibie"
-                    :options="[
-                      {
-                        key: '0',
-                        text: text('Setup.Launch.Options.Visibility.CloseImmediately'),
-                        disabled: true,
-                      },
-                      {
-                        key: '1',
-                        text: text('Setup.Launch.Options.Visibility.HideAndCloseOnExit'),
-                      },
-                      {
-                        key: '2',
-                        text: text('Setup.Launch.Options.Visibility.HideAndReopenOnExit'),
-                      },
-                      { key: '3', text: text('Setup.Launch.Options.Visibility.Minimize') },
-                      { key: '4', text: text('Setup.Launch.Options.Visibility.KeepUnchanged') },
-                    ]"
-                    :model-value="visibilityValue"
-                    @update:model-value="changeVisibility"
-                /></SetupItem>
-                <SetupItem :label="text('Setup.Launch.Options.Priority.Label')" v-slot="{ id }"
-                  ><PComboBox
-                    disabled
-                    :input-id="id"
-                    data-control="ComboArgumentPriority"
-                    :options="[
-                      { key: '0', text: text('Setup.Launch.Options.Priority.RealTime') },
-                      { key: '1', text: text('Setup.Launch.Options.Priority.High') },
-                      { key: '2', text: text('Setup.Launch.Options.Priority.AboveNormal') },
-                      { key: '3', text: text('Setup.Launch.Options.Priority.Normal') },
-                      { key: '4', text: text('Setup.Launch.Options.Priority.BelowNormal') },
-                    ]"
-                    v-model="values.ComboArgumentPriority"
-                /></SetupItem>
-                <SetupItem :label="text('Setup.Launch.Options.WindowSize.Label')" v-slot="{ id }"
-                  ><div
-                    data-control="PanArgumentWindow"
-                    style="display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto"
-                  >
-                    <PComboBox
-                      :disabled="!windowReady"
-                      :input-id="id"
-                      data-control="ComboArgumentWindowType"
-                      style="grid-row: 1 / span 1; grid-column: 1 / span 1"
-                      :title="text('Setup.Launch.Options.WindowSize.ModernUiWarning')"
-                      :options="[
-                        {
-                          key: '0',
-                          text: text('Setup.Launch.Options.WindowSize.Fullscreen'),
-                          disabled: true,
-                        },
-                        { key: '1', text: text('Common.Option.Default') },
-                        { key: '2', text: text('Setup.Launch.Options.WindowSize.SameAsLauncher') },
-                        {
-                          key: '3',
-                          text: text('Setup.Launch.Options.WindowSize.Custom'),
-                          title: text('Setup.Launch.Options.WindowSize.CustomHeightBug.ToolTip'),
-                        },
-                        {
-                          key: '4',
-                          text: text('Setup.Launch.Options.WindowSize.Maximized'),
-                          disabled: true,
-                        },
-                      ]"
-                      v-model="values.ComboArgumentWindowType"
-                    />
-                    <PTextBox
-                      :disabled="!windowReady"
-                      @blur="applyWindowSettings"
-                      data-control="TextArgumentWindowWidth"
-                      style="
-                        width: 60px;
-                        margin: 0px 0px 0px 50px;
-                        padding: 0px 5px 0px 0px;
-                        grid-row: 1 / span 1;
-                        grid-column: 2 / span 1;
-                      "
-                      v-if="values.ComboArgumentWindowType === '3'"
-                      :placeholder="text('')"
-                      v-model="values.TextArgumentWindowWidth"
-                    />
-                    <span
-                      data-control="LabArgumentWindowMiddle"
-                      style="
-                        font-size: 18px;
-                        grid-row: 1 / span 1;
-                        grid-column: 3 / span 1;
-                        align-self: center;
-                      "
-                      v-if="values.ComboArgumentWindowType === '3'"
-                      class="pcl-text"
-                      >{{ text(' × ') }}</span
-                    >
-                    <PTextBox
-                      :disabled="!windowReady"
-                      @blur="applyWindowSettings"
-                      data-control="TextArgumentWindowHeight"
-                      style="
-                        width: 60px;
-                        padding: 0px 5px 0px 0px;
-                        grid-row: 1 / span 1;
-                        grid-column: 4 / span 1;
-                      "
-                      v-if="values.ComboArgumentWindowType === '3'"
-                      :title="text('Setup.Launch.Options.WindowSize.CustomHeightBug.ToolTip')"
-                      :placeholder="text('')"
-                      v-model="values.TextArgumentWindowHeight"
-                    /></div
-                ></SetupItem>
-                <SetupItem :label="text('Setup.Launch.Options.MsAuth.Label')" v-slot="{ id }"
-                  ><PComboBox
-                    disabled
-                    :input-id="id"
-                    data-control="ComboMsAuthType"
-                    :title="text('Setup.Launch.Options.MsAuth.ToolTip')"
-                    :options="[
-                      { key: '0', text: text('Setup.Launch.Options.MsAuth.WebManager') },
-                      { key: '1', text: text('Setup.Launch.Options.MsAuth.DeviceCode') },
-                    ]"
-                    v-model="values.ComboMsAuthType"
-                /></SetupItem>
-                <SetupItem :label="text('Setup.Launch.Options.IpStack.Label')" v-slot="{ id }"
-                  ><PComboBox
-                    disabled
-                    :input-id="id"
-                    data-control="ComboPreferredIpStack"
-                    :title="text('Setup.Launch.Options.IpStack.ToolTip')"
-                    :options="[
-                      { key: '0', text: text('Setup.Launch.Options.IpStack.Ipv4') },
-                      { key: '1', text: text('Setup.Launch.Options.IpStack.JavaDefault') },
-                      { key: '2', text: text('Setup.Launch.Options.IpStack.Ipv6') },
-                    ]"
-                    v-model="values.ComboPreferredIpStack"
-                /></SetupItem>
-              </div>
-            </div>
-          </PCard>
-          <PCard style="margin: 0px 0px 15px 0px" :title="text('Setup.Launch.Memory.Title')">
-            <PHint v-if="java32Bit" severity="warning">{{
-              text('Setup.Launch.Memory.Warning.Java32Bit')
-            }}</PHint>
-            <PHint v-if="memoryOverLimit" severity="warning">{{
-              text('Setup.Launch.Memory.Warning.TooMuch')
-            }}</PHint>
-            <PMemorySettings :java64="memoryJava64" />
-          </PCard>
-          <PCard
-            style="margin: 0px 0px 15px 0px"
-            :title="text('Setup.Launch.Advanced.Title')"
-            default-fold-status="fold"
-          >
-            <div class="settings-grid" style="margin: 0px 25px 15px 25px">
-              <SetupItem :label="text('Setup.Launch.Advanced.Renderer.Label')" v-slot="{ id }"
-                ><PComboBox
-                  disabled
-                  :input-id="id"
-                  data-control="ComboAdvanceRenderer"
-                  :options="[
-                    { key: '0', text: text('Setup.Launch.Advanced.Renderer.GameDefault') },
-                    { key: '1', text: text('Setup.Launch.Advanced.Renderer.Software') },
-                    { key: '2', text: text('Setup.Launch.Advanced.Renderer.DirectX12') },
-                    { key: '3', text: text('Setup.Launch.Advanced.Renderer.Vulkan') },
-                  ]"
-                  v-model="values.ComboAdvanceRenderer"
-              /></SetupItem>
-              <SetupItem
-                ><template #label="{ id }"
-                  ><div style="display: flex; flex-direction: row; align-items: center">
-                    <label :for="id" class="pcl-text">{{
-                      text('Setup.Launch.Advanced.JvmHead')
-                    }}</label>
-                    <button
-                      data-control="BtnAdvanceJvmReset"
-                      type="button"
-                      class="pcl-icon-button"
-                      :disabled="!desktop || !argumentsReady"
-                      style="margin: 1px 0px 0px 0px"
-                      :title="text('Setup.Launch.Advanced.JvmHead.Restore')"
-                      :aria-label="text('Setup.Launch.Advanced.JvmHead.Restore')"
-                      @click="resetJvmArguments"
-                    >
-                      <PSvgIcon name="lucide/rotate-ccw" :size="18" />
-                    </button></div></template
-                ><template #default="{ id }"
-                  ><PTextBox
-                    :disabled="!desktop || !argumentsReady"
-                    :input-id="id"
-                    multiline
-                    data-control="TextAdvanceJvm"
-                    style="height: 100px; padding: 5px 0px"
-                    :title="
-                      text('Setup.Launch.Advanced.JvmHead.ToolTip') +
-                      '\n\n' +
-                      text('Proto.LaunchArguments.Parsing') +
-                      '\n' +
-                      text('Proto.LaunchArguments.Hint')
-                    "
-                    :placeholder="text('')"
-                    v-model="argumentJvm"
-                    @blur="saveArguments()" /></template
-              ></SetupItem>
-              <SetupItem :label="text('Setup.Launch.Advanced.GameTail')" v-slot="{ id }"
-                ><PTextBox
-                  :disabled="!desktop || !argumentsReady"
-                  :input-id="id"
-                  data-control="TextAdvanceGame"
-                  :title="
-                    text('Setup.Launch.Advanced.GameTail.ToolTip') +
-                    '\n\n' +
-                    text('Proto.LaunchArguments.Parsing')
-                  "
-                  :placeholder="text('')"
-                  v-model="argumentGame"
-                  @blur="saveArguments()"
-              /></SetupItem>
-              <SetupItem :label="text('Setup.Launch.Advanced.PreLaunchCommand')" v-slot="{ id }"
-                ><PTextBox
-                  disabled
-                  :input-id="id"
-                  data-control="TextAdvanceRun"
-                  :title="text('Setup.Launch.Advanced.PreLaunchCommand.ToolTip')"
-                  :placeholder="text('')"
-                  v-model="values.TextAdvanceRun"
-              /></SetupItem>
-              <PCheckBox
-                disabled
-                v-if="String(values.TextAdvanceRun || '').trim()"
-                data-control="CheckAdvanceRunWait"
-                style="margin: 8px 0 7px; grid-column: 2"
-                id="PageSetupLaunch-CheckAdvanceRunWait"
-                :label="text('Setup.Launch.Advanced.PreLaunchCommand.Wait')"
-                v-model="values.CheckAdvanceRunWait"
+
+    <PCard :title="text('Setup.Launch.Options.Title')">
+      <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
+        <div class="settings-grid">
+          <SetupItem :label="text('Setup.Launch.Options.InstanceIsolation.Label')" v-slot="{ id }"
+            ><PComboBox
+              :disabled="!desktop || !isolationReady || isolationBusy"
+              :key="isolationControlRevision"
+              :input-id="id"
+              :title="text('Setup.Launch.Options.InstanceIsolation.ToolTip')"
+              :options="[
+                {
+                  key: '0',
+                  text: text('Common.Action.Close'),
+                  title: text('Setup.Launch.Options.InstanceIsolation.None.ToolTip'),
+                },
+                {
+                  key: '1',
+                  text: text('Setup.Launch.Options.InstanceIsolation.ModdedOnly'),
+                  title: text('Setup.Launch.Options.InstanceIsolation.ModdedOnly.ToolTip'),
+                },
+                {
+                  key: '2',
+                  text: text('Setup.Launch.Options.InstanceIsolation.NonRelease'),
+                  title: text('Setup.Launch.Options.InstanceIsolation.NonRelease.ToolTip'),
+                },
+                {
+                  key: '3',
+                  text: text('Setup.Launch.Options.InstanceIsolation.ModdedAndNonRelease'),
+                },
+                {
+                  key: '4',
+                  text: text('Setup.Launch.Options.InstanceIsolation.All'),
+                  title: text('Setup.Launch.Options.InstanceIsolation.All.ToolTip'),
+                },
+              ]"
+              :model-value="isolationValue"
+              @update:model-value="changeIsolation"
+          /></SetupItem>
+          <SetupItem :label="text('Setup.Launch.Options.WindowTitle.Label')" v-slot="{ id }"
+            ><PTextBox
+              disabled
+              :input-id="id"
+              :suggestions="[text('Setup.Launch.Options.WindowTitle.SampleFormat')]"
+              :title="text('Setup.Launch.Options.WindowTitle.ToolTip')"
+              :placeholder="text('Common.Option.Default')"
+              v-model="values.TextArgumentTitle"
+          /></SetupItem>
+          <SetupItem :label="text('Setup.Launch.Options.CustomInfo.Label')" v-slot="{ id }"
+            ><PTextBox
+              :disabled="!desktop || !infoReady"
+              :input-id="id"
+              :title="text('Setup.Launch.Options.CustomInfo.ToolTip')"
+              :placeholder="text('')"
+              v-model="values.TextArgumentInfo"
+          /></SetupItem>
+          <SetupItem :label="text('Setup.Launch.Options.Visibility.Label')" v-slot="{ id }"
+            ><PComboBox
+              :disabled="!desktop || !visibilityReady || visibilityBusy"
+              :key="visibilityRevision"
+              :input-id="id"
+              :options="[
+                {
+                  key: '0',
+                  text: text('Setup.Launch.Options.Visibility.CloseImmediately'),
+                  disabled: true,
+                },
+                {
+                  key: '1',
+                  text: text('Setup.Launch.Options.Visibility.HideAndCloseOnExit'),
+                },
+                {
+                  key: '2',
+                  text: text('Setup.Launch.Options.Visibility.HideAndReopenOnExit'),
+                },
+                { key: '3', text: text('Setup.Launch.Options.Visibility.Minimize') },
+                { key: '4', text: text('Setup.Launch.Options.Visibility.KeepUnchanged') },
+              ]"
+              :model-value="visibilityValue"
+              @update:model-value="changeVisibility"
+          /></SetupItem>
+          <SetupItem :label="text('Setup.Launch.Options.Priority.Label')" v-slot="{ id }"
+            ><PComboBox
+              disabled
+              :input-id="id"
+              :options="[
+                { key: '0', text: text('Setup.Launch.Options.Priority.RealTime') },
+                { key: '1', text: text('Setup.Launch.Options.Priority.High') },
+                { key: '2', text: text('Setup.Launch.Options.Priority.AboveNormal') },
+                { key: '3', text: text('Setup.Launch.Options.Priority.Normal') },
+                { key: '4', text: text('Setup.Launch.Options.Priority.BelowNormal') },
+              ]"
+              v-model="values.ComboArgumentPriority"
+          /></SetupItem>
+          <SetupItem :label="text('Setup.Launch.Options.WindowSize.Label')" v-slot="{ id }"
+            ><div style="display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto">
+              <PComboBox
+                :disabled="!windowReady"
+                :input-id="id"
+                style="grid-row: 1 / span 1; grid-column: 1 / span 1"
+                :title="text('Setup.Launch.Options.WindowSize.ModernUiWarning')"
+                :options="[
+                  {
+                    key: '0',
+                    text: text('Setup.Launch.Options.WindowSize.Fullscreen'),
+                    disabled: true,
+                  },
+                  { key: '1', text: text('Common.Option.Default') },
+                  { key: '2', text: text('Setup.Launch.Options.WindowSize.SameAsLauncher') },
+                  {
+                    key: '3',
+                    text: text('Setup.Launch.Options.WindowSize.Custom'),
+                    title: text('Setup.Launch.Options.WindowSize.CustomHeightBug.ToolTip'),
+                  },
+                  {
+                    key: '4',
+                    text: text('Setup.Launch.Options.WindowSize.Maximized'),
+                    disabled: true,
+                  },
+                ]"
+                v-model="values.ComboArgumentWindowType"
               />
-              <div
+              <PTextBox
+                :disabled="!windowReady"
+                @blur="applyWindowSettings"
                 style="
-                  margin: 12px 0px 4px 0px;
-                  display: flex;
-                  flex-direction: column;
-                  grid-column: 1 / -1;
+                  width: 60px;
+                  margin: 0px 0px 0px 50px;
+                  padding: 0px 5px 0px 0px;
+                  grid-row: 1 / span 1;
+                  grid-column: 2 / span 1;
                 "
+                v-if="values.ComboArgumentWindowType === '3'"
+                :placeholder="text('')"
+                v-model="values.TextArgumentWindowWidth"
+              />
+              <span
+                style="
+                  font-size: 18px;
+                  grid-row: 1 / span 1;
+                  grid-column: 3 / span 1;
+                  align-self: center;
+                "
+                v-if="values.ComboArgumentWindowType === '3'"
+                class="pcl-text"
+                >{{ text(' × ') }}</span
               >
-                <PCheckBox
-                  disabled
-                  data-control="CheckAdvanceDisableJLW"
-                  style="height: 28px"
-                  :title="text('Setup.Launch.Advanced.DisableJlw.ToolTip')"
-                  id="PageSetupLaunch-CheckAdvanceDisableJLW"
-                  :label="text('Setup.Launch.Advanced.DisableJlw')"
-                  v-model="values.CheckAdvanceDisableJLW"
-                />
-                <PCheckBox
-                  disabled
-                  data-control="CheckAdvanceDisableLF"
-                  style="height: 28px"
-                  :title="text('Setup.Launch.Advanced.DisableLF.ToolTip')"
-                  id="PageSetupLaunch-CheckAdvanceDisableLF"
-                  :label="text('Setup.Launch.Advanced.DisableLF')"
-                  v-model="values.CheckAdvanceDisableLF"
-                />
-                <PCheckBox
-                  disabled
-                  data-control="CheckAdvanceGraphicCard"
-                  style="height: 28px"
-                  :title="text('Setup.Launch.Advanced.GpuPreference.ToolTip')"
-                  id="PageSetupLaunch-CheckAdvanceGraphicCard"
-                  :label="text('Setup.Launch.Advanced.GpuPreference')"
-                  v-model="values.CheckAdvanceGraphicCard"
-                />
-                <PCheckBox
-                  disabled
-                  data-control="CheckAdvanceNoJavaw"
-                  style="height: 28px"
-                  :title="text('Setup.Launch.Advanced.UseJavaExe.ToolTip')"
-                  id="PageSetupLaunch-CheckAdvanceNoJavaw"
-                  :label="text('Setup.Launch.Advanced.UseJavaExe')"
-                  v-model="values.CheckAdvanceNoJavaw"
-                />
-                <PCheckBox
-                  disabled
-                  data-control="CheckAdvanceDisableLwjglUnsafeAgent"
-                  style="height: 28px"
-                  :title="text('Setup.Launch.Advanced.DisableLwjglUnsafeAgent.ToolTip')"
-                  id="PageSetupLaunch-CheckAdvanceDisableLwjglUnsafeAgent"
-                  :label="text('Setup.Launch.Advanced.DisableLwjglUnsafeAgent')"
-                  v-model="values.CheckAdvanceDisableLwjglUnsafeAgent"
-                />
-                <PCheckBox
-                  disabled
-                  data-control="CheckAdvanceDisableCrashAnalysis"
-                  style="height: 28px"
-                  :title="text('Setup.Launch.Advanced.DisableCrashAnalysis.ToolTip')"
-                  id="PageSetupLaunch-CheckAdvanceDisableCrashAnalysis"
-                  :label="text('Setup.Launch.Advanced.DisableCrashAnalysis')"
-                  v-model="values.CheckAdvanceDisableCrashAnalysis"
-                />
-                <PCheckBox
-                  disabled
-                  data-control="CheckAdvanceLockMemory"
-                  style="height: 28px"
-                  :title="text('Setup.Launch.Advanced.LockMemory.ToolTip')"
-                  id="PageSetupLaunch-CheckAdvanceLockMemory"
-                  :label="text('Setup.Launch.Advanced.LockMemory')"
-                  v-model="values.CheckAdvanceLockMemory"
-                />
-              </div>
-              <PHint
-                style="margin: 5px 0px 10px 0px; grid-column: 1 / -1"
-                severity="info"
-                closable
-                >{{ text('Setup.Launch.Advanced.MoreInInstanceSetup') }}</PHint
-              >
-            </div>
-          </PCard>
-          <PPrimaryAction
-            data-control="BtnSwitch"
-            style="margin: 0 0 15px"
-            @click="() => router.push('/instance_setting/setting')"
-            ><PSvgIcon name="lucide/arrow-right" :size="16" />{{
-              text('Setup.Launch.SwitchToInstanceSetup')
-            }}</PPrimaryAction
-          >
+              <PTextBox
+                :disabled="!windowReady"
+                @blur="applyWindowSettings"
+                style="
+                  width: 60px;
+                  padding: 0px 5px 0px 0px;
+                  grid-row: 1 / span 1;
+                  grid-column: 4 / span 1;
+                "
+                v-if="values.ComboArgumentWindowType === '3'"
+                :title="text('Setup.Launch.Options.WindowSize.CustomHeightBug.ToolTip')"
+                :placeholder="text('')"
+                v-model="values.TextArgumentWindowHeight"
+              /></div
+          ></SetupItem>
+          <SetupItem :label="text('Setup.Launch.Options.MsAuth.Label')" v-slot="{ id }"
+            ><PComboBox
+              disabled
+              :input-id="id"
+              :title="text('Setup.Launch.Options.MsAuth.ToolTip')"
+              :options="[
+                { key: '0', text: text('Setup.Launch.Options.MsAuth.WebManager') },
+                { key: '1', text: text('Setup.Launch.Options.MsAuth.DeviceCode') },
+              ]"
+              v-model="values.ComboMsAuthType"
+          /></SetupItem>
+          <SetupItem :label="text('Setup.Launch.Options.IpStack.Label')" v-slot="{ id }"
+            ><PComboBox
+              disabled
+              :input-id="id"
+              :title="text('Setup.Launch.Options.IpStack.ToolTip')"
+              :options="[
+                { key: '0', text: text('Setup.Launch.Options.IpStack.Ipv4') },
+                { key: '1', text: text('Setup.Launch.Options.IpStack.JavaDefault') },
+                { key: '2', text: text('Setup.Launch.Options.IpStack.Ipv6') },
+              ]"
+              v-model="values.ComboPreferredIpStack"
+          /></SetupItem>
         </div>
       </div>
-    </div>
+    </PCard>
+    <PCard :title="text('Setup.Launch.Memory.Title')">
+      <PHint v-if="java32Bit" severity="warning">{{
+        text('Setup.Launch.Memory.Warning.Java32Bit')
+      }}</PHint>
+      <PHint v-if="memoryOverLimit" severity="warning">{{
+        text('Setup.Launch.Memory.Warning.TooMuch')
+      }}</PHint>
+      <PMemorySettings :java64="memoryJava64" />
+    </PCard>
+    <PCard :title="text('Setup.Launch.Advanced.Title')" default-fold-status="fold">
+      <div class="settings-grid" style="margin: 0px 25px 15px 25px">
+        <SetupItem :label="text('Setup.Launch.Advanced.Renderer.Label')" v-slot="{ id }"
+          ><PComboBox
+            disabled
+            :input-id="id"
+            :options="[
+              { key: '0', text: text('Setup.Launch.Advanced.Renderer.GameDefault') },
+              { key: '1', text: text('Setup.Launch.Advanced.Renderer.Software') },
+              { key: '2', text: text('Setup.Launch.Advanced.Renderer.DirectX12') },
+              { key: '3', text: text('Setup.Launch.Advanced.Renderer.Vulkan') },
+            ]"
+            v-model="values.ComboAdvanceRenderer"
+        /></SetupItem>
+        <SetupItem
+          ><template #label="{ id }"
+            ><div style="display: flex; flex-direction: row; align-items: center">
+              <label :for="id" class="pcl-text">{{ text('Setup.Launch.Advanced.JvmHead') }}</label>
+              <button
+                type="button"
+                class="pcl-icon-button"
+                :disabled="!desktop || !argumentsReady"
+                style="margin: 1px 0px 0px 0px"
+                :title="text('Setup.Launch.Advanced.JvmHead.Restore')"
+                :aria-label="text('Setup.Launch.Advanced.JvmHead.Restore')"
+                @click="resetJvmArguments"
+              >
+                <PSvgIcon name="lucide/rotate-ccw" :size="18" />
+              </button></div></template
+          ><template #default="{ id }"
+            ><PTextBox
+              :disabled="!desktop || !argumentsReady"
+              :input-id="id"
+              multiline
+              style="height: 100px; padding: 5px 0px"
+              :title="
+                text('Setup.Launch.Advanced.JvmHead.ToolTip') +
+                '\n\n' +
+                text('Proto.LaunchArguments.Parsing') +
+                '\n' +
+                text('Proto.LaunchArguments.Hint')
+              "
+              :placeholder="text('')"
+              v-model="argumentJvm"
+              @blur="saveArguments()" /></template
+        ></SetupItem>
+        <SetupItem :label="text('Setup.Launch.Advanced.GameTail')" v-slot="{ id }"
+          ><PTextBox
+            :disabled="!desktop || !argumentsReady"
+            :input-id="id"
+            :title="
+              text('Setup.Launch.Advanced.GameTail.ToolTip') +
+              '\n\n' +
+              text('Proto.LaunchArguments.Parsing')
+            "
+            :placeholder="text('')"
+            v-model="argumentGame"
+            @blur="saveArguments()"
+        /></SetupItem>
+        <SetupItem :label="text('Setup.Launch.Advanced.PreLaunchCommand')" v-slot="{ id }"
+          ><PTextBox
+            disabled
+            :input-id="id"
+            :title="text('Setup.Launch.Advanced.PreLaunchCommand.ToolTip')"
+            :placeholder="text('')"
+            v-model="values.TextAdvanceRun"
+        /></SetupItem>
+        <PCheckBox
+          disabled
+          v-if="String(values.TextAdvanceRun || '').trim()"
+          style="margin: 8px 0 7px; grid-column: 2"
+          id="PageSetupLaunch-CheckAdvanceRunWait"
+          :label="text('Setup.Launch.Advanced.PreLaunchCommand.Wait')"
+          v-model="values.CheckAdvanceRunWait"
+        />
+        <div
+          style="
+            margin: 12px 0px 4px 0px;
+            display: flex;
+            flex-direction: column;
+            grid-column: 1 / -1;
+          "
+        >
+          <PCheckBox
+            v-for="[key, label] in unavailableAdvancedOptions"
+            :key
+            disabled
+            :title="text(`Setup.Launch.Advanced.${label}.ToolTip`)"
+            :id="`PageSetupLaunch-${key}`"
+            :label="text(`Setup.Launch.Advanced.${label}`)"
+            :model-value="Boolean(values[key])"
+          />
+        </div>
+        <PHint style="margin: 5px 0px 10px 0px; grid-column: 1 / -1" severity="info" closable>{{
+          text('Setup.Launch.Advanced.MoreInInstanceSetup')
+        }}</PHint>
+      </div>
+    </PCard>
+    <PPrimaryAction @click="() => router.push('/instance_setting/setting')"
+      ><PSvgIcon name="lucide/arrow-right" :size="16" />{{
+        text('Setup.Launch.SwitchToInstanceSetup')
+      }}</PPrimaryAction
+    >
   </div>
 </template>

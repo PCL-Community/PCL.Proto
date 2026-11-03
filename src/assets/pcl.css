@@ -1,10 +1,47 @@
-/* Shared page spacing follows the reference while controls remain native Vue components. */
+/* Page rhythm is owned by the page, not repeated margins on each card. */
 .pcl-page {
+  --pcl-page-gap: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pcl-page-gap);
   width: 100%;
   min-width: 0;
   min-height: 100%;
+  box-sizing: border-box;
+  padding: 25px;
   font-size: 13px;
   line-height: 1.5;
+}
+.pcl-empty-state-card {
+  align-self: center;
+  margin-block: auto;
+}
+.pcl-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 17px 20px;
+  text-align: center;
+}
+.pcl-empty-state-title {
+  margin-bottom: -6px;
+  color: var(--color-tint);
+  font-size: 19px;
+}
+.pcl-empty-state-message {
+  margin: 0;
+}
+.pcl-empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.pcl-empty-state-actions button {
+  height: 35px;
+  min-width: 140px;
+  padding: 0 13px;
 }
 .subview:has(> .pcl-page) {
   padding: 0;
@@ -14,6 +51,57 @@
 .pcl-page select {
   font: inherit;
   accent-color: var(--color-tint);
+}
+.input-wrapper input,
+.input-wrapper textarea,
+.dropdown-wrapper select {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--ce-color-5);
+  border-radius: 3px;
+  background: var(--control-background);
+  color: var(--ce-gray-1);
+  font-family: var(--custom-font, var(--default-font));
+  font-size: 13px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  transition:
+    background-color 100ms linear,
+    border-color 100ms linear;
+}
+.input-wrapper input::placeholder,
+.input-wrapper textarea::placeholder {
+  color: var(--ce-gray-4);
+  opacity: 1;
+}
+.input-wrapper input:not(:disabled):hover,
+.input-wrapper textarea:not(:disabled):hover,
+.dropdown-wrapper select:not(:disabled):hover {
+  border-color: var(--ce-color-4);
+  background: var(--ce-color-7);
+}
+.input-wrapper input:focus,
+.input-wrapper textarea:focus,
+.dropdown-wrapper select:focus {
+  border-color: var(--ce-color-3);
+  background: var(--ce-color-7);
+  transition-duration: 10ms;
+}
+.input-wrapper input:disabled,
+.input-wrapper textarea:disabled,
+.dropdown-wrapper select:disabled {
+  border-color: var(--ce-gray-5);
+  background: var(--ce-gray-6);
+  color: var(--ce-gray-4);
+  -webkit-text-fill-color: var(--ce-gray-4);
+  opacity: 1;
+  transition-duration: 200ms;
+}
+.dropdown-wrapper select {
+  padding-right: 24px;
 }
 #app input[type='range'] {
   width: 100%;
@@ -94,6 +182,7 @@
   overflow-wrap: anywhere;
 }
 .pcl-divider {
+  width: 100%;
   height: 2px;
   background: var(--color-tint-light);
 }
