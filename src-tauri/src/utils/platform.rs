@@ -13,20 +13,22 @@ pub enum Architecture {
     Unknown,
 }
 
+// macOS 的写法是有意保留的，同时别让 clippy 因为变体名以 OS 结尾而报错。
+#[allow(non_camel_case_types, clippy::enum_variant_names)]
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum OS {
     Windows,
     Linux,
     #[serde(rename = "osx")]
-    MacOs,
+    macOS,
 }
 
 impl OS {
     pub fn current() -> Self {
         match tauri_plugin_os::platform() {
             "windows" => Self::Windows,
-            "macos" => Self::MacOs,
+            "macos" => Self::macOS,
             _ => Self::Linux,
         }
     }
@@ -149,11 +151,11 @@ pub(crate) fn compatibility_for(
     current_arch: &str,
     arch: &Architecture,
 ) -> Compatibility {
-    if matches!(system, OS::MacOs) && matches!(arch, Architecture::FatFile) {
+    if matches!(system, OS::macOS) && matches!(arch, Architecture::FatFile) {
         return Compatibility::Perfect;
     }
     match system {
-        OS::MacOs | OS::Windows => match current_arch {
+        OS::macOS | OS::Windows => match current_arch {
             "x86_64" => match arch {
                 Architecture::X64 => Compatibility::Perfect,
                 Architecture::X86 if matches!(system, OS::Windows) => Compatibility::Translation,

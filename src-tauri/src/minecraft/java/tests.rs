@@ -257,15 +257,15 @@ fn platform_runtime_keys_and_compatibility_are_explicit() {
     }
     assert_eq!(install::platform_key("linux", "aarch64"), None);
     assert!(matches!(
-        compatibility_for(OS::MacOs, "aarch64", &Architecture::Arm64),
+        compatibility_for(OS::macOS, "aarch64", &Architecture::Arm64),
         Compatibility::Perfect
     ));
     assert!(matches!(
-        compatibility_for(OS::MacOs, "aarch64", &Architecture::X64),
+        compatibility_for(OS::macOS, "aarch64", &Architecture::X64),
         Compatibility::Translation
     ));
     assert!(matches!(
-        compatibility_for(OS::MacOs, "x86_64", &Architecture::X86),
+        compatibility_for(OS::macOS, "x86_64", &Architecture::X86),
         Compatibility::No
     ));
     assert!(matches!(
