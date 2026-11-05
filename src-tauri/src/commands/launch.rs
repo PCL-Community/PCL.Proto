@@ -286,7 +286,7 @@ async fn launch_game_inner(
         wait_for_launch(&mut ticket.receiver, config.api_client.api_bases_async()).await?,
     );
     report("Minecraft.Launch.Stage.CompleteFiles", 0.35, true);
-    let natives = wait_for_launch(&mut ticket.receiver, option.prepare_natives(&downloader))
+    wait_for_launch(&mut ticket.receiver, option.prepare_natives(&downloader))
         .await?
         .map_err(|e| format!("{e:#}"))?;
     report("Minecraft.Launch.Stage.CompleteFiles", 0.65, true);
@@ -321,7 +321,7 @@ async fn launch_game_inner(
                 child,
                 expected,
                 access_token,
-                move || drop(natives),
+                || {},
                 move |id, event| {
                     match event {
                         crate::minecraft::launch::session::SessionEvent::Spawned => {
@@ -449,7 +449,7 @@ pub async fn export_launch_script(
     let downloader = crate::io::download::Downloader::with_bases(
         ConfigManager::instance().api_client.api_bases_async().await,
     );
-    let natives = option
+    option
         .prepare_natives(&downloader)
         .await
         .map_err(|e| format!("{e:#}"))?;
@@ -457,8 +457,6 @@ pub async fn export_launch_script(
         .prepare_legacy_assets(&downloader)
         .await
         .map_err(|e| format!("{e:#}"))?;
-    // The exported script keeps pointing at this natives folder, so it must survive.
-    std::mem::forget(natives);
     option
         .export_script(&target_path)
         .map_err(|error| error.to_string())?;

@@ -285,6 +285,7 @@ impl ConfigManager {
         let game_dir = folder::create_default_directory(&self.config_dir, portable)
             .map_err(|_| ConfigManagerError::ConfigDirNotFound)?;
         let mut state = self.app_state.blocking_lock();
+        state.version_info = crate::minecraft::launch::settings::default_version_info();
         state.active_repo_path = game_dir.clone();
         state.repositories.push(McFolder {
             name: "Default".into(),
@@ -730,12 +731,20 @@ mod java_config_tests {
         manager
             .load_or_init(Some(&portable), Some(&official))
             .unwrap();
+        assert_eq!(manager.app_state.blocking_lock().version_info, "PCL.Proto");
+        manager
+            .update(|state| {
+                state.version_info.clear();
+                Ok(())
+            })
+            .unwrap();
         // Restart discovery must preserve selection and deduplicate canonical paths.
         manager.select_repository(1).unwrap();
         manager
             .load_or_init(Some(&portable.join(".")), Some(&official))
             .unwrap();
         let restored: AppState = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        assert!(restored.version_info.is_empty());
         assert_eq!(restored.repositories.len(), 2);
         assert_eq!(restored.active_repo_path, official.canonicalize().unwrap());
         assert!(portable.join("versions").is_dir());

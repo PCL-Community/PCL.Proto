@@ -10,9 +10,11 @@ use crate::{
 use anyhow::{Context, ensure};
 use futures_util::{StreamExt, TryStreamExt};
 use serde::Deserialize;
+use sha1::Digest;
 use std::{
     collections::{BTreeMap, HashMap},
     fs,
+    io::Read,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -568,20 +570,80 @@ fn validate_lwjgl_natives(
     Ok(())
 }
 
-pub struct LaunchNatives(PathBuf);
-
-impl LaunchNatives {
-    pub fn path(&self) -> &Path {
-        &self.0
+fn natives_digest(root: &Path) -> anyhow::Result<String> {
+    ensure!(
+        fs::symlink_metadata(root)?.file_type().is_dir(),
+        "Invalid native cache directory"
+    );
+    fn visit(root: &Path, dir: &Path, hash: &mut sha1::Sha1) -> anyhow::Result<()> {
+        let mut entries = fs::read_dir(dir)?.collect::<Result<Vec<_>, _>>()?;
+        entries.sort_by_key(|entry| entry.file_name());
+        for entry in entries {
+            let path = entry.path();
+            let kind = entry.file_type()?;
+            ensure!(!kind.is_symlink(), "Native cache contains a symbolic link");
+            if kind.is_dir() {
+                visit(root, &path, hash)?;
+            } else {
+                ensure!(kind.is_file(), "Native cache contains an unsupported file");
+                let name = path.strip_prefix(root)?.to_string_lossy().into_owned();
+                hash.update((name.len() as u64).to_le_bytes());
+                hash.update(name.as_bytes());
+                let mut file = fs::File::open(&path)?;
+                hash.update(file.metadata()?.len().to_le_bytes());
+                let mut buffer = [0; 8192];
+                loop {
+                    let read = file.read(&mut buffer)?;
+                    if read == 0 {
+                        break;
+                    }
+                    hash.update(&buffer[..read]);
+                }
+            }
+        }
+        Ok(())
     }
+    let mut hash = sha1::Sha1::new();
+    visit(root, root, &mut hash)?;
+    Ok(crate::io::files::sha1_hex(hash.finalize()))
 }
 
-impl Drop for LaunchNatives {
-    fn drop(&mut self) {
-        if let Err(error) = fs::remove_dir_all(&self.0) {
-            log::warn!("Cannot remove launch natives {}: {error}", self.0.display());
+fn natives_match(expected: &Path, actual: &Path) -> anyhow::Result<bool> {
+    if !fs::symlink_metadata(actual)?.file_type().is_dir() {
+        return Ok(false);
+    }
+    for entry in fs::read_dir(expected)? {
+        let entry = entry?;
+        let target = actual.join(entry.file_name());
+        let expected_type = entry.file_type()?;
+        let Ok(actual_type) = fs::symlink_metadata(&target) else {
+            return Ok(false);
+        };
+        if expected_type.is_dir() {
+            if !actual_type.file_type().is_dir() || !natives_match(&entry.path(), &target)? {
+                return Ok(false);
+            }
+        } else {
+            if !actual_type.file_type().is_file() {
+                return Ok(false);
+            }
+            let mut left = std::io::BufReader::new(fs::File::open(entry.path())?);
+            let mut right = std::io::BufReader::new(fs::File::open(target)?);
+            let mut a = [0; 8192];
+            let mut b = [0; 8192];
+            loop {
+                let n = left.read(&mut a)?;
+                let m = right.read(&mut b)?;
+                if n != m || a[..n] != b[..m] {
+                    return Ok(false);
+                }
+                if n == 0 {
+                    break;
+                }
+            }
         }
     }
+    Ok(true)
 }
 
 pub async fn prepare_launch_libraries(
@@ -591,7 +653,7 @@ pub async fn prepare_launch_libraries(
     context: &McRuleContext,
     downloader: &Downloader,
     verify: bool,
-) -> anyhow::Result<LaunchNatives> {
+) -> anyhow::Result<PathBuf> {
     let mut plan = InstallPlan::new();
     plan.libraries(details, repo, context, 2)?;
     add_maven_libraries(&mut plan, details, repo, instance, context, downloader, 2).await?;
@@ -612,9 +674,11 @@ pub async fn prepare_launch_libraries(
         .buffer_unordered(64)
         .try_collect::<Vec<_>>()
         .await?;
-    let path = std::env::temp_dir().join(format!("pcl-natives-{}", uuid::Uuid::new_v4()));
-    fs::create_dir(&path)?;
-    let natives = LaunchNatives(path);
+    let cache = instance
+        .join(".pcl-proto")
+        .join("natives")
+        .join(format!("{}-{}", context.os, context.arch));
+    let library_metadata = serde_json::to_vec(&details.libraries)?;
     let context = McRuleContext {
         os: context.os.clone(),
         arch: context.arch.clone(),
@@ -623,8 +687,30 @@ pub async fn prepare_launch_libraries(
     };
     tokio::task::spawn_blocking(move || {
         validate_lwjgl_natives(&plan.natives, &context)?;
-        extract_natives(&plan.natives, natives.path())?;
-        Ok::<_, anyhow::Error>(natives)
+        fs::create_dir_all(&cache)?;
+        let staging = tempfile::Builder::new()
+            .prefix(".staging-")
+            .tempdir_in(&cache)?;
+        extract_natives(&plan.natives, staging.path())?;
+        let mut hasher = sha1::Sha1::new();
+        hasher.update(natives_digest(staging.path())?.as_bytes());
+        hasher.update(library_metadata);
+        let digest = crate::io::files::sha1_hex(hasher.finalize());
+        let mut destination = cache.join(&digest);
+        if destination.exists() && natives_match(staging.path(), &destination).unwrap_or(false) {
+            return Ok(destination);
+        }
+        if destination.exists() {
+            destination = cache.join(format!("{digest}-{}", uuid::Uuid::new_v4()));
+        }
+        match fs::rename(staging.path(), &destination) {
+            Ok(()) => {}
+            Err(_error)
+                if destination.is_dir()
+                    && natives_match(staging.path(), &destination).unwrap_or(false) => {}
+            Err(error) => return Err(error.into()),
+        }
+        Ok::<_, anyhow::Error>(destination)
     })
     .await?
 }

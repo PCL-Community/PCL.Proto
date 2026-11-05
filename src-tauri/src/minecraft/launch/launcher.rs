@@ -722,9 +722,10 @@ impl LaunchOption {
     pub async fn prepare_natives(
         &mut self,
         downloader: &crate::io::download::Downloader,
-    ) -> anyhow::Result<crate::minecraft::installer::LaunchNatives> {
+    ) -> anyhow::Result<std::path::PathBuf> {
         let context = McRuleContext::for_java(&self.java_runtime.architecture)?;
         patch_macos_arm_libraries(&mut self.version_details, &context)?;
+        patch_macos_jna(&mut self.version_details, &context)?;
         if self.extras.renderer != 0
             && cfg!(windows)
             && !crate::minecraft::launch::settings::mesa_loader_path().is_file()
@@ -742,7 +743,7 @@ impl LaunchOption {
             !self.extras.disable_asset_verify,
         )
         .await?;
-        self.natives_path = natives.path().to_owned();
+        self.natives_path = natives.clone();
         Ok(natives)
     }
 
@@ -759,6 +760,64 @@ impl LaunchOption {
         )
         .await
     }
+}
+
+fn patch_macos_jna(details: &mut McVersion, context: &McRuleContext) -> anyhow::Result<()> {
+    if context.os != "osx" {
+        return Ok(());
+    }
+    // JNA through 5.12 can abort when macOS returns a long dlopen error.
+    let mut indices = Vec::new();
+    for (index, library) in details.libraries.iter().enumerate() {
+        if !library.rule_allow(context)? {
+            continue;
+        }
+        let parts: Vec<_> = library.name.split(':').collect();
+        if let ["net.java.dev.jna", name @ ("jna" | "jna-platform"), version] = parts.as_slice() {
+            let Ok(version) = version
+                .split('.')
+                .map(str::parse::<u32>)
+                .collect::<Result<Vec<_>, _>>()
+            else {
+                return Ok(());
+            };
+            if version.first() != Some(&5) || version.get(1).copied().unwrap_or(0) >= 13 {
+                return Ok(());
+            }
+            indices.push((index, *name == "jna"));
+        }
+    }
+    if indices.len() != 2
+        || !indices.iter().any(|(_, core)| *core)
+        || !indices.iter().any(|(_, core)| !*core)
+    {
+        return Ok(());
+    }
+    for (index, core) in indices {
+        let name = if core { "jna" } else { "jna-platform" };
+        let (sha1, size) = if name == "jna" {
+            ("33d12735bef894440780fce64f9758d420c7bae2", 2002589)
+        } else {
+            ("a4934c44d25a9d8c2ddf4203affd20330cb3426f", 1378617)
+        };
+        let path = format!("net/java/dev/jna/{name}/5.17.0/{name}-5.17.0.jar");
+        let library = &mut details.libraries[index];
+        library.name = format!("net.java.dev.jna:{name}:5.17.0");
+        library.url = None;
+        library.sha1 = None;
+        library.size = None;
+        library.hint = None;
+        library
+            .downloads
+            .get_or_insert_with(Default::default)
+            .artifact = Some(crate::minecraft::version::DownloadFile {
+            url: format!("https://libraries.minecraft.net/{path}"),
+            path: Some(path),
+            sha1: sha1.into(),
+            size,
+        });
+    }
+    Ok(())
 }
 
 fn patch_macos_arm_libraries(
@@ -987,6 +1046,38 @@ mod tests {
     use serde_json::json;
     use std::fs;
 
+    #[test]
+    fn upgrades_old_jna_pair_only_on_macos() {
+        let artifact =
+            json!({"sha1":"a".repeat(40), "size":1, "url":"https://example.org/client.jar"});
+        let mut details: McVersion = serde_json::from_value(json!({
+            "id":"test", "type":"release", "assets":"test", "mainClass":"Main",
+            "downloads":{"client":artifact}, "assetIndex":{"id":"test","sha1":"a".repeat(40),"size":1,"url":"https://example.org/index"},
+            "libraries":[{"name":"net.java.dev.jna:jna:5.12.1"}, {"name":"net.java.dev.jna:jna-platform:5.12.1"}]
+        })).unwrap();
+        let mut context = McRuleContext::current();
+        context.os = "linux".into();
+        patch_macos_jna(&mut details, &context).unwrap();
+        assert_eq!(details.libraries[0].name, "net.java.dev.jna:jna:5.12.1");
+        context.os = "osx".into();
+        patch_macos_jna(&mut details, &context).unwrap();
+        assert_eq!(details.libraries[0].name, "net.java.dev.jna:jna:5.17.0");
+        assert_eq!(
+            details.libraries[1].name,
+            "net.java.dev.jna:jna-platform:5.17.0"
+        );
+        assert!(details.libraries.iter().all(|lib| {
+            lib.downloads
+                .as_ref()
+                .unwrap()
+                .artifact
+                .as_ref()
+                .unwrap()
+                .validate()
+                .is_ok()
+        }));
+    }
+
     #[cfg(unix)]
     #[test]
     fn metadata_arguments_reach_the_process_without_shell_splitting() {
@@ -1105,10 +1196,11 @@ mod tests {
             1
         );
         option.version_details.arguments = Some(
-            serde_json::from_value(json!({"jvm":[],"game":["--versionType","${version_type}"]}))
+            serde_json::from_value(json!({"jvm":["-Djna.tmpdir=${natives_directory}"],"game":["--versionType","${version_type}"]}))
                 .unwrap(),
         );
-        let (_, _, game) = option.metadata_arguments("a path").unwrap();
+        let (_, jvm, game) = option.metadata_arguments("a path").unwrap();
+        assert!(jvm.contains(&format!("-Djna.tmpdir={}", option.natives_path.display())));
         assert_eq!(game, ["--versionType", "Custom Info"]);
         option.extras.info = String::new();
         let (_, _, game) = option.metadata_arguments("a path").unwrap();

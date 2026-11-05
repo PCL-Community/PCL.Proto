@@ -708,25 +708,28 @@ async fn launch_preparation_selects_java_classifier_and_isolates_natives() {
         prepare_launch_libraries(&details, &root, &root, &x64, &downloader, true),
     );
     let (a, b) = (a.unwrap(), b.unwrap());
-    assert_ne!(a.path(), b.path());
-    assert_eq!(fs::read(a.path().join("native.bin")).unwrap(), b"32");
-    assert_eq!(fs::read(b.path().join("native.bin")).unwrap(), b"64");
-    assert!(!a.path().join("META-INF").exists());
-    let first_path = a.path().to_owned();
-    drop(a);
-    assert!(!first_path.exists());
-    assert!(b.path().join("native.bin").is_file());
-    drop(b);
+    assert_ne!(a, b);
+    assert_eq!(fs::read(a.join("native.bin")).unwrap(), b"32");
+    assert_eq!(fs::read(b.join("native.bin")).unwrap(), b"64");
+    assert!(!a.join("META-INF").exists());
+    fs::write(a.join("runtime-extracted"), b"runtime").unwrap();
+    let same = prepare_launch_libraries(&details, &root, &root, &x86, &downloader, true)
+        .await
+        .unwrap();
+    assert_eq!(a, same);
+    fs::write(a.join("native.bin"), b"damaged").unwrap();
+    let repaired = prepare_launch_libraries(&details, &root, &root, &x86, &downloader, true)
+        .await
+        .unwrap();
+    assert_ne!(a, repaired);
+    assert_eq!(fs::read(repaired.join("native.bin")).unwrap(), b"32");
     fs::remove_file(root.join("libraries/test/32.jar")).unwrap();
     let mirror = MockMirror::new([("/maven/test/32.jar".into(), archive32)].into(), false);
     let downloader = Downloader::with_bases(mirror.client().api_bases_async().await);
     let downloaded = prepare_launch_libraries(&details, &root, &root, &x86, &downloader, true)
         .await
         .unwrap();
-    assert_eq!(
-        fs::read(downloaded.path().join("native.bin")).unwrap(),
-        b"32"
-    );
+    assert_eq!(fs::read(downloaded.join("native.bin")).unwrap(), b"32");
     assert_eq!(mirror.count("/maven/test/32.jar"), 1);
     drop(downloaded);
     let cached = prepare_launch_libraries(&details, &root, &root, &x86, &downloader, true)
