@@ -1,13 +1,17 @@
 type CardState = {
   card: HTMLElement
+  inner: HTMLElement
+  innerHeight?: number
   height?: number
   animation?: Animation
 }
 
 const cards = new WeakMap<Element, CardState>()
 const animating = new Set<CardState>()
+const changed = new Map<CardState, boolean>()
 let observer: ResizeObserver | undefined
 let reducedMotion: MediaQueryList | undefined
+let frame = 0
 
 function motionPreference() {
   if (!reducedMotion) {
@@ -25,26 +29,32 @@ function motionPreference() {
 }
 
 function resizeCards(entries: ResizeObserverEntry[]) {
-  const writes: (() => void)[] = []
-  const scheduled = new Set<CardState>()
-  const changed = new Map<CardState, boolean>()
   for (const entry of entries) {
     const state = cards.get(entry.target)
     if (!state) continue
     changed.set(state, changed.get(state) || entry.target !== state.card)
   }
+  if (changed.size && !frame) frame = requestAnimationFrame(animateCards)
+}
+
+function animateCards() {
+  frame = 0
+  const writes: (() => void)[] = []
+  const scheduled = new Set<CardState>()
   const ordered = [...changed].sort(([a], [b]) =>
     a.card.contains(b.card) ? 1 : b.card.contains(a.card) ? -1 : 0,
   )
+  changed.clear()
   for (const [state, innerChanged] of ordered) {
     const { card } = state
-    if (state.animation && !innerChanged) continue
+    if (state.animation && (!innerChanged || state.innerHeight === state.inner.offsetHeight)) continue
     const from = state.animation ? card.offsetHeight : state.height
     state.animation?.cancel()
     state.animation = undefined
     animating.delete(state)
     const height = card.offsetHeight
     state.height = height
+    state.innerHeight = state.inner.offsetHeight
     if (
       from === undefined ||
       from === 0 ||
@@ -79,7 +89,7 @@ function resizeCards(entries: ResizeObserverEntry[]) {
 
 export function observeCardResize(inner: HTMLElement, card: HTMLElement) {
   observer ||= new ResizeObserver(resizeCards)
-  const state: CardState = { card }
+  const state: CardState = { card, inner }
   cards.set(inner, state)
   cards.set(card, state)
   observer.observe(inner)
@@ -89,7 +99,20 @@ export function observeCardResize(inner: HTMLElement, card: HTMLElement) {
     observer?.unobserve(card)
     cards.delete(inner)
     cards.delete(card)
+    changed.delete(state)
+    if (!changed.size && frame) {
+      cancelAnimationFrame(frame)
+      frame = 0
+    }
     state.animation?.cancel()
     animating.delete(state)
   }
+}
+
+export function updateCardResize(card: HTMLElement) {
+  const state = cards.get(card)
+  if (!state) return
+  changed.set(state, true)
+  if (frame) cancelAnimationFrame(frame)
+  animateCards()
 }

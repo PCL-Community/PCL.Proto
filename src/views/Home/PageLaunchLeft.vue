@@ -12,7 +12,7 @@ import { useLoginSession } from '@/composables/useLoginSession'
 import { getProfileTypeLabel } from '@/util/profile'
 import { useRouter } from 'vue-router'
 import type { ProfileView } from '@/types/profile'
-import { Channel, invoke } from '@tauri-apps/api/core'
+import { Channel, invoke, isTauri } from '@tauri-apps/api/core'
 import { prepareGameJava, downloadGameJava } from '@/api/javaReq'
 import { useModal } from '@/composables/useModal'
 import { computed, ref, watch } from 'vue'
@@ -28,6 +28,7 @@ const router = useRouter()
 const instance = useSelectedInstance()
 const account = useAccountInfo()
 const text = pclText
+const website = !isTauri()
 const profileView = ref<ProfileView>(account.profile ? 'skin' : 'profiles')
 const accountViews = {
   skin: PageLoginProfileSkin,
@@ -36,7 +37,7 @@ const accountViews = {
   microsoft: PageLoginMs,
   auth: PageLoginAuth,
 }
-const accountView = computed(() => accountViews[profileView.value])
+const accountView = computed(() => (website ? PageLoginProfileSkin : accountViews[profileView.value]))
 // CE 的 RefreshPage：选中档案时显示皮肤页，没有档案时显示档案列表。
 watch(
   () => account.currentId,

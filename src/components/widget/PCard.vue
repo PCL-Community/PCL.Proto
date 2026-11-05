@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { ref, useAttrs, useTemplateRef, watch } from 'vue'
 import IconUnfold from '../icons/control/IconUnfold.vue'
-import { observeCardResize } from '@/util/cardResize'
+import { observeCardResize, updateCardResize } from '@/util/cardResize'
 
 export type FoldStatus = 'unfold' | 'fold' | 'unfoldable'
 export type FoldArrow = 'down' | 'right'
@@ -63,6 +63,10 @@ watch(
   },
   { flush: 'post' },
 )
+
+watch(foldState, () => {
+  if (cardRef.value) updateCardResize(cardRef.value)
+}, { flush: 'post' })
 </script>
 
 <template>

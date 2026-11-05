@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke, isTauri } from '@tauri-apps/api/core'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import PSkin from '@/components/widget/PSkin.vue'
 import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import PCard from '@/components/widget/PCard.vue'
-import { useAccountInfo, toAuthFailure } from '@/stores/account'
+import { useAccountInfo, toAuthFailure, type McProfile } from '@/stores/account'
 import type { ProfileView } from '@/types/profile'
 import { pclText } from '@/api/pclLocale'
 import { popupNativeMenu, type NativeMenuItem } from '@/util/nativeMenu'
@@ -15,6 +15,7 @@ import { dialog, loginUrls } from '@/util/loginErrors'
 import sideTip from '@/composables/sideTip'
 import { useModal } from '@/composables/useModal'
 import { ModalWidthVariant } from '@/types/modal'
+import { showUnavailable } from '@/util/showUnavailable'
 
 const account = useAccountInfo()
 const emit = defineEmits<{ view: [view: ProfileView] }>()
@@ -22,7 +23,11 @@ const text = pclText
 const modal = useModal()
 const busy = ref(false)
 
-const profile = computed(() => account.profile)
+const website = !isTauri()
+const profile = computed<McProfile | null>(() => website ? {
+  profileId: 'website', userName: 'AMagicPear', uuid: '31bbe5379fea4e68aa4ad7aacca23d13',
+  tokenType: '', profileType: 'microsoft', description: '', skinHeadId: '',
+} : account.profile)
 // CE：离线档案不显示“修改信息”按钮。
 const canEdit = computed(() => !!profile.value && profile.value.profileType !== 'offline')
 
@@ -210,6 +215,10 @@ async function editUsername() {
 
 /** 对照 CE 的 `ChangeProfile`：清空当前档案并回到档案列表。 */
 async function switchProfile() {
+  if (website) {
+    void showUnavailable()
+    return
+  }
   await account.select(null)
   emit('view', 'profiles')
 }
@@ -241,6 +250,10 @@ function runAction(action: string) {
 }
 
 async function openMenu(event: MouseEvent, actions: readonly string[]) {
+  if (website) {
+    void showUnavailable()
+    return
+  }
   const items: NativeMenuItem[] = actions.map((action) => ({
     text: text(`Launch.Account.ProfileSkin.${action}`),
     action: () => runAction(action),
@@ -254,8 +267,8 @@ async function openMenu(event: MouseEvent, actions: readonly string[]) {
 </script>
 <template>
   <div v-if="profile" class="profile-skin">
-    <PSkin class="profile-avatar" :skin-url="account.skinFor(profile.profileId)" /><strong>{{
-      profile.userName || 'Player'
+    <PSkin class="profile-avatar" :skin-url="website ? 'https://minotar.net/skin/AMagicPear' : account.skinFor(profile?.profileId)" /><strong>{{
+      profile?.userName || 'Player'
     }}</strong
     ><span>{{ getProfileInfo(profile) }}</span>
     <div class="profile-actions-reveal">

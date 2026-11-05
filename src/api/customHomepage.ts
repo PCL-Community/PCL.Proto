@@ -5,6 +5,7 @@ import { homepageLimit, homepageUrl, parseHomepage } from '@/util/homepageXaml'
 
 export const homepageRevision = ref(0)
 export const homepagePresets = [
+  { key: 'proto', name: 'Proto' },
   { key: '0', name: 'Trivia' },
   { key: '2', name: 'McNews', url: 'https://news.bugjump.net' },
   { key: '3', name: 'DailyModpack', url: 'https://pclsub.sodamc.com/' },
