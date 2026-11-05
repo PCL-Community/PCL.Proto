@@ -258,6 +258,7 @@ async fn launch_game_inner(
     })?;
     let expected = instance_directory.clone();
     report("Minecraft.Launch.Stage.GetArguments", 0.2, false);
+    wait_for_launch(&mut ticket.receiver, refresh_active_account()).await??;
     let mut option = wait_for_launch(
         &mut ticket.receiver,
         tauri::async_runtime::spawn_blocking(move || {
@@ -296,6 +297,32 @@ async fn launch_game_inner(
     )
     .await?
     .map_err(|e| format!("{e:#}"))?;
+    option = wait_for_launch(&mut ticket.receiver, prepare_authlib(option)).await??;
+    let skin_server = if option.account().profile_type
+        == crate::minecraft::profile::ProfileType::Offline
+        && option.account().offline_skin.is_some()
+    {
+        let client =
+            crate::minecraft::profile::auth::http_client().map_err(|error| error.to_string())?;
+        let jar = wait_for_launch(
+            &mut ticket.receiver,
+            crate::minecraft::launch::authlib::ensure_jar(&client),
+        )
+        .await??;
+        let server = wait_for_launch(
+            &mut ticket.receiver,
+            crate::minecraft::launch::offline_skin::start(option.account()),
+        )
+        .await??;
+        option = option.with_authlib(crate::minecraft::launch::launcher::AuthlibAgent {
+            jar,
+            server: server.url.clone(),
+            prefetched: server.metadata.clone(),
+        });
+        Some(server)
+    } else {
+        None
+    };
     report("Minecraft.Launch.Stage.StartProcess", 0.85, false);
     let cancelled = ticket.cancelled.clone();
     let access_token = option.access_token();
@@ -321,7 +348,7 @@ async fn launch_game_inner(
                 child,
                 expected,
                 access_token,
-                || {},
+                move || drop(skin_server),
                 move |id, event| {
                     match event {
                         crate::minecraft::launch::session::SessionEvent::Spawned => {
@@ -382,6 +409,11 @@ async fn prepare_launch_option(
     })
     .await
     .map_err(|error| error.to_string())??;
+    if option.account().profile_type == crate::minecraft::profile::ProfileType::Offline
+        && option.account().offline_skin.is_some()
+    {
+        return Err("Exporting a launch script with an offline skin is not supported because the skin service requires the launcher to run.".into());
+    }
     prepare_authlib(option).await
 }
 

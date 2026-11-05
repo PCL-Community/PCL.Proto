@@ -36,7 +36,11 @@ async function changeSkin() {
   const current = profile.value
   if (!current) return
   if (current.profileType === 'microsoft') {
-    await changeMicrosoftSkin(current.profileId)
+    await changeLocalSkin(current.profileId, false)
+    return
+  }
+  if (current.profileType === 'offline') {
+    await changeLocalSkin(current.profileId, true)
     return
   }
   const closet = authClosetUrl(current.server)
@@ -48,7 +52,7 @@ async function changeSkin() {
 }
 
 /** 对照 CE 的 `ProfileUi.ChangeSkinMs`：选文件 → 选模型 → 上传。 */
-async function changeMicrosoftSkin(profileId: string) {
+async function changeLocalSkin(profileId: string, offline: boolean) {
   if (busy.value) {
     sideTip.show(text('Launch.Skin.Change.Busy'))
     return
@@ -56,7 +60,7 @@ async function changeMicrosoftSkin(profileId: string) {
   const source = await open({
     title: text('Launch.Skin.FileDialog.Title'),
     multiple: false,
-    filters: [{ name: text('Launch.Skin.FileDialog.Filter'), extensions: ['png', 'jpg', 'webp'] }],
+    filters: [{ name: text('Launch.Skin.FileDialog.Filter'), extensions: offline ? ['png'] : ['png', 'jpg', 'webp'] }],
   })
   if (!source || typeof source !== 'string') return
   const { choice } = await dialog({
@@ -73,7 +77,7 @@ async function changeMicrosoftSkin(profileId: string) {
   busy.value = true
   sideTip.show(text('Launch.Skin.Change.Starting'))
   try {
-    await invoke('change_microsoft_skin', { profileId, source, slim: choice === 2 })
+    await invoke(offline ? 'change_offline_skin' : 'change_microsoft_skin', { profileId, source, slim: choice === 2 })
     sideTip.show(text('Launch.Skin.ChangeSuccess'), 'success')
     await account.loadSkin(profileId, true)
   } catch (error) {
@@ -83,6 +87,20 @@ async function changeMicrosoftSkin(profileId: string) {
       content: text('Launch.Skin.Change.FailedWithDetail', [failure.message]),
       ok: text('Minecraft.Launch.Login.IKnow'),
     })
+  } finally {
+    busy.value = false
+  }
+}
+
+async function resetOfflineSkin() {
+  const current = profile.value
+  if (!current || busy.value) return
+  busy.value = true
+  try {
+    await invoke('change_offline_skin', { profileId: current.profileId, source: null, slim: false })
+    await account.loadSkin(current.profileId, true)
+  } catch (error) {
+    sideTip.show(toAuthFailure(error).message, 'warn')
   } finally {
     busy.value = false
   }
@@ -237,6 +255,9 @@ function runAction(action: string) {
     case 'RefreshSkin':
       void refreshSkin()
       return
+    case 'ResetOfflineSkin':
+      void resetOfflineSkin()
+      return
     case 'ChangeCape':
       void changeCape()
       return
@@ -254,8 +275,11 @@ async function openMenu(event: MouseEvent, actions: readonly string[]) {
     void showUnavailable()
     return
   }
-  const items: NativeMenuItem[] = actions.map((action) => ({
-    text: text(`Launch.Account.ProfileSkin.${action}`),
+  const available = actions === skinActions && profile.value?.profileType === 'offline'
+    ? [...actions, 'ResetOfflineSkin']
+    : actions
+  const items: NativeMenuItem[] = available.map((action) => ({
+    text: action === 'ResetOfflineSkin' ? text('Proto.Account.ResetOfflineSkin') : text(`Launch.Account.ProfileSkin.${action}`),
     action: () => runAction(action),
   }))
   try {

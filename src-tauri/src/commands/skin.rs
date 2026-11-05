@@ -106,7 +106,9 @@ pub async fn fetch_profile_skin(
     let default = default_skin(&profile);
     if profile.profile_type == ProfileType::Offline {
         return Ok(ProfileSkin {
-            skin: None,
+            skin: profile
+                .offline_skin
+                .map(|skin| format!("data:image/png;base64,{}", skin.image)),
             default,
         });
     }
@@ -176,6 +178,53 @@ pub async fn fetch_profile_skin(
         skin: Some(data_url(&bytes)),
         default,
     })
+}
+
+#[tauri::command]
+pub async fn change_offline_skin(
+    profile_id: String,
+    source: Option<std::path::PathBuf>,
+    slim: bool,
+) -> Result<(), crate::minecraft::profile::auth::AuthError> {
+    use crate::minecraft::profile::{OfflineSkin, ProfileType, auth::AuthError, service};
+
+    let skin = if let Some(source) = source {
+        let size = tokio::fs::metadata(&source)
+            .await
+            .map_err(|error| AuthError::new("skin_file", error.to_string()))?
+            .len();
+        if size > 24 * 1024 {
+            return Err(AuthError::new("skin_too_large", "皮肤文件不能超过 24 KB"));
+        }
+        let bytes = tokio::fs::read(source)
+            .await
+            .map_err(|error| AuthError::new("skin_file", error.to_string()))?;
+        validate_skin(&bytes)?;
+        Some(OfflineSkin {
+            image: general_purpose::STANDARD.encode(bytes),
+            slim,
+        })
+    } else {
+        None
+    };
+    service::blocking(move || {
+        crate::app::config::ConfigManager::instance()
+            .update(|state| {
+                let profile = state
+                    .profile
+                    .profiles
+                    .iter_mut()
+                    .find(|profile| profile.profile_id == profile_id)
+                    .ok_or("The source profile does not exist.")?;
+                if profile.profile_type != ProfileType::Offline {
+                    return Err("Only offline profiles can use a local skin.".into());
+                }
+                profile.offline_skin = skin;
+                Ok(())
+            })
+            .map_err(|error| AuthError::new("profile_store", error))
+    })
+    .await
 }
 
 /// 会话服务器地址：正版用 Mojang，第三方用认证服务器自带的会话服务器。

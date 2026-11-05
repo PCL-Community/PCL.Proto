@@ -3,7 +3,10 @@
 //!
 //! 第三方账号必须靠 javaagent 把游戏的认证请求转到皮肤站，否则登录成功也进不了服务器。
 
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    sync::LazyLock,
+};
 
 use base64::Engine;
 use sha2::Digest;
@@ -39,11 +42,13 @@ pub async fn prepare(profile: &McProfile) -> Result<AuthlibAgent, String> {
         .send()
         .await
         .map_err(|_| format!("无法连接认证服务器：{server}"))?
+        .error_for_status()
+        .map_err(|error| format!("认证服务器返回错误：{error}"))?
         .text()
         .await
         .map_err(|_| format!("无法连接认证服务器：{server}"))?;
-    if metadata.trim().is_empty() {
-        return Err(format!("无法连接认证服务器：{server}"));
+    if !serde_json::from_str::<serde_json::Value>(&metadata).is_ok_and(|value| value.is_object()) {
+        return Err(format!("认证服务器返回了无效元数据：{server}"));
     }
     Ok(AuthlibAgent {
         jar,
@@ -62,7 +67,10 @@ fn jar_path() -> PathBuf {
 /// 按 latest.json 的 sha256 校验本地 jar，需要时重新下载。
 ///
 /// 元数据取不到时沿用已有 jar（与 CE 一致：下载信息失败只记日志）。
-async fn ensure_jar(client: &reqwest::Client) -> Result<PathBuf, String> {
+pub async fn ensure_jar(client: &reqwest::Client) -> Result<PathBuf, String> {
+    static DOWNLOAD_LOCK: LazyLock<tokio::sync::Mutex<()>> =
+        LazyLock::new(|| tokio::sync::Mutex::new(()));
+    let _guard = DOWNLOAD_LOCK.lock().await;
     let path = jar_path();
     let latest = fetch_latest(client).await;
     let expected = match &latest {

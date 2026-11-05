@@ -205,6 +205,7 @@ pub fn run() {
             commands::skin::fetch_skin_from_uuid_cached,
             commands::skin::fetch_skin_from_url,
             commands::skin::fetch_profile_skin,
+            commands::skin::change_offline_skin,
             commands::skin::save_profile_skin,
             commands::skin::change_microsoft_skin,
             // scaffolding

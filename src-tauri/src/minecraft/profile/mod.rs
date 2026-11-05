@@ -63,6 +63,15 @@ pub struct McProfile {
     // Authentication details kept by the launcher for Xbox/Minecraft arguments.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub xuid: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offline_skin: Option<OfflineSkin>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OfflineSkin {
+    pub image: String,
+    pub slim: bool,
 }
 
 impl Default for McProfile {
@@ -84,6 +93,7 @@ impl Default for McProfile {
             password: None,
             discovery_address: None,
             xuid: None,
+            offline_skin: None,
         }
     }
 }
@@ -230,7 +240,11 @@ mod tests {
 
     #[test]
     fn safe_profile_never_exposes_tokens() {
-        let profile = McProfile::microsoft("Player", "uuid", "access", "refresh", "xuid");
+        let mut profile = McProfile::microsoft("Player", "uuid", "access", "refresh", "xuid");
+        profile.offline_skin = Some(OfflineSkin {
+            image: "image".into(),
+            slim: false,
+        });
         let safe = SafeProfile::from(&profile);
         let value = serde_json::to_value(&safe).unwrap();
         assert_eq!(value["userName"], "Player");
@@ -238,5 +252,22 @@ mod tests {
         assert!(value.get("accessToken").is_none());
         assert!(value.get("refreshToken").is_none());
         assert!(value.get("xuid").is_none());
+        assert!(value.get("offlineSkin").is_none());
+    }
+
+    #[test]
+    fn offline_skin_round_trips_and_old_profiles_still_load() {
+        let mut profile: McProfile =
+            serde_json::from_str(r#"{"username":"Player","uuid":"1234"}"#).unwrap();
+        assert!(profile.offline_skin.is_none());
+        profile.offline_skin = Some(OfflineSkin {
+            image: "c2tpbg==".into(),
+            slim: true,
+        });
+        let restored: McProfile =
+            serde_json::from_str(&serde_json::to_string(&profile).unwrap()).unwrap();
+        let skin = restored.offline_skin.unwrap();
+        assert_eq!(skin.image, "c2tpbg==");
+        assert!(skin.slim);
     }
 }

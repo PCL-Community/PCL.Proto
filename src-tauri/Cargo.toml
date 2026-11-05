@@ -49,6 +49,10 @@ uuid = { workspace = true, features = ["v4"] }
 hickory-resolver = "0.26.3"
 fastrand = "2.5.0"
 base64 = "0.23.1"
+axum = "0.8"
+rsa = { version = "0.9", features = ["sha1", "pem"] }
+rand = "0.8"
+sha1-legacy = { package = "sha1", version = "0.10", features = ["oid"] }
 jsonwebtoken = "9"
 sysinfo = { version = "0.40.1", default-features = false, features = ["system"] }
 trash = "5.2.9"

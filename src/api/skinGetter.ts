@@ -1,6 +1,5 @@
 type AvatarInputType = 'username' | 'uuid'
 import { invoke } from '@tauri-apps/api/core'
-import SteveSkin from '/default-skin/Steve_(classic_texture)_JE6.png'
 
 // 获取皮肤URL，支持用户名、UUID、URL三种输入类型
 // 当获取到本地皮肤URL后，会调用onUpdate回调函数，将新的URL作为参数传递
@@ -49,6 +48,6 @@ export default async function getSkinUrl(
         }
       }
     default:
-      onUpdate(SteveSkin)
+      onUpdate(`${import.meta.env.BASE_URL}pcl/images/Skins/Steve.png`)
   }
 }
