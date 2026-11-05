@@ -9,13 +9,10 @@ export interface McProfile {
   profileId: string
   userName: string
   uuid: string
-  tokenType: string
   profileType: ProfileType
   description: string
-  skinHeadId: string
   server?: string | null
   serverName?: string | null
-  serverHomepage?: string | null
 }
 
 /** `commands::account::ProfileList`. */
@@ -65,10 +62,9 @@ export type LoginState =
       userCode: string
       verificationUri: string
       verificationUriComplete: string | null
-      interval: number
     }
   | { status: 'selectProfile'; candidates: Candidate[] }
-  | { status: 'succeeded'; profile: McProfile }
+  | { status: 'succeeded' }
   | { status: 'failed'; code: string; message: string }
   | { status: 'cancelled' }
 

@@ -8,7 +8,7 @@ use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header, jw
 use serde::Deserialize;
 use serde_json::Value;
 
-use super::oauth::{AuthorizeResult, DeviceCodeData, post_form_tokens};
+use super::oauth::{AuthorizeResult, DeviceCodeData, post_form};
 use super::yggdrasil::YggdrasilProfile;
 use super::{AuthError, AuthResult, AuthenticationResult, Candidate};
 use crate::minecraft::profile::{McProfile, ProfileType};
@@ -267,7 +267,7 @@ impl Connect {
     }
 
     pub async fn device_code(&self) -> AuthResult<DeviceCodeData> {
-        let value = super::oauth::post_form(
+        let data: DeviceCodeData = post_form(
             &self.client,
             &self.discovery.device_endpoint,
             &[
@@ -276,8 +276,6 @@ impl Connect {
             ],
         )
         .await?;
-        let data: DeviceCodeData =
-            serde_json::from_value(value).map_err(|error| AuthError::network(error.to_string()))?;
         if let Some(error) = data.error() {
             return Err(error);
         }
@@ -286,7 +284,7 @@ impl Connect {
     }
 
     pub async fn poll_device_code(&self, data: &DeviceCodeData) -> AuthResult<AuthorizeResult> {
-        let result = post_form_tokens(
+        let result: AuthorizeResult = post_form(
             &self.client,
             &self.discovery.token_endpoint,
             &[
@@ -311,7 +309,7 @@ impl Connect {
                 Some("刷新令牌为空，需要重新登录。".into()),
             ));
         }
-        let result = post_form_tokens(
+        let result: AuthorizeResult = post_form(
             &self.client,
             &self.discovery.token_endpoint,
             &[
@@ -429,14 +427,11 @@ impl Connect {
             token_type: oauth.token_type.clone().unwrap_or_else(|| "Bearer".into()),
             expires_at: (expires_in > 0)
                 .then(|| Utc::now() + chrono::Duration::seconds(expires_in)),
-            raw_json: serde_json::to_string(profile).unwrap_or_default(),
             server: Some(self.server_address()),
             server_name,
             login_name: None,
             password: None,
-            provider: Some("yggdrasil-connect".into()),
             discovery_address: Some(self.discovery.address.clone()),
-            id_token: oauth.id_token.clone(),
             xuid: None,
         })
     }

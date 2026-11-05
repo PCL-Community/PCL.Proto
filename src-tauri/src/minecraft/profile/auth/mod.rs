@@ -103,14 +103,11 @@ pub struct AuthenticationResult {
     pub client_token: String,
     pub token_type: String,
     pub expires_at: Option<DateTime<Utc>>,
-    pub raw_json: String,
     pub server: Option<String>,
     pub server_name: Option<String>,
     pub login_name: Option<String>,
     pub password: Option<String>,
-    pub provider: Option<String>,
     pub discovery_address: Option<String>,
-    pub id_token: Option<String>,
     /// Proto-only: `${auth_xuid}` launch argument for Microsoft profiles.
     pub xuid: Option<String>,
 }
@@ -127,7 +124,6 @@ impl AuthenticationResult {
         profile.client_token = self.client_token.clone();
         profile.token_type = self.token_type.clone();
         profile.expires_at = self.expires_at;
-        profile.raw_json = self.raw_json.clone();
         if self.server.is_some() {
             profile.server = self.server.clone();
         }
@@ -140,14 +136,8 @@ impl AuthenticationResult {
         if self.password.is_some() {
             profile.password = self.password.clone();
         }
-        if self.provider.is_some() {
-            profile.provider = self.provider.clone();
-        }
         if self.discovery_address.is_some() {
             profile.discovery_address = self.discovery_address.clone();
-        }
-        if self.id_token.is_some() {
-            profile.id_token = self.id_token.clone();
         }
         if self.xuid.is_some() {
             profile.xuid = self.xuid.clone();
@@ -178,8 +168,6 @@ mod tests {
         let mut profile = McProfile::authlib(
             "https://example.org/api/yggdrasil",
             "Example",
-            "https://example.org",
-            "meta",
             "token",
             "uuid",
             "Player",
@@ -194,14 +182,11 @@ mod tests {
             client_token: "client".into(),
             token_type: "Bearer".into(),
             expires_at: None,
-            raw_json: String::new(),
             server: None,
             server_name: None,
             login_name: None,
             password: None,
-            provider: Some("authlib".into()),
             discovery_address: None,
-            id_token: None,
             xuid: None,
         };
         result.apply_to(&mut profile);
@@ -209,6 +194,5 @@ mod tests {
         assert_eq!(profile.user_name, "Player2");
         assert_eq!(profile.server_name.as_deref(), Some("Example"));
         assert_eq!(profile.password.as_deref(), Some("secret"));
-        assert_eq!(profile.provider.as_deref(), Some("authlib"));
     }
 }

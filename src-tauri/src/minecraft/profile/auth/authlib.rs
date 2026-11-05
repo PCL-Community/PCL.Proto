@@ -5,7 +5,7 @@ use serde_json::Value;
 use super::oauth::jwt_payload;
 use super::yggdrasil::{self, YggdrasilProfile};
 use super::{AuthError, AuthResult, AuthenticationResult, Candidate};
-use crate::minecraft::profile::ProfileType;
+use crate::minecraft::profile::{McProfile, ProfileType};
 
 /// 用户名密码登录的中间态：多档案时需要用户先选角色。
 #[derive(Clone, Debug)]
@@ -21,7 +21,6 @@ pub enum Login {
 pub struct AuthlibProvider {
     client: reqwest::Client,
     api_root: String,
-    auth_server: String,
 }
 
 impl AuthlibProvider {
@@ -30,7 +29,6 @@ impl AuthlibProvider {
         let api_root = normalize_server(server)?;
         Ok(Self {
             client: super::http_client()?,
-            auth_server: format!("{api_root}/authserver"),
             api_root,
         })
     }
@@ -66,8 +64,20 @@ impl AuthlibProvider {
                 client_token: response.client_token.clone().unwrap_or_default(),
             });
         };
-        self.switch_to(&response, &selected, username, password)
-            .await
+        let candidate = Candidate {
+            id: selected.id,
+            name: selected.name,
+        };
+        let result = self
+            .select(
+                response.access_token.as_deref().unwrap_or_default(),
+                response.client_token.as_deref().unwrap_or_default(),
+                &candidate,
+                username,
+                password,
+            )
+            .await?;
+        Ok(Login::Finished(Box::new(result)))
     }
 
     /// 用户在多档案里选定角色后继续登录。
@@ -99,39 +109,18 @@ impl AuthlibProvider {
     }
 
     /// 用已保存的令牌刷新，对照 CE 的 `AuthlibProvider.RefreshAsync`。
-    pub async fn refresh(
-        &self,
-        access_token: &str,
-        client_token: &str,
-        uuid: &str,
-        user_name: &str,
-        login_name: Option<&str>,
-        password: Option<&str>,
-    ) -> AuthResult<AuthenticationResult> {
-        let selected = YggdrasilProfile {
-            id: uuid.to_owned(),
-            name: user_name.to_owned(),
-        };
-        let response = yggdrasil::refresh(
-            &self.client,
-            &self.api_root,
-            access_token,
-            (!client_token.is_empty()).then_some(client_token),
-            Some(&selected),
+    pub async fn refresh(&self, profile: &McProfile) -> AuthResult<AuthenticationResult> {
+        self.select(
+            &profile.access_token,
+            &profile.client_token,
+            &Candidate {
+                id: profile.uuid.clone(),
+                name: profile.user_name.clone(),
+            },
+            profile.login_name.as_deref().unwrap_or_default(),
+            profile.password.as_deref().unwrap_or_default(),
         )
-        .await?;
-        if let Some(error) = response.error() {
-            return Err(error);
-        }
-        let selected = response.selected_profile.clone().unwrap_or(selected);
-        Ok(self
-            .finish(
-                &response,
-                &selected,
-                login_name.unwrap_or_default(),
-                password.unwrap_or_default(),
-            )
-            .await)
+        .await
     }
 
     /// 令牌是否仍然有效，对照 CE 的 `AuthlibProvider.ValidateAsync`。
@@ -153,36 +142,6 @@ impl AuthlibProvider {
         server_name(&self.client, &self.api_root).await
     }
 
-    /// 首次登录后如果服务器默认角色与用户选择不一致，需要再刷新一次切换角色。
-    async fn switch_to(
-        &self,
-        response: &yggdrasil::AuthenticateResponse,
-        selected: &YggdrasilProfile,
-        username: &str,
-        password: &str,
-    ) -> AuthResult<Login> {
-        let access_token = response.access_token.clone().unwrap_or_default();
-        let client_token = response.client_token.clone().unwrap_or_default();
-        let switched = yggdrasil::refresh(
-            &self.client,
-            &self.api_root,
-            &access_token,
-            (!client_token.is_empty()).then_some(client_token.as_str()),
-            Some(selected),
-        )
-        .await?;
-        if let Some(error) = switched.error() {
-            return Err(error);
-        }
-        let selected = switched
-            .selected_profile
-            .clone()
-            .unwrap_or_else(|| selected.clone());
-        Ok(Login::Finished(Box::new(
-            self.finish(&switched, &selected, username, password).await,
-        )))
-    }
-
     async fn finish(
         &self,
         response: &yggdrasil::AuthenticateResponse,
@@ -200,18 +159,11 @@ impl AuthlibProvider {
             client_token: response.client_token.clone().unwrap_or_default(),
             token_type: "Bearer".into(),
             expires_at: None,
-            raw_json: response
-                .selected_profile
-                .as_ref()
-                .and_then(|profile| serde_json::to_string(profile).ok())
-                .unwrap_or_default(),
-            server: Some(self.auth_server.clone()),
+            server: Some(format!("{}/authserver", self.api_root)),
             server_name,
             login_name: (!username.is_empty()).then(|| username.to_owned()),
             password: (!password.is_empty()).then(|| password.to_owned()),
-            provider: Some("authlib".into()),
             discovery_address: None,
-            id_token: None,
             // 第三方服务器的 access token 同样是 JWT，xuid 声明可缺省。
             xuid: response
                 .access_token

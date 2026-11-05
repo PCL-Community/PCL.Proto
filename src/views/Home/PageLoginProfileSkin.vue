@@ -26,7 +26,7 @@ const busy = ref(false)
 const website = !isTauri()
 const profile = computed<McProfile | null>(() => website ? {
   profileId: 'website', userName: 'AMagicPear', uuid: '31bbe5379fea4e68aa4ad7aacca23d13',
-  tokenType: '', profileType: 'microsoft', description: '', skinHeadId: '',
+  profileType: 'microsoft', description: '',
 } : account.profile)
 // CE：离线档案不显示“修改信息”按钮。
 const canEdit = computed(() => !!profile.value && profile.value.profileType !== 'offline')

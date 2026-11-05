@@ -1,7 +1,7 @@
 //! Launcher profiles, mirroring `PCL.Core.Minecraft.Profile.Models`.
 //!
 //! The C# core keeps a mutable [`McProfile`] whose stable identity is the
-//! profile id. Rust keeps the same fields, but represents the profile kind with
+//! profile id. Rust keeps the fields used by Proto and represents the profile kind with
 //! an enum-derived `profile_type` and uses `Option` for values that are only
 //! meaningful to one authentication provider.
 
@@ -48,8 +48,6 @@ pub struct McProfile {
     pub client_token: String,
     pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
     pub description: String,
-    pub skin_head_id: String,
-    pub raw_json: String,
 
     // Authlib / Yggdrasil
     pub server: Option<String>,
@@ -59,18 +57,12 @@ pub struct McProfile {
     pub login_name: Option<String>,
     pub password: Option<String>,
 
-    // OAuth / OpenID provider metadata
-    pub provider: Option<String>,
+    // Yggdrasil Connect discovery used when refreshing credentials.
     pub discovery_address: Option<String>,
-    pub id_token: Option<String>,
 
     // Authentication details kept by the launcher for Xbox/Minecraft arguments.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub xuid: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub server_homepage: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub server_meta: Option<String>,
 }
 
 impl Default for McProfile {
@@ -86,18 +78,12 @@ impl Default for McProfile {
             client_token: String::new(),
             expires_at: None,
             description: String::new(),
-            skin_head_id: String::new(),
-            raw_json: String::new(),
             server: None,
             server_name: None,
             login_name: None,
             password: None,
-            provider: None,
             discovery_address: None,
-            id_token: None,
             xuid: None,
-            server_homepage: None,
-            server_meta: None,
         }
     }
 }
@@ -152,12 +138,9 @@ impl McProfile {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn authlib(
         api_location: impl Into<String>,
         server_name: impl Into<String>,
-        server_homepage: impl Into<String>,
-        server_meta: impl Into<String>,
         access_token: impl Into<String>,
         uuid: impl Into<String>,
         user_name: impl Into<String>,
@@ -171,19 +154,8 @@ impl McProfile {
             profile_type: ProfileType::Authlib,
             server: Some(api_location.into()),
             server_name: Some(server_name.into()),
-            server_homepage: Some(server_homepage.into()),
-            server_meta: Some(server_meta.into()),
             ..Self::default()
         }
-    }
-
-    /// Display name used by launch arguments and the UI.
-    pub fn username(&self) -> &str {
-        &self.user_name
-    }
-
-    pub fn uuid(&self) -> &str {
-        &self.uuid
     }
 
     pub fn access_token(&self) -> Option<&str> {
@@ -232,13 +204,10 @@ pub struct SafeProfile {
     pub profile_id: String,
     pub user_name: String,
     pub uuid: String,
-    pub token_type: String,
     pub profile_type: ProfileType,
     pub description: String,
-    pub skin_head_id: String,
     pub server: Option<String>,
     pub server_name: Option<String>,
-    pub server_homepage: Option<String>,
 }
 
 impl From<&McProfile> for SafeProfile {
@@ -247,13 +216,10 @@ impl From<&McProfile> for SafeProfile {
             profile_id: profile.profile_id.clone(),
             user_name: profile.user_name.clone(),
             uuid: profile.uuid.clone(),
-            token_type: profile.token_type.clone(),
             profile_type: profile.profile_type,
             description: profile.description.clone(),
-            skin_head_id: profile.skin_head_id.clone(),
             server: profile.server.clone(),
             server_name: profile.server_name.clone(),
-            server_homepage: profile.server_homepage.clone(),
         }
     }
 }

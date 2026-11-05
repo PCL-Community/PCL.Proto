@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::minecraft::profile::auth::session::{self, LoginRequest, View};
 use crate::minecraft::profile::auth::{AuthError, AuthResult, authlib, connect, microsoft};
+use crate::minecraft::profile::service::blocking;
 use crate::minecraft::profile::{McProfile, ProfileType, SafeProfile, service, uuid};
 
 /// 档案列表与当前选择，界面一次拿全。
@@ -69,13 +70,13 @@ pub struct AuthServerInfo {
 
 #[tauri::command]
 pub async fn get_profiles() -> Result<ProfileList, AuthError> {
-    store(ProfileList::load).await
+    blocking(ProfileList::load).await
 }
 
 /// 选择档案；传 `null` 表示取消选择（CE 的“选择档案”按钮会清空当前档案）。
 #[tauri::command]
 pub async fn select_profile(profile_id: Option<String>) -> Result<ProfileList, AuthError> {
-    store(move || {
+    blocking(move || {
         service::select(profile_id.as_deref())?;
         ProfileList::load()
     })
@@ -84,7 +85,7 @@ pub async fn select_profile(profile_id: Option<String>) -> Result<ProfileList, A
 
 #[tauri::command]
 pub async fn delete_profile(profile_id: String) -> Result<ProfileList, AuthError> {
-    store(move || {
+    blocking(move || {
         service::remove(&profile_id)?;
         ProfileList::load()
     })
@@ -105,14 +106,14 @@ pub async fn create_offline_profile(
         ));
     }
     let uuid = uuid_mode.resolve(&name, custom_uuid.as_deref())?;
-    store(move || {
+    blocking(move || {
         let mut profile = McProfile::offline(&name, &uuid);
         // CE 用随机 GUID 作为档案身份，UUID 相同也允许重复添加同名离线档案。
         profile.profile_id = service::new_profile_id();
         // 对照 CE 的 McLoginLegacyStart：离线档案的令牌就是 UUID。
         profile.access_token = uuid.clone();
         profile.client_token = uuid;
-        service::add(&mut profile, true)?;
+        service::add(profile, true)?;
         ProfileList::load()
     })
     .await
@@ -125,19 +126,19 @@ pub async fn set_offline_uuid(
     custom_uuid: Option<String>,
 ) -> Result<ProfileList, AuthError> {
     let lookup = profile_id.clone();
-    let profile = store(move || {
+    let profile = blocking(move || {
         service::find(&lookup).ok_or_else(|| {
             AuthError::new("profile_not_found", "The source profile does not exist.")
         })
     })
     .await?;
     let value = uuid_mode.resolve(&profile.user_name, custom_uuid.as_deref())?;
-    store(move || {
-        let mut updated = profile.clone();
+    blocking(move || {
+        let mut updated = profile;
         updated.uuid = value.clone();
         updated.access_token = value;
         service::replace(&profile_id, updated)?;
-        service::select_profile(&profile_id)?;
+        service::select(Some(&profile_id))?;
         ProfileList::load()
     })
     .await
@@ -159,7 +160,7 @@ pub async fn rename_microsoft_profile(
         ));
     }
     let lookup = profile_id.clone();
-    let profile = store(move || {
+    let profile = blocking(move || {
         service::find(&lookup).ok_or_else(|| {
             AuthError::new("profile_not_found", "The source profile does not exist.")
         })
@@ -170,11 +171,11 @@ pub async fn rename_microsoft_profile(
     }
     let provider = microsoft::MicrosoftProvider::new()?;
     let renamed = provider.change_name(&profile.access_token, name).await?;
-    store(move || {
-        let mut updated = profile.clone();
+    blocking(move || {
+        let mut updated = profile;
         updated.user_name = renamed;
         service::replace(&profile_id, updated)?;
-        service::select_profile(&profile_id)?;
+        service::select(Some(&profile_id))?;
         ProfileList::load()
     })
     .await
@@ -252,13 +253,4 @@ pub async fn select_login_profile(
     candidate_id: Option<String>,
 ) -> Result<(), AuthError> {
     session::select(&session_id, candidate_id)
-}
-
-/// 档案读写离开异步上下文执行。
-async fn store<T: Send + 'static>(
-    run: impl FnOnce() -> AuthResult<T> + Send + 'static,
-) -> AuthResult<T> {
-    tauri::async_runtime::spawn_blocking(run)
-        .await
-        .map_err(|error| AuthError::new("profile_store", error.to_string()))?
 }

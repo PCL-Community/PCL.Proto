@@ -44,8 +44,7 @@ pub fn find(profile_id: &str) -> Option<McProfile> {
 }
 
 /// 新增档案；`profile_id` 为空时生成一个新 ID，重复 ID 直接报错（对照 CE 的 `Add`）。
-pub fn add(profile: &mut McProfile, select: bool) -> AuthResult<McProfile> {
-    let mut profile = profile.clone();
+pub fn add(mut profile: McProfile, select: bool) -> AuthResult<McProfile> {
     if profile.profile_id.trim().is_empty() {
         profile.profile_id = new_profile_id();
     }
@@ -164,7 +163,7 @@ pub fn apply(
             result.apply_to(&mut profile);
             let updated = replace(&existing.profile_id, profile)?;
             if select {
-                select_profile(&updated.profile_id)?;
+                self::select(Some(&updated.profile_id))?;
             }
             Ok(updated)
         }
@@ -174,7 +173,7 @@ pub fn apply(
                 ..Default::default()
             };
             result.apply_to(&mut profile);
-            add(&mut profile, select)
+            add(profile, select)
         }
     }
 }
@@ -193,8 +192,13 @@ pub fn find_matching(result: &AuthenticationResult) -> Option<McProfile> {
     })
 }
 
-pub fn select_profile(profile_id: &str) -> AuthResult<Option<McProfile>> {
-    select(Some(profile_id))
+/// 档案读写会阻塞式加锁，必须离开异步上下文。
+pub async fn blocking<T: Send + 'static>(
+    run: impl FnOnce() -> AuthResult<T> + Send + 'static,
+) -> AuthResult<T> {
+    tauri::async_runtime::spawn_blocking(run)
+        .await
+        .map_err(|error| AuthError::new("profile_store", error.to_string()))?
 }
 
 #[cfg(test)]
@@ -212,21 +216,16 @@ mod tests {
             client_token: String::new(),
             token_type: "Bearer".into(),
             expires_at: None,
-            raw_json: String::new(),
             server: Some("https://a.example.org/api/yggdrasil/authserver".into()),
             server_name: None,
             login_name: None,
             password: None,
-            provider: None,
             discovery_address: None,
-            id_token: None,
             xuid: None,
         };
         let mut same_server = McProfile::authlib(
             "https://a.example.org/api/yggdrasil/authserver",
             "A",
-            "",
-            "",
             "token",
             "uuid",
             "Player",
@@ -263,8 +262,6 @@ mod tests {
         let mut profile = McProfile::authlib(
             "https://a.example.org/api/yggdrasil/authserver",
             "A",
-            "https://a.example.org",
-            "meta",
             "old",
             "uuid",
             "OldName",
@@ -278,14 +275,11 @@ mod tests {
             client_token: "client".into(),
             token_type: "Bearer".into(),
             expires_at: None,
-            raw_json: String::new(),
             server: None,
             server_name: Some("Renamed".into()),
             login_name: None,
             password: None,
-            provider: None,
             discovery_address: None,
-            id_token: None,
             xuid: None,
         };
         result.apply_to(&mut profile);
@@ -294,10 +288,6 @@ mod tests {
         assert_eq!(
             profile.server.as_deref(),
             Some("https://a.example.org/api/yggdrasil/authserver")
-        );
-        assert_eq!(
-            profile.server_homepage.as_deref(),
-            Some("https://a.example.org")
         );
     }
 }

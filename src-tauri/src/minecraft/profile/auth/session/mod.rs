@@ -18,7 +18,7 @@ use tokio::sync::oneshot;
 use self::login::login;
 use super::oauth::{AuthorizeResult, DeviceCodeData, classify};
 use super::{AuthError, AuthResult, Candidate};
-use crate::minecraft::profile::{ProfileType, SafeProfile};
+use crate::minecraft::profile::ProfileType;
 
 pub use self::login::{login_for_launch, refresh_microsoft};
 
@@ -43,15 +43,12 @@ pub enum View {
         user_code: String,
         verification_uri: String,
         verification_uri_complete: Option<String>,
-        interval: u64,
     },
     /// 服务器返回多个角色，等待用户选择。
     SelectProfile {
         candidates: Vec<Candidate>,
     },
-    Succeeded {
-        profile: SafeProfile,
-    },
+    Succeeded,
     Failed {
         code: String,
         message: String,
@@ -63,7 +60,7 @@ impl View {
     pub fn is_terminal(&self) -> bool {
         matches!(
             self,
-            View::Succeeded { .. } | View::Failed { .. } | View::Cancelled
+            View::Succeeded | View::Failed { .. } | View::Cancelled
         )
     }
 }
@@ -128,7 +125,7 @@ impl Ui {
     /// 展示设备码并轮询到拿到令牌，对照 CE `MyMsgLogin.WorkThreadAsync`。
     async fn device_code<F, Fut>(
         &self,
-        data: DeviceCodeData,
+        data: &DeviceCodeData,
         poll: F,
     ) -> AuthResult<AuthorizeResult>
     where
@@ -145,7 +142,6 @@ impl Ui {
             user_code: data.user_code.clone().unwrap_or_default(),
             verification_uri: data.verification_uri.clone().unwrap_or_default(),
             verification_uri_complete: data.verification_uri_complete.clone(),
-            interval: data.poll_interval(),
         });
         // CE 在弹窗 2 秒后自动打开网页并开始轮询。
         if !sleep_cancellable(session, Duration::from_secs(2)).await {
@@ -223,9 +219,7 @@ pub fn start(request: LoginRequest) -> AuthResult<String> {
     drop(sessions);
     tauri::async_runtime::spawn(async move {
         let view = match login(request, Ui::Session(session.clone())).await {
-            Ok(profile) => View::Succeeded {
-                profile: SafeProfile::from(&profile),
-            },
+            Ok(_) => View::Succeeded,
             Err(error) if error.code == CANCELLED => View::Cancelled,
             Err(error) => View::Failed {
                 code: error.code,

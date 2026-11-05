@@ -7,7 +7,7 @@ use chrono::Utc;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use super::oauth::{AuthorizeResult, DeviceCodeData, jwt_payload, post_form_tokens};
+use super::oauth::{AuthorizeResult, DeviceCodeData, jwt_payload, post_form};
 use super::{AuthError, AuthResult, AuthenticationResult};
 use crate::minecraft::profile::ProfileType;
 
@@ -40,8 +40,6 @@ fn default_token_type() -> String {
 struct MinecraftProfile {
     id: String,
     name: String,
-    /// CE 把整个档案响应存进 `RawJson`。
-    raw_json: String,
 }
 
 /// Xbox Live / XSTS 的响应，对照 CE 的 `XboxLiveResponse`。
@@ -86,14 +84,12 @@ impl MicrosoftProvider {
 
     /// 申请设备码，对照 CE 的 `GetDeviceCodeAsync`。
     pub async fn device_code(&self) -> AuthResult<DeviceCodeData> {
-        let value = super::oauth::post_form(
+        let data: DeviceCodeData = post_form(
             &self.client,
             DEVICE_ENDPOINT,
             &[("client_id", self.client_id.as_str()), ("scope", SCOPE)],
         )
         .await?;
-        let data: DeviceCodeData =
-            serde_json::from_value(value).map_err(|error| AuthError::network(error.to_string()))?;
         if let Some(error) = data.error() {
             return Err(error);
         }
@@ -103,7 +99,7 @@ impl MicrosoftProvider {
 
     /// 轮询一次设备码，对照 CE 的 `PollDeviceCodeAsync`。
     pub async fn poll_device_code(&self, data: &DeviceCodeData) -> AuthResult<AuthorizeResult> {
-        let result = post_form_tokens(
+        let result: AuthorizeResult = post_form(
             &self.client,
             TOKEN_ENDPOINT,
             &[
@@ -128,7 +124,7 @@ impl MicrosoftProvider {
                 Some("Microsoft refresh token is empty.".into()),
             ));
         }
-        let result = post_form_tokens(
+        let result: AuthorizeResult = post_form(
             &self.client,
             TOKEN_ENDPOINT,
             &[
@@ -215,30 +211,28 @@ impl MicrosoftProvider {
                 Some("The Microsoft account does not own Minecraft.".into()),
             ));
         }
-        let profile = self.minecraft_profile(&minecraft).await?;
+        let profile = self.minecraft_profile(&minecraft.access_token).await?;
         let expires_in = minecraft.expires_in;
+        // CE 不保存 xuid；Proto 的 ${auth_xuid} 启动参数需要它。
+        let xuid = jwt_payload(&minecraft.access_token)
+            .ok()
+            .and_then(|payload| payload.get("xuid")?.as_str().map(str::to_owned));
         Ok(AuthenticationResult {
             profile_type: ProfileType::Microsoft,
             user_name: profile.name,
             uuid: profile.id.clone(),
-            access_token: minecraft.access_token.clone(),
+            access_token: minecraft.access_token,
             refresh_token: oauth.refresh_token.clone().unwrap_or_default(),
             client_token: profile.id,
             token_type: minecraft.token_type,
             expires_at: (expires_in > 0)
                 .then(|| Utc::now() + chrono::Duration::seconds(expires_in)),
-            raw_json: profile.raw_json,
             server: None,
             server_name: None,
             login_name: None,
             password: None,
-            provider: Some("microsoft".into()),
             discovery_address: None,
-            id_token: None,
-            // CE 不保存 xuid；Proto 的 ${auth_xuid} 启动参数需要它。
-            xuid: jwt_payload(&minecraft.access_token)
-                .ok()
-                .and_then(|payload| payload.get("xuid")?.as_str().map(str::to_owned)),
+            xuid,
         })
     }
 
@@ -354,22 +348,18 @@ impl MicrosoftProvider {
     }
 
     /// 检查账号是否持有 Minecraft 许可，对照 CE 的 `MojangUtils.CheckLicenseAsync`。
-    pub async fn owns_minecraft_with(
-        &self,
-        token_type: &str,
-        access_token: &str,
-    ) -> AuthResult<bool> {
-        let scheme = if token_type.trim().is_empty() {
+    async fn owns_minecraft(&self, token: &MinecraftToken) -> AuthResult<bool> {
+        let scheme = if token.token_type.trim().is_empty() {
             "Bearer"
         } else {
-            token_type
+            &token.token_type
         };
         let response = self
             .client
             .get(MINECRAFT_LICENSE_ENDPOINT)
             .header(
                 reqwest::header::AUTHORIZATION,
-                format!("{scheme} {access_token}"),
+                format!("{scheme} {}", token.access_token),
             )
             .send()
             .await?;
@@ -396,15 +386,8 @@ impl MicrosoftProvider {
             }))
     }
 
-    async fn owns_minecraft(&self, token: &MinecraftToken) -> AuthResult<bool> {
-        self.owns_minecraft_with(&token.token_type, &token.access_token)
-            .await
-    }
-
     /// 读取玩家档案，对照 CE 的 `MojangUtils.GetProfileAsync`。
-    ///
-    /// 返回 `(uuid, 名称, 原始 JSON)`；原始 JSON 会存进档案，供启动参数与皮肤使用。
-    pub async fn profile_with(&self, access_token: &str) -> AuthResult<(String, String, String)> {
+    async fn minecraft_profile(&self, access_token: &str) -> AuthResult<MinecraftProfile> {
         let response = self
             .client
             .get(MINECRAFT_PROFILE_ENDPOINT)
@@ -425,14 +408,7 @@ impl MicrosoftProvider {
                 text.chars().take(200).collect::<String>()
             )));
         }
-        let profile: MinecraftProfile =
-            serde_json::from_str(&text).map_err(|error| AuthError::network(error.to_string()))?;
-        Ok((profile.id, profile.name, text))
-    }
-
-    async fn minecraft_profile(&self, token: &MinecraftToken) -> AuthResult<MinecraftProfile> {
-        let (id, name, raw_json) = self.profile_with(&token.access_token).await?;
-        Ok(MinecraftProfile { id, name, raw_json })
+        serde_json::from_str(&text).map_err(|error| AuthError::network(error.to_string()))
     }
 }
 

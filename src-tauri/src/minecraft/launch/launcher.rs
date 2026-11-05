@@ -231,7 +231,7 @@ impl LaunchOption {
             }
             script.push('\n');
         }
-        let script = filter_access_token(script, self.account.access_token(), self.account.uuid());
+        let script = filter_access_token(script, self.account.access_token(), &self.account.uuid);
         let parent = path
             .parent()
             .ok_or_else(|| GameLaunchError::Resource("Invalid launch script path".into()))?;
@@ -468,8 +468,8 @@ impl LaunchOption {
                 "assets_index_name",
                 self.version_details.asset_index.id.clone(),
             ),
-            ("auth_player_name", self.account.username().into()),
-            ("auth_uuid", self.account.uuid().into()),
+            ("auth_player_name", self.account.user_name.clone()),
+            ("auth_uuid", self.account.uuid.clone()),
             (
                 "auth_access_token",
                 self.account.access_token().unwrap_or("0").into(),

@@ -1,6 +1,7 @@
 //! OAuth 2.0 token and device-authorization primitives, mirroring
 //! `PCL.Core.Minecraft.IdentityModel.OAuth`.
 
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -213,43 +214,21 @@ pub fn jwt_payload(token: &str) -> AuthResult<Value> {
         .map_err(|error| AuthError::new("invalid_token", error.to_string()))
 }
 
-/// POST 一个表单并把响应体解析为 JSON。
+/// POST 一个表单并直接解析响应。
 ///
 /// OAuth 的错误同样以 JSON 响应体返回（通常带 400），所以这里不按状态码抛错，
 /// 交给调用方读取 `error` 字段。
-pub async fn post_form(
+pub async fn post_form<T: DeserializeOwned>(
     client: &reqwest::Client,
     url: &str,
     form: &[(&str, &str)],
-) -> AuthResult<Value> {
-    let response = client
-        .post(url)
-        .form(
-            &form
-                .iter()
-                .map(|(key, value)| (*key, *value))
-                .collect::<Vec<_>>(),
-        )
-        .send()
-        .await?;
+) -> AuthResult<T> {
+    let response = client.post(url).form(form).send().await?;
     let status = response.status();
     let text = response.text().await?;
-    serde_json::from_str(&text).map_err(|_| {
-        AuthError::network(format!(
-            "{url} 返回 HTTP {status}，且响应不是 JSON：{}",
-            text.chars().take(200).collect::<String>()
-        ))
+    serde_json::from_str(&text).map_err(|error| {
+        AuthError::network(format!("{url} 返回 HTTP {status}，响应解析失败：{error}"))
     })
-}
-
-/// POST 一个表单并解析为令牌响应。
-pub async fn post_form_tokens(
-    client: &reqwest::Client,
-    url: &str,
-    form: &[(&str, &str)],
-) -> AuthResult<AuthorizeResult> {
-    let value = post_form(client, url, form).await?;
-    serde_json::from_value(value).map_err(|error| AuthError::network(error.to_string()))
 }
 
 #[cfg(test)]

@@ -75,10 +75,8 @@ const profile = {
   profileId: 'p1',
   userName: 'Player',
   uuid: 'a01e3843e5213998958af459800e4d11',
-  tokenType: 'Bearer',
   profileType: 'microsoft',
   description: '',
-  skinHeadId: '',
 }
 
 try {
@@ -108,7 +106,6 @@ try {
       userCode: 'CODE',
       verificationUri: 'https://microsoft.com/devicelogin',
       verificationUriComplete: 'https://microsoft.com/devicelogin?code=CODE',
-      interval: 5,
     },
   ]
   await drain(1)
@@ -116,7 +113,7 @@ try {
   assert.equal(account.loginState.userCode, 'CODE')
   assert.equal(account.loggingIn, true)
 
-  states = [{ status: 'succeeded', profile }]
+  states = [{ status: 'succeeded' }]
   await drain(3)
   await settle()
   assert.equal(account.loginState.status, 'succeeded')

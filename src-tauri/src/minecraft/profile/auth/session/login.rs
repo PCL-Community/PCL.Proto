@@ -4,6 +4,7 @@ use super::{LoginRequest, Ui, cancelled};
 use crate::minecraft::profile::auth::{
     AuthError, AuthResult, AuthenticationResult, authlib, connect, microsoft,
 };
+use crate::minecraft::profile::service::blocking;
 use crate::minecraft::profile::{McProfile, ProfileType, service};
 
 /// 完整的登录流程，对照 CE 的 `ProfileService.AuthenticateAsync`。
@@ -71,8 +72,14 @@ pub(super) async fn login(request: LoginRequest, ui: Ui) -> AuthResult<McProfile
                 // CE：只有刷新令牌失效（invalid_grant）才继续走完整登录，
                 // 其它错误在没有界面时直接失败，避免启动流程静默降级。
                 let has_credentials = profile_type == ProfileType::Authlib
-                    && !profile.login_name.clone().unwrap_or_default().is_empty()
-                    && !profile.password.clone().unwrap_or_default().is_empty();
+                    && profile
+                        .login_name
+                        .as_deref()
+                        .is_some_and(|name| !name.is_empty())
+                    && profile
+                        .password
+                        .as_deref()
+                        .is_some_and(|password| !password.is_empty());
                 if !interactive && !error.is_invalid_grant() && !has_credentials {
                     return Err(error);
                 }
@@ -96,21 +103,18 @@ pub(super) async fn login(request: LoginRequest, ui: Ui) -> AuthResult<McProfile
     if ui.cancelled() {
         return Err(cancelled());
     }
-    let matched = match &existing {
-        Some(profile) => Some(profile.clone()),
-        None => {
-            let lookup = result.clone();
-            blocking(move || Ok(service::find_matching(&lookup))).await?
-        }
-    };
-    blocking(move || service::apply(&result, matched.as_ref(), true)).await
+    blocking(move || {
+        let matched = existing.or_else(|| service::find_matching(&result));
+        service::apply(&result, matched.as_ref(), true)
+    })
+    .await
 }
 
 async fn select_and_return(profile: &McProfile) -> AuthResult<McProfile> {
     let id = profile.profile_id.clone();
     let profile = profile.clone();
     blocking(move || {
-        service::select_profile(&id)?;
+        service::select(Some(&id))?;
         Ok(profile)
     })
     .await
@@ -147,9 +151,8 @@ pub async fn refresh_microsoft(profile: &McProfile) -> AuthResult<McProfile> {
 async fn microsoft_login(ui: &Ui) -> AuthResult<AuthenticationResult> {
     let provider = microsoft::MicrosoftProvider::new()?;
     let data = provider.device_code().await?;
-    let polled = data.clone();
     let oauth = ui
-        .device_code(data, || provider.poll_device_code(&polled))
+        .device_code(&data, || provider.poll_device_code(&data))
         .await?;
     provider.complete(&oauth).await
 }
@@ -207,9 +210,8 @@ async fn connect_login(
     )
     .await?;
     let data = client.device_code().await?;
-    let polled = data.clone();
     let oauth = ui
-        .device_code(data, || client.poll_device_code(&polled))
+        .device_code(&data, || client.poll_device_code(&data))
         .await?;
     match client
         .complete(&oauth, existing, false, request.force_reselect_profile)
@@ -239,16 +241,7 @@ async fn refresh(
         }
         ProfileType::Authlib => {
             let provider = authlib_provider(profile)?;
-            provider
-                .refresh(
-                    &profile.access_token,
-                    &profile.client_token,
-                    &profile.uuid,
-                    &profile.user_name,
-                    profile.login_name.as_deref(),
-                    profile.password.as_deref(),
-                )
-                .await
+            provider.refresh(profile).await
         }
         ProfileType::YggdrasilConnect => {
             let discovery = profile.discovery_address.clone().ok_or_else(|| {
@@ -301,13 +294,4 @@ async fn authlib_provider_for_server(server: &str) -> AuthResult<authlib::Authli
     let client = crate::minecraft::profile::auth::http_client()?;
     let api_root = authlib::resolve_api_location(&client, server).await;
     authlib::AuthlibProvider::new(&api_root)
-}
-
-/// 档案读写会阻塞式加锁，必须离开异步上下文。
-async fn blocking<T: Send + 'static>(
-    run: impl FnOnce() -> AuthResult<T> + Send + 'static,
-) -> AuthResult<T> {
-    tauri::async_runtime::spawn_blocking(run)
-        .await
-        .map_err(|error| AuthError::new("profile_store", error.to_string()))?
 }
