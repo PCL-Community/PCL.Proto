@@ -18,7 +18,7 @@
     "format": "bun fmt src/",
     "deploy": "bun run ui:build && gh-pages -d dist",
     "tauri": "tauri",
-    "check:ui": "bun test --max-concurrency=1 tests/ui/*.test.mjs"
+    "check:ui": "bun test --isolate --max-concurrency=1 tests/ui/*.test.mjs"
   },
   "dependencies": {
     "@lucide/vue": "^1.65.0",

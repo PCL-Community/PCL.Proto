@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { showUnavailable } from '@/util/showUnavailable'
 import { pclText } from '@/api/pclLocale'
-import { ref, defineAsyncComponent, watch } from 'vue'
+import { ref, watch, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { invoke, isTauri } from '@tauri-apps/api/core'
 import { basename, dirname, join } from '@tauri-apps/api/path'
@@ -12,13 +12,16 @@ import { useModal } from '@/composables/useModal'
 import sideTip from '@/composables/sideTip'
 import getSkinUrl from '@/api/skinGetter'
 import MinecraftServerCard from '@/components/widget/MinecraftServerCard.vue'
+const savingSkin = ref(false)
+const loadingSkin = ref(false)
+const skin = ref<{ name: string; url: string }>()
 const SkinViewer = defineAsyncComponent(() => import('@/components/widget/SkinViewer.vue'))
-const skin = ref('')
 const router = useRouter()
 import PTextBox from '@/components/widget/PTextBox.vue'
 import PComboBox from '@/components/widget/PComboBox.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PButton from '@/components/widget/PButton.vue'
+import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 const { values } = usePageSettings('PageToolsTest', {
   TextSkinID: '',
   TextDownloadUrl: '',
@@ -42,26 +45,51 @@ async function showLuck() {
     sideTip.show(pclText('Proto.Tools.LuckFailed', [String(err)]), 'warn')
   }
 }
-async function saveSkin() {
+async function loadSkin() {
+  if (loadingSkin.value || savingSkin.value) return
   const name = String(values.TextSkinID || '').trim()
   if (!/^[A-Za-z0-9_]{3,16}$/.test(name)) {
     sideTip.show(pclText('Proto.Tools.InvalidPlayer'), 'warn')
     return
   }
+  if (!isTauri()) return sideTip.show(pclText('Proto.Desktop.Download'), 'warn')
+  loadingSkin.value = true
   try {
-    await getSkinUrl(
-      name,
-      (url) => {
-        skin.value = url
-        const link = document.createElement('a')
-        link.href = url
-        link.download = `${name}.png`
-        link.click()
-      },
-      'username',
-    )
+    let skinUrl: string | undefined
+    await getSkinUrl(name, (url) => (skinUrl = url), 'username')
+    if (!skinUrl) throw new Error('Skin is unavailable')
+    skin.value = { name, url: skinUrl }
   } catch (err) {
     sideTip.show(pclText('Proto.Tools.SkinFailed', [String(err)]), 'warn')
+  } finally {
+    loadingSkin.value = false
+  }
+}
+
+async function saveSkin() {
+  const current = skin.value
+  if (!current || savingSkin.value || loadingSkin.value) return
+  savingSkin.value = true
+  try {
+    const response = await fetch(current.url)
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const bytes = new Uint8Array(await response.arrayBuffer())
+    const chunks: string[] = []
+    for (let index = 0; index < bytes.length; index += 0x8000) {
+      chunks.push(String.fromCharCode(...bytes.subarray(index, index + 0x8000)))
+    }
+    const destination = await save({
+      title: text('Tools.Test.Skin.Save'),
+      defaultPath: `${current.name}.png`,
+      filters: [{ name: text('Launch.Skin.SaveDialog.Filter'), extensions: ['png'] }],
+    })
+    if (!destination) return
+    await invoke('save_profile_skin', { destination, image: btoa(chunks.join('')) })
+    sideTip.show(text('Tools.Test.Skin.Saved', [current.name]), 'success')
+  } catch (err) {
+    sideTip.show(text('Launch.Skin.Save.Error'), 'warn')
+  } finally {
+    savingSkin.value = false
   }
 }
 
@@ -279,33 +307,49 @@ async function openDownloadFolder() {
       </div>
     </PCard>
     <PCard :title="text('Tools.Test.Skin.Title')">
-      <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
-        <div
-          style="
-            margin: 14px 0px 2px 0px;
-            display: grid;
-            grid-template-columns: auto minmax(0, 1fr);
-            grid-template-rows: auto auto;
-          "
-        >
-          <div class="pcl-form-row">
-            <label>{{ text('Tools.Test.Skin.PlayerName') }}</label
-            ><PTextBox
-              :model-value="String(values.TextSkinID || '')"
-              @update:model-value="(value) => (values.TextSkinID = value || '')"
-            />
+      <div class="skin-tool">
+        <div class="skin-layout" :class="{ 'has-skin': skin }">
+          <div class="skin-controls">
+            <label for="skin-player-name">{{ text('Tools.Test.Skin.PlayerName') }}</label>
+            <div class="skin-query">
+              <PTextBox
+                input-id="skin-player-name"
+                :model-value="String(values.TextSkinID || '')"
+                :disabled="loadingSkin || savingSkin"
+                @update:model-value="(value) => (values.TextSkinID = value || '')"
+                @keydown.enter="loadSkin"
+              />
+              <PButton compact :disabled="loadingSkin || savingSkin" :aria-busy="loadingSkin" @click="loadSkin">
+                {{ text('Tools.ServerQuery.Action.Query') }}
+              </PButton>
+            </div>
+            <div v-if="loadingSkin" class="skin-status" role="status">{{ text('Tools.Test.Skin.Fetching') }}</div>
+            <Transition name="skin-reveal">
+              <div v-if="skin" class="skin-result-actions">
+                <span class="skin-result-name">{{ text('Proto.Label.PlayerSkin') }}: <strong>{{ skin.name }}</strong></span>
+                <PButton compact :disabled="loadingSkin || savingSkin" @click="saveSkin">
+                  {{ text('Tools.Test.Skin.Save') }}
+                </PButton>
+                <button
+                  class="pcl-icon-button"
+                  type="button"
+                  :title="text('Proto.Tools.CloseSkinPreview')"
+                  :aria-label="text('Proto.Tools.CloseSkinPreview')"
+                  :disabled="loadingSkin || savingSkin"
+                  @click="skin = undefined"
+                >
+                  <PSvgIcon name="lucide/x" :size="18" />
+                </button>
+              </div>
+            </Transition>
           </div>
-          <PButton
-            style="
-              min-width: 140px;
-              justify-self: start;
-              grid-row: 2;
-              grid-column: 1 / -1;
-              margin-top: 14px;
-            "
-            @click="saveSkin"
-            >{{ text('Tools.Test.Skin.Save') }}</PButton
-          ><SkinViewer v-if="skin" :skin-url="skin" />
+          <div class="skin-preview">
+            <Transition name="skin-reveal">
+              <div v-if="skin" class="skin-preview-content">
+                <SkinViewer :skin-url="skin.url" :aria-label="text('Proto.Label.PlayerSkin')" />
+              </div>
+            </Transition>
+          </div>
         </div>
       </div>
     </PCard>
@@ -473,3 +517,29 @@ async function openDownloadFolder() {
     </PCard>
   </section>
 </template>
+
+<style scoped>
+.skin-tool { margin: 2px 25px 20px; container-type: inline-size; }
+.skin-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0fr); gap: 0; align-items: center; transition: grid-template-columns 350ms ease, gap 350ms ease; }
+.skin-layout.has-skin { grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr); gap: 24px; }
+.skin-controls { min-width: 0; }
+.skin-query { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.skin-query :deep(.input-wrapper) { flex: 1; min-width: 0; }
+.skin-status { margin-top: 8px; color: var(--color-text-grey); }
+.skin-result-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.skin-result-name { flex: 1 1 120px; min-width: 0; color: var(--color-text-grey); overflow-wrap: anywhere; }
+.skin-result-name strong { color: var(--color-text); }
+.skin-preview { min-width: 0; overflow: hidden; display: flex; justify-content: center; }
+.skin-preview-content { width: min(100%, 200px); }
+.skin-preview canvas { display: block; width: 100%; height: auto; aspect-ratio: 2 / 3; }
+.skin-reveal-enter-active, .skin-reveal-leave-active { transition: opacity 250ms ease; }
+.skin-reveal-enter-active { transition-delay: 100ms; }
+.skin-reveal-enter-from, .skin-reveal-leave-to { opacity: 0; }
+@container (max-width: 360px) {
+  .skin-layout.has-skin { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .skin-preview-content { max-width: 160px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skin-layout, .skin-reveal-enter-active, .skin-reveal-leave-active { transition: none; }
+}
+</style>

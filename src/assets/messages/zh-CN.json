@@ -110,6 +110,7 @@
   "Proto.Tools.LuckFailed": "未能获取今日人品：{0}",
   "Proto.Tools.InvalidPlayer": "请输入有效的正版玩家名。",
   "Proto.Tools.SkinFailed": "未能获取玩家皮肤：{0}",
+  "Proto.Tools.CloseSkinPreview": "关闭皮肤预览",
   "Proto.Task.Download": "{0}下载",
   "Proto.Task.Manifest": "下载版本信息",
   "Proto.Task.Client": "下载游戏主文件",

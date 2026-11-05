@@ -110,6 +110,7 @@
   "Proto.Tools.LuckFailed": "Cannot get today's luck: {0}",
   "Proto.Tools.InvalidPlayer": "Enter a valid Minecraft username.",
   "Proto.Tools.SkinFailed": "Cannot get the player skin: {0}",
+  "Proto.Tools.CloseSkinPreview": "Close skin preview",
   "Proto.Task.Download": "Download {0}",
   "Proto.Task.Manifest": "Download version information",
   "Proto.Task.Client": "Download game files",

@@ -12,7 +12,7 @@ import { initializeLogSettings } from './api/logSettings'
 import { initializeWindowSettings } from './api/windowSettings'
 
 import App from './App.vue'
-import { initializePclLocale } from './api/pclLocale'
+import { initializePclLocale, pclText } from './api/pclLocale'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
@@ -22,6 +22,8 @@ import { attachConsole } from '@tauri-apps/plugin-log'
 import { useSelectedInstance } from './stores/gameLaunch'
 import { installExternalLinkHandler } from './util/externalLink'
 import './api/appearance'
+import { checkLauncherUpdate, launcherUpdate } from './api/launcherUpdate'
+import { useModal } from './composables/useModal'
 
 const pinia = createPinia()
 
@@ -62,6 +64,29 @@ void initializePclLocale().then(async () => {
     }
   }
   app.mount('#app')
+  if (isTauri()) {
+    void checkLauncherUpdate().then(() => {
+      const update = launcherUpdate.value
+      if (!update || update.version.replace(/^v/, '') === __APP_VERSION__) return
+
+      const modal = useModal()
+      void modal.open({
+        title: pclText('Update.Title'),
+        content: pclText('Update.Available', [__APP_VERSION__, update.version]),
+        buttons: [
+          {
+            content: pclText('Setup.Update.Changelog.View'),
+            type: 'tint',
+            operation: () => {
+              modal.close(true)
+              void router.push('/setup/update')
+            },
+          },
+          { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
+        ],
+      })
+    })
+  }
 })
 
 // some async actions

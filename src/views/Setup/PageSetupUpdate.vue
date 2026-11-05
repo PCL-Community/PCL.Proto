@@ -1,63 +1,32 @@
 <script setup lang="ts">
 import { pclText } from '@/api/pclLocale'
-import { computed, onUnmounted, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PHint from '@/components/widget/PHint.vue'
 import appIcon from '/PCL.Proto.svg?url'
 import { openExternal } from '@/util/externalLink'
+import {
+  checkLauncherUpdate,
+  launcherUpdate,
+  launcherUpdateChecking,
+  launcherUpdateError,
+} from '@/api/launcherUpdate'
 const appVersion = __APP_VERSION__
 
 const repository = 'https://github.com/PCL-Community/PCL.Proto'
-const latest = ref<{ version: string; body: string; url: string }>()
-const loading = ref(false)
-const error = ref<string | null>(null)
+const releaseUrl = computed(() => launcherUpdate.value?.url || `${repository}/releases`)
 const status = computed(() =>
-  loading.value
+  launcherUpdateChecking.value
     ? pclText('Proto.Update.Checking')
-    : latest.value
-      ? latest.value.version.replace(/^v/, '') === appVersion
+    : launcherUpdate.value
+      ? launcherUpdate.value.version.replace(/^v/, '') === appVersion
         ? pclText('Proto.Update.Current')
-        : pclText('Proto.Update.Latest', [latest.value.version])
+        : pclText('Proto.Update.Latest', [launcherUpdate.value.version])
       : pclText('Proto.Update.NotChecked'),
 )
-let controller: AbortController | undefined
-async function check() {
-  controller?.abort()
-  const request = new AbortController()
-  controller = request
-  loading.value = true
-  error.value = null
-  try {
-    const response = await fetch(
-      'https://api.github.com/repos/PCL-Community/PCL.Proto/releases/latest',
-      { signal: request.signal },
-    )
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    const data: unknown = await response.json()
-    if (
-      !data ||
-      typeof data !== 'object' ||
-      !('tag_name' in data) ||
-      typeof data.tag_name !== 'string' ||
-      !('html_url' in data) ||
-      typeof data.html_url !== 'string' ||
-      !data.html_url.startsWith(`${repository}/releases/`)
-    )
-      throw new Error(pclText('Proto.Update.InvalidResponse'))
-    if (!request.signal.aborted)
-      latest.value = {
-        version: data.tag_name,
-        url: data.html_url,
-        body: 'body' in data && typeof data.body === 'string' ? data.body : '',
-      }
-  } catch (err) {
-    if (!request.signal.aborted) error.value = pclText('Proto.Update.Failed', [String(err)])
-  } finally {
-    if (!request.signal.aborted) loading.value = false
-  }
-}
-onUnmounted(() => controller?.abort())
+onMounted(() => void checkLauncherUpdate())
+const openRelease = () => openExternal(releaseUrl.value)
 
 const text = pclText
 </script>
@@ -70,28 +39,30 @@ const text = pclText
           <h2>PCL.Proto {{ appVersion }}</h2>
           <p>{{ status }}</p>
         </div>
-        <PButton type="tint" :disabled="loading" @click="check">{{
+        <PButton type="tint" :disabled="launcherUpdateChecking" @click="checkLauncherUpdate">{{
           text('Setup.Update.CheckAgain')
         }}</PButton
-        ><PButton @click="() => openExternal(latest?.url || `${repository}/releases`)">{{
+        ><PButton @click="openRelease">{{
           text('Setup.Update.Changelog.View')
         }}</PButton>
       </div></PCard
     >
-    <PHint v-if="error" severity="error">{{ error }}</PHint>
+    <PHint v-if="launcherUpdateError" severity="error">{{
+      pclText('Proto.Update.Failed', [launcherUpdateError])
+    }}</PHint>
     <PCard :title="text('Setup.Update.Changelog.View')"
       ><div class="changelog">
         <p>
           {{
-            latest
-              ? latest.body || pclText('Proto.Update.NoNotes')
+            launcherUpdate
+              ? launcherUpdate.body || pclText('Proto.Update.NoNotes')
               : pclText('Proto.Update.NotesPlaceholder')
           }}
         </p>
-        <PButton inline @click="() => openExternal(latest?.url || `${repository}/releases`)">{{
+        <PButton inline @click="openRelease">{{
           text('Setup.Update.Changelog.MoreInfo')
         }}</PButton
-        ><PButton v-if="latest" type="tint" @click="() => openExternal(latest?.url)">{{
+        ><PButton v-if="launcherUpdate" type="tint" @click="openRelease">{{
           pclText('Proto.Update.Download')
         }}</PButton>
       </div></PCard

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { SkinViewer, WalkingAnimation } from 'skinview3d'
-import { onMounted, useTemplateRef } from 'vue'
+import { onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
 const container = useTemplateRef<HTMLCanvasElement>('skin_container')
 const props = defineProps<{ skinUrl: string }>()
 
+let skinViewer: SkinViewer | undefined
 onMounted(() => {
-  const skinViewer = new SkinViewer({
+  skinViewer = new SkinViewer({
     canvas: container.value!,
     skin: props.skinUrl,
     height: 300,
@@ -13,6 +14,8 @@ onMounted(() => {
     animation: new WalkingAnimation(),
   })
 })
+watch(() => props.skinUrl, (url) => { void skinViewer?.loadSkin(url) })
+onUnmounted(() => skinViewer?.dispose())
 </script>
 <template>
   <canvas ref="skin_container"></canvas>
