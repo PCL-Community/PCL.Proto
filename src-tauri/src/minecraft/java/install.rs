@@ -17,7 +17,6 @@ use std::{
         atomic::{AtomicUsize, Ordering},
     },
 };
-use tauri::ipc::Channel;
 
 const INDEX: &str = "https://piston-meta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json";
 #[derive(Deserialize)]
@@ -85,7 +84,7 @@ pub async fn install(
     requirements: JavaRequirements,
     runtime_dir: PathBuf,
     bases: ApiBases,
-    progress: Channel<JavaInstallProgress>,
+    progress: impl Fn(JavaInstallProgress) + Clone + Send + Sync + 'static,
 ) -> anyhow::Result<JavaEntry> {
     let major = requirements
         .download_major()
@@ -157,7 +156,7 @@ pub async fn install(
     let total = downloads.len();
     ensure!(total > 0, "Empty Java runtime manifest");
     let completed = Arc::new(AtomicUsize::new(0));
-    let _ = progress.send(JavaInstallProgress {
+    progress(JavaInstallProgress {
         completed: 0,
         total,
     });
@@ -175,7 +174,7 @@ pub async fn install(
             #[cfg(not(unix))]
             let _ = executable;
             let count = completed.fetch_add(1, Ordering::Relaxed) + 1;
-            let _ = progress.send(JavaInstallProgress {
+            progress(JavaInstallProgress {
                 completed: count,
                 total,
             });

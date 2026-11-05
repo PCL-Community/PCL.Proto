@@ -42,7 +42,6 @@ sha1 = "0.11.0"
 md5 = "0.7.0"
 sha2 = "0.10"
 zip = { version = "9.1.3", default-features = false, features = ["deflate"] }
-quick-xml = { version = "0.42.0", features = ["serialize"] }
 anyhow = "1.0.104"
 terracotta = { path = "../src-terracotta", version = "2.5.0-pcl.proto" }
 dashmap = "6.2.1"
@@ -67,3 +66,6 @@ tauri = { version = "2.12.5", features = ["test"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Globalization"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

@@ -1,4 +1,5 @@
 //! CE's vanilla installation stages, expressed as an async Rust service.
+pub(crate) mod forgelike;
 pub mod modpack;
 use crate::io::files::{check_sha1, safe_join, validate_file_name};
 use crate::{
@@ -125,6 +126,7 @@ impl InstallPlan {
         details: &McVersion,
         repo: &Path,
         context: &McRuleContext,
+        stage: i32,
     ) -> anyhow::Result<()> {
         let mut native_keys = std::collections::HashSet::new();
         for library in &details.libraries {
@@ -136,7 +138,19 @@ impl InstallPlan {
                 .as_ref()
                 .and_then(|downloads| downloads.artifact.as_ref())
             {
-                self.add(2, info, library_path(repo, info)?)?;
+                let path = library_path(repo, info)?;
+                if info.url.is_empty() {
+                    ensure!(
+                        valid_sha1(&info.sha1)
+                            && fs::metadata(&path).is_ok_and(|file| file.is_file()
+                                && (info.size == 0 || file.len() == info.size))
+                            && check_sha1(&path, &info.sha1)?,
+                        "Missing or invalid local library: {}",
+                        path.display()
+                    );
+                } else {
+                    self.add(stage, info, path)?;
+                }
             }
             if library.natives.contains_key(&context.os)
                 && !native_keys.insert(library.classpath_key()?)
@@ -148,7 +162,7 @@ impl InstallPlan {
             }
             if let Some(info) = library.native_download(context)? {
                 let path = library_path(repo, info)?;
-                self.add(2, info, path.clone())?;
+                self.add(stage, info, path.clone())?;
                 self.natives.push(NativeArchive {
                     path,
                     lwjgl_core: matches!(
@@ -173,7 +187,7 @@ impl InstallPlan {
         if let Some(logging) = &details.logging {
             validate_file_name(&logging.client.file.id)?;
             self.add(
-                2,
+                stage,
                 &logging.client.file.download,
                 repo.join("assets/log_configs")
                     .join(&logging.client.file.id),
@@ -265,6 +279,7 @@ async fn add_maven_libraries(
     instance: &Path,
     context: &McRuleContext,
     downloader: &Downloader,
+    stage: i32,
 ) -> anyhow::Result<()> {
     use crate::io::download::resources::DOWNLOAD_RESOURCES;
     let mut seen = std::collections::HashSet::new();
@@ -379,7 +394,7 @@ async fn add_maven_libraries(
             "Invalid Maven library size"
         );
         plan.add(
-            2,
+            stage,
             &DownloadFile {
                 sha1,
                 size,
@@ -578,8 +593,8 @@ pub async fn prepare_launch_libraries(
     verify: bool,
 ) -> anyhow::Result<LaunchNatives> {
     let mut plan = InstallPlan::new();
-    plan.libraries(details, repo, context)?;
-    add_maven_libraries(&mut plan, details, repo, instance, context, downloader).await?;
+    plan.libraries(details, repo, context, 2)?;
+    add_maven_libraries(&mut plan, details, repo, instance, context, downloader, 2).await?;
     futures_util::stream::iter(std::mem::take(&mut plan.files))
         .map(|file| {
             let downloader = downloader.clone();
@@ -750,70 +765,47 @@ fn materialize_assets(
     Ok(())
 }
 
-fn merge_fabric_profile(
+fn merge_loader_profile(
     metadata: &mut serde_json::Value,
     profile: &serde_json::Value,
 ) -> anyhow::Result<()> {
-    let loader_libraries = profile["libraries"]
+    profile["libraries"]
         .as_array()
-        .context("Invalid Fabric libraries")?;
-    let vanilla_libraries = metadata["libraries"]
+        .context("Invalid loader libraries")?;
+    metadata["libraries"]
         .as_array()
         .context("Invalid Minecraft libraries")?;
-    let mut libraries = loader_libraries.clone();
-    libraries.extend(vanilla_libraries.iter().cloned());
-    let mut arguments = metadata
-        .get("arguments")
-        .cloned()
-        .unwrap_or_else(|| serde_json::json!({}));
-    ensure!(arguments.is_object(), "Invalid Minecraft arguments");
-    for key in ["jvm", "game"] {
-        let loader = profile.pointer(&format!("/arguments/{key}"));
-        let vanilla = arguments.get(key);
-        let mut merged = match loader {
-            Some(value) => value
-                .as_array()
-                .context("Invalid Fabric arguments")?
-                .clone(),
-            None => Vec::new(),
-        };
-        if let Some(value) = vanilla {
-            merged.extend(
-                value
-                    .as_array()
-                    .context("Invalid Minecraft arguments")?
-                    .iter()
-                    .cloned(),
-            );
-        } else if key == "game"
-            && !merged.is_empty()
-            && let Some(legacy) = metadata.get("minecraftArguments")
-        {
-            let legacy = legacy.as_str().context("Invalid legacy game arguments")?;
-            merged.extend(
-                shlex::split(legacy)
-                    .context("Invalid legacy game arguments")?
-                    .into_iter()
-                    .map(serde_json::Value::String),
-            );
-        }
-        arguments[key] = merged.into();
-    }
-    metadata["libraries"] = libraries.into();
-    metadata["arguments"] = arguments;
-    metadata["mainClass"] = profile["mainClass"].clone();
+    ensure!(
+        profile["mainClass"]
+            .as_str()
+            .is_some_and(|name| !name.is_empty()),
+        "Invalid loader main class"
+    );
+    *metadata = crate::minecraft::instance::merge_metadata([profile, &*metadata])?;
+    metadata.as_object_mut().unwrap().remove("inheritsFrom");
     Ok(())
 }
 
-#[derive(serde::Deserialize)]
-pub struct FabricInstall {
-    family: crate::io::net::http::api_client::FabricFamily,
+#[derive(Clone, Copy, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+enum LoaderFamily {
+    Fabric,
+    Legacyfabric,
+    Forge,
+    Neoforge,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct LoaderInstall {
+    family: LoaderFamily,
     version: String,
     #[serde(default)]
     api: Option<FabricApiInstall>,
+    #[serde(default)]
+    install_java: bool,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct FabricApiInstall {
     #[serde(flatten)]
     file: DownloadFile,
@@ -836,12 +828,12 @@ async fn install_version(
     repo: &Path,
     version_id: &str,
     name: &str,
-    fabric: Option<&FabricInstall>,
+    loader: Option<&LoaderInstall>,
     task_id: i32,
     on_event: &Channel<TaskItemReport>,
 ) -> anyhow::Result<()> {
     install_version_with_modpack(
-        client, repo, version_id, name, fabric, None, task_id, on_event,
+        client, repo, version_id, name, loader, None, task_id, on_event,
     )
     .await
 }
@@ -853,7 +845,7 @@ async fn install_version_with_modpack(
     repo: &Path,
     version_id: &str,
     name: &str,
-    fabric: Option<&FabricInstall>,
+    loader: Option<&LoaderInstall>,
     pack: Option<&modpack::Modpack>,
     task_id: i32,
     on_event: &Channel<TaskItemReport>,
@@ -878,7 +870,10 @@ async fn install_version_with_modpack(
         speed: None,
     });
     let mut metadata = client.get_version_metadata(version_id).await?;
-    if let Some(loader) = fabric {
+    let bases = client.api_bases_async().await;
+    let downloader = Downloader::with_bases(bases);
+    let mut forgelike = None;
+    if let Some(loader) = loader {
         let _ = on_event.send(TaskItemReport {
             task_id,
             item_id: 5,
@@ -887,33 +882,63 @@ async fn install_version_with_modpack(
             status: TaskStatus::Running,
             speed: None,
         });
-        let profile = client
-            .get_fabric_profile(version_id, &loader.version, loader.family)
-            .await?;
-        let _ = on_event.send(TaskItemReport {
-            task_id,
-            item_id: 5,
-            files_remaining: 0,
-            progress: 1.0,
-            status: TaskStatus::Completed,
-            speed: None,
-        });
-        let _ = on_event.send(TaskItemReport {
-            task_id,
-            item_id: 6,
-            files_remaining: 1,
-            progress: 0.0,
-            status: TaskStatus::Running,
-            speed: None,
-        });
-        merge_fabric_profile(&mut metadata, &profile)?;
+        match loader.family {
+            LoaderFamily::Fabric | LoaderFamily::Legacyfabric => {
+                let family = match loader.family {
+                    LoaderFamily::Fabric => crate::io::net::http::api_client::FabricFamily::Fabric,
+                    _ => crate::io::net::http::api_client::FabricFamily::Legacyfabric,
+                };
+                let profile = client
+                    .get_fabric_profile(version_id, &loader.version, family)
+                    .await?;
+                let _ = on_event.send(TaskItemReport {
+                    task_id,
+                    item_id: 5,
+                    files_remaining: 0,
+                    progress: 1.0,
+                    status: TaskStatus::Completed,
+                    speed: None,
+                });
+                let _ = on_event.send(TaskItemReport {
+                    task_id,
+                    item_id: 6,
+                    files_remaining: 1,
+                    progress: 0.0,
+                    status: TaskStatus::Running,
+                    speed: None,
+                });
+                merge_loader_profile(&mut metadata, &profile)?;
+            }
+            LoaderFamily::Forge | LoaderFamily::Neoforge => {
+                ensure!(loader.api.is_none(), "Fabric API requires Fabric");
+                forgelike = Some(
+                    forgelike::prepare(client, &downloader, version_id, loader, task_id, on_event)
+                        .await?,
+                );
+            }
+        }
     }
+    let processor_java = if forgelike
+        .as_ref()
+        .is_some_and(|installer| installer.profile.kind == forgelike::InstallerKind::Processors)
+    {
+        Some(
+            forgelike::ensure_java(
+                &metadata,
+                version_id,
+                loader.is_some_and(|loader| loader.install_java),
+                task_id,
+                on_event,
+            )
+            .await?,
+        )
+    } else {
+        None
+    };
     let details: McVersion =
         serde_json::from_value(metadata.clone()).context("Invalid vanilla version metadata")?;
     validate_file_name(&details.asset_index.id)?;
     details.asset_index.download.validate()?;
-    let bases = client.api_bases_async().await;
-    let downloader = Downloader::with_bases(bases.clone());
     let index_path = repo
         .join("assets/indexes")
         .join(format!("{}.json", details.asset_index.id));
@@ -928,7 +953,7 @@ async fn install_version_with_modpack(
         &details.downloads.client,
         directory.path.join(format!("{name}.jar")),
     )?;
-    plan.libraries(&details, &repo, &McRuleContext::current())?;
+    plan.libraries(&details, &repo, &McRuleContext::current(), 2)?;
     add_maven_libraries(
         &mut plan,
         &details,
@@ -936,12 +961,13 @@ async fn install_version_with_modpack(
         &directory.path,
         &McRuleContext::current(),
         &downloader,
+        2,
     )
     .await?;
-    if let Some(api) = fabric.and_then(|fabric| fabric.api.as_ref()) {
+    if let Some(api) = loader.and_then(|loader| loader.api.as_ref()) {
         add_fabric_api(&mut plan, &directory.path, api)?;
     }
-    if fabric.is_some() {
+    if loader.is_some() && forgelike.is_none() {
         let _ = on_event.send(TaskItemReport {
             task_id,
             item_id: 6,
@@ -961,6 +987,46 @@ async fn install_version_with_modpack(
         speed: None,
     });
     download_plan(&mut plan, &downloader, task_id, on_event).await?;
+    if let Some(prepared) = forgelike {
+        forgelike::prepare_libraries(
+            &prepared,
+            &details,
+            &metadata,
+            &downloader,
+            task_id,
+            on_event,
+        )
+        .await?;
+        let profile = if prepared.profile.kind == forgelike::InstallerKind::Processors {
+            forgelike::run_processors(
+                &prepared,
+                processor_java.as_ref().context("Missing installer Java")?,
+                &metadata,
+                version_id,
+                &directory.path.join(format!("{name}.jar")),
+                task_id,
+                on_event,
+            )
+            .await?
+        } else {
+            let _ = on_event.send(TaskItemReport {
+                task_id,
+                item_id: 9,
+                files_remaining: 0,
+                progress: 1.0,
+                status: TaskStatus::Completed,
+                speed: None,
+            });
+            prepared.profile.version.clone()
+        };
+        let source = prepared.directory.path().join("libraries");
+        let target = repo.clone();
+        crate::io::download::tasks::blocking(task_id, move || {
+            forgelike::publish_libraries(&source, &target)
+        })
+        .await??;
+        merge_loader_profile(&mut metadata, &profile)?;
+    }
     let _ = on_event.send(TaskItemReport {
         task_id,
         item_id: 7,
@@ -985,7 +1051,7 @@ async fn install_version_with_modpack(
     metadata["clientVersion"] = version_id.into();
     let json = serde_json::to_vec_pretty(&metadata)?;
     let filename = format!("{name}.json");
-    let isolated = pack.is_some() || fabric.and_then(|fabric| fabric.api.as_ref()).is_some();
+    let isolated = pack.is_some() || loader.and_then(|loader| loader.api.as_ref()).is_some();
     let path = directory.path.clone();
     crate::io::download::tasks::commit(task_id, move || {
         let mut directory = directory;
@@ -1025,7 +1091,7 @@ pub async fn download_minecraft_version(
     version_id: String,
     task_id: i32,
     instance_name: String,
-    fabric: Option<FabricInstall>,
+    loader: Option<LoaderInstall>,
 ) -> Result<InstallResult, String> {
     let repo = state.lock().await.active_repo_path.clone();
     crate::io::download::tasks::run(task_id, async {
@@ -1034,7 +1100,7 @@ pub async fn download_minecraft_version(
             &repo,
             &version_id,
             &instance_name,
-            fabric.as_ref(),
+            loader.as_ref(),
             task_id,
             &on_event,
         )

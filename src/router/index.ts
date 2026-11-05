@@ -61,7 +61,7 @@ const router = createRouter({
         {
           path: 'neoforge',
           component: () => import('@/views/Download/PageDownloadVersionList.vue'),
-          props: { loader: 'NeoForge', website: 'https://neoforged.net' },
+          props: { loader: 'NeoForge', website: 'https://neoforged.net', supported: true },
         },
         {
           path: 'cleanroom',

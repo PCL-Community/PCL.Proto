@@ -5242,10 +5242,10 @@ dependencies = [
  "goblin",
  "hickory-resolver 0.26.3",
  "jsonwebtoken",
+ "libc",
  "log",
  "md5",
  "open",
- "quick-xml",
  "regex",
  "reqwest 0.13.5",
  "serde",
@@ -5876,7 +5876,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41b1177fdf999d2321d3fb46ff47159d9c1fb9ad66a4879f8c50a0b504615e9b"
 dependencies = [
  "memchr",
- "serde",
 ]
 
 [[package]]

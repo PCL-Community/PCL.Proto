@@ -1,7 +1,4 @@
-use crate::{
-    app::config::{ConfigManager, constants::USER_AGENT},
-    io::net::http::api_client::plugins::McPluginReport,
-};
+use crate::io::net::http::api_client::plugins::McPluginReport;
 use dashmap::DashMap;
 use reqwest::Client;
 use serde::{
@@ -26,7 +23,6 @@ pub enum ApiProvider {
 pub struct ApiBases {
     pub meta_base: &'static str,
     pub resources_base: &'static str,
-    pub forge_base: &'static str,
     pub fabric_base: &'static str,
     pub legacy_fabric_base: &'static str,
     pub modrinth_base: &'static str,
@@ -39,7 +35,6 @@ impl ApiBases {
             ApiProvider::Official => ApiBases {
                 meta_base: "https://piston-meta.mojang.com",
                 resources_base: "https://resources.download.minecraft.net",
-                forge_base: "https://maven.minecraftforge.net/net/minecraftforge/forge",
                 fabric_base: "https://meta.fabricmc.net/v2/versions/loader",
                 legacy_fabric_base: "https://meta.legacyfabric.net/v2/versions/loader",
                 modrinth_base: "https://api.modrinth.com/v2",
@@ -48,7 +43,6 @@ impl ApiBases {
             ApiProvider::BMCLApi => ApiBases {
                 meta_base: "https://bmclapi2.bangbang93.com",
                 resources_base: "https://bmclapi2.bangbang93.com/assets",
-                forge_base: "https://bmclapi2.bangbang93.com/forge",
                 fabric_base: "https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader",
                 legacy_fabric_base: "https://meta.legacyfabric.net/v2/versions/loader",
                 modrinth_base: "https://api.modrinth.com/v2",
@@ -99,6 +93,25 @@ impl ApiBases {
         // Fabric metadata has its own source fallback and is not Mojang metadata.
         if url.starts_with("https://bmclapi2.bangbang93.com/fabric-meta/") {
             return vec![url.into()];
+        }
+        if url.starts_with("https://files.minecraftforge.net/maven/net/minecraftforge/forge/index_")
+            && url.ends_with(".html")
+        {
+            return vec![url.into()];
+        }
+        let forgelike_path = url
+            .strip_prefix("https://maven.minecraftforge.net/")
+            .or_else(|| url.strip_prefix("https://files.minecraftforge.net/maven/"))
+            .or_else(|| url.strip_prefix("https://maven.neoforged.net/releases/"));
+        if let Some(path) = forgelike_path {
+            let mirror = format!("https://bmclapi2.bangbang93.com/maven/{path}");
+            return if matches!(preference, SourcePreference::Official)
+                || (matches!(preference, SourcePreference::Auto) && official_fast)
+            {
+                vec![url.into(), mirror]
+            } else {
+                vec![mirror, url.into()]
+            };
         }
         let canonical = if let Some(path) = url.strip_prefix("https://bmclapi2.bangbang93.com/") {
             if let Some(tail) = path.strip_prefix("assets/") {
@@ -168,9 +181,6 @@ pub enum McApiError {
     #[error("sha1 check failed: {0}")]
     Sha1Mismatch(PathBuf),
 
-    #[error("xml parse error: {0}")]
-    XmlError(#[from] quick_xml::DeError),
-
     #[error("plugin type {0:?} not supported")]
     PluginMismatch(crate::minecraft::mod_loader::ModLoaderType),
 }
@@ -239,61 +249,109 @@ pub mod plugins {
         pub stable: Option<bool>,
         pub release_time: Option<String>,
     }
+}
 
-    pub mod forge_xml {
-        use crate::io::net::http::api_client::plugins::McPluginReport;
-
-        #[derive(serde::Deserialize)]
-        pub struct Metadata {
-            versioning: Versioning,
-        }
-
-        #[derive(serde::Deserialize)]
-        struct Versioning {
-            versions: Versions,
-        }
-
-        #[derive(Debug, serde::Deserialize)]
-        struct Versions {
-            version: Vec<String>,
-        }
-
-        impl Metadata {
-            pub fn find_versions_of_game(&self, mc_version: &str) -> Vec<McPluginReport> {
-                let mut versions = Vec::new();
-                for version in &self.versioning.versions.version {
-                    let version_split = version.split_once('-');
-                    if let Some((mc_version_i, forge_version)) = version_split
-                        && mc_version_i == mc_version
-                    {
-                        versions.push(McPluginReport {
-                            version: forge_version.to_string(),
-                            stable: None,
-                            release_time: None,
-                        });
-                    }
-                }
-                versions
+pub(crate) fn neoforge_game_version(version: &str) -> Option<String> {
+    if version.starts_with("1.20.1-") {
+        return Some("1.20.1".into());
+    }
+    let core = version.split(['-', '+']).next()?;
+    let parts: Vec<_> = core.split('.').collect();
+    if parts.len() < 3 || parts.len() > 4 {
+        return None;
+    }
+    let major: u32 = parts[0].parse().ok()?;
+    if major == 0 {
+        parts.last()?.parse::<u32>().ok()?;
+        return Some(parts[1].to_owned());
+    }
+    let minor: u32 = parts[1].parse().ok()?;
+    let patch: u32 = parts[2].parse().ok()?;
+    if let Some(revision) = parts.get(3) {
+        revision.parse::<u32>().ok()?;
+    }
+    let mut game = if major >= 24 {
+        format!(
+            "{major}.{minor}{}",
+            if patch > 0 {
+                format!(".{patch}")
+            } else {
+                String::new()
             }
-        }
+        )
+    } else {
+        format!(
+            "1.{major}{}",
+            if minor > 0 {
+                format!(".{minor}")
+            } else {
+                String::new()
+            }
+        )
+    };
+    if let Some((_, suffix)) = version.split_once('+') {
+        game.push('-');
+        game.push_str(suffix);
     }
+    Some(game)
+}
 
-    pub mod forge_bmcl {
-        #[derive(serde::Deserialize, serde::Serialize)]
-        pub struct ForgeVersion {
-            mcversion: String,
-            pub modified: String,
-            pub version: String,
-            files: Vec<File>,
+fn parse_neoforge_versions(
+    value: serde_json::Value,
+    game: &str,
+) -> McApiResult<Vec<McPluginReport>> {
+    let versions = value
+        .get("versions")
+        .or_else(|| value.get("files"))
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| McApiError::InvalidMetadata("Invalid NeoForge versions response".into()))?;
+    let mut result = Vec::new();
+    for item in versions {
+        if item
+            .get("type")
+            .and_then(|v| v.as_str())
+            .is_some_and(|kind| kind != "DIRECTORY")
+        {
+            continue;
         }
-
-        #[derive(serde::Deserialize, serde::Serialize)]
-        struct File {
-            format: String,
-            category: String,
-            hash: String,
+        let Some(raw) = item
+            .as_str()
+            .or_else(|| item.get("version").and_then(|v| v.as_str()))
+            .or_else(|| item.get("name").and_then(|v| v.as_str()))
+        else {
+            continue;
+        };
+        if !raw
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'-' | b'+' | b'_'))
+            || raw == "1.20.1-47.1.82"
+            || neoforge_game_version(raw).as_deref() != Some(game)
+        {
+            continue;
         }
+        let version = raw.strip_prefix("1.20.1-").unwrap_or(raw);
+        result.push(McPluginReport {
+            version: version.to_owned(),
+            stable: Some(!raw.contains("beta") && !raw.contains("alpha")),
+            release_time: None,
+        });
     }
+    result.sort_by(|a, b| {
+        let numbers = |version: &str| {
+            version
+                .split(['-', '+'])
+                .next()
+                .unwrap_or_default()
+                .split('.')
+                .map(|part| part.parse::<u32>().unwrap_or(0))
+                .collect::<Vec<_>>()
+        };
+        numbers(&b.version)
+            .cmp(&numbers(&a.version))
+            .then_with(|| b.stable.cmp(&a.stable))
+            .then_with(|| b.version.cmp(&a.version))
+    });
+    Ok(result)
 }
 
 fn parse_fabric_installers(
@@ -575,47 +633,54 @@ impl MinecraftApiClient {
 
     /// Get forge version details
     pub async fn get_forge_versions(&self, version_id: &str) -> McApiResult<Vec<McPluginReport>> {
-        let guard = ConfigManager::instance().app_state.lock().await;
-        let current_provider = &guard.launcher_setup.api_provider;
-        let forge_base = self.api_bases.read().await.forge_base;
-        match *current_provider {
-            ApiProvider::Official => {
-                drop(guard);
-                let url = format!("{forge_base}/maven-metadata.xml");
-                let client = self.client.read().unwrap().clone();
-                let response = client
-                    .get(url)
-                    .header(reqwest::header::USER_AGENT, USER_AGENT)
-                    .send()
-                    .await?
-                    .error_for_status()?;
-                let xml_text = response.text().await?;
-                let metadata: plugins::forge_xml::Metadata = quick_xml::de::from_str(&xml_text)?;
-                let matched_versions = metadata.find_versions_of_game(version_id);
-                Ok(matched_versions)
-            }
-            ApiProvider::BMCLApi => {
-                drop(guard);
-                let url_index = format!("{forge_base}/minecraft");
-                let indexes: Vec<String> = self.get(&url_index, true).await?;
-                log::debug!("BMCL indexes count: {:?}", indexes.len());
-                if indexes.iter().all(|index| index != version_id) {
-                    return Err(McApiError::VersionNotFound(version_id.to_string()));
-                }
-                let forge_info: Vec<plugins::forge_bmcl::ForgeVersion> = self
-                    .get(&format!("{forge_base}/minecraft/{version_id}"), true)
-                    .await?;
-                log::debug!("BMCL forge info count: {:?}", forge_info.len());
-                Ok(forge_info
-                    .iter()
-                    .map(|info| McPluginReport {
-                        version: info.version.clone(),
-                        stable: None,
-                        release_time: Some(info.modified.clone()),
-                    })
-                    .collect())
+        Ok(self
+            .forge_versions(version_id, None)
+            .await?
+            .into_iter()
+            .map(|entry| McPluginReport {
+                version: entry.version,
+                stable: None,
+                release_time: entry.release_time,
+            })
+            .collect())
+    }
+
+    pub async fn get_neoforge_versions(
+        &self,
+        version_id: &str,
+    ) -> McApiResult<Vec<McPluginReport>> {
+        crate::io::files::validate_file_name(version_id)
+            .map_err(|error| McApiError::InvalidMetadata(error.to_string()))?;
+        let package = if version_id == "1.20.1" {
+            "forge"
+        } else {
+            "neoforge"
+        };
+        let official = format!(
+            "https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/{package}"
+        );
+        let mirror = format!(
+            "https://bmclapi2.bangbang93.com/neoforge/meta/api/maven/details/releases/net/neoforged/{package}"
+        );
+        let urls = match crate::io::download::resources::DOWNLOAD_RESOURCES
+            .settings()
+            .version_source
+        {
+            crate::io::download::resources::SourcePreference::Official => [official, mirror],
+            _ => [mirror, official],
+        };
+        let mut last_error = None;
+        for url in urls {
+            match self
+                .get::<serde_json::Value>(&url, true)
+                .await
+                .and_then(|v| parse_neoforge_versions(v, version_id))
+            {
+                Ok(versions) => return Ok(versions),
+                Err(error) => last_error = Some(error),
             }
         }
+        Err(last_error.expect("NeoForge has two metadata sources"))
     }
 
     pub async fn get_fabric_versions(
@@ -827,6 +892,45 @@ pub fn curseforge_available() -> bool {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn neoforge_versions_match_ce_game_mapping() {
+        use super::*;
+        let versions = serde_json::json!({"versions": [
+            "1.20.1-47.1.82", "1.20.1-47.1.99", "20.4.30-beta",
+            "0.25w14craftmine.3-beta", "26.1.0.0-alpha.1+snapshot-1"
+        ]});
+        for (game, expected) in [
+            ("1.20.1", "47.1.99"),
+            ("1.20.4", "20.4.30-beta"),
+            ("25w14craftmine", "0.25w14craftmine.3-beta"),
+            ("26.1-snapshot-1", "26.1.0.0-alpha.1+snapshot-1"),
+        ] {
+            let entries = parse_neoforge_versions(versions.clone(), game).unwrap();
+            assert_eq!(entries.len(), 1, "{game}");
+            assert_eq!(entries[0].version, expected);
+        }
+        let sorted = parse_neoforge_versions(
+            serde_json::json!({"versions": ["20.4.9", "20.4.11-beta", "20.4.10"]}),
+            "1.20.4",
+        )
+        .unwrap();
+        assert_eq!(
+            sorted
+                .iter()
+                .map(|v| v.version.as_str())
+                .collect::<Vec<_>>(),
+            ["20.4.11-beta", "20.4.10", "20.4.9"]
+        );
+        assert!(parse_neoforge_versions(serde_json::json!({}), "1.20.1").is_err());
+        let mirror = serde_json::json!({"files": [
+            {"name":"20.4.30-beta", "type":"DIRECTORY"},
+            {"name":"20.4.31", "type":"FILE"}
+        ]});
+        let mirror = parse_neoforge_versions(mirror, "1.20.4").unwrap();
+        assert_eq!(mirror.len(), 1);
+        assert_eq!(mirror[0].version, "20.4.30-beta");
+    }
+
+    #[test]
     fn fabric_installer_metadata_requires_matching_official_url() {
         use super::*;
         let url = FabricFamily::Legacyfabric.installer_url("1.1.0+1").unwrap();
@@ -879,6 +983,17 @@ mod tests {
         assert_eq!(
             assets[0],
             "https://resources.download.minecraft.net/ab/hash"
+        );
+        assert_eq!(
+            bases.download_urls(
+                "https://maven.neoforged.net/releases/net/example/lib.jar",
+                SourcePreference::Mirror,
+                false
+            ),
+            [
+                "https://bmclapi2.bangbang93.com/maven/net/example/lib.jar",
+                "https://maven.neoforged.net/releases/net/example/lib.jar"
+            ]
         );
         for url in [
             "https://example.org/file",

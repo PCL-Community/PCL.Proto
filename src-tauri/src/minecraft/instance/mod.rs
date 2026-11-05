@@ -249,84 +249,105 @@ impl McInstance {
 
     pub(crate) fn resolved_metadata(&self) -> anyhow::Result<Value> {
         let chain = read_version_chain(&self.json_path, &self.global_dir)?;
-        let mut merged = Value::Object(Default::default());
-        let mut libraries = Vec::new();
-        let mut game = Vec::new();
-        let mut jvm = Vec::new();
-        let mut has_modern_game = false;
-        for (_, value) in chain {
-            let object = value
-                .as_object()
-                .context("Version metadata must be an object")?;
-            for (key, field) in object {
-                if !matches!(key.as_str(), "libraries" | "arguments") && !field.is_null() {
+        merge_metadata(chain.iter().map(|(_, value)| value))
+    }
+}
+
+pub(crate) fn merge_metadata<'a>(
+    chain: impl IntoIterator<Item = &'a Value>,
+) -> anyhow::Result<Value> {
+    fn fill_missing(child: &mut Value, parent: &Value) {
+        if parent.is_null() {
+            return;
+        }
+        if child.is_null() {
+            *child = parent.clone();
+        } else if let (Some(child), Some(parent)) = (child.as_object_mut(), parent.as_object()) {
+            for (key, value) in parent {
+                fill_missing(child.entry(key).or_insert(Value::Null), value);
+            }
+        }
+    }
+    let mut merged = Value::Object(Default::default());
+    let mut libraries = Vec::new();
+    let mut game = Vec::new();
+    let mut jvm = Vec::new();
+    let mut has_modern_game = false;
+    for value in chain {
+        let object = value
+            .as_object()
+            .context("Version metadata must be an object")?;
+        for (key, field) in object {
+            if !matches!(key.as_str(), "libraries" | "arguments") && !field.is_null() {
+                fill_missing(
                     merged
                         .as_object_mut()
                         .unwrap()
                         .entry(key)
-                        .or_insert_with(|| field.clone());
-                }
-            }
-            if let Some(items) = value.get("libraries").filter(|items| !items.is_null()) {
-                libraries.extend(
-                    items
-                        .as_array()
-                        .context("Invalid libraries list")?
-                        .iter()
-                        .cloned(),
+                        .or_insert(Value::Null),
+                    field,
                 );
             }
-            if let Some(arguments) = value
-                .get("arguments")
-                .filter(|arguments| !arguments.is_null())
-            {
-                let arguments = arguments.as_object().context("Invalid arguments object")?;
-                for (key, target) in [("game", &mut game), ("jvm", &mut jvm)] {
-                    if let Some(items) = arguments.get(key).filter(|items| !items.is_null()) {
-                        if key == "game"
-                            && !items
-                                .as_array()
-                                .context("Invalid argument list")?
-                                .is_empty()
-                        {
-                            has_modern_game = true;
-                        }
-                        target.extend(
-                            items
-                                .as_array()
-                                .context("Invalid argument list")?
-                                .iter()
-                                .cloned(),
-                        );
+        }
+        if let Some(items) = value.get("libraries").filter(|items| !items.is_null()) {
+            libraries.extend(
+                items
+                    .as_array()
+                    .context("Invalid libraries list")?
+                    .iter()
+                    .cloned(),
+            );
+        }
+        if let Some(arguments) = value
+            .get("arguments")
+            .filter(|arguments| !arguments.is_null())
+        {
+            let arguments = arguments.as_object().context("Invalid arguments object")?;
+            for (key, target) in [("game", &mut game), ("jvm", &mut jvm)] {
+                if let Some(items) = arguments.get(key).filter(|items| !items.is_null()) {
+                    if key == "game"
+                        && !items
+                            .as_array()
+                            .context("Invalid argument list")?
+                            .is_empty()
+                    {
+                        has_modern_game = true;
                     }
+                    target.extend(
+                        items
+                            .as_array()
+                            .context("Invalid argument list")?
+                            .iter()
+                            .cloned(),
+                    );
                 }
             }
-            if value
-                .pointer("/arguments/game")
-                .and_then(Value::as_array)
-                .is_none_or(Vec::is_empty)
-                && let Some(legacy) = value
-                    .get("minecraftArguments")
-                    .filter(|legacy| !legacy.is_null())
-            {
-                let legacy = legacy.as_str().context("Invalid legacy game arguments")?;
-                game.extend(
-                    shlex::split(legacy)
-                        .context("Invalid legacy game arguments")?
-                        .into_iter()
-                        .map(Value::String),
-                );
-            }
         }
-        merged["libraries"] = Value::Array(libraries);
-        if has_modern_game || !jvm.is_empty() {
-            if !has_modern_game {
-                game.clear();
-            }
-            merged["arguments"] = serde_json::json!({"game": game, "jvm": jvm});
+        if value
+            .pointer("/arguments/game")
+            .and_then(Value::as_array)
+            .is_none_or(Vec::is_empty)
+            && let Some(legacy) = value
+                .get("minecraftArguments")
+                .filter(|legacy| !legacy.is_null())
+        {
+            let legacy = legacy.as_str().context("Invalid legacy game arguments")?;
+            game.extend(
+                shlex::split(legacy)
+                    .context("Invalid legacy game arguments")?
+                    .into_iter()
+                    .map(Value::String),
+            );
         }
-        Ok(merged)
     }
+    merged["libraries"] = Value::Array(libraries);
+    if has_modern_game || !jvm.is_empty() {
+        if !has_modern_game {
+            game.clear();
+        }
+        merged["arguments"] = serde_json::json!({"game": game, "jvm": jvm});
+    }
+    Ok(merged)
 }
 
 #[derive(Clone, Copy, serde::Deserialize)]
@@ -360,6 +381,19 @@ pub fn prepare_shortcut_directory(
     Ok(directory)
 }
 
+fn neoforge_argument_version(metadata: &Value) -> Option<&str> {
+    metadata
+        .pointer("/arguments/game")?
+        .as_array()?
+        .windows(2)
+        .find_map(|pair| {
+            (pair[0].as_str()? == "--fml.neoForgeVersion")
+                .then(|| pair[1].as_str())
+                .flatten()
+                .filter(|version| !version.is_empty() && !version.starts_with('-'))
+        })
+}
+
 fn detect_loaders(
     chain: &[(PathBuf, Value)],
     minecraft: &str,
@@ -367,6 +401,11 @@ fn detect_loaders(
     let mut found = BTreeMap::new();
     let mut legacy = false;
     for (_, metadata) in chain {
+        if let Some(version) = neoforge_argument_version(metadata) {
+            found
+                .entry("neoforge".into())
+                .or_insert_with(|| version.into());
+        }
         for library in metadata["libraries"].as_array().into_iter().flatten() {
             let Some(name) = library["name"].as_str() else {
                 continue;
@@ -465,19 +504,21 @@ fn detect_loaders(
 
 fn uses_forge_instance_jar(chain: &[(PathBuf, Value)], version: &str) -> bool {
     let forge = chain.iter().any(|(_, value)| {
-        value["libraries"].as_array().is_some_and(|libraries| {
-            libraries.iter().any(|lib| {
-                let mut parts = lib["name"].as_str().unwrap_or("").split(':');
-                let group = parts.next().unwrap_or("");
-                let artifact = parts.next().unwrap_or("");
-                matches!(group, "net.minecraftforge" | "net.neoforged")
-                    && matches!(artifact, "forge" | "neoforge")
+        neoforge_argument_version(value).is_some()
+            || value["libraries"].as_array().is_some_and(|libraries| {
+                libraries.iter().any(|lib| {
+                    let mut parts = lib["name"].as_str().unwrap_or("").split(':');
+                    let group = parts.next().unwrap_or("");
+                    let artifact = parts.next().unwrap_or("");
+                    matches!(group, "net.minecraftforge" | "net.neoforged")
+                        && matches!(artifact, "forge" | "neoforge")
+                })
             })
-        }) || value["patches"].as_array().is_some_and(|patches| {
-            patches
-                .iter()
-                .any(|patch| matches!(patch["id"].as_str(), Some("forge" | "neoforge")))
-        })
+            || value["patches"].as_array().is_some_and(|patches| {
+                patches
+                    .iter()
+                    .any(|patch| matches!(patch["id"].as_str(), Some("forge" | "neoforge")))
+            })
     });
     let mut parts = version.split('.');
     let release_minor = match (parts.next(), parts.next()) {
@@ -635,6 +676,17 @@ mod inheritance_tests {
         assert_eq!(loaders.get("neoforge").unwrap(), "47.1.99");
         assert_eq!(loaders.get("quilt").unwrap(), "0.25.0");
         assert!(!loaders.contains_key("forge"));
+        let modern_neo = vec![(
+            PathBuf::new(),
+            json!({"libraries":[{"name":"net.neoforged.fancymodloader:loader:2.0.1@jar"}],
+                "arguments":{"game":["--fml.neoForgeVersion", "20.4.30-beta"]}}),
+        )];
+        let (_, loaders) = detect_loaders(&modern_neo, "1.20.4");
+        assert_eq!(
+            loaders.get("neoforge").map(String::as_str),
+            Some("20.4.30-beta")
+        );
+        assert!(uses_forge_instance_jar(&modern_neo, "1.20.4"));
     }
 
     #[test]

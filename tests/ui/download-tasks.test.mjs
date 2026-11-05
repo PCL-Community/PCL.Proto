@@ -1,65 +1,73 @@
-import assert from 'node:assert/strict'
-import { build } from 'esbuild'
+import assert from "node:assert/strict";
+import { build } from "esbuild";
 
 const mocks = {
-  '@/api/pclLocale': `export const pclText = (key) => key`,
-  '@/composables/useFloatButton': `export const FloatButtonType = { TaskManage: 1 }; export const useFloatButton = () => ({ setFloatButton() {}, floatButtonState: {} })`,
-  '@/stores/gameLaunch': `export const useSelectedInstance = () => ({ fetch: async () => {} })`,
-  '@/composables/sideTip': `export default { show() {} }`,
+  "@/api/pclLocale": `export const pclText = (key) => key`,
+  "@/composables/useFloatButton": `export const FloatButtonType = { TaskManage: 1 }; export const useFloatButton = () => ({ setFloatButton() {}, floatButtonState: {} })`,
+  "@/stores/gameLaunch": `export const useSelectedInstance = () => ({ fetch: async () => {} })`,
+  "@/composables/sideTip": `export default { show() {} }`,
   vue: `export const ref = (value) => ({ __ref: true, value }); export const computed = (fn) => ({ __ref: true, get value() { return fn() } })`,
   pinia: `export const defineStore = (_, setup) => { let store; return () => store ||= new Proxy(setup(), { get: (target, key) => target[key]?.__ref ? target[key].value : target[key] }) }`,
-  '@tauri-apps/api/core': `
+  "@tauri-apps/api/core": `
     export class Channel {}
     export const invoke = (name, args) => globalThis.testInvoke(name, args)
   `,
-}
+};
 const result = await build({
-  entryPoints: ['src/stores/task.ts'],
+  entryPoints: ["src/stores/task.ts"],
   bundle: true,
   write: false,
-  platform: 'node',
-  format: 'esm',
+  platform: "node",
+  format: "esm",
   plugins: [
     {
-      name: 'mocks',
+      name: "mocks",
       setup(builder) {
         builder.onResolve({ filter: /.*/ }, (args) =>
-          Object.hasOwn(mocks, args.path) ? { path: args.path, namespace: 'mock' } : undefined,
-        )
-        builder.onLoad({ filter: /.*/, namespace: 'mock' }, (args) => ({
+          Object.hasOwn(mocks, args.path)
+            ? { path: args.path, namespace: "mock" }
+            : undefined,
+        );
+        builder.onLoad({ filter: /.*/, namespace: "mock" }, (args) => ({
           contents: mocks[args.path],
-        }))
+        }));
       },
     },
   ],
-})
+});
 const { useTaskManager, isTaskCancelled } = await import(
-  `data:text/javascript;base64,${Buffer.from(result.outputFiles[0].contents).toString('base64')}`
-)
-let rejectDownload
-const calls = []
+  `data:text/javascript;base64,${Buffer.from(result.outputFiles[0].contents).toString("base64")}`
+);
+let rejectDownload;
+const calls = [];
 globalThis.testInvoke = (name, args) => {
-  calls.push([name, args])
-  if (name === 'download_minecraft_version')
+  calls.push([name, args]);
+  if (name === "download_minecraft_version")
     return new Promise((_, reject) => {
-      rejectDownload = reject
-    })
-  if (name === 'cancel_download_task') rejectDownload('Download cancelled')
-  return Promise.resolve()
-}
-const store = useTaskManager()
-const pending = store.startDownloadMCVersion('1.20.1', 'Example', {
-  family: 'fabric',
-  version: '0.16',
+      rejectDownload = reject;
+    });
+  if (name === "cancel_download_task") rejectDownload("Download cancelled");
+  return Promise.resolve();
+};
+const store = useTaskManager();
+const pending = store.startDownloadMCVersion("1.20.1", "Example", {
+  family: "fabric",
+  version: "0.16",
   api: {
-    url: 'https://cdn.modrinth.com/data/P7dR8mSH/versions/test/fabric-api.jar',
+    url: "https://cdn.modrinth.com/data/P7dR8mSH/versions/test/fabric-api.jar",
     size: 1,
-    sha1: 'a'.repeat(40),
-    filename: 'fabric-api.jar',
+    sha1: "a".repeat(40),
+    filename: "fabric-api.jar",
   },
-})
-await Promise.resolve()
-const channel = calls.find(([name]) => name === 'download_minecraft_version')[1].on_event
+});
+await Promise.resolve();
+const channel = calls.find(([name]) => name === "download_minecraft_version")[1]
+  .on_event;
+assert.equal(
+  calls.find(([name]) => name === "download_minecraft_version")[1].loader
+    .family,
+  "fabric",
+);
 channel.onmessage({
   task_id: store.tasks[0].id,
   item_id: 3,
@@ -67,17 +75,50 @@ channel.onmessage({
   status: 1,
   files_remaining: 1,
   speed: 0,
-})
-assert.equal(store.tasks[0].progress, 9 / 44)
-await store.cancelTask(store.tasks[0].id)
-await assert.rejects(pending, isTaskCancelled)
-assert.equal(store.tasks.length, 0)
+});
+assert.equal(store.tasks[0].progress, 9 / 44);
+await store.cancelTask(store.tasks[0].id);
+await assert.rejects(pending, isTaskCancelled);
+assert.equal(store.tasks.length, 0);
 assert.deepEqual(
   calls.map(([name]) => name),
   [
-    'prepare_download_task',
-    'download_minecraft_version',
-    'cancel_download_task',
-    'release_download_task',
+    "prepare_download_task",
+    "download_minecraft_version",
+    "cancel_download_task",
+    "release_download_task",
   ],
-)
+);
+calls.length = 0;
+const forgePending = store.startDownloadMCVersion("1.20.1", "Forge", {
+  family: "neoforge",
+  version: "20.4.30-beta",
+  install_java: true,
+});
+await Promise.resolve();
+assert.equal(
+  calls.find(([name]) => name === "download_minecraft_version")[1].loader
+    .family,
+  "neoforge",
+);
+assert.equal(
+  calls.find(([name]) => name === "download_minecraft_version")[1].loader
+    .install_java,
+  true,
+);
+assert.deepEqual(
+  store.tasks[0].items
+    .filter((item) => [5, 6, 9].includes(item.id))
+    .map((item) => item.name),
+  [
+    "Minecraft.Download.Stage.DownloadLoaderMainFile",
+    "Minecraft.Download.Stage.DownloadLoaderLibraries",
+    "Minecraft.Download.Stage.InstallForgeType",
+  ],
+);
+assert.equal(
+  store.tasks[0].items.find((item) => item.id === 10).name,
+  "Minecraft.Launch.Stage.GetJava",
+);
+await store.cancelTask(store.tasks[0].id);
+await assert.rejects(forgePending, isTaskCancelled);

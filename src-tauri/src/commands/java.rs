@@ -246,7 +246,9 @@ pub async fn download_game_java(
         info.requirements,
         config.java_runtime_dir(),
         bases,
-        progress,
+        move |update| {
+            let _ = progress.send(update);
+        },
     ));
     *active = Some(task.inner().abort_handle());
     drop(active);

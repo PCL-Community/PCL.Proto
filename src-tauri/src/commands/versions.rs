@@ -54,6 +54,7 @@ pub async fn get_plugin_versions(
 ) -> Result<Vec<McPluginReport>, String> {
     let verisons = match plugin_type {
         mod_loader::ModLoaderType::Forge => api_client.get_forge_versions(mc_version).await,
+        mod_loader::ModLoaderType::NeoForge => api_client.get_neoforge_versions(mc_version).await,
         mod_loader::ModLoaderType::Fabric => {
             api_client
                 .get_fabric_versions(mc_version, api_client::FabricFamily::Fabric)

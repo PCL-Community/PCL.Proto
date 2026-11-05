@@ -29,7 +29,7 @@ struct PackFile {
 pub struct PackInfo {
     name: String,
     minecraft: String,
-    fabric: bool,
+    loader: Option<LoaderInstall>,
     optional_files: Vec<String>,
 }
 
@@ -101,7 +101,10 @@ impl Modpack {
             if key == "minecraft" {
                 continue;
             }
-            ensure!(key == "fabric-loader", "Unsupported modpack loader: {key}");
+            ensure!(
+                matches!(key.as_str(), "fabric-loader" | "forge" | "neoforge"),
+                "Unsupported modpack loader: {key}"
+            );
             validate_file_name(value)?;
             loader_count += 1;
         }
@@ -148,7 +151,7 @@ impl Modpack {
         PackInfo {
             name: self.index.name.clone(),
             minecraft: self.index.dependencies["minecraft"].clone(),
-            fabric: self.index.dependencies.contains_key("fabric-loader"),
+            loader: self.loader(false),
             optional_files: self
                 .index
                 .files
@@ -157,6 +160,26 @@ impl Modpack {
                 .map(|file| file.path.clone())
                 .collect(),
         }
+    }
+
+    fn loader(&self, install_java: bool) -> Option<LoaderInstall> {
+        [
+            ("fabric-loader", LoaderFamily::Fabric),
+            ("forge", LoaderFamily::Forge),
+            ("neoforge", LoaderFamily::Neoforge),
+        ]
+        .into_iter()
+        .find_map(|(key, family)| {
+            self.index
+                .dependencies
+                .get(key)
+                .map(|version| LoaderInstall {
+                    family,
+                    version: version.clone(),
+                    api: None,
+                    install_java,
+                })
+        })
     }
 
     pub(super) async fn install_files(
@@ -353,27 +376,20 @@ async fn install_pack(
     client: &MinecraftApiClient,
     instance_name: &str,
     optional_files: Vec<String>,
+    install_java: bool,
     task_id: i32,
     on_event: &Channel<TaskItemReport>,
 ) -> anyhow::Result<()> {
     let available: HashSet<_> = pack.info().optional_files.into_iter().collect();
     ensure_optional(&available, &optional_files)?;
     pack.optional = optional_files.into_iter().collect();
-    let fabric = pack
-        .index
-        .dependencies
-        .get("fabric-loader")
-        .map(|version| FabricInstall {
-            family: crate::io::net::http::api_client::FabricFamily::Fabric,
-            version: version.clone(),
-            api: None,
-        });
+    let loader = pack.loader(install_java);
     install_version_with_modpack(
         client,
         repo,
         &pack.index.dependencies["minecraft"],
         instance_name,
-        fabric.as_ref(),
+        loader.as_ref(),
         Some(&pack),
         task_id,
         on_event,
@@ -388,6 +404,7 @@ pub async fn install_modpack(
     path: PathBuf,
     instance_name: String,
     optional_files: Vec<String>,
+    install_java: bool,
     task_id: i32,
     on_event: Channel<TaskItemReport>,
 ) -> Result<(), String> {
@@ -403,6 +420,7 @@ pub async fn install_modpack(
             &client,
             &instance_name,
             optional_files,
+            install_java,
             task_id,
             &on_event,
         )
@@ -419,6 +437,7 @@ pub async fn install_online_modpack(
     token: String,
     instance_name: String,
     optional_files: Vec<String>,
+    install_java: bool,
     task_id: i32,
     on_event: Channel<TaskItemReport>,
 ) -> Result<(), String> {
@@ -436,6 +455,7 @@ pub async fn install_online_modpack(
             &client,
             &instance_name,
             optional_files,
+            install_java,
             task_id,
             &on_event,
         )
@@ -492,7 +512,10 @@ mod tests {
     fn inspect_validates_paths_loaders_and_optional_files() {
         let (_temp, path) = archive(index(), "nested/", &[]);
         let pack = Modpack::open(&path).unwrap();
-        assert!(pack.info().fabric);
+        assert!(matches!(
+            pack.info().loader.unwrap().family,
+            LoaderFamily::Fabric
+        ));
         assert_eq!(pack.info().optional_files, ["mods/example.jar"]);
         assert!(
             ensure_optional(
@@ -509,6 +532,19 @@ mod tests {
         bad["dependencies"]["forge"] = "1".into();
         let (_temp, path) = archive(bad, "", &[]);
         assert!(Modpack::open(&path).is_err());
+        for (key, expected) in [("forge", "forge"), ("neoforge", "neoforge")] {
+            let mut pack = index();
+            pack["dependencies"]
+                .as_object_mut()
+                .unwrap()
+                .remove("fabric-loader");
+            pack["dependencies"][key] = "20.4.30-beta".into();
+            let (_temp, path) = archive(pack, "", &[]);
+            let info = Modpack::open(&path).unwrap().info();
+            let loader = serde_json::to_value(info.loader.unwrap()).unwrap();
+            assert_eq!(loader["family"], expected);
+            assert_eq!(loader["version"], "20.4.30-beta");
+        }
     }
 
     #[test]
@@ -590,7 +626,10 @@ mod tests {
         let events = Channel::new(|_| Ok(()));
         let prepared = prepare_online_archive(info, -2000, &events).await.unwrap();
         assert_eq!(prepared.pack.info().minecraft, "1.20.1");
-        assert!(prepared.pack.info().fabric);
+        assert!(matches!(
+            prepared.pack.info().loader.unwrap().family,
+            LoaderFamily::Fabric
+        ));
         let temporary_path = prepared._directory.path().to_owned();
         let repo = tempfile::tempdir_in(&root).unwrap();
         let client = MinecraftApiClient::new(
@@ -604,6 +643,7 @@ mod tests {
             &client,
             "Online Pack",
             vec![],
+            false,
             -2000,
             &events,
         )

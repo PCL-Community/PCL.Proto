@@ -185,6 +185,10 @@ pub fn java_wrapper() -> std::io::Result<PathBuf> {
     bundled_resource!("java-wrapper.jar")
 }
 
+pub fn forge_installer() -> std::io::Result<PathBuf> {
+    bundled_resource!("forge-installer.jar")
+}
+
 pub fn legacy_fix() -> std::io::Result<PathBuf> {
     bundled_resource!("legacyfix.jar")
 }

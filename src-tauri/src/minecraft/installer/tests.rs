@@ -83,11 +83,51 @@ fn inherited_native_libraries_prefer_child_version() {
         features: Default::default(),
     };
     let mut plan = InstallPlan::new();
-    plan.libraries(&details, Path::new("repo"), &context)
+    plan.libraries(&details, Path::new("repo"), &context, 2)
         .unwrap();
     assert_eq!(plan.natives.len(), 1);
     assert_eq!(plan.natives[0].path, Path::new("repo/libraries/child.jar"));
     assert_eq!(plan.files.len(), 1);
+}
+
+#[test]
+fn embedded_library_without_url_must_be_present_and_verified() {
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("libraries/example/loader/1/loader-1.jar");
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(&path, b"embedded").unwrap();
+    let hash = crate::io::files::sha1_hex(sha1::Sha1::digest(b"embedded"));
+    let download = json!({"sha1":"a".repeat(40),"size":1,"url":"https://example.org/file"});
+    let details: McVersion = serde_json::from_value(json!({
+        "id":"test", "type":"release", "assets":"test", "mainClass":"Main",
+        "downloads":{"client":download}, "assetIndex":{"id":"test","sha1":"a".repeat(40),"size":1,"url":"https://example.org/index"},
+        "libraries":[{"name":"example:loader:1", "downloads":{"artifact":{
+            "path":"example/loader/1/loader-1.jar", "url":"", "sha1":hash, "size":8
+        }}}]
+    })).unwrap();
+    let plan = || InstallPlan::new().libraries(&details, root.path(), &McRuleContext::current(), 2);
+    assert!(plan().is_ok());
+    fs::write(&path, b"corrupt!").unwrap();
+    assert!(plan().is_err());
+    fs::remove_file(path).unwrap();
+    assert!(plan().is_err());
+}
+
+#[test]
+fn loader_metadata_inherits_missing_nested_fields() {
+    let mut vanilla = json!({
+        "libraries": [], "mainClass": "Vanilla",
+        "downloads": {"client": {"url": "client"}, "server": {"url": "server"}},
+        "logging": {"client": {"argument": "vanilla"}}
+    });
+    let loader = json!({
+        "libraries": [], "mainClass": "Forge", "logging": {},
+        "downloads": {"server": {"url": "loader"}}
+    });
+    merge_loader_profile(&mut vanilla, &loader).unwrap();
+    assert_eq!(vanilla["downloads"]["client"]["url"], "client");
+    assert_eq!(vanilla["downloads"]["server"]["url"], "loader");
+    assert_eq!(vanilla["logging"]["client"]["argument"], "vanilla");
 }
 
 #[test]
@@ -108,7 +148,7 @@ fn failed_installations_clean_only_their_own_directory() {
 
 #[test]
 fn fabric_api_is_staged_inside_the_instance_mods_folder() {
-    let install: FabricInstall = serde_json::from_value(json!({
+    let install: LoaderInstall = serde_json::from_value(json!({
         "family": "fabric",
         "version": "0.16",
         "api": {
@@ -444,10 +484,16 @@ async fn official_fabric_install(
     fs::create_dir(&root).unwrap();
     let result: anyhow::Result<()> = async {
         let client = MinecraftApiClient::new(reqwest::Client::new(), &ApiProvider::Official);
-        let choice = FabricInstall {
-            family,
+        let choice = LoaderInstall {
+            family: match family {
+                crate::io::net::http::api_client::FabricFamily::Fabric => LoaderFamily::Fabric,
+                crate::io::net::http::api_client::FabricFamily::Legacyfabric => {
+                    LoaderFamily::Legacyfabric
+                }
+            },
             version: version.into(),
             api: None,
+            install_java: false,
         };
         install_version(
             &client,
@@ -775,10 +821,11 @@ async fn fabric_install_merges_profile_and_publishes_only_after_verified_files()
         &root,
         "1.test",
         "Fabric Custom",
-        Some(&FabricInstall {
-            family: crate::io::net::http::api_client::FabricFamily::Fabric,
+        Some(&LoaderInstall {
+            family: LoaderFamily::Fabric,
             version: "0.16".into(),
             api: None,
+            install_java: false,
         }),
         1,
         &Channel::new(|_| Ok(())),
@@ -868,10 +915,11 @@ async fn fabric_install_merges_profile_and_publishes_only_after_verified_files()
             &root,
             "1.test",
             "Broken Fabric",
-            Some(&FabricInstall {
-                family: crate::io::net::http::api_client::FabricFamily::Fabric,
+            Some(&LoaderInstall {
+                family: LoaderFamily::Fabric,
                 version: "0.16".into(),
                 api: None,
+                install_java: false,
             }),
             2,
             &Channel::new(|_| Ok(()))
@@ -891,7 +939,7 @@ async fn fabric_install_merges_profile_and_publishes_only_after_verified_files()
 fn fabric_merge_preserves_legacy_arguments() {
     let mut metadata = json!({"libraries":[], "minecraftArguments":"--title 'Legacy Title'"});
     let profile = json!({"mainClass":"FabricMain", "libraries":[], "arguments":{"game":["--fabric"], "jvm":[]}});
-    merge_fabric_profile(&mut metadata, &profile).unwrap();
+    merge_loader_profile(&mut metadata, &profile).unwrap();
     assert_eq!(
         metadata["arguments"]["game"],
         json!(["--fabric", "--title", "Legacy Title"])
@@ -973,10 +1021,11 @@ async fn legacy_fabric_list_and_install_use_legacy_intermediary() {
     assert_eq!(list[0].version, "0.16");
     let root = std::env::temp_dir().join(format!("pcl-legacy-fabric-{}", uuid::Uuid::new_v4()));
     fs::create_dir(&root).unwrap();
-    let choice = FabricInstall {
-        family: FabricFamily::Legacyfabric,
+    let choice = LoaderInstall {
+        family: LoaderFamily::Legacyfabric,
         version: "0.16".into(),
         api: None,
+        install_java: false,
     };
     install_version(
         &client,
@@ -1272,7 +1321,7 @@ async fn official_metadata_across_generations() {
         let mut plan = InstallPlan::new();
         plan.add(1, &details.downloads.client, root.join("client.jar"))
             .unwrap();
-        plan.libraries(&details, &root, &McRuleContext::current())
+        plan.libraries(&details, &root, &McRuleContext::current(), 2)
             .unwrap();
         plan.assets(&index, &root, "https://resources.download.minecraft.net")
             .unwrap();

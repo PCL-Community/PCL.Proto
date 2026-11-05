@@ -28,6 +28,9 @@ impl MavenArtifact {
             _ => (value, None),
         };
         let parts: Vec<&str> = coordinate.split(':').collect();
+        if !(3..=5).contains(&parts.len()) {
+            return Err(MavenArtifactError::InvalidLength(parts.len()));
+        }
         if parts.iter().any(|part| part.is_empty()) {
             return Err(MavenArtifactError::EmptySegment(value.into()));
         }
@@ -182,7 +185,7 @@ mod tests {
 
     #[test]
     fn rejects_malformed_coordinates() {
-        for value in ["", "a:b", "a:b:c:d:e:f", "a::c", "a:b:"] {
+        for value in ["", "a", "a:b", "a:b:c:d:e:f", "a::c", "a:b:"] {
             assert!(MavenArtifact::parse(value).is_err(), "{value}");
         }
     }

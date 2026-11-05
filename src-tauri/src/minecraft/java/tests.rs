@@ -595,14 +595,9 @@ mod download_tests {
         let mirror = mirror(false, false, false).await;
         let mut req = requirements(25, 999);
         req.component = Some("java-runtime-epsilon".into());
-        let runtime = install::install(
-            req,
-            temp.0.clone(),
-            mirror.bases.clone(),
-            tauri::ipc::Channel::new(|_| Ok(())),
-        )
-        .await
-        .unwrap();
+        let runtime = install::install(req, temp.0.clone(), mirror.bases.clone(), |_| {})
+            .await
+            .unwrap();
         assert_eq!(runtime.major_version(), 25);
         assert!(runtime.is_enabled);
         assert!(!runtime.is_jdk());
@@ -629,7 +624,7 @@ mod download_tests {
                     requirements(25, 999),
                     temp.0.clone(),
                     mirror.bases.clone(),
-                    tauri::ipc::Channel::new(|_| Ok(()))
+                    |_| {}
                 )
                 .await
                 .is_err()
@@ -644,10 +639,9 @@ mod download_tests {
         let mirror = mirror(false, false, true).await;
         let started = Arc::new(tokio::sync::Notify::new());
         let notify = started.clone();
-        let progress = tauri::ipc::Channel::new(move |_| {
+        let progress = move |_| {
             notify.notify_one();
-            Ok(())
-        });
+        };
         let task = tokio::spawn(install::install(
             requirements(25, 999),
             temp.0.clone(),
@@ -761,7 +755,7 @@ async fn official_native_java25_install_smoke() {
         crate::io::net::http::api_client::ApiBases::new(
             &crate::io::net::http::api_client::ApiProvider::Official,
         ),
-        tauri::ipc::Channel::new(|_| Ok(())),
+        |_| {},
     )
     .await
     .unwrap();

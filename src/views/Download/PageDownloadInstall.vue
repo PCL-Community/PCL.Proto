@@ -1,333 +1,411 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { invoke, isTauri } from '@tauri-apps/api/core'
-import PCard from '@/components/widget/PCard.vue'
-import PVirtualList from '@/components/widget/PVirtualList.vue'
-import PListItem from '@/components/widget/PListItem.vue'
-import PVersionActions from '@/components/widget/PVersionActions.vue'
-import PLoaderVersionActions from '@/components/widget/PLoaderVersionActions.vue'
-import PButton from '@/components/widget/PButton.vue'
-import PTextBox from '@/components/widget/PTextBox.vue'
-import PHint from '@/components/widget/PHint.vue'
-import PLoading from '@/components/widget/PLoading.vue'
-import PSvgIcon from '@/components/widget/PSvgIcon.vue'
-import { getMinecraftVersions, type IVersionShow } from '@/api/gameVersions'
-import { pclFormatLocale, pclText } from '@/api/pclLocale'
-import { isTaskCancelled, useTaskManager } from '@/stores/task'
-import sideTip from '@/composables/sideTip'
-import { useSelectedInstance } from '@/stores/gameLaunch'
-import { showIconPath, loaderIcon, instanceIcon, type pluginType } from '@/types/gameInfo'
-import type { McPluginReport } from '@/types/mcPlugin'
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  shallowRef,
+  watch,
+} from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { invoke, isTauri } from "@tauri-apps/api/core";
+import PCard from "@/components/widget/PCard.vue";
+import PVirtualList from "@/components/widget/PVirtualList.vue";
+import PListItem from "@/components/widget/PListItem.vue";
+import PVersionActions from "@/components/widget/PVersionActions.vue";
+import PLoaderVersionActions from "@/components/widget/PLoaderVersionActions.vue";
+import PButton from "@/components/widget/PButton.vue";
+import PTextBox from "@/components/widget/PTextBox.vue";
+import PHint from "@/components/widget/PHint.vue";
+import PLoading from "@/components/widget/PLoading.vue";
+import PSvgIcon from "@/components/widget/PSvgIcon.vue";
+import { getMinecraftVersions, type IVersionShow } from "@/api/gameVersions";
+import { pclFormatLocale, pclText } from "@/api/pclLocale";
+import {
+  isTaskCancelled,
+  useTaskManager,
+  type LoaderInstall,
+} from "@/stores/task";
+import { prepareLoaderJava } from "@/api/loaderJava";
+import sideTip from "@/composables/sideTip";
+import { useSelectedInstance } from "@/stores/gameLaunch";
+import {
+  showIconPath,
+  loaderIcon,
+  instanceIcon,
+  type pluginType,
+} from "@/types/gameInfo";
+import type { McPluginReport } from "@/types/mcPlugin";
 import {
   instanceDefaultName,
   installWarnings,
   loaderConflict,
   loaderVisible,
   selectLoader,
-} from '@/api/installSelection'
-import { saveMinecraftVersion } from '@/api/versionActions'
-import { getCompVersions } from '@/api/compProjects'
-import { FloatButtonType, useFloatButton } from '@/composables/useFloatButton'
+} from "@/api/installSelection";
+import { saveMinecraftVersion } from "@/api/versionActions";
+import { getCompVersions } from "@/api/compProjects";
+import { FloatButtonType, useFloatButton } from "@/composables/useFloatButton";
 
-const props = defineProps<{ manual?: boolean; modify?: boolean }>()
-const route = useRoute()
-const router = useRouter()
-const text = pclText
-const versions = shallowRef<IVersionShow>()
-const loading = ref(false)
-const error = ref<string | null>(null)
-const installing = ref(false)
-const { floatButtonState, setFloatButton } = useFloatButton()
-const instance = useSelectedInstance()
+const props = defineProps<{ manual?: boolean; modify?: boolean }>();
+const route = useRoute();
+const router = useRouter();
+const text = pclText;
+const versions = shallowRef<IVersionShow>();
+const loading = ref(false);
+const error = ref<string | null>(null);
+const installing = ref(false);
+const { floatButtonState, setFloatButton } = useFloatButton();
+const instance = useSelectedInstance();
 const versionId = computed(() =>
-  props.modify ? instance.instance_info?.version || '' : String(route.query.version_id || ''),
-)
-const instanceName = ref(versionId.value)
-const instanceNameEdited = ref(false)
+  props.modify
+    ? instance.instance_info?.version || ""
+    : String(route.query.version_id || ""),
+);
+const instanceName = ref(versionId.value);
+const instanceNameEdited = ref(false);
 const plugins = reactive<
-  Record<string, { loading: boolean; versions: McPluginReport[]; error: string }>
->({})
-const selected = reactive<Record<string, string>>({})
-type FabricApiFile = { url: string; size: number; sha1: string; filename: string }
-const fabricApiFiles: Record<string, FabricApiFile> = {}
-let fabricApiAutoSelected = false
+  Record<
+    string,
+    { loading: boolean; versions: McPluginReport[]; error: string }
+  >
+>({});
+const selected = reactive<Record<string, string>>({});
+type FabricApiFile = {
+  url: string;
+  size: number;
+  sha1: string;
+  filename: string;
+};
+const fabricApiFiles: Record<string, FabricApiFile> = {};
+let fabricApiAutoSelected = false;
 const selectedPlugins = computed(
   () =>
     Object.fromEntries(
       Object.entries(selected).map(([key, value]) => [
-        key === 'LabyMod' ? 'laby-mod' : key.toLowerCase(),
+        key === "LabyMod" ? "laby-mod" : key.toLowerCase(),
         value,
       ]),
     ) as Partial<Record<pluginType, string>>,
-)
-const loaderCards: Record<string, InstanceType<typeof PCard> | null> = {}
+);
+const loaderCards: Record<string, InstanceType<typeof PCard> | null> = {};
 function chooseLoader(loader: string, version: string) {
-  selectLoader(selected, loader, version)
-  if (loader === 'FabricApi') fabricApiAutoSelected = true
-  if (!selected.Fabric) fabricApiAutoSelected = false
-  if (loader === 'Fabric' && version && !fabricApiAutoSelected && plugins.FabricApi?.versions[0]) {
-    fabricApiAutoSelected = true
-    chooseLoader('FabricApi', plugins.FabricApi.versions[0].version)
+  selectLoader(selected, loader, version);
+  if (loader === "FabricApi") fabricApiAutoSelected = true;
+  if (!selected.Fabric) fabricApiAutoSelected = false;
+  if (
+    loader === "Fabric" &&
+    version &&
+    !fabricApiAutoSelected &&
+    plugins.FabricApi?.versions[0]
+  ) {
+    fabricApiAutoSelected = true;
+    chooseLoader("FabricApi", plugins.FabricApi.versions[0].version);
   }
-  loaderCards[loader]?.collapse()
-  if (!instanceNameEdited.value) instanceName.value = instanceDefaultName(versionId.value, selected)
+  loaderCards[loader]?.collapse();
+  if (!instanceNameEdited.value)
+    instanceName.value = instanceDefaultName(versionId.value, selected);
 }
-const warnings = computed(() => installWarnings(selected, versionId.value))
+const warnings = computed(() => installWarnings(selected, versionId.value));
 function loaderSubtitle(version: McPluginReport) {
   if (version.release_time) {
-    const date = new Date(version.release_time)
+    const date = new Date(version.release_time);
     if (!Number.isNaN(date.getTime()))
-      return text('Download.Version.ReleaseDate', [date.toLocaleString(pclFormatLocale.value)])
+      return text("Download.Version.ReleaseDate", [
+        date.toLocaleString(pclFormatLocale.value),
+      ]);
   }
   return version.stable == null
     ? undefined
-    : text(version.stable ? 'Download.Version.Type.Stable' : 'Download.Version.Type.Preview')
+    : text(
+        version.stable
+          ? "Download.Version.Type.Stable"
+          : "Download.Version.Type.Preview",
+      );
 }
 const loaders = [
-  'Forge',
-  'Cleanroom',
-  'NeoForge',
-  'Fabric',
-  'LegacyFabric',
-  'FabricApi',
-  'LegacyFabricApi',
-  'LabyMod',
-  'OptiFine',
-  'OptiFabric',
-  'LiteLoader',
-]
+  "Forge",
+  "Cleanroom",
+  "NeoForge",
+  "Fabric",
+  "LegacyFabric",
+  "FabricApi",
+  "LegacyFabricApi",
+  "LabyMod",
+  "OptiFine",
+  "OptiFabric",
+  "LiteLoader",
+];
 const visibleLoaders = computed(() =>
   loaders.filter((loader) => loaderVisible(loader, versionId.value, selected)),
-)
+);
 const categories = [
-  { key: 'release', label: 'Release', icon: showIconPath.grass },
-  { key: 'snapshot', label: 'Development', icon: showIconPath.command },
-  { key: 'old', label: 'BeforeRelease', icon: showIconPath.stone },
-  { key: 'fool', label: 'AprilFools', icon: showIconPath.gold },
-] as const
+  { key: "release", label: "Release", icon: showIconPath.grass },
+  { key: "snapshot", label: "Development", icon: showIconPath.command },
+  { key: "old", label: "BeforeRelease", icon: showIconPath.stone },
+  { key: "fool", label: "AprilFools", icon: showIconPath.gold },
+] as const;
 const latest = computed(() => {
-  const data = versions.value
-  if (!data) return []
+  const data = versions.value;
+  if (!data) return [];
   const list = data.latest.release
-    ? [{ ...data.latest.release, type: 'release', label: 'Release' }]
-    : []
+    ? [{ ...data.latest.release, type: "release", label: "Release" }]
+    : [];
   if (
     data.latest.snapshot &&
-    (!data.latest.release || data.latest.snapshot.timestamp > data.latest.release.timestamp)
+    (!data.latest.release ||
+      data.latest.snapshot.timestamp > data.latest.release.timestamp)
   )
-    list.push({ ...data.latest.snapshot, type: 'snapshot', label: 'Development' })
-  return list
-})
+    list.push({
+      ...data.latest.snapshot,
+      type: "snapshot",
+      label: "Development",
+    });
+  return list;
+});
 async function load() {
-  loading.value = true
-  error.value = null
+  loading.value = true;
+  error.value = null;
   try {
-    versions.value = await getMinecraftVersions()
+    versions.value = await getMinecraftVersions();
   } catch (err) {
-    error.value = pclText('Proto.Error.Versions', [String(err)])
+    error.value = pclText("Proto.Error.Versions", [String(err)]);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 function choose(id: string, type: string) {
   if (props.manual) {
-    void saveMinecraftVersion(id)
-    return
+    void saveMinecraftVersion(id);
+    return;
   }
-  void router.push({ path: '/download/game/inner', query: { version_id: id, version_type: type } })
+  void router.push({
+    path: "/download/game/inner",
+    query: { version_id: id, version_type: type },
+  });
 }
-let request = 0
+let request = 0;
 async function loadFabricApi(id: string, current: number) {
-  plugins.FabricApi = { loading: true, versions: [], error: '' }
+  plugins.FabricApi = { loading: true, versions: [], error: "" };
   try {
-    if (!isTauri()) throw new Error(pclText('Proto.Desktop.Loaders'))
+    if (!isTauri()) throw new Error(pclText("Proto.Desktop.Loaders"));
     const target = id
-      .replace('∞', 'infinite')
-      .replace('Combat Test 7c', '1.16_combat-3')
-      .toLowerCase()
-    const list = (await getCompVersions('fabric-api'))
+      .replace("∞", "infinite")
+      .replace("Combat Test 7c", "1.16_combat-3")
+      .toLowerCase();
+    const list = (await getCompVersions("fabric-api"))
       .filter(
         (version) =>
-          version.loaders.includes('fabric') &&
+          version.loaders.includes("fabric") &&
           version.game_versions.some((game) => game.toLowerCase() === target),
       )
-      .sort((a, b) => Date.parse(b.date_published) - Date.parse(a.date_published))
-    const versions: McPluginReport[] = []
-    const files: Record<string, FabricApiFile> = {}
+      .sort(
+        (a, b) => Date.parse(b.date_published) - Date.parse(a.date_published),
+      );
+    const versions: McPluginReport[] = [];
+    const files: Record<string, FabricApiFile> = {};
     for (const version of list) {
-      const file = version.files.find((file) => file.primary) || version.files[0]
-      const sha1 = file?.hashes?.sha1
-      if (!file || !sha1 || !/^https:\/\//i.test(file.url)) continue
+      const file =
+        version.files.find((file) => file.primary) || version.files[0];
+      const sha1 = file?.hashes?.sha1;
+      if (!file || !sha1 || !/^https:\/\//i.test(file.url)) continue;
       files[version.version_number] = {
         url: file.url,
         size: file.size,
         sha1,
         filename: file.filename,
-      }
+      };
       versions.push({
         version: version.version_number,
-        stable: version.version_type === 'release',
+        stable: version.version_type === "release",
         release_time: version.date_published,
-      })
+      });
     }
-    if (current !== request) return
-    Object.assign(fabricApiFiles, files)
-    plugins.FabricApi = { loading: false, versions, error: '' }
+    if (current !== request) return;
+    Object.assign(fabricApiFiles, files);
+    plugins.FabricApi = { loading: false, versions, error: "" };
     if (selected.Fabric && !fabricApiAutoSelected && versions[0]) {
-      fabricApiAutoSelected = true
-      chooseLoader('FabricApi', versions[0].version)
+      fabricApiAutoSelected = true;
+      chooseLoader("FabricApi", versions[0].version);
     }
   } catch (err) {
     if (current === request)
       plugins.FabricApi = {
         loading: false,
         versions: [],
-        error: pclText('Proto.Error.Versions', [String(err)]),
-      }
+        error: pclText("Proto.Error.Versions", [String(err)]),
+      };
   }
 }
 async function loadLoader(name: string, id: string, current: number) {
-  if (name === 'FabricApi') return loadFabricApi(id, current)
-  plugins[name] = { loading: true, versions: [], error: '' }
+  if (name === "FabricApi") return loadFabricApi(id, current);
+  plugins[name] = { loading: true, versions: [], error: "" };
   try {
-    if (!isTauri()) throw new Error(pclText('Proto.Desktop.Loaders'))
-    const list = await invoke<McPluginReport[]>('get_plugin_versions', {
+    if (!isTauri()) throw new Error(pclText("Proto.Desktop.Loaders"));
+    const list = await invoke<McPluginReport[]>("get_plugin_versions", {
       plugin_type: name.toLowerCase(),
       mc_version: id,
-    })
-    if (current === request) plugins[name] = { loading: false, versions: list, error: '' }
+    });
+    if (current === request)
+      plugins[name] = { loading: false, versions: list, error: "" };
   } catch (err) {
     if (current === request)
       plugins[name] = {
         loading: false,
         versions: [],
-        error: pclText('Proto.Error.Versions', [String(err)]),
-      }
+        error: pclText("Proto.Error.Versions", [String(err)]),
+      };
   }
 }
 watch(
   versionId,
   async (id) => {
-    instanceName.value = id
-    instanceNameEdited.value = false
-    Object.keys(selected).forEach((key) => delete selected[key])
-    Object.keys(fabricApiFiles).forEach((key) => delete fabricApiFiles[key])
-    fabricApiAutoSelected = false
-    const current = ++request
-    if (!id) return
+    instanceName.value = id;
+    instanceNameEdited.value = false;
+    Object.keys(selected).forEach((key) => delete selected[key]);
+    Object.keys(fabricApiFiles).forEach((key) => delete fabricApiFiles[key]);
+    fabricApiAutoSelected = false;
+    const current = ++request;
+    if (!id) return;
     await Promise.all(
-      ['Forge', 'Fabric', 'LegacyFabric', 'FabricApi'].map((name) => loadLoader(name, id, current)),
-    )
+      ["Forge", "NeoForge", "Fabric", "LegacyFabric", "FabricApi"].map((name) =>
+        loadLoader(name, id, current),
+      ),
+    );
   },
   { immediate: true },
-)
+);
 async function install() {
+  if (installing.value) return;
   if (props.modify) {
-    sideTip.show(pclText('Proto.NotImplemented.ModifyCore'))
-    return
+    sideTip.show(pclText("Proto.NotImplemented.ModifyCore"));
+    return;
   }
   if (
     !instanceName.value.trim() ||
     /[\\/:*?"<>|\u0000-\u001f]/.test(instanceName.value) ||
-    ['.', '..'].includes(instanceName.value.trim())
+    [".", ".."].includes(instanceName.value.trim())
   ) {
-    sideTip.show(pclText('Proto.Instance.InvalidName'), 'warn')
-    return
+    sideTip.show(pclText("Proto.Instance.InvalidName"), "warn");
+    return;
   }
   if (!isTauri()) {
-    sideTip.show(pclText('Proto.Desktop.Download'), 'warn')
-    return
+    sideTip.show(pclText("Proto.Desktop.Download"), "warn");
+    return;
   }
   if (
     Object.entries(selected).some(
-      ([name, value]) => !['Fabric', 'LegacyFabric', 'FabricApi'].includes(name) && !!value,
+      ([name, value]) =>
+        !["Forge", "NeoForge", "Fabric", "LegacyFabric", "FabricApi"].includes(
+          name,
+        ) && !!value,
     )
   ) {
-    sideTip.show(pclText('Proto.NotImplemented.LoaderInstall'), 'warn')
-    return
+    sideTip.show(pclText("Proto.NotImplemented.LoaderInstall"), "warn");
+    return;
   }
   if (selected.FabricApi && !fabricApiFiles[selected.FabricApi]) {
-    sideTip.show(pclText('Download.Comp.QuickDownload.Hint.NoFile'), 'warn')
-    return
+    sideTip.show(pclText("Download.Comp.QuickDownload.Hint.NoFile"), "warn");
+    return;
   }
-  installing.value = true
+  installing.value = true;
   try {
+    const game = versionId.value;
+    const name = instanceName.value.trim();
+    const loader: LoaderInstall | undefined = selected.Fabric
+      ? {
+          family: "fabric",
+          version: selected.Fabric,
+          api: fabricApiFiles[selected.FabricApi] || null,
+        }
+      : selected.LegacyFabric
+        ? { family: "legacyfabric", version: selected.LegacyFabric }
+        : selected.Forge
+          ? { family: "forge", version: selected.Forge }
+          : selected.NeoForge
+            ? { family: "neoforge", version: selected.NeoForge }
+            : undefined;
+    if (!(await prepareLoaderJava(game, loader))) return;
     void useTaskManager()
-      .startDownloadMCVersion(
-        versionId.value,
-        instanceName.value.trim(),
-        selected.Fabric
-          ? {
-              family: 'fabric',
-              version: selected.Fabric,
-              api: fabricApiFiles[selected.FabricApi] || null,
-            }
-          : selected.LegacyFabric
-            ? { family: 'legacyfabric', version: selected.LegacyFabric }
-            : undefined,
-      )
+      .startDownloadMCVersion(game, name, loader)
       .catch((err) => {
         if (!isTaskCancelled(err))
-          sideTip.show(pclText('Proto.Error.Download', [String(err)]), 'warn')
-      })
-    await router.push('/download/game')
+          sideTip.show(pclText("Proto.Error.Download", [String(err)]), "warn");
+      });
+    await router.push("/download/game");
   } catch (err) {
-    sideTip.show(pclText('Proto.Error.Download', [String(err)]), 'warn')
+    sideTip.show(pclText("Proto.Error.Download", [String(err)]), "warn");
   } finally {
-    installing.value = false
+    installing.value = false;
   }
 }
 onMounted(() => {
-  if (!versionId.value) void load()
+  if (!versionId.value) void load();
   watch(
     versionId,
     (id) => {
       if (id && !props.manual) {
-        floatButtonState.action = install
-        setFloatButton(props.modify ? FloatButtonType.ModifyInstance : FloatButtonType.DownloadGame)
-        floatButtonState.visible = true
+        floatButtonState.action = install;
+        setFloatButton(
+          props.modify
+            ? FloatButtonType.ModifyInstance
+            : FloatButtonType.DownloadGame,
+        );
+        floatButtonState.visible = true;
       } else if (floatButtonState.action === install) {
-        floatButtonState.action = undefined
-        const hasTasks = useTaskManager().activeTaskCount > 0
-        if (hasTasks) setFloatButton(FloatButtonType.TaskManage)
-        floatButtonState.visible = hasTasks
+        floatButtonState.action = undefined;
+        const hasTasks = useTaskManager().activeTaskCount > 0;
+        if (hasTasks) setFloatButton(FloatButtonType.TaskManage);
+        floatButtonState.visible = hasTasks;
       }
     },
     { immediate: true },
-  )
-})
+  );
+});
 onUnmounted(() => {
   if (floatButtonState.action === install) {
-    floatButtonState.action = undefined
-    const hasTasks = useTaskManager().activeTaskCount > 0
-    if (hasTasks) setFloatButton(FloatButtonType.TaskManage)
-    floatButtonState.visible = hasTasks
+    floatButtonState.action = undefined;
+    const hasTasks = useTaskManager().activeTaskCount > 0;
+    if (hasTasks) setFloatButton(FloatButtonType.TaskManage);
+    floatButtonState.visible = hasTasks;
   }
-})
+});
 watch(versionId, (id) => {
-  if (!id && !versions.value) void load()
-})
+  if (!id && !versions.value) void load();
+});
 </script>
 <template>
   <section class="pcl-page">
-    <p v-if="modify && !versionId" class="pcl-empty">{{ pclText('Proto.Instance.SelectFirst') }}</p>
+    <p v-if="modify && !versionId" class="pcl-empty">
+      {{ pclText("Proto.Instance.SelectFirst") }}
+    </p>
     <template v-else-if="!versionId">
-      <PLoading v-if="loading" :loading-text="text('Download.Version.LoadingList')" />
+      <PLoading
+        v-if="loading"
+        :loading-text="text('Download.Version.LoadingList')"
+      />
       <PHint v-else-if="error" severity="error"
         >{{ error }}
         <PButton inline @click="load">{{
-          pclText('Launch.Homepage.LoadFailed.Retry')
+          pclText("Launch.Homepage.LoadFailed.Retry")
         }}</PButton></PHint
       >
       <template v-else-if="versions">
-        <PCard :title="text('Download.Version.Latest.Title')" class="latest-card">
+        <PCard
+          :title="text('Download.Version.Latest.Title')"
+          class="latest-card"
+        >
           <div class="version-list">
             <PListItem
               v-for="version in latest"
               :key="version.id"
               :title="version.id"
-              :icon="version.type === 'release' ? showIconPath.grass : showIconPath.command"
+              :icon="
+                version.type === 'release'
+                  ? showIconPath.grass
+                  : showIconPath.command
+              "
               :subtitle="
                 text(`Download.Version.Latest.${version.label}`, [
                   new Date(version.timestamp).toLocaleString(pclFormatLocale),
@@ -336,7 +414,9 @@ watch(versionId, (id) => {
               clickable
               @click="() => choose(version.id, version.type)"
               ><template #icon-actions
-                ><PVersionActions :version-id="version.id" :manual="manual" /></template
+                ><PVersionActions
+                  :version-id="version.id"
+                  :manual="manual" /></template
             ></PListItem>
           </div>
         </PCard>
@@ -356,11 +436,15 @@ watch(versionId, (id) => {
                   :key="version.id"
                   :title="version.id"
                   :icon="category.icon"
-                  :subtitle="new Date(version.timestamp).toLocaleString(pclFormatLocale)"
+                  :subtitle="
+                    new Date(version.timestamp).toLocaleString(pclFormatLocale)
+                  "
                   clickable
                   @click="() => choose(version.id, category.key)"
                   ><template #icon-actions
-                    ><PVersionActions :version-id="version.id" :manual="manual" /></template
+                    ><PVersionActions
+                      :version-id="version.id"
+                      :manual="manual" /></template
                 ></PListItem>
               </PVirtualList>
             </div>
@@ -384,7 +468,9 @@ watch(versionId, (id) => {
               instanceIcon(
                 versionId,
                 selectedPlugins,
-                typeof route.query.version_type === 'string' ? route.query.version_type : undefined,
+                typeof route.query.version_type === 'string'
+                  ? route.query.version_type
+                  : undefined,
               )
             "
             alt=""
@@ -393,13 +479,15 @@ watch(versionId, (id) => {
             :model-value="instanceName"
             @update:model-value="
               (value) => {
-                instanceName = value || ''
-                instanceNameEdited = true
+                instanceName = value || '';
+                instanceNameEdited = true;
               }
             "
             :aria-label="pclText('Proto.Label.InstanceName')"
           />
-          <span v-if="modify">{{ text('Instance.Install.Action.ModifyLabel') }}</span>
+          <span v-if="modify">{{
+            text("Instance.Install.Action.ModifyLabel")
+          }}</span>
         </div>
         <div v-if="warnings.length" class="install-warnings">
           <PHint
@@ -416,7 +504,7 @@ watch(versionId, (id) => {
         :key="`${versionId}-${loader}`"
         :ref="
           (card) => {
-            loaderCards[loader] = card as InstanceType<typeof PCard> | null
+            loaderCards[loader] = card as InstanceType<typeof PCard> | null;
           }
         "
         :title="text(`Common.Installation.${loader}`)"
@@ -425,17 +513,19 @@ watch(versionId, (id) => {
         fold-arrow="right"
       >
         <template #description
-          ><span class="loader-status" :class="{ 'is-selected': selected[loader] }"
+          ><span
+            class="loader-status"
+            :class="{ 'is-selected': selected[loader] }"
             ><img v-if="selected[loader]" :src="loaderIcon(loader)" alt="" />{{
               selected[loader] ||
               (loaderConflict(loader, selected, versionId)
-                ? text('Download.Install.Compat.IncompatibleWithLoader', [
+                ? text("Download.Install.Compat.IncompatibleWithLoader", [
                     loaderConflict(loader, selected, versionId)!,
                   ])
-                : '') ||
+                : "") ||
               (plugins[loader]?.loading
-                ? pclText('Proto.Download.Loading')
-                : pclText('Proto.Download.SelectVersion'))
+                ? pclText("Proto.Download.Loading")
+                : pclText("Proto.Download.SelectVersion"))
             }}</span
           ></template
         >
@@ -456,7 +546,7 @@ watch(versionId, (id) => {
           <PHint v-else-if="plugins[loader]?.error" severity="error"
             >{{ plugins[loader]?.error }}
             <PButton inline @click="loadLoader(loader, versionId, request)">{{
-              text('Launch.Homepage.LoadFailed.Retry')
+              text("Launch.Homepage.LoadFailed.Retry")
             }}</PButton></PHint
           >
           <template v-else-if="plugins[loader]?.versions.length">
@@ -482,9 +572,15 @@ watch(versionId, (id) => {
           </template>
           <p v-else class="pcl-empty">
             {{
-              ['Forge', 'Fabric', 'LegacyFabric', 'FabricApi'].includes(loader)
-                ? pclText('Download.Install.State.NoAvailableVersion')
-                : pclText('Proto.NotImplemented.Loader')
+              [
+                "Forge",
+                "NeoForge",
+                "Fabric",
+                "LegacyFabric",
+                "FabricApi",
+              ].includes(loader)
+                ? pclText("Download.Install.State.NoAvailableVersion")
+                : pclText("Proto.NotImplemented.Loader")
             }}
           </p>
         </div>
