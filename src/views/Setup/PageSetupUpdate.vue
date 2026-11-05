@@ -4,6 +4,7 @@ import { computed, onMounted } from 'vue'
 import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PHint from '@/components/widget/PHint.vue'
+import PMarkdown from '@/components/widget/PMarkdown.vue'
 import appIcon from '/PCL.Proto.svg?url'
 import { openExternal } from '@/util/externalLink'
 import {
@@ -42,9 +43,7 @@ const text = pclText
         <PButton type="tint" :disabled="launcherUpdateChecking" @click="checkLauncherUpdate">{{
           text('Setup.Update.CheckAgain')
         }}</PButton
-        ><PButton @click="openRelease">{{
-          text('Setup.Update.Changelog.View')
-        }}</PButton>
+        ><PButton @click="openRelease">{{ text('Setup.Update.Changelog.View') }}</PButton>
       </div></PCard
     >
     <PHint v-if="launcherUpdateError" severity="error">{{
@@ -52,16 +51,14 @@ const text = pclText
     }}</PHint>
     <PCard :title="text('Setup.Update.Changelog.View')"
       ><div class="changelog">
-        <p>
-          {{
+        <PMarkdown
+          :content="
             launcherUpdate
               ? launcherUpdate.body || pclText('Proto.Update.NoNotes')
               : pclText('Proto.Update.NotesPlaceholder')
-          }}
-        </p>
-        <PButton inline @click="openRelease">{{
-          text('Setup.Update.Changelog.MoreInfo')
-        }}</PButton
+          "
+        />
+        <PButton inline @click="openRelease">{{ text('Setup.Update.Changelog.MoreInfo') }}</PButton
         ><PButton v-if="launcherUpdate" type="tint" @click="openRelease">{{
           pclText('Proto.Update.Download')
         }}</PButton>
@@ -94,9 +91,5 @@ h2 {
   flex-direction: column;
   align-items: start;
   gap: 12px;
-}
-.changelog p {
-  white-space: pre-wrap;
-  user-select: text;
 }
 </style>

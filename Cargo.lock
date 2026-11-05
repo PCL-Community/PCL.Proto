@@ -5227,7 +5227,7 @@ dependencies = [
 
 [[package]]
 name = "pcl-proto"
-version = "0.9.3"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "base64 0.23.1",

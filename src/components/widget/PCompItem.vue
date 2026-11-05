@@ -17,6 +17,7 @@ const favorites = useCompFavorites()
 const props = withDefaults(
   defineProps<{
     clickable?: boolean
+    detail?: boolean
     data: ISearchHit
     gameVersion?: string
     loader?: string
@@ -101,7 +102,7 @@ async function download() {
 </script>
 
 <template>
-  <article class="comp-item" :class="{ clickable }">
+  <article class="comp-item" :class="{ clickable, detail }">
     <button
       v-if="clickable"
       type="button"
@@ -114,9 +115,16 @@ async function download() {
       ><img :src="data.icon_url || `${base}pcl/images/Icons/NoIcon.png`" alt="" loading="lazy"
     /></i>
     <div class="comp-content">
-      <div class="lab-title">{{ data.title }}</div>
+      <div class="lab-title">
+        <span>{{ data.title }}</span>
+        <template v-if="detail"
+          ><span class="desc-tag" v-for="tag in tags" :key="tag">{{ tag }}</span></template
+        >
+      </div>
       <div class="description-row">
-        <span class="desc-tag" v-for="tag in tags" :key="tag">{{ tag }}</span>
+        <template v-if="!detail"
+          ><span class="desc-tag" v-for="tag in tags" :key="tag">{{ tag }}</span></template
+        >
         <span class="lab-desc" :title="data.description">{{ data.description }}</span>
       </div>
       <div class="metadata">
@@ -275,6 +283,62 @@ async function download() {
   position: relative;
   flex-shrink: 0;
 }
+.comp-item.detail {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  height: auto;
+  padding: 0;
+  gap: 8px;
+  background: transparent;
+}
+.detail .comp-content {
+  display: contents;
+}
+.detail .comp-icon {
+  align-self: start;
+}
+.detail .lab-title {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.detail .description-row {
+  grid-column: 1 / -1;
+  height: auto;
+  flex-wrap: wrap;
+  overflow: visible;
+}
+.detail .lab-desc {
+  display: -webkit-box;
+  flex-basis: 100%;
+  overflow: hidden;
+  pointer-events: auto;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.detail .metadata {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  height: auto;
+  gap: 5px 12px;
+}
+.detail .inline-icon {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.detail .inline-icon > span {
+  overflow: visible;
+}
+.detail .inline-icon :deep(svg) {
+  flex-shrink: 0;
+}
 @media (max-width: 600px) {
   .metadata {
     gap: 6px;
@@ -282,6 +346,9 @@ async function download() {
   }
   .inline-icon:last-child {
     display: none;
+  }
+  .detail .inline-icon:last-child {
+    display: inline-flex;
   }
 }
 </style>

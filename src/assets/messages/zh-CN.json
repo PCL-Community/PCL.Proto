@@ -60,6 +60,8 @@
   "Proto.Desktop.JavaAdd": "请在桌面客户端中添加 Java。",
   "Proto.Desktop.Link": "请在桌面客户端中使用联机功能。",
   "Proto.Desktop.Lobby": "请在桌面客户端中使用联机大厅。",
+  "Proto.Resource.Description": "项目介绍",
+  "Proto.Resource.DescriptionFailed": "加载项目介绍失败：{0}",
   "Proto.Resource.CurseForgeUnavailable": "当前构建没有配置 CurseForge API Key（环境变量 CURSEFORGE_API_KEY），无法使用 CurseForge 来源。",
   "Proto.Resource.CurseForgeDesktopOnly": "CurseForge 来源需要在桌面版里携带 API Key，网页预览暂不支持。",
   "Proto.Resource.InvalidId": "资源 ID 无效。",

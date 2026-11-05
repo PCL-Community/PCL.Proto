@@ -60,6 +60,8 @@
   "Proto.Desktop.JavaAdd": "Use the desktop app to add Java.",
   "Proto.Desktop.Link": "Use the desktop app for multiplayer.",
   "Proto.Desktop.Lobby": "Use the desktop app to access multiplayer lobbies.",
+  "Proto.Resource.Description": "Description",
+  "Proto.Resource.DescriptionFailed": "Failed to load the description: {0}",
   "Proto.Resource.CurseForgeUnavailable": "CurseForge is unavailable in this build: set the CURSEFORGE_API_KEY environment variable to use it.",
   "Proto.Resource.CurseForgeDesktopOnly": "CurseForge needs the API key sent by the desktop build, so the web preview cannot use it.",
   "Proto.Resource.InvalidId": "Invalid resource ID.",

@@ -17,6 +17,8 @@ import PIconTextButton from '@/components/widget/PIconTextButton.vue'
 import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import PLoading from '@/components/widget/PLoading.vue'
 import PHint from '@/components/widget/PHint.vue'
+import PMarkdown from '@/components/widget/PMarkdown.vue'
+import curseforgeApi from '@/api/curseforgeApi'
 import { useRoute } from 'vue-router'
 import { computed, onScopeDispose, ref, shallowRef, watch } from 'vue'
 import { pclFormatLocale, pclText } from '@/api/pclLocale'
@@ -34,6 +36,8 @@ const versions = shallowRef<IVersion[]>([])
 const source = ref<CompSource>('modrinth')
 const loading = ref(false)
 const error = ref<string | null>(null)
+const description = ref<string | null>(null)
+const descriptionError = ref<string | null>(null)
 const versionFilter = ref('')
 const requestedVersion = ref('')
 const requestedLoader = ref('')
@@ -97,6 +101,8 @@ async function load() {
   loading.value = true
   error.value = null
   project.value = undefined
+  description.value = null
+  descriptionError.value = null
   versions.value = []
   try {
     const id = String(route.query.id || '')
@@ -106,6 +112,16 @@ async function load() {
     if (current !== request) return
     project.value = data
     versions.value = files
+    if (source.value === 'curseforge') {
+      void curseforgeApi
+        .getProjectDescription(id)
+        .then((body) => {
+          if (current === request) description.value = body
+        })
+        .catch((err) => {
+          if (current === request) descriptionError.value = String(err)
+        })
+    } else description.value = data.body || data.description
     // 路由带入的是实例的具体版本号，需要归到筛选选项上
     if (
       versionFilters.value.list.length >= 2 &&
@@ -176,143 +192,170 @@ watch(
       }}</PButton></PHint
     >
     <template v-else-if="project && item">
-      <PCard hide-title>
-        <div class="intro">
-          <PCompItem :data="item" />
-          <div class="actions">
-            <PIconTextButton bordered icon="lucide/globe" @click="() => openExternal(projectUrl)">{{
-              sourceName
-            }}</PIconTextButton>
-            <PIconTextButton
-              bordered
-              icon="lucide/globe"
-              @click="
-                () =>
-                  openExternal(
-                    `https://search.mcmod.cn/s?key=${encodeURIComponent(project!.title)}`,
-                  )
-              "
-              >{{ text('Download.Comp.Detail.McMod') }}</PIconTextButton
-            >
-            <PIconTextButton
-              bordered
-              icon="lucide/earth"
-              @click="
-                () =>
-                  openExternal(
-                    `https://translate.google.com/?sl=auto&amp;tl=zh-CN&amp;text=${encodeURIComponent(project!.description)}`,
-                  )
-              "
-              >{{ text('Download.Comp.Detail.TranslateDescription') }}</PIconTextButton
-            >
-            <PIconTextButton bordered icon="lucide/copy" @click="() => copy(project!.title)">{{
-              text('Download.Comp.Detail.CopyName')
-            }}</PIconTextButton>
-            <PIconTextButton
-              bordered
-              :icon="favorites.has(project.id) ? 'lucide/heart-filled' : 'lucide/heart'"
-              @click="() => favorites.toggle(item!)"
-              >{{
-                text(
-                  favorites.has(project.id)
-                    ? 'Download.Comp.Detail.Unfavorite'
-                    : 'Download.Comp.Detail.Favorite',
-                )
-              }}</PIconTextButton
-            >
-            <PIconTextButton bordered icon="lucide/copy" @click="() => copy(projectUrl)">{{
-              text('Download.Comp.Detail.CopyLink')
-            }}</PIconTextButton>
-          </div>
-        </div>
-      </PCard>
-      <PCard v-if="versionFilters.list.length >= 2" hide-title>
-        <div class="filters">
-          <div class="filter-row">
-            <span v-if="isMod" class="filter-label">{{
-              text('Download.Comp.Detail.InstanceFilter')
-            }}</span>
-            <button
-              type="button"
-              class="pcl-chip"
-              :class="{ active: !versionFilter }"
-              @click="versionFilter = ''"
-            >
-              {{ text('Common.Option.All') }}
-            </button>
-            <button
-              v-for="value in versionFilters.list"
-              :key="value"
-              type="button"
-              class="pcl-chip"
-              :class="{ active: versionFilter === value }"
-              @click="versionFilter = value"
-            >
-              {{ value }}
-            </button>
-          </div>
-          <div v-if="isMod" class="filter-row">
-            <span class="filter-label">{{ text('Download.Comp.Detail.LoaderFilter') }}</span>
-            <button
-              type="button"
-              class="pcl-chip"
-              :class="{ active: !loaderFilter }"
-              @click="loaderFilter = ''"
-            >
-              {{ text('Common.Option.All') }}
-            </button>
-            <button
-              v-for="value in loaders"
-              :key="value"
-              type="button"
-              class="pcl-chip"
-              :class="{ active: loaderFilter === value }"
-              @click="loaderFilter = value"
-            >
-              {{ loaderNames[value] || value }}
-            </button>
-          </div>
-        </div>
-      </PCard>
-      <PCard
-        v-for="group in groups"
-        :key="`${versionFilter}:${loaderFilter}:${group.key}`"
-        :title="group.name"
-        :default-fold-status="group.key === 'selected' || groups.length === 1 ? 'unfold' : 'fold'"
-      >
-        <div class="version-files">
-          <PVirtualList
-            :items="
-              group.versions.flatMap((version) => version.files.map((file) => ({ version, file })))
-            "
-            :item-key="(row) => `${row.version.id}:${row.file.url}`"
-            v-slot="{ item: { version, file } }"
-          >
-            <PListItem
-              :title="version.name"
-              :subtitle="`${file.filename} · ${version.loaders.join(', ')} · ${new Date(version.date_published).toLocaleString(pclFormatLocale)}`"
-              clickable
-              @click="() => download(file, version)"
-            >
-              <template
-                v-if="project.project_type === 'modpack' && source === 'modrinth'"
-                #icon-actions
-              >
-                <button
-                  class="pcl-icon-button"
-                  type="button"
-                  :title="text('Download.Comp.Detail.DownloadModpackFile')"
-                  :aria-label="text('Download.Comp.Detail.DownloadModpackFile')"
-                  @click.stop="download(file, version, true)"
+      <div class="detail-columns">
+        <div class="detail-content">
+          <PCard hide-title>
+            <div class="intro">
+              <PCompItem :data="item" detail />
+              <div class="actions">
+                <PIconTextButton
+                  bordered
+                  icon="lucide/globe"
+                  @click="() => openExternal(projectUrl)"
+                  >{{ sourceName }}</PIconTextButton
                 >
-                  <PSvgIcon name="lucide/download" :size="16" />
-                </button>
-              </template>
-            </PListItem>
-          </PVirtualList>
+                <PIconTextButton
+                  bordered
+                  icon="lucide/globe"
+                  @click="
+                    () =>
+                      openExternal(
+                        `https://search.mcmod.cn/s?key=${encodeURIComponent(project!.title)}`,
+                      )
+                  "
+                  >{{ text('Download.Comp.Detail.McMod') }}</PIconTextButton
+                >
+                <PIconTextButton
+                  bordered
+                  icon="lucide/earth"
+                  @click="
+                    () =>
+                      openExternal(
+                        `https://translate.google.com/?sl=auto&amp;tl=zh-CN&amp;text=${encodeURIComponent(project!.description)}`,
+                      )
+                  "
+                  >{{ text('Download.Comp.Detail.TranslateDescription') }}</PIconTextButton
+                >
+                <PIconTextButton bordered icon="lucide/copy" @click="() => copy(project!.title)">{{
+                  text('Download.Comp.Detail.CopyName')
+                }}</PIconTextButton>
+                <PIconTextButton
+                  bordered
+                  :icon="favorites.has(project.id) ? 'lucide/heart-filled' : 'lucide/heart'"
+                  @click="() => favorites.toggle(item!)"
+                  >{{
+                    text(
+                      favorites.has(project.id)
+                        ? 'Download.Comp.Detail.Unfavorite'
+                        : 'Download.Comp.Detail.Favorite',
+                    )
+                  }}</PIconTextButton
+                >
+                <PIconTextButton bordered icon="lucide/copy" @click="() => copy(projectUrl)">{{
+                  text('Download.Comp.Detail.CopyLink')
+                }}</PIconTextButton>
+              </div>
+            </div>
+          </PCard>
+          <PCard :title="text('Proto.Resource.Description')">
+            <div class="project-description">
+              <PHint v-if="descriptionError" severity="error">{{
+                text('Proto.Resource.DescriptionFailed', [descriptionError])
+              }}</PHint>
+              <PLoading
+                v-else-if="description === null"
+                :loading-text="text('Download.Version.LoadingList')"
+              />
+              <PMarkdown v-else :content="description || project.description" />
+            </div>
+          </PCard>
         </div>
-      </PCard>
-      <p v-if="!groups.length" class="pcl-empty">{{ pclText('Proto.Empty.FilteredVersions') }}</p>
+        <div class="detail-content">
+          <PCard v-if="versionFilters.list.length >= 2" hide-title>
+            <div class="filters">
+              <div class="filter-row">
+                <span v-if="isMod" class="filter-label">{{
+                  text('Download.Comp.Detail.InstanceFilter')
+                }}</span>
+                <button
+                  type="button"
+                  class="pcl-chip"
+                  :class="{ active: !versionFilter }"
+                  @click="versionFilter = ''"
+                >
+                  {{ text('Common.Option.All') }}
+                </button>
+                <button
+                  v-for="value in versionFilters.list"
+                  :key="value"
+                  type="button"
+                  class="pcl-chip"
+                  :class="{ active: versionFilter === value }"
+                  @click="versionFilter = value"
+                >
+                  {{ value }}
+                </button>
+              </div>
+              <div v-if="isMod" class="filter-row">
+                <span class="filter-label">{{ text('Download.Comp.Detail.LoaderFilter') }}</span>
+                <button
+                  type="button"
+                  class="pcl-chip"
+                  :class="{ active: !loaderFilter }"
+                  @click="loaderFilter = ''"
+                >
+                  {{ text('Common.Option.All') }}
+                </button>
+                <button
+                  v-for="value in loaders"
+                  :key="value"
+                  type="button"
+                  class="pcl-chip"
+                  :class="{ active: loaderFilter === value }"
+                  @click="loaderFilter = value"
+                >
+                  {{ loaderNames[value] || value }}
+                </button>
+              </div>
+            </div>
+          </PCard>
+          <PCard
+            v-for="group in groups"
+            :key="`${versionFilter}:${loaderFilter}:${group.key}`"
+            :title="group.name"
+            :default-fold-status="
+              group.key === 'selected' || groups.length === 1 ? 'unfold' : 'fold'
+            "
+          >
+            <div class="version-files">
+              <PVirtualList
+                :items="
+                  group.versions.flatMap((version) =>
+                    version.files.map((file) => ({ version, file })),
+                  )
+                "
+                :item-key="(row) => `${row.version.id}:${row.file.url}`"
+                v-slot="{ item: { version, file } }"
+              >
+                <PListItem
+                  :title="version.name"
+                  :subtitle="`${file.filename} · ${version.loaders.join(', ')} · ${new Date(version.date_published).toLocaleString(pclFormatLocale)}`"
+                  clickable
+                  @click="() => download(file, version)"
+                >
+                  <template
+                    v-if="project.project_type === 'modpack' && source === 'modrinth'"
+                    #icon-actions
+                  >
+                    <button
+                      class="pcl-icon-button"
+                      type="button"
+                      :title="text('Download.Comp.Detail.DownloadModpackFile')"
+                      :aria-label="text('Download.Comp.Detail.DownloadModpackFile')"
+                      @click.stop="download(file, version, true)"
+                    >
+                      <PSvgIcon name="lucide/download" :size="16" />
+                    </button>
+                  </template>
+                </PListItem>
+              </PVirtualList>
+            </div>
+          </PCard>
+          <p v-if="!groups.length" class="pcl-empty">
+            {{ pclText('Proto.Empty.FilteredVersions') }}
+          </p>
+        </div>
+      </div>
     </template>
   </article>
 </template>
@@ -320,6 +363,27 @@ watch(
 .detail-page {
   overflow-y: auto;
   height: 100%;
+  container-type: inline-size;
+}
+.detail-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  align-items: start;
+  gap: var(--pcl-page-gap);
+}
+.detail-content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--pcl-page-gap);
+}
+.project-description {
+  padding: 0 20px 20px;
+}
+@container (max-width: 650px) {
+  .detail-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .intro {
   padding: 15px 22px;

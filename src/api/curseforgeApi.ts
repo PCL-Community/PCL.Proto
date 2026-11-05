@@ -301,6 +301,14 @@ async function getProject(id: string): Promise<IProject> {
   }
 }
 
+async function getProjectDescription(id: string): Promise<string> {
+  const response = await curseforgeFetch<{ data?: unknown }>(
+    `mods/${encodeURIComponent(id)}/description`,
+  )
+  if (typeof response?.data !== 'string') throw new Error('CurseForge 项目介绍格式错误')
+  return response.data
+}
+
 /// 文件列表：CF 分页返回。首页拿到总量后并发取回剩下的页，
 /// 最多 FILE_PAGES 页；已知目标版本/加载器时直接让上游筛，省掉无用的翻页。
 async function getProjectVersions(
@@ -342,5 +350,6 @@ export default {
   searchEndpoint,
   searchProjects,
   getProject,
+  getProjectDescription,
   getProjectVersions,
 }
