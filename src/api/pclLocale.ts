@@ -89,7 +89,7 @@ export async function setPclLocale(locale: string): Promise<void> {
   languagePreference.value = locale
   if (typeof document !== 'undefined') document.documentElement.lang = resolved
   try {
-    localStorage.setItem('pcl-language', locale)
+    if (typeof globalThis.localStorage !== 'undefined') localStorage.setItem('pcl-language', locale)
   } catch (error) {
     console.warn('Unable to save language preference', error)
   }

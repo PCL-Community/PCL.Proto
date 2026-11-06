@@ -14,6 +14,7 @@
     "ui:dev": "vite",
     "ui:build": "bun run check:ui && bun run --parallel type-check ui:build-only",
     "ui:build-only": "vite build",
+    "components:build": "vite build --config packages/components/vite.config.ts && vue-tsc -p packages/components/tsconfig.json && bun packages/components/prepare-types.js",
     "type-check": "vue-tsc --build",
     "format": "bun fmt src/",
     "deploy": "bun run ui:build && gh-pages -d dist",

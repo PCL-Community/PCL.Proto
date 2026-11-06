@@ -1,0 +1,13 @@
+@import '../../../src/assets/base.css';
+@import '../../../src/assets/pcl.css';
+
+:root {
+  --ce-color-1: #323b47;
+  --ce-color-2: #1662b6;
+  --ce-color-3: #2078da;
+  --ce-color-4: #5291df;
+  --ce-color-5: #9ec1ee;
+  --ce-color-6: #d8e6f8;
+  --ce-color-7: #e1ecfa;
+  --ce-color-8: #ebf2fc;
+}

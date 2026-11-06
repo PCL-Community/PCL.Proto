@@ -80,9 +80,9 @@ the complete `.app` or DMG.
 
 Tauri's development and build hooks use Bun directly.
 
-## HELP WANTED!!
+## Vue Components
 
-I want to make this project into a Vue component npm package, but I don't know how to do it. If there are any experts who can do component libraries, please contact me! Thank you!
+The reusable controls are packaged as `@amagicpear/pcl-proto-components`. See the [component package guide](packages/components/README.md) for imports, styling, locale, and licensing. To build a local npm package, run `bun run components:build` followed by `npm pack ./packages/components`. Publishing requires access to the npm scope and is a separate step.
 
 ## Credits
 

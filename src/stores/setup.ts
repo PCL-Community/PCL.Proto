@@ -1,12 +1,5 @@
 import { defineStore } from 'pinia'
 
-export interface ISetupOption {
-  key: string
-  text: string
-  title?: string
-  disabled?: boolean
-}
-
 export const useSetup = defineStore('setup', {
   state: () => ({
     launch: {

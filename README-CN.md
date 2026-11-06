@@ -77,9 +77,9 @@ bun run tauri build
 
 macOS 打包目录与资源读取方式见 [应用打包说明](docs/PACKAGING.md)。请分发完整的 `.app` 或 DMG。
 
-## 项目打包求助！
+## Vue 组件库
 
-我想把这个项目做成 Vue 组件的 npm 包，但是我不会做，如果有大佬会做组件库的话，欢迎联系我！！！
+可复用的基础控件以 `@amagicpear/pcl-proto-components` 打包。导入、样式、语言和许可说明见[组件包文档](packages/components/README.md)。运行 `bun run components:build` 后执行 `npm pack ./packages/components` 可生成本地安装包；发布到 npm 需要对应命名空间的权限，须单独执行。
 
 ## 鸣谢
 

@@ -67,6 +67,9 @@ jobs:
       - name: install frontend dependencies
         run: bun install --frozen-lockfile
 
+      - name: build component package
+        run: bun run components:build
+
       - name: generate icons
         run: bun run icons
 

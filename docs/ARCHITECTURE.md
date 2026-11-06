@@ -4,6 +4,12 @@
 
 ## 前端
 
+仓库根目录的 `package.json`、Vite 和 TypeScript 配置负责网站与 Tauri 前端；
+`packages/components/` 保存组件 npm 包的入口、样式、包描述和独立构建配置，
+直接复用 `src/components/widget/` 中的控件。根目录 `Cargo.toml` 管理 Rust 工作区，
+`src-tauri/` 是桌面应用，`src-terracotta/` 是独立维护的 Git 子模块；不要把子模块文件复制到组件包。
+组件包运行 `bun run components:build` 构建，或执行 `npm pack ./packages/components` 构建并打包。
+
 | 位置                     | 负责的内容                                                   |
 | ------------------------ | ------------------------------------------------------------ |
 | `src/views/`             | 页面布局、路由参数、该页面的交互与展示状态                   |
@@ -59,7 +65,7 @@ types/comp.ts
 
 ## 维护约定与验证
 
-`scripts/` 只保留图标生成与 CE 资源同步工具。前端回归检查统一放在 `tests/ui/*.test.mjs`，由 `bun run check:ui` 使用 Bun 测试运行器逐文件执行；新增测试无需修改命令列表。临时界面对照入口不随应用保留。
+`scripts/` 保存应用共用的图标生成与 CE 资源同步工具；包专属的构建脚本保留在所属包中。前端回归检查统一放在 `tests/ui/*.test.mjs`，由 `bun run check:ui` 使用 Bun 测试运行器逐文件执行；新增测试无需修改命令列表。临时界面对照入口不随应用保留。
 
 新增功能先找所属领域的现有入口。公共规则只保留一个实现，调用方直接 import 所属模块；不要为转调一次函数而增加页面包装、兼容转导出或新的 service 层。页面确有独有状态、校验、错误处理或交互时再保留本地函数。
 

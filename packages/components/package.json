@@ -1,0 +1,19 @@
+{
+  "name": "@amagicpear/pcl-proto-components",
+  "version": "0.10.0",
+  "description": "PCL.Proto Vue 3 components",
+  "scripts": { "build": "bun run --cwd ../.. components:build", "prepack": "bun run build" },
+  "type": "module",
+  "files": ["dist", "LICENSE", "README.md"],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/types/packages/components/src/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/types/packages/components/src/index.d.ts", "import": "./dist/index.js" },
+    "./style.css": "./dist/style.css"
+  },
+  "peerDependencies": { "vue": "^3.5.0" },
+  "repository": { "type": "git", "url": "https://github.com/AMagicPear/PCL.Proto.git", "directory": "packages/components" },
+  "license": "SEE LICENSE IN LICENSE",
+  "publishConfig": { "access": "public" }
+}

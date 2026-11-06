@@ -8,7 +8,7 @@ function controlAttrs() {
   return inputAttrs
 }
 import IconUnfold from '../icons/control/IconUnfold.vue'
-import { type ISetupOption } from '@/stores/setup'
+import { type ISetupOption } from '../../types/setupOption'
 
 defineProps<{
   options: ISetupOption[]
