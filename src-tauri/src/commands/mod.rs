@@ -7,6 +7,7 @@ pub mod instances;
 pub mod java;
 pub mod launch;
 pub mod launch_settings;
+pub mod logs;
 pub mod memory;
 pub mod network;
 pub mod repositories;
