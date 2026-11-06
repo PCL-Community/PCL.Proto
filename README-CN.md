@@ -1,7 +1,7 @@
 # PCL.Proto
 
 <p align="center">
-  <img src="./public/PCL.Proto.svg" width="200" alt="PCL.Proto" />
+  <img src="./public/PCL.Proto.png" width="200" alt="PCL.Proto" />
 </p>
 
 随着PCL的分支版本竞相启动，UI的还原成为了一大困扰众开发者的难题。PCL.Proto 应运而生。
@@ -50,7 +50,7 @@ bun install --frozen-lockfile
 
 后端依赖会由 cargo 自动安装，无需手动管理。
 
-然后，使用 `bun run tauri icon` 自动生成图标。接下来就可以开始正式的开发和构建了。
+然后，使用 `bun run icons` 自动生成图标。接下来就可以开始正式的开发和构建了。
 
 > [!WARNING]
 > 本仓库已排除图标文件。因此如果你在克隆仓库后不进行此步，icons文件夹内为空的话，在 **Tauri 应用启动时会报错**！

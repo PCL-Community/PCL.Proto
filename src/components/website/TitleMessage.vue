@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { pclText } from '@/api/pclLocale'
-import picPCLProto from '/PCL.Proto.svg?url'
+import picPCLProto from '/PCL.Proto.png?url'
 </script>
 
 <template lang="pug">

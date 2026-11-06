@@ -3,7 +3,7 @@
 | [中文版点我](./README-CN.md) |
 
 <p align="center">
-  <img src="./public/PCL.Proto.svg" width="200" alt="PCL.Proto" />
+  <img src="./public/PCL.Proto.png" width="200" alt="PCL.Proto" />
 </p>
 
 With the rapid launch of PCL branch versions, UI restoration has become a major challenge for many developers. PCL.Proto emerges as a solution.
@@ -56,7 +56,7 @@ bun install --frozen-lockfile
 
 The backend dependencies will be managed by `cargo` automatically.
 
-Then, use `bun run tauri icon` to automatically generate icons. You can then start the development and build processes.
+Then, use `bun run icons` to automatically generate icons. You can then start the development and build processes.
 
 > [!WARNING]
 > The icons in this repository are excluded. Therefore, if you do not perform this step after cloning the repository, the `icons` folder will be empty, and the Tauri application will throw an error when it starts!

@@ -5,7 +5,7 @@ import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PHint from '@/components/widget/PHint.vue'
 import PMarkdown from '@/components/widget/PMarkdown.vue'
-import appIcon from '/PCL.Proto.svg?url'
+import appIcon from '/PCL.Proto.png?url'
 import { openExternal } from '@/util/externalLink'
 import {
   checkLauncherUpdate,

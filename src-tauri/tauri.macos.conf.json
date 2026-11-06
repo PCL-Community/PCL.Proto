@@ -23,6 +23,12 @@
     }
   },
   "bundle": {
+    "macOS": {
+      "files": {
+        "Resources/Assets.car": "macos/Assets.car"
+      },
+      "infoPlist": "macos/Info.plist"
+    },
     "resources": {
       "../dist/": "frontend/",
       "resources/": "launcher/"

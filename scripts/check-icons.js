@@ -1,4 +1,4 @@
-// src-tauri/icons is not committed; generate it from app-icon.png before Tauri reads the bundle config.
+// src-tauri/icons is not committed; generate it before Tauri reads the bundle config.
 const iconsDir = 'src-tauri/icons'
 let hasIcons
 try {
@@ -9,8 +9,8 @@ try {
 }
 
 if (!hasIcons) {
-  console.log('Launcher icons missing, running `tauri icon`...')
-  const result = Bun.spawnSync(['bun', 'run', 'tauri', 'icon'], {
+  console.log('Launcher icons missing, running `bun run icons`...')
+  const result = Bun.spawnSync(['bun', 'run', 'icons'], {
     stdout: 'inherit',
     stderr: 'inherit',
   })

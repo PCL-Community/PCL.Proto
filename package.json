@@ -17,6 +17,7 @@
     "type-check": "vue-tsc --build",
     "format": "bun fmt src/",
     "deploy": "bun run ui:build && gh-pages -d dist",
+    "icons": "tauri icon public/PCL.Proto.png",
     "tauri": "tauri",
     "check:ui": "bun test --isolate --max-concurrency=1 tests/ui/*.test.mjs"
   },

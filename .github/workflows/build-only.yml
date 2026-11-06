@@ -68,7 +68,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: generate icons
-        run: bun run tauri icon
+        run: bun run icons
 
       - name: test Java selection and configuration
         run: |

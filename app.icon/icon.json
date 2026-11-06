@@ -1,0 +1,223 @@
+{
+  "color-space-for-untagged-svg-colors" : "display-p3",
+  "fill-specializations" : [
+    {
+      "value" : {
+        "automatic-gradient" : "display-p3:0.54031,0.63621,1.00000,1.00000"
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : {
+        "automatic-gradient" : "display-p3:0.11641,0.21028,0.46905,1.00000"
+      }
+    }
+  ],
+  "groups" : [
+    {
+      "name" : "Icon",
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            }
+          ],
+          "glass" : false,
+          "image-name" : "ProtoText.svg",
+          "name" : "Proto Text",
+          "opacity-specializations" : [
+            {
+              "appearance" : "tinted",
+              "value" : 1
+            }
+          ],
+          "position" : {
+            "scale" : 1.07,
+            "translation-in-points" : [
+              0,
+              168
+            ]
+          }
+        },
+        {
+          "fill" : {
+            "solid" : "srgb:1.00000,1.00000,1.00000,1.00000"
+          },
+          "hidden" : false,
+          "image-name" : "DecorativeFrame.svg",
+          "name" : "Decorative Frame",
+          "opacity" : 0,
+          "position" : {
+            "scale" : 1.19,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "display-p3:0.99735,1.00000,0.99275,1.00000"
+              }
+            }
+          ],
+          "image-name" : "ProtoBadge.svg",
+          "name" : "Proto Badge",
+          "opacity-specializations" : [
+            {
+              "value" : 0
+            },
+            {
+              "appearance" : "dark",
+              "value" : 0
+            },
+            {
+              "appearance" : "tinted",
+              "value" : 0
+            }
+          ],
+          "position" : {
+            "scale" : 1.19,
+            "translation-in-points" : [
+              -3,
+              170
+            ]
+          }
+        },
+        {
+          "blend-mode-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : "lighten"
+            }
+          ],
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "display-p3:1.00000,0.99613,0.96747,1.00000"
+              }
+            },
+            {
+              "appearance" : "tinted",
+              "value" : {
+                "solid" : "display-p3:1.00000,0.99613,0.96747,1.00000"
+              }
+            }
+          ],
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "PCLText.svg",
+          "name" : "PCL Text",
+          "opacity-specializations" : [
+            {
+              "appearance" : "tinted",
+              "value" : 1
+            }
+          ],
+          "position" : {
+            "scale" : 1.15,
+            "translation-in-points" : [
+              0,
+              -100.68259759864003
+            ]
+          }
+        },
+        {
+          "blend-mode" : "normal",
+          "fill-specializations" : [
+            {
+              "value" : "automatic"
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "display-p3:0.31525,0.41223,0.88011,1.00000"
+              }
+            }
+          ],
+          "glass" : true,
+          "image-name" : "InnerGlass.svg",
+          "name" : "Inner Glass",
+          "opacity-specializations" : [
+            {
+              "value" : 0.54
+            },
+            {
+              "appearance" : "dark",
+              "value" : 0.75
+            },
+            {
+              "appearance" : "tinted",
+              "value" : 0.35
+            }
+          ],
+          "position" : {
+            "scale" : 1.06,
+            "translation-in-points" : [
+              0.034692983799914145,
+              0.0271878361202198
+            ]
+          }
+        },
+        {
+          "blend-mode-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : "normal"
+            }
+          ],
+          "fill" : "automatic",
+          "glass" : true,
+          "image-name" : "OuterGlass.svg",
+          "name" : "Outer Glass",
+          "opacity-specializations" : [
+            {
+              "value" : 0.46
+            },
+            {
+              "appearance" : "dark",
+              "value" : 0.25
+            },
+            {
+              "appearance" : "tinted",
+              "value" : 0
+            }
+          ],
+          "position" : {
+            "scale" : 1.14,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.3
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

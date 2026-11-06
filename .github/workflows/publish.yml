@@ -128,7 +128,7 @@ jobs:
 
       - name: generate icons
         run: |
-          bun run tauri icon
+          bun run icons
 
       - uses: tauri-apps/tauri-action@v0
         env:
