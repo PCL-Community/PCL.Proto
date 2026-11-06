@@ -54,9 +54,14 @@ pub fn run() {
             tauri_plugin_log::Builder::new()
                 .targets([
                     Target::new(TargetKind::Stdout),
-                    Target::new(TargetKind::LogDir { file_name: None }),
+                    // CE 同款：每次启动写一个 `Launch-yyyy-M-d-HHmmssfff.log`，超 32MB 归档。
+                    Target::new(TargetKind::LogDir {
+                        file_name: Some(commands::logs::launch_log_stem()),
+                    }),
                     // Target::new(TargetKind::Webview),
                 ])
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
+                .max_file_size(32 * 1024 * 1024)
                 .level(log::LevelFilter::Info)
                 .build(),
         )
@@ -123,6 +128,12 @@ pub fn run() {
             commands::launch_settings::set_instance_launch_settings,
             commands::network::get_proxy_settings,
             commands::network::set_proxy_settings,
+            commands::logs::list_log_files,
+            commands::logs::open_log_directory,
+            commands::logs::open_log_path,
+            commands::logs::log_export_destination,
+            commands::logs::export_log_files,
+            commands::logs::clear_log_files,
             commands::launch::export_launch_script,
             commands::instance_resources::repair_instance_files,
             commands::instances::get_instance_description,
