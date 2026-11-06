@@ -24,10 +24,17 @@ const modal = useModal()
 const busy = ref(false)
 
 const website = !isTauri()
-const profile = computed<McProfile | null>(() => website ? {
-  profileId: 'website', userName: 'AMagicPear', uuid: '31bbe5379fea4e68aa4ad7aacca23d13',
-  profileType: 'microsoft', description: '',
-} : account.profile)
+const profile = computed<McProfile | null>(() =>
+  website
+    ? {
+        profileId: 'website',
+        userName: 'AMagicPear',
+        uuid: '31bbe5379fea4e68aa4ad7aacca23d13',
+        profileType: 'microsoft',
+        description: '',
+      }
+    : account.profile,
+)
 // CE：离线档案不显示“修改信息”按钮。
 const canEdit = computed(() => !!profile.value && profile.value.profileType !== 'offline')
 
@@ -60,7 +67,12 @@ async function changeLocalSkin(profileId: string, offline: boolean) {
   const source = await open({
     title: text('Launch.Skin.FileDialog.Title'),
     multiple: false,
-    filters: [{ name: text('Launch.Skin.FileDialog.Filter'), extensions: offline ? ['png'] : ['png', 'jpg', 'webp'] }],
+    filters: [
+      {
+        name: text('Launch.Skin.FileDialog.Filter'),
+        extensions: offline ? ['png'] : ['png', 'jpg', 'webp'],
+      },
+    ],
   })
   if (!source || typeof source !== 'string') return
   const { choice } = await dialog({
@@ -77,7 +89,11 @@ async function changeLocalSkin(profileId: string, offline: boolean) {
   busy.value = true
   sideTip.show(text('Launch.Skin.Change.Starting'))
   try {
-    await invoke(offline ? 'change_offline_skin' : 'change_microsoft_skin', { profileId, source, slim: choice === 2 })
+    await invoke(offline ? 'change_offline_skin' : 'change_microsoft_skin', {
+      profileId,
+      source,
+      slim: choice === 2,
+    })
     sideTip.show(text('Launch.Skin.ChangeSuccess'), 'success')
     await account.loadSkin(profileId, true)
   } catch (error) {
@@ -275,11 +291,15 @@ async function openMenu(event: MouseEvent, actions: readonly string[]) {
     void showUnavailable()
     return
   }
-  const available = actions === skinActions && profile.value?.profileType === 'offline'
-    ? [...actions, 'ResetOfflineSkin']
-    : actions
+  const available =
+    actions === skinActions && profile.value?.profileType === 'offline'
+      ? [...actions, 'ResetOfflineSkin']
+      : actions
   const items: NativeMenuItem[] = available.map((action) => ({
-    text: action === 'ResetOfflineSkin' ? text('Proto.Account.ResetOfflineSkin') : text(`Launch.Account.ProfileSkin.${action}`),
+    text:
+      action === 'ResetOfflineSkin'
+        ? text('Proto.Account.ResetOfflineSkin')
+        : text(`Launch.Account.ProfileSkin.${action}`),
     action: () => runAction(action),
   }))
   try {
@@ -291,9 +311,12 @@ async function openMenu(event: MouseEvent, actions: readonly string[]) {
 </script>
 <template>
   <div v-if="profile" class="profile-skin">
-    <PSkin class="profile-avatar" :skin-url="website ? 'https://minotar.net/skin/AMagicPear' : account.skinFor(profile?.profileId)" /><strong>{{
-      profile?.userName || 'Player'
-    }}</strong
+    <PSkin
+      class="profile-avatar"
+      :skin-url="
+        website ? 'https://minotar.net/skin/AMagicPear' : account.skinFor(profile?.profileId)
+      "
+    /><strong>{{ profile?.userName || 'Player' }}</strong
     ><span>{{ getProfileInfo(profile) }}</span>
     <div class="profile-actions-reveal">
       <PCard hide-title class="profile-actions-card"

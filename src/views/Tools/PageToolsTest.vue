@@ -319,14 +319,23 @@ async function openDownloadFolder() {
                 @update:model-value="(value) => (values.TextSkinID = value || '')"
                 @keydown.enter="loadSkin"
               />
-              <PButton compact :disabled="loadingSkin || savingSkin" :aria-busy="loadingSkin" @click="loadSkin">
+              <PButton
+                compact
+                :disabled="loadingSkin || savingSkin"
+                :aria-busy="loadingSkin"
+                @click="loadSkin"
+              >
                 {{ text('Tools.ServerQuery.Action.Query') }}
               </PButton>
             </div>
-            <div v-if="loadingSkin" class="skin-status" role="status">{{ text('Tools.Test.Skin.Fetching') }}</div>
+            <div v-if="loadingSkin" class="skin-status" role="status">
+              {{ text('Tools.Test.Skin.Fetching') }}
+            </div>
             <Transition name="skin-reveal">
               <div v-if="skin" class="skin-result-actions">
-                <span class="skin-result-name">{{ text('Proto.Label.PlayerSkin') }}: <strong>{{ skin.name }}</strong></span>
+                <span class="skin-result-name"
+                  >{{ text('Proto.Label.PlayerSkin') }}: <strong>{{ skin.name }}</strong></span
+                >
                 <PButton compact :disabled="loadingSkin || savingSkin" @click="saveSkin">
                   {{ text('Tools.Test.Skin.Save') }}
                 </PButton>
@@ -519,27 +528,96 @@ async function openDownloadFolder() {
 </template>
 
 <style scoped>
-.skin-tool { margin: 2px 25px 20px; container-type: inline-size; }
-.skin-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0fr); gap: 0; align-items: center; transition: grid-template-columns 350ms ease, gap 350ms ease; }
-.skin-layout.has-skin { grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr); gap: 24px; }
-.skin-controls { min-width: 0; }
-.skin-query { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-.skin-query :deep(.input-wrapper) { flex: 1; min-width: 0; }
-.skin-status { margin-top: 8px; color: var(--color-text-grey); }
-.skin-result-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
-.skin-result-name { flex: 1 1 120px; min-width: 0; color: var(--color-text-grey); overflow-wrap: anywhere; }
-.skin-result-name strong { color: var(--color-text); }
-.skin-preview { min-width: 0; overflow: hidden; display: flex; justify-content: center; }
-.skin-preview-content { width: min(100%, 200px); }
-.skin-preview canvas { display: block; width: 100%; height: auto; aspect-ratio: 2 / 3; }
-.skin-reveal-enter-active, .skin-reveal-leave-active { transition: opacity 250ms ease; }
-.skin-reveal-enter-active { transition-delay: 100ms; }
-.skin-reveal-enter-from, .skin-reveal-leave-to { opacity: 0; }
+.skin-tool {
+  margin: 2px 25px 20px;
+  container-type: inline-size;
+}
+.skin-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0fr);
+  gap: 0;
+  align-items: center;
+  transition:
+    grid-template-columns 350ms ease,
+    gap 350ms ease;
+}
+.skin-layout.has-skin {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+  gap: 24px;
+}
+.skin-controls {
+  min-width: 0;
+}
+.skin-query {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.skin-query :deep(.input-wrapper) {
+  flex: 1;
+  min-width: 0;
+}
+.skin-status {
+  margin-top: 8px;
+  color: var(--color-text-grey);
+}
+.skin-result-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+.skin-result-name {
+  flex: 1 1 120px;
+  min-width: 0;
+  color: var(--color-text-grey);
+  overflow-wrap: anywhere;
+}
+.skin-result-name strong {
+  color: var(--color-text);
+}
+.skin-preview {
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+}
+.skin-preview-content {
+  width: min(100%, 200px);
+}
+.skin-preview canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+}
+.skin-reveal-enter-active,
+.skin-reveal-leave-active {
+  transition: opacity 250ms ease;
+}
+.skin-reveal-enter-active {
+  transition-delay: 100ms;
+}
+.skin-reveal-enter-from,
+.skin-reveal-leave-to {
+  opacity: 0;
+}
 @container (max-width: 360px) {
-  .skin-layout.has-skin { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-  .skin-preview-content { max-width: 160px; }
+  .skin-layout.has-skin {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .skin-preview-content {
+    max-width: 160px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .skin-layout, .skin-reveal-enter-active, .skin-reveal-leave-active { transition: none; }
+  .skin-layout,
+  .skin-reveal-enter-active,
+  .skin-reveal-leave-active {
+    transition: none;
+  }
 }
 </style>

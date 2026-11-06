@@ -14,7 +14,12 @@ onMounted(() => {
     animation: new WalkingAnimation(),
   })
 })
-watch(() => props.skinUrl, (url) => { void skinViewer?.loadSkin(url) })
+watch(
+  () => props.skinUrl,
+  (url) => {
+    void skinViewer?.loadSkin(url)
+  },
+)
 onUnmounted(() => skinViewer?.dispose())
 </script>
 <template>

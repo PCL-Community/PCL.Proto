@@ -37,7 +37,9 @@ const accountViews = {
   microsoft: PageLoginMs,
   auth: PageLoginAuth,
 }
-const accountView = computed(() => (website ? PageLoginProfileSkin : accountViews[profileView.value]))
+const accountView = computed(() =>
+  website ? PageLoginProfileSkin : accountViews[profileView.value],
+)
 // CE 的 RefreshPage：选中档案时显示皮肤页，没有档案时显示档案列表。
 watch(
   () => account.currentId,

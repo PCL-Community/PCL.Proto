@@ -47,7 +47,8 @@ function animateCards() {
   changed.clear()
   for (const [state, innerChanged] of ordered) {
     const { card } = state
-    if (state.animation && (!innerChanged || state.innerHeight === state.inner.offsetHeight)) continue
+    if (state.animation && (!innerChanged || state.innerHeight === state.inner.offsetHeight))
+      continue
     const from = state.animation ? card.offsetHeight : state.height
     state.animation?.cancel()
     state.animation = undefined
@@ -67,13 +68,20 @@ function animateCards() {
     scheduled.add(state)
     writes.push(() => {
       const overshoot = Math.min(Math.abs(height - from) * 0.1, 4, height)
-      const animation = card.animate([
-        { height: `${from}px`, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
-        { height: `${height + Math.sign(height - from) * overshoot}px`, offset: 0.75, easing: 'ease-in-out' },
-        { height: `${height}px` },
-      ], {
-        duration: 400,
-      })
+      const animation = card.animate(
+        [
+          { height: `${from}px`, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+          {
+            height: `${height + Math.sign(height - from) * overshoot}px`,
+            offset: 0.75,
+            easing: 'ease-in-out',
+          },
+          { height: `${height}px` },
+        ],
+        {
+          duration: 400,
+        },
+      )
       state.animation = animation
       animating.add(state)
       animation.onfinish = () => {

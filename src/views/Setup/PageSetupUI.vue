@@ -31,7 +31,9 @@ const homepageOptions = [
 const homepagePresetOptions = computed(() =>
   homepagePresets.map((preset) => ({
     key: preset.key,
-    text: pclText(preset.key === 'proto' ? 'Proto.About.Welcome' : `Setup.Ui.Homepage.Preset.${preset.name}`),
+    text: pclText(
+      preset.key === 'proto' ? 'Proto.About.Welcome' : `Setup.Ui.Homepage.Preset.${preset.name}`,
+    ),
   })),
 )
 function setHomepageType(value: string) {

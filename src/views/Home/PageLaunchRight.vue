@@ -20,9 +20,13 @@ defineProps<{ launchLog?: string }>()
 
 const text = pclText
 const website = !isTauri()
-const ComponentShowcase = defineAsyncComponent(() => import('@/components/website/ComponentShowcase.vue'))
+const ComponentShowcase = defineAsyncComponent(
+  () => import('@/components/website/ComponentShowcase.vue'),
+)
 const mode = computed(() => appearance.values.UiCustomType)
-const welcome = computed(() => mode.value === '3' && appearance.values.ComboCustomPreset === 'proto')
+const welcome = computed(
+  () => mode.value === '3' && appearance.values.ComboCustomPreset === 'proto',
+)
 const officialFeed = computed(
   () => mode.value === '3' && appearance.values.ComboCustomPreset === '15',
 )
@@ -88,7 +92,11 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <section class="pcl-page">
-    <PCard v-if="website || welcome" :title="text('Proto.About.Welcome')" default-fold-status="unfold">
+    <PCard
+      v-if="website || welcome"
+      :title="text('Proto.About.Welcome')"
+      default-fold-status="unfold"
+    >
       <div class="proto-introduction">
         <PHint severity="info">{{ text('Proto.About.Intro') }}</PHint>
         <p>{{ text('Proto.About.Description') }}</p>

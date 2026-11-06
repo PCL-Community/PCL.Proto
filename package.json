@@ -9,7 +9,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun scripts/check-icons.js && bun run tauri dev",
+    "dev": "bun run tauri dev",
     "build": "bun scripts/check-icons.js && bun run tauri build",
     "ui:dev": "vite",
     "ui:build": "bun run check:ui && bun run --parallel type-check ui:build-only",

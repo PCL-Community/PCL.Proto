@@ -64,9 +64,13 @@ watch(
   { flush: 'post' },
 )
 
-watch(foldState, () => {
-  if (cardRef.value) updateCardResize(cardRef.value)
-}, { flush: 'post' })
+watch(
+  foldState,
+  () => {
+    if (cardRef.value) updateCardResize(cardRef.value)
+  },
+  { flush: 'post' },
+)
 </script>
 
 <template>
