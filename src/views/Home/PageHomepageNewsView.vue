@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
-import { pclFormatLocale, pclText as text } from '@/api/pclLocale'
+import { pclFormatLocale, pclText } from '@/api/pclLocale'
 import { downloadHomepageText, homepageRevision } from '@/api/customHomepage'
 import { parseHomepageNews, type HomepageNewsItem } from '@/util/homepageNews'
 import PCard from '@/components/widget/PCard.vue'
@@ -53,7 +53,7 @@ function date(value?: number) {
   <section :class="{ 'pcl-page': !embedded }" class="news-page">
     <PLoading
       v-if="loading && !items.length"
-      :loading-text="text('Launch.Homepage.News.Loading')"
+      :loading-text="pclText('Launch.Homepage.News.Loading')"
     />
     <PHint v-if="error" severity="error">{{ error }}</PHint>
     <div class="news-grid">
@@ -74,13 +74,13 @@ function date(value?: number) {
           </div>
           <p>{{ decodeText(item.description) }}</p>
           <a v-if="item.url" :href="item.url" target="_blank" rel="noopener noreferrer">{{
-            text('Launch.Homepage.News.ViewDetail')
+            pclText('Launch.Homepage.News.ViewDetail')
           }}</a>
         </div>
       </PCard>
     </div>
     <p v-if="!loading && !error && !items.length" class="pcl-empty">
-      {{ text('Proto.Empty.News') }}
+      {{ pclText('Proto.Empty.News') }}
     </p>
   </section>
 </template>

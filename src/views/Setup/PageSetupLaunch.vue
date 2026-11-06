@@ -243,7 +243,6 @@ watch(
   { immediate: true },
 )
 const router = useRouter()
-const text = pclText
 const unavailableAdvancedOptions = [
   ['CheckAdvanceDisableJLW', 'DisableJlw'],
   ['CheckAdvanceDisableLF', 'DisableLF'],
@@ -271,62 +270,64 @@ const unavailableAdvancedOptions = [
       @retry="windowReady ? applyWindowSettings() : loadWindowSettings()"
     />
 
-    <PCard :title="text('Setup.Launch.Options.Title')">
+    <PCard :title="pclText('Setup.Launch.Options.Title')">
       <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
         <div class="settings-grid">
-          <SetupItem :label="text('Setup.Launch.Options.InstanceIsolation.Label')" v-slot="{ id }"
+          <SetupItem
+            :label="pclText('Setup.Launch.Options.InstanceIsolation.Label')"
+            v-slot="{ id }"
             ><PComboBox
               :disabled="!desktop || !isolationReady || isolationBusy"
               :key="isolationControlRevision"
               :input-id="id"
-              :title="text('Setup.Launch.Options.InstanceIsolation.ToolTip')"
+              :title="pclText('Setup.Launch.Options.InstanceIsolation.ToolTip')"
               :options="[
                 {
                   key: '0',
-                  text: text('Common.Action.Close'),
-                  title: text('Setup.Launch.Options.InstanceIsolation.None.ToolTip'),
+                  text: pclText('Common.Action.Close'),
+                  title: pclText('Setup.Launch.Options.InstanceIsolation.None.ToolTip'),
                 },
                 {
                   key: '1',
-                  text: text('Setup.Launch.Options.InstanceIsolation.ModdedOnly'),
-                  title: text('Setup.Launch.Options.InstanceIsolation.ModdedOnly.ToolTip'),
+                  text: pclText('Setup.Launch.Options.InstanceIsolation.ModdedOnly'),
+                  title: pclText('Setup.Launch.Options.InstanceIsolation.ModdedOnly.ToolTip'),
                 },
                 {
                   key: '2',
-                  text: text('Setup.Launch.Options.InstanceIsolation.NonRelease'),
-                  title: text('Setup.Launch.Options.InstanceIsolation.NonRelease.ToolTip'),
+                  text: pclText('Setup.Launch.Options.InstanceIsolation.NonRelease'),
+                  title: pclText('Setup.Launch.Options.InstanceIsolation.NonRelease.ToolTip'),
                 },
                 {
                   key: '3',
-                  text: text('Setup.Launch.Options.InstanceIsolation.ModdedAndNonRelease'),
+                  text: pclText('Setup.Launch.Options.InstanceIsolation.ModdedAndNonRelease'),
                 },
                 {
                   key: '4',
-                  text: text('Setup.Launch.Options.InstanceIsolation.All'),
-                  title: text('Setup.Launch.Options.InstanceIsolation.All.ToolTip'),
+                  text: pclText('Setup.Launch.Options.InstanceIsolation.All'),
+                  title: pclText('Setup.Launch.Options.InstanceIsolation.All.ToolTip'),
                 },
               ]"
               :model-value="isolationValue"
               @update:model-value="changeIsolation"
           /></SetupItem>
-          <SetupItem :label="text('Setup.Launch.Options.WindowTitle.Label')" v-slot="{ id }"
+          <SetupItem :label="pclText('Setup.Launch.Options.WindowTitle.Label')" v-slot="{ id }"
             ><PTextBox
               disabled
               :input-id="id"
-              :suggestions="[text('Setup.Launch.Options.WindowTitle.SampleFormat')]"
-              :title="text('Setup.Launch.Options.WindowTitle.ToolTip')"
-              :placeholder="text('Common.Option.Default')"
+              :suggestions="[pclText('Setup.Launch.Options.WindowTitle.SampleFormat')]"
+              :title="pclText('Setup.Launch.Options.WindowTitle.ToolTip')"
+              :placeholder="pclText('Common.Option.Default')"
               v-model="values.TextArgumentTitle"
           /></SetupItem>
-          <SetupItem :label="text('Setup.Launch.Options.CustomInfo.Label')" v-slot="{ id }"
+          <SetupItem :label="pclText('Setup.Launch.Options.CustomInfo.Label')" v-slot="{ id }"
             ><PTextBox
               :disabled="!desktop || !infoReady"
               :input-id="id"
-              :title="text('Setup.Launch.Options.CustomInfo.ToolTip')"
-              :placeholder="text('')"
+              :title="pclText('Setup.Launch.Options.CustomInfo.ToolTip')"
+              :placeholder="pclText('')"
               v-model="values.TextArgumentInfo"
           /></SetupItem>
-          <SetupItem :label="text('Setup.Launch.Options.Visibility.Label')" v-slot="{ id }"
+          <SetupItem :label="pclText('Setup.Launch.Options.Visibility.Label')" v-slot="{ id }"
             ><PComboBox
               :disabled="!desktop || !visibilityReady || visibilityBusy"
               :key="visibilityRevision"
@@ -334,59 +335,59 @@ const unavailableAdvancedOptions = [
               :options="[
                 {
                   key: '0',
-                  text: text('Setup.Launch.Options.Visibility.CloseImmediately'),
+                  text: pclText('Setup.Launch.Options.Visibility.CloseImmediately'),
                   disabled: true,
                 },
                 {
                   key: '1',
-                  text: text('Setup.Launch.Options.Visibility.HideAndCloseOnExit'),
+                  text: pclText('Setup.Launch.Options.Visibility.HideAndCloseOnExit'),
                 },
                 {
                   key: '2',
-                  text: text('Setup.Launch.Options.Visibility.HideAndReopenOnExit'),
+                  text: pclText('Setup.Launch.Options.Visibility.HideAndReopenOnExit'),
                 },
-                { key: '3', text: text('Setup.Launch.Options.Visibility.Minimize') },
-                { key: '4', text: text('Setup.Launch.Options.Visibility.KeepUnchanged') },
+                { key: '3', text: pclText('Setup.Launch.Options.Visibility.Minimize') },
+                { key: '4', text: pclText('Setup.Launch.Options.Visibility.KeepUnchanged') },
               ]"
               :model-value="visibilityValue"
               @update:model-value="changeVisibility"
           /></SetupItem>
-          <SetupItem :label="text('Setup.Launch.Options.Priority.Label')" v-slot="{ id }"
+          <SetupItem :label="pclText('Setup.Launch.Options.Priority.Label')" v-slot="{ id }"
             ><PComboBox
               disabled
               :input-id="id"
               :options="[
-                { key: '0', text: text('Setup.Launch.Options.Priority.RealTime') },
-                { key: '1', text: text('Setup.Launch.Options.Priority.High') },
-                { key: '2', text: text('Setup.Launch.Options.Priority.AboveNormal') },
-                { key: '3', text: text('Setup.Launch.Options.Priority.Normal') },
-                { key: '4', text: text('Setup.Launch.Options.Priority.BelowNormal') },
+                { key: '0', text: pclText('Setup.Launch.Options.Priority.RealTime') },
+                { key: '1', text: pclText('Setup.Launch.Options.Priority.High') },
+                { key: '2', text: pclText('Setup.Launch.Options.Priority.AboveNormal') },
+                { key: '3', text: pclText('Setup.Launch.Options.Priority.Normal') },
+                { key: '4', text: pclText('Setup.Launch.Options.Priority.BelowNormal') },
               ]"
               v-model="values.ComboArgumentPriority"
           /></SetupItem>
-          <SetupItem :label="text('Setup.Launch.Options.WindowSize.Label')" v-slot="{ id }"
+          <SetupItem :label="pclText('Setup.Launch.Options.WindowSize.Label')" v-slot="{ id }"
             ><div style="display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto">
               <PComboBox
                 :disabled="!windowReady"
                 :input-id="id"
                 style="grid-row: 1 / span 1; grid-column: 1 / span 1"
-                :title="text('Setup.Launch.Options.WindowSize.ModernUiWarning')"
+                :title="pclText('Setup.Launch.Options.WindowSize.ModernUiWarning')"
                 :options="[
                   {
                     key: '0',
-                    text: text('Setup.Launch.Options.WindowSize.Fullscreen'),
+                    text: pclText('Setup.Launch.Options.WindowSize.Fullscreen'),
                     disabled: true,
                   },
-                  { key: '1', text: text('Common.Option.Default') },
-                  { key: '2', text: text('Setup.Launch.Options.WindowSize.SameAsLauncher') },
+                  { key: '1', text: pclText('Common.Option.Default') },
+                  { key: '2', text: pclText('Setup.Launch.Options.WindowSize.SameAsLauncher') },
                   {
                     key: '3',
-                    text: text('Setup.Launch.Options.WindowSize.Custom'),
-                    title: text('Setup.Launch.Options.WindowSize.CustomHeightBug.ToolTip'),
+                    text: pclText('Setup.Launch.Options.WindowSize.Custom'),
+                    title: pclText('Setup.Launch.Options.WindowSize.CustomHeightBug.ToolTip'),
                   },
                   {
                     key: '4',
-                    text: text('Setup.Launch.Options.WindowSize.Maximized'),
+                    text: pclText('Setup.Launch.Options.WindowSize.Maximized'),
                     disabled: true,
                   },
                 ]"
@@ -403,7 +404,7 @@ const unavailableAdvancedOptions = [
                   grid-column: 2 / span 1;
                 "
                 v-if="values.ComboArgumentWindowType === '3'"
-                :placeholder="text('')"
+                :placeholder="pclText('')"
                 v-model="values.TextArgumentWindowWidth"
               />
               <span
@@ -415,7 +416,7 @@ const unavailableAdvancedOptions = [
                 "
                 v-if="values.ComboArgumentWindowType === '3'"
                 class="pcl-text"
-                >{{ text(' × ') }}</span
+                >{{ pclText(' × ') }}</span
               >
               <PTextBox
                 :disabled="!windowReady"
@@ -427,71 +428,73 @@ const unavailableAdvancedOptions = [
                   grid-column: 4 / span 1;
                 "
                 v-if="values.ComboArgumentWindowType === '3'"
-                :title="text('Setup.Launch.Options.WindowSize.CustomHeightBug.ToolTip')"
-                :placeholder="text('')"
+                :title="pclText('Setup.Launch.Options.WindowSize.CustomHeightBug.ToolTip')"
+                :placeholder="pclText('')"
                 v-model="values.TextArgumentWindowHeight"
               /></div
           ></SetupItem>
-          <SetupItem :label="text('Setup.Launch.Options.MsAuth.Label')" v-slot="{ id }"
+          <SetupItem :label="pclText('Setup.Launch.Options.MsAuth.Label')" v-slot="{ id }"
             ><PComboBox
               disabled
               :input-id="id"
-              :title="text('Setup.Launch.Options.MsAuth.ToolTip')"
+              :title="pclText('Setup.Launch.Options.MsAuth.ToolTip')"
               :options="[
-                { key: '0', text: text('Setup.Launch.Options.MsAuth.WebManager') },
-                { key: '1', text: text('Setup.Launch.Options.MsAuth.DeviceCode') },
+                { key: '0', text: pclText('Setup.Launch.Options.MsAuth.WebManager') },
+                { key: '1', text: pclText('Setup.Launch.Options.MsAuth.DeviceCode') },
               ]"
               v-model="values.ComboMsAuthType"
           /></SetupItem>
-          <SetupItem :label="text('Setup.Launch.Options.IpStack.Label')" v-slot="{ id }"
+          <SetupItem :label="pclText('Setup.Launch.Options.IpStack.Label')" v-slot="{ id }"
             ><PComboBox
               disabled
               :input-id="id"
-              :title="text('Setup.Launch.Options.IpStack.ToolTip')"
+              :title="pclText('Setup.Launch.Options.IpStack.ToolTip')"
               :options="[
-                { key: '0', text: text('Setup.Launch.Options.IpStack.Ipv4') },
-                { key: '1', text: text('Setup.Launch.Options.IpStack.JavaDefault') },
-                { key: '2', text: text('Setup.Launch.Options.IpStack.Ipv6') },
+                { key: '0', text: pclText('Setup.Launch.Options.IpStack.Ipv4') },
+                { key: '1', text: pclText('Setup.Launch.Options.IpStack.JavaDefault') },
+                { key: '2', text: pclText('Setup.Launch.Options.IpStack.Ipv6') },
               ]"
               v-model="values.ComboPreferredIpStack"
           /></SetupItem>
         </div>
       </div>
     </PCard>
-    <PCard :title="text('Setup.Launch.Memory.Title')">
+    <PCard :title="pclText('Setup.Launch.Memory.Title')">
       <PHint v-if="java32Bit" severity="warning">{{
-        text('Setup.Launch.Memory.Warning.Java32Bit')
+        pclText('Setup.Launch.Memory.Warning.Java32Bit')
       }}</PHint>
       <PHint v-if="memoryOverLimit" severity="warning">{{
-        text('Setup.Launch.Memory.Warning.TooMuch')
+        pclText('Setup.Launch.Memory.Warning.TooMuch')
       }}</PHint>
       <PMemorySettings :java64="memoryJava64" />
     </PCard>
-    <PCard :title="text('Setup.Launch.Advanced.Title')" default-fold-status="fold">
+    <PCard :title="pclText('Setup.Launch.Advanced.Title')" default-fold-status="fold">
       <div class="settings-grid" style="margin: 0px 25px 15px 25px">
-        <SetupItem :label="text('Setup.Launch.Advanced.Renderer.Label')" v-slot="{ id }"
+        <SetupItem :label="pclText('Setup.Launch.Advanced.Renderer.Label')" v-slot="{ id }"
           ><PComboBox
             disabled
             :input-id="id"
             :options="[
-              { key: '0', text: text('Setup.Launch.Advanced.Renderer.GameDefault') },
-              { key: '1', text: text('Setup.Launch.Advanced.Renderer.Software') },
-              { key: '2', text: text('Setup.Launch.Advanced.Renderer.DirectX12') },
-              { key: '3', text: text('Setup.Launch.Advanced.Renderer.Vulkan') },
+              { key: '0', text: pclText('Setup.Launch.Advanced.Renderer.GameDefault') },
+              { key: '1', text: pclText('Setup.Launch.Advanced.Renderer.Software') },
+              { key: '2', text: pclText('Setup.Launch.Advanced.Renderer.DirectX12') },
+              { key: '3', text: pclText('Setup.Launch.Advanced.Renderer.Vulkan') },
             ]"
             v-model="values.ComboAdvanceRenderer"
         /></SetupItem>
         <SetupItem
           ><template #label="{ id }"
             ><div style="display: flex; flex-direction: row; align-items: center">
-              <label :for="id" class="pcl-text">{{ text('Setup.Launch.Advanced.JvmHead') }}</label>
+              <label :for="id" class="pcl-text">{{
+                pclText('Setup.Launch.Advanced.JvmHead')
+              }}</label>
               <button
                 type="button"
                 class="pcl-icon-button"
                 :disabled="!desktop || !argumentsReady"
                 style="margin: 1px 0px 0px 0px"
-                :title="text('Setup.Launch.Advanced.JvmHead.Restore')"
-                :aria-label="text('Setup.Launch.Advanced.JvmHead.Restore')"
+                :title="pclText('Setup.Launch.Advanced.JvmHead.Restore')"
+                :aria-label="pclText('Setup.Launch.Advanced.JvmHead.Restore')"
                 @click="resetJvmArguments"
               >
                 <PSvgIcon name="lucide/rotate-ccw" :size="18" />
@@ -503,35 +506,35 @@ const unavailableAdvancedOptions = [
               multiline
               style="height: 100px; padding: 5px 0px"
               :title="
-                text('Setup.Launch.Advanced.JvmHead.ToolTip') +
+                pclText('Setup.Launch.Advanced.JvmHead.ToolTip') +
                 '\n\n' +
-                text('Proto.LaunchArguments.Parsing') +
+                pclText('Proto.LaunchArguments.Parsing') +
                 '\n' +
-                text('Proto.LaunchArguments.Hint')
+                pclText('Proto.LaunchArguments.Hint')
               "
-              :placeholder="text('')"
+              :placeholder="pclText('')"
               v-model="argumentJvm"
               @blur="saveArguments()" /></template
         ></SetupItem>
-        <SetupItem :label="text('Setup.Launch.Advanced.GameTail')" v-slot="{ id }"
+        <SetupItem :label="pclText('Setup.Launch.Advanced.GameTail')" v-slot="{ id }"
           ><PTextBox
             :disabled="!desktop || !argumentsReady"
             :input-id="id"
             :title="
-              text('Setup.Launch.Advanced.GameTail.ToolTip') +
+              pclText('Setup.Launch.Advanced.GameTail.ToolTip') +
               '\n\n' +
-              text('Proto.LaunchArguments.Parsing')
+              pclText('Proto.LaunchArguments.Parsing')
             "
-            :placeholder="text('')"
+            :placeholder="pclText('')"
             v-model="argumentGame"
             @blur="saveArguments()"
         /></SetupItem>
-        <SetupItem :label="text('Setup.Launch.Advanced.PreLaunchCommand')" v-slot="{ id }"
+        <SetupItem :label="pclText('Setup.Launch.Advanced.PreLaunchCommand')" v-slot="{ id }"
           ><PTextBox
             disabled
             :input-id="id"
-            :title="text('Setup.Launch.Advanced.PreLaunchCommand.ToolTip')"
-            :placeholder="text('')"
+            :title="pclText('Setup.Launch.Advanced.PreLaunchCommand.ToolTip')"
+            :placeholder="pclText('')"
             v-model="values.TextAdvanceRun"
         /></SetupItem>
         <PCheckBox
@@ -539,7 +542,7 @@ const unavailableAdvancedOptions = [
           v-if="String(values.TextAdvanceRun || '').trim()"
           style="margin: 8px 0 7px; grid-column: 2"
           id="PageSetupLaunch-CheckAdvanceRunWait"
-          :label="text('Setup.Launch.Advanced.PreLaunchCommand.Wait')"
+          :label="pclText('Setup.Launch.Advanced.PreLaunchCommand.Wait')"
           v-model="values.CheckAdvanceRunWait"
         />
         <div
@@ -554,20 +557,20 @@ const unavailableAdvancedOptions = [
             v-for="[key, label] in unavailableAdvancedOptions"
             :key
             disabled
-            :title="text(`Setup.Launch.Advanced.${label}.ToolTip`)"
+            :title="pclText(`Setup.Launch.Advanced.${label}.ToolTip`)"
             :id="`PageSetupLaunch-${key}`"
-            :label="text(`Setup.Launch.Advanced.${label}`)"
+            :label="pclText(`Setup.Launch.Advanced.${label}`)"
             :model-value="Boolean(values[key])"
           />
         </div>
         <PHint style="margin: 5px 0px 10px 0px; grid-column: 1 / -1" severity="info" closable>{{
-          text('Setup.Launch.Advanced.MoreInInstanceSetup')
+          pclText('Setup.Launch.Advanced.MoreInInstanceSetup')
         }}</PHint>
       </div>
     </PCard>
     <PPrimaryAction @click="() => router.push('/instance_setting/setting')"
       ><PSvgIcon name="lucide/arrow-right" :size="16" />{{
-        text('Setup.Launch.SwitchToInstanceSetup')
+        pclText('Setup.Launch.SwitchToInstanceSetup')
       }}</PPrimaryAction
     >
   </div>

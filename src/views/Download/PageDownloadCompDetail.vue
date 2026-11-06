@@ -29,7 +29,6 @@ import { datapackTargetFromQuery, saveResource } from '@/api/compDownload'
 const favorites = useCompFavorites()
 
 const route = useRoute()
-const text = pclText
 const project = shallowRef<IProject>()
 const versions = shallowRef<IVersion[]>([])
 /// 当前详情的来源：CF 的工程 ID 是纯数字。
@@ -80,7 +79,7 @@ const groups = computed(() => {
   return [
     {
       key: 'selected',
-      name: text('Download.Comp.Detail.SelectedVersion', [
+      name: pclText('Download.Comp.Detail.SelectedVersion', [
         loader ? `${loader} ` : '',
         requestedVersion.value,
       ]),
@@ -184,7 +183,7 @@ watch(
 </script>
 <template>
   <article class="subview pcl-page detail-page">
-    <PLoading v-if="loading" :loading-text="text('Download.Version.LoadingList')" />
+    <PLoading v-if="loading" :loading-text="pclText('Download.Version.LoadingList')" />
     <PHint v-else-if="error" severity="error"
       >{{ error
       }}<PButton inline @click="load">{{
@@ -213,7 +212,7 @@ watch(
                         `https://search.mcmod.cn/s?key=${encodeURIComponent(project!.title)}`,
                       )
                   "
-                  >{{ text('Download.Comp.Detail.McMod') }}</PIconTextButton
+                  >{{ pclText('Download.Comp.Detail.McMod') }}</PIconTextButton
                 >
                 <PIconTextButton
                   bordered
@@ -224,17 +223,17 @@ watch(
                         `https://translate.google.com/?sl=auto&amp;tl=zh-CN&amp;text=${encodeURIComponent(project!.description)}`,
                       )
                   "
-                  >{{ text('Download.Comp.Detail.TranslateDescription') }}</PIconTextButton
+                  >{{ pclText('Download.Comp.Detail.TranslateDescription') }}</PIconTextButton
                 >
                 <PIconTextButton bordered icon="lucide/copy" @click="() => copy(project!.title)">{{
-                  text('Download.Comp.Detail.CopyName')
+                  pclText('Download.Comp.Detail.CopyName')
                 }}</PIconTextButton>
                 <PIconTextButton
                   bordered
                   :icon="favorites.has(project.id) ? 'lucide/heart-filled' : 'lucide/heart'"
                   @click="() => favorites.toggle(item!)"
                   >{{
-                    text(
+                    pclText(
                       favorites.has(project.id)
                         ? 'Download.Comp.Detail.Unfavorite'
                         : 'Download.Comp.Detail.Favorite',
@@ -242,19 +241,19 @@ watch(
                   }}</PIconTextButton
                 >
                 <PIconTextButton bordered icon="lucide/copy" @click="() => copy(projectUrl)">{{
-                  text('Download.Comp.Detail.CopyLink')
+                  pclText('Download.Comp.Detail.CopyLink')
                 }}</PIconTextButton>
               </div>
             </div>
           </PCard>
-          <PCard :title="text('Proto.Resource.Description')">
+          <PCard :title="pclText('Proto.Resource.Description')">
             <div class="project-description">
               <PHint v-if="descriptionError" severity="error">{{
-                text('Proto.Resource.DescriptionFailed', [descriptionError])
+                pclText('Proto.Resource.DescriptionFailed', [descriptionError])
               }}</PHint>
               <PLoading
                 v-else-if="description === null"
-                :loading-text="text('Download.Version.LoadingList')"
+                :loading-text="pclText('Download.Version.LoadingList')"
               />
               <PMarkdown v-else :content="description || project.description" />
             </div>
@@ -265,7 +264,7 @@ watch(
             <div class="filters">
               <div class="filter-row">
                 <span v-if="isMod" class="filter-label">{{
-                  text('Download.Comp.Detail.InstanceFilter')
+                  pclText('Download.Comp.Detail.InstanceFilter')
                 }}</span>
                 <button
                   type="button"
@@ -273,7 +272,7 @@ watch(
                   :class="{ active: !versionFilter }"
                   @click="versionFilter = ''"
                 >
-                  {{ text('Common.Option.All') }}
+                  {{ pclText('Common.Option.All') }}
                 </button>
                 <button
                   v-for="value in versionFilters.list"
@@ -287,14 +286,14 @@ watch(
                 </button>
               </div>
               <div v-if="isMod" class="filter-row">
-                <span class="filter-label">{{ text('Download.Comp.Detail.LoaderFilter') }}</span>
+                <span class="filter-label">{{ pclText('Download.Comp.Detail.LoaderFilter') }}</span>
                 <button
                   type="button"
                   class="pcl-chip"
                   :class="{ active: !loaderFilter }"
                   @click="loaderFilter = ''"
                 >
-                  {{ text('Common.Option.All') }}
+                  {{ pclText('Common.Option.All') }}
                 </button>
                 <button
                   v-for="value in loaders"
@@ -340,8 +339,8 @@ watch(
                     <button
                       class="pcl-icon-button"
                       type="button"
-                      :title="text('Download.Comp.Detail.DownloadModpackFile')"
-                      :aria-label="text('Download.Comp.Detail.DownloadModpackFile')"
+                      :title="pclText('Download.Comp.Detail.DownloadModpackFile')"
+                      :aria-label="pclText('Download.Comp.Detail.DownloadModpackFile')"
                       @click.stop="download(file, version, true)"
                     >
                       <PSvgIcon name="lucide/download" :size="16" />

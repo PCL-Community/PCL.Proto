@@ -63,81 +63,80 @@ export async function dialog(options: DialogOptions): Promise<DialogChoice> {
  * `HandleMicrosoftCreateProfileError`，以及两个登录页对普通错误的处理。
  */
 export async function reportLoginFailure(failure: AuthFailure, context: 'microsoft' | 'auth') {
-  const text = pclText
   switch (failure.code) {
     case CANCELLED:
       sideTip.show(
-        text(
+        pclText(
           context === 'auth' ? 'Launch.Account.Auth.Cancelled' : 'Launch.Account.LoginCancelled',
         ),
       )
       return
     case 'xsts_2148916227':
       await dialog({
-        title: text('Minecraft.Launch.Login.Failed'),
-        content: text('Minecraft.Launch.Login.Microsoft.Banned'),
-        ok: text('Minecraft.Launch.Login.IKnow'),
+        title: pclText('Minecraft.Launch.Login.Failed'),
+        content: pclText('Minecraft.Launch.Login.Microsoft.Banned'),
+        ok: pclText('Minecraft.Launch.Login.IKnow'),
       })
       return
     case 'xsts_2148916233': {
       const { confirmed } = await dialog({
-        title: text('Minecraft.Launch.Login.Hint'),
-        content: text('Minecraft.Launch.Login.Microsoft.XboxNotRegistered'),
-        ok: text('Minecraft.Launch.Login.Register'),
-        cancel: text('Common.Action.Cancel'),
+        title: pclText('Minecraft.Launch.Login.Hint'),
+        content: pclText('Minecraft.Launch.Login.Microsoft.XboxNotRegistered'),
+        ok: pclText('Minecraft.Launch.Login.Register'),
+        cancel: pclText('Common.Action.Cancel'),
       })
       if (confirmed) await openExternal(URLS.xboxSignup)
       return
     }
     case 'xsts_2148916235':
       await dialog({
-        title: text('Minecraft.Launch.Login.Failed'),
-        content: text('Minecraft.Launch.Login.Microsoft.RegionBlocked'),
-        ok: text('Minecraft.Launch.Login.IKnow'),
+        title: pclText('Minecraft.Launch.Login.Failed'),
+        content: pclText('Minecraft.Launch.Login.Microsoft.RegionBlocked'),
+        ok: pclText('Minecraft.Launch.Login.IKnow'),
       })
       return
     case 'xsts_2148916238': {
       // CE：先问账号填写的年龄是否满 13 岁，再给出对应的修改入口。
       const { choice } = await dialog({
-        title: text('Minecraft.Launch.Login.Hint'),
-        content: text('Minecraft.Launch.Login.Microsoft.Underage.Message'),
-        ok: text('Minecraft.Launch.Login.Microsoft.Underage.AgeOver13'),
-        extra: text('Common.Option.IDontKnow'),
-        cancel: text('Minecraft.Launch.Login.Microsoft.Underage.AgeUnder13'),
+        title: pclText('Minecraft.Launch.Login.Hint'),
+        content: pclText('Minecraft.Launch.Login.Microsoft.Underage.Message'),
+        ok: pclText('Minecraft.Launch.Login.Microsoft.Underage.AgeOver13'),
+        extra: pclText('Common.Option.IDontKnow'),
+        cancel: pclText('Minecraft.Launch.Login.Microsoft.Underage.AgeUnder13'),
       })
       if (choice === 1) {
         await openExternal(URLS.birthDate)
         await dialog({
-          title: text('Minecraft.Launch.Login.Hint'),
-          content: text('Minecraft.Launch.Login.Microsoft.ChangeBirthDate.Message'),
-          ok: text('Minecraft.Launch.Login.IKnow'),
+          title: pclText('Minecraft.Launch.Login.Hint'),
+          content: pclText('Minecraft.Launch.Login.Microsoft.ChangeBirthDate.Message'),
+          ok: pclText('Minecraft.Launch.Login.IKnow'),
         })
       } else if (choice !== 3) {
         await openExternal(URLS.birthDateSupport)
         await dialog({
-          title: text('Minecraft.Launch.Login.Hint'),
-          content: text('Minecraft.Launch.Login.Microsoft.ChangeBirthDate.SupportMessage'),
-          ok: text('Minecraft.Launch.Login.IKnow'),
+          title: pclText('Minecraft.Launch.Login.Hint'),
+          content: pclText('Minecraft.Launch.Login.Microsoft.ChangeBirthDate.SupportMessage'),
+          ok: pclText('Minecraft.Launch.Login.IKnow'),
         })
       }
       return
     }
     case 'minecraft_not_owned': {
       const { confirmed } = await dialog({
-        title: text('Minecraft.Launch.Login.Failed'),
-        content: text('Minecraft.Launch.Login.Microsoft.NotPurchased'),
-        ok: text('Minecraft.Launch.Login.Microsoft.PurchaseMinecraft'),
-        cancel: text('Common.Action.Cancel'),
+        title: pclText('Minecraft.Launch.Login.Failed'),
+        content: pclText('Minecraft.Launch.Login.Microsoft.NotPurchased'),
+        ok: pclText('Minecraft.Launch.Login.Microsoft.PurchaseMinecraft'),
+        cancel: pclText('Common.Action.Cancel'),
       })
       if (confirmed) await openExternal(URLS.purchase)
       return
     }
     case 'profile_not_created': {
       const { confirmed } = await dialog({
-        title: text('Minecraft.Launch.Login.Failed'),
-        content: text('Minecraft.Launch.Login.Microsoft.CreateProfile.Message'),
-        ok: text('Minecraft.Launch.Login.Microsoft.CreateProfile.Button'),
-        cancel: text('Common.Action.Cancel'),
+        title: pclText('Minecraft.Launch.Login.Failed'),
+        content: pclText('Minecraft.Launch.Login.Microsoft.CreateProfile.Message'),
+        ok: pclText('Minecraft.Launch.Login.Microsoft.CreateProfile.Button'),
+        cancel: pclText('Common.Action.Cancel'),
       })
       if (confirmed) await openExternal(URLS.createProfile)
       return
@@ -145,24 +144,24 @@ export async function reportLoginFailure(failure: AuthFailure, context: 'microso
     case 'network_error':
       // CE 对网络类错误给出检查网络的提示，并保留原始信息。
       await dialog({
-        title: text(
+        title: pclText(
           context === 'auth'
             ? 'Minecraft.Launch.Login.Auth.FailedTitle'
             : 'Launch.Account.Microsoft.LoginFailed.Title',
         ),
-        content: text(
+        content: pclText(
           context === 'auth'
             ? 'Minecraft.Launch.Login.Auth.NetworkFailed.WithDetail'
             : 'Launch.Account.Microsoft.LoginFailed.WithDetail',
           [failure.message],
         ),
-        ok: text('Minecraft.Launch.Login.IKnow'),
+        ok: pclText('Minecraft.Launch.Login.IKnow'),
       })
       return
     default:
       // 认证服务器给出的原因直接提示，其余情况弹窗展示详情（CE 的两种分支）。
       sideTip.show(
-        text(
+        pclText(
           context === 'auth'
             ? 'Launch.Account.Auth.LoginFailed.WithDetail'
             : 'Launch.Account.Microsoft.LoginFailed.WithDetail',

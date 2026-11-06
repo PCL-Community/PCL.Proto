@@ -14,7 +14,6 @@ import PCard from '@/components/widget/PCard.vue'
 import PLoading from '@/components/widget/PLoading.vue'
 import ServerCard from '@/components/widget/ServerCard.vue'
 
-const text = pclText
 const instance = useSelectedInstance()
 const launchState = useLaunchState()
 const router = useRouter()
@@ -48,7 +47,7 @@ function iconUrl(icon: string | null | undefined) {
 
 async function ping(server: DisplayServer, current: number) {
   const queryId = ++server.queryId
-  server.motd = text('Instance.Server.Card.ConnectingDots')
+  server.motd = pclText('Instance.Server.Card.ConnectingDots')
   server.players = ''
   server.latency = undefined
   try {
@@ -62,7 +61,7 @@ async function ping(server: DisplayServer, current: number) {
     if (result.favicon) server.icon = result.favicon
   } catch {
     if (current === generation && queryId === server.queryId)
-      server.motd = text('Instance.Server.Card.Offline')
+      server.motd = pclText('Instance.Server.Card.Offline')
   }
 }
 
@@ -96,7 +95,7 @@ async function refresh() {
     void pingAll(current)
   } catch (error) {
     if (current === generation)
-      loadError.value = `${text('Instance.Server.ReadFileFailed')}: ${error}`
+      loadError.value = `${pclText('Instance.Server.ReadFileFailed')}: ${error}`
   } finally {
     if (current === generation) loading.value = false
   }
@@ -104,13 +103,13 @@ async function refresh() {
 
 async function input(prompt: string, initial: string) {
   const answer = await modal.open({
-    title: text('Instance.Server.EditTitle'),
+    title: pclText('Instance.Server.EditTitle'),
     content: prompt,
     showInput: true,
     defaultInputText: initial,
     buttons: [
-      { content: text('Common.Action.Confirm'), operation: () => modal.close(true) },
-      { content: text('Common.Action.Cancel'), operation: () => modal.close(false) },
+      { content: pclText('Common.Action.Confirm'), operation: () => modal.close(true) },
+      { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
     ],
   })
   return answer.confirmed ? answer.input?.trim() || '' : null
@@ -130,7 +129,7 @@ async function save(change: ServerChange, directory: string, expected: string) {
     await changeServer(directory, expected, change)
     if (!disposed && instance.instance_info?.directory === directory) await refresh()
   } catch (error) {
-    sideTip.show(`${text('Instance.Server.WriteDataFailed')}: ${error}`, 'warn')
+    sideTip.show(`${pclText('Instance.Server.WriteDataFailed')}: ${error}`, 'warn')
     if (!disposed && instance.instance_info?.directory === directory) await refresh()
   } finally {
     busy.value = false
@@ -144,11 +143,11 @@ async function edit(index?: number) {
   const server = index == null ? undefined : servers.value[index]
   if (index != null && !server) return
   const name = await input(
-    text('Instance.Server.NamePrompt'),
-    server?.name || text('Instance.Server.DefaultName'),
+    pclText('Instance.Server.NamePrompt'),
+    server?.name || pclText('Instance.Server.DefaultName'),
   )
   if (!name) return
-  const address = await input(text('Instance.Server.AddressPrompt'), server?.address || '')
+  const address = await input(pclText('Instance.Server.AddressPrompt'), server?.address || '')
   if (!address) return
   await save(
     index == null ? { action: 'add', name, address } : { action: 'edit', index, name, address },
@@ -163,15 +162,15 @@ async function remove(index: number) {
   if (!directory || !server || busy.value) return
   const expected = revision.value
   const answer = await modal.open({
-    title: text('Instance.Server.Card.RemoveConfirmTitle'),
-    content: text('Instance.Server.Card.RemoveConfirmMessage', [server.name, server.address]),
+    title: pclText('Instance.Server.Card.RemoveConfirmTitle'),
+    content: pclText('Instance.Server.Card.RemoveConfirmMessage', [server.name, server.address]),
     buttons: [
       {
         type: 'warn',
-        content: text('Instance.Server.Card.Remove'),
+        content: pclText('Instance.Server.Card.Remove'),
         operation: () => modal.close(true),
       },
-      { content: text('Common.Action.Cancel'), operation: () => modal.close(false) },
+      { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
     ],
   })
   if (answer.confirmed) await save({ action: 'remove', index }, directory, expected)
@@ -184,7 +183,7 @@ async function connect(server: DisplayServer) {
     if (await router.push('/home')) return
     launchState.pendingServer = { directory, address: server.address }
   } catch (error) {
-    sideTip.show(text('Instance.Server.Card.LaunchFailedMsg', [String(error)]), 'warn')
+    sideTip.show(pclText('Instance.Server.Card.LaunchFailedMsg', [String(error)]), 'warn')
   }
 }
 
@@ -203,19 +202,21 @@ onUnmounted(() => {
 </script>
 <template>
   <div class="pcl-page">
-    <PLoading v-if="loading" :loading-text="text('Tools.ServerQuery.State.Querying')" />
+    <PLoading v-if="loading" :loading-text="pclText('Tools.ServerQuery.State.Querying')" />
     <PCard v-else-if="loadError" hide-title role="alert">
       <div class="server-error">
         <p>{{ loadError }}</p>
-        <PButton @click="refresh">{{ text('Common.Action.Refresh') }}</PButton>
+        <PButton @click="refresh">{{ pclText('Common.Action.Refresh') }}</PButton>
       </div>
     </PCard>
     <template v-else-if="servers.length">
-      <PCard :title="text('Instance.Server.QuickActions')">
+      <PCard :title="pclText('Instance.Server.QuickActions')">
         <div class="server-actions">
-          <PButton type="tint" @click="refresh">{{ text('Instance.Server.RefreshAll') }}</PButton>
+          <PButton type="tint" @click="refresh">{{
+            pclText('Instance.Server.RefreshAll')
+          }}</PButton>
           <PButton :disabled="busy" @click="() => edit()">{{
-            text('Instance.Server.AddServer')
+            pclText('Instance.Server.AddServer')
           }}</PButton>
         </div>
       </PCard>
@@ -236,13 +237,17 @@ onUnmounted(() => {
     </template>
     <PCard v-else class="pcl-empty-state-card" hide-title>
       <div class="pcl-empty-state">
-        <h2 class="pcl-empty-state-title pcl-text">{{ text('Instance.Server.Empty.Title') }}</h2>
+        <h2 class="pcl-empty-state-title pcl-text">{{ pclText('Instance.Server.Empty.Title') }}</h2>
         <div class="pcl-divider" />
-        <p class="pcl-empty-state-message pcl-text">{{ text('Instance.Server.Empty.Message') }}</p>
+        <p class="pcl-empty-state-message pcl-text">
+          {{ pclText('Instance.Server.Empty.Message') }}
+        </p>
         <div class="pcl-empty-state-actions">
-          <PButton type="tint" @click="refresh">{{ text('Instance.Server.RefreshInfo') }}</PButton>
+          <PButton type="tint" @click="refresh">{{
+            pclText('Instance.Server.RefreshInfo')
+          }}</PButton>
           <PButton :disabled="busy || !revision" @click="() => edit()">{{
-            text('Instance.Server.AddServer')
+            pclText('Instance.Server.AddServer')
           }}</PButton>
         </div>
       </div>

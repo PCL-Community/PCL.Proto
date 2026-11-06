@@ -34,7 +34,6 @@ import { FloatButtonType, useFloatButton } from '@/composables/useFloatButton'
 const props = defineProps<{ manual?: boolean; modify?: boolean }>()
 const route = useRoute()
 const router = useRouter()
-const text = pclText
 const versions = shallowRef<IVersionShow>()
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -84,11 +83,11 @@ function loaderSubtitle(version: McPluginReport) {
   if (version.release_time) {
     const date = new Date(version.release_time)
     if (!Number.isNaN(date.getTime()))
-      return text('Download.Version.ReleaseDate', [date.toLocaleString(pclFormatLocale.value)])
+      return pclText('Download.Version.ReleaseDate', [date.toLocaleString(pclFormatLocale.value)])
   }
   return version.stable == null
     ? undefined
-    : text(version.stable ? 'Download.Version.Type.Stable' : 'Download.Version.Type.Preview')
+    : pclText(version.stable ? 'Download.Version.Type.Stable' : 'Download.Version.Type.Preview')
 }
 const loaders = [
   'Forge',
@@ -336,7 +335,7 @@ watch(versionId, (id) => {
       {{ pclText('Proto.Instance.SelectFirst') }}
     </p>
     <template v-else-if="!versionId">
-      <PLoading v-if="loading" :loading-text="text('Download.Version.LoadingList')" />
+      <PLoading v-if="loading" :loading-text="pclText('Download.Version.LoadingList')" />
       <PHint v-else-if="error" severity="error"
         >{{ error }}
         <PButton inline @click="load">{{
@@ -344,7 +343,7 @@ watch(versionId, (id) => {
         }}</PButton></PHint
       >
       <template v-else-if="versions">
-        <PCard :title="text('Download.Version.Latest.Title')" class="latest-card">
+        <PCard :title="pclText('Download.Version.Latest.Title')" class="latest-card">
           <div class="version-list">
             <PListItem
               v-for="version in latest"
@@ -352,7 +351,7 @@ watch(versionId, (id) => {
               :title="version.id"
               :icon="version.type === 'release' ? showIconPath.grass : showIconPath.command"
               :subtitle="
-                text(`Download.Version.Latest.${version.label}`, [
+                pclText(`Download.Version.Latest.${version.label}`, [
                   new Date(version.timestamp).toLocaleString(pclFormatLocale),
                 ])
               "
@@ -366,7 +365,7 @@ watch(versionId, (id) => {
         <template v-for="category in categories" :key="category.key">
           <PCard
             v-if="versions[category.key].length"
-            :title="`${text(`Download.Version.Type.${category.label}`)} (${versions[category.key].length})`"
+            :title="`${pclText(`Download.Version.Type.${category.label}`)} (${versions[category.key].length})`"
             default-fold-status="fold"
           >
             <div class="version-list">
@@ -422,14 +421,14 @@ watch(versionId, (id) => {
             "
             :aria-label="pclText('Proto.Label.InstanceName')"
           />
-          <span v-if="modify">{{ text('Instance.Install.Action.ModifyLabel') }}</span>
+          <span v-if="modify">{{ pclText('Instance.Install.Action.ModifyLabel') }}</span>
         </div>
         <div v-if="warnings.length" class="install-warnings">
           <PHint
             v-for="warning in warnings"
             :key="warning"
             :severity="warning.endsWith('Api') ? 'error' : 'warning'"
-            >{{ text(`Download.Install.Warning.${warning}`) }}</PHint
+            >{{ pclText(`Download.Install.Warning.${warning}`) }}</PHint
           >
         </div>
       </PCard>
@@ -442,7 +441,7 @@ watch(versionId, (id) => {
             loaderCards[loader] = card as InstanceType<typeof PCard> | null
           }
         "
-        :title="text(`Common.Installation.${loader}`)"
+        :title="pclText(`Common.Installation.${loader}`)"
         :disabled="!!loaderConflict(loader, selected, versionId)"
         default-fold-status="fold"
         fold-arrow="right"
@@ -452,7 +451,7 @@ watch(versionId, (id) => {
             ><img v-if="selected[loader]" :src="loaderIcon(loader)" alt="" />{{
               selected[loader] ||
               (loaderConflict(loader, selected, versionId)
-                ? text('Download.Install.Compat.IncompatibleWithLoader', [
+                ? pclText('Download.Install.Compat.IncompatibleWithLoader', [
                     loaderConflict(loader, selected, versionId)!,
                   ])
                 : '') ||
@@ -479,7 +478,7 @@ watch(versionId, (id) => {
           <PHint v-else-if="plugins[loader]?.error" severity="error"
             >{{ plugins[loader]?.error }}
             <PButton inline @click="loadLoader(loader, versionId, request)">{{
-              text('Launch.Homepage.LoadFailed.Retry')
+              pclText('Launch.Homepage.LoadFailed.Retry')
             }}</PButton></PHint
           >
           <template v-else-if="plugins[loader]?.versions.length">

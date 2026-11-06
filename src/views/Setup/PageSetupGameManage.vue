@@ -63,8 +63,6 @@ onScopeDispose(() => {
     applyDownloadSettings()
   }
 })
-
-const text = pclText
 </script>
 <template>
   <div class="pcl-page">
@@ -73,7 +71,7 @@ const text = pclText
       @retry="ready ? applyDownloadSettings() : loadDownloadSettings()"
     />
 
-    <PCard :title="text('Setup.GameManage.Source.Title')">
+    <PCard :title="pclText('Setup.GameManage.Source.Title')">
       <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
         <div
           style="
@@ -91,15 +89,15 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.GameManage.Source.File') }}</span
+            >{{ pclText('Setup.GameManage.Source.File') }}</span
           >
           <PComboBox
             :disabled="!ready"
             style="grid-row: 1 / span 1; grid-column: 2 / span 2"
             :options="[
-              { key: '0', text: text('Setup.GameManage.Source.UseMirror') },
-              { key: '1', text: text('Setup.GameManage.Source.PreferOfficialThenMirror') },
-              { key: '2', text: text('Setup.GameManage.Source.UseOfficial') },
+              { key: '0', text: pclText('Setup.GameManage.Source.UseMirror') },
+              { key: '1', text: pclText('Setup.GameManage.Source.PreferOfficialThenMirror') },
+              { key: '2', text: pclText('Setup.GameManage.Source.UseOfficial') },
             ]"
             v-model="values.ComboDownloadSource"
           />
@@ -112,15 +110,15 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.GameManage.Source.Version') }}</span
+            >{{ pclText('Setup.GameManage.Source.Version') }}</span
           >
           <PComboBox
             :disabled="!ready"
             style="grid-row: 3 / span 1; grid-column: 2 / span 2"
             :options="[
-              { key: '0', text: text('Setup.GameManage.Source.Version.Mirror') },
-              { key: '1', text: text('Setup.GameManage.Source.PreferOfficialThenMirror') },
-              { key: '2', text: text('Setup.GameManage.Source.UseOfficial') },
+              { key: '0', text: pclText('Setup.GameManage.Source.Version.Mirror') },
+              { key: '1', text: pclText('Setup.GameManage.Source.PreferOfficialThenMirror') },
+              { key: '2', text: pclText('Setup.GameManage.Source.UseOfficial') },
             ]"
             v-model="values.ComboDownloadVersion"
           />
@@ -133,7 +131,7 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.GameManage.Download.HttpProtocol') }}</span
+            >{{ pclText('Setup.GameManage.Download.HttpProtocol') }}</span
           >
           <PComboBox
             :disabled="!ready"
@@ -141,18 +139,18 @@ const text = pclText
             :options="[
               {
                 key: '0',
-                text: text('Setup.GameManage.Download.HttpProtocol.Auto'),
-                title: text('Setup.GameManage.Download.HttpProtocol.Auto.ToolTip'),
+                text: pclText('Setup.GameManage.Download.HttpProtocol.Auto'),
+                title: pclText('Setup.GameManage.Download.HttpProtocol.Auto.ToolTip'),
               },
               {
                 key: '1',
-                text: text('Setup.GameManage.Download.HttpProtocol.Http11'),
-                title: text('Setup.GameManage.Download.HttpProtocol.Http11.ToolTip'),
+                text: pclText('Setup.GameManage.Download.HttpProtocol.Http11'),
+                title: pclText('Setup.GameManage.Download.HttpProtocol.Http11.ToolTip'),
               },
               {
                 key: '2',
-                text: text('Setup.GameManage.Download.HttpProtocol.Http2'),
-                title: text('Setup.GameManage.Download.HttpProtocol.Http2.ToolTip'),
+                text: pclText('Setup.GameManage.Download.HttpProtocol.Http2'),
+                title: pclText('Setup.GameManage.Download.HttpProtocol.Http2.ToolTip'),
               },
             ]"
             v-model="values.ComboDownloadHttpMode"
@@ -166,12 +164,12 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.GameManage.Download.Threads') }}</span
+            >{{ pclText('Setup.GameManage.Download.Threads') }}</span
           >
           <input
             :disabled="!ready"
             style="grid-row: 7 / span 1; grid-column: 2 / span 1"
-            :title="text('Setup.GameManage.Download.Threads.ToolTip')"
+            :title="pclText('Setup.GameManage.Download.Threads.ToolTip')"
             type="range"
             min="0"
             max="255"
@@ -186,12 +184,12 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.GameManage.Download.FileConnections') }}</span
+            >{{ pclText('Setup.GameManage.Download.FileConnections') }}</span
           >
           <input
             :disabled="!ready"
             style="grid-row: 8 / span 1; grid-column: 2 / span 1"
-            :title="text('Setup.GameManage.Download.FileConnections.ToolTip')"
+            :title="pclText('Setup.GameManage.Download.FileConnections.ToolTip')"
             type="range"
             min="0"
             max="7"
@@ -206,12 +204,12 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.GameManage.Download.SpeedLimit') }}</span
+            >{{ pclText('Setup.GameManage.Download.SpeedLimit') }}</span
           >
           <input
             :disabled="!ready"
             style="grid-row: 9 / span 1; grid-column: 2 / span 1"
-            :title="text('Setup.GameManage.Download.SpeedLimit.ToolTip')"
+            :title="pclText('Setup.GameManage.Download.SpeedLimit.ToolTip')"
             type="range"
             min="0"
             max="42"
@@ -226,7 +224,7 @@ const text = pclText
               align-self: start;
             "
             class="pcl-text"
-            >{{ text('Setup.GameManage.Download.TargetFolder') }}</span
+            >{{ pclText('Setup.GameManage.Download.TargetFolder') }}</span
           >
           <span
             style="
@@ -238,12 +236,12 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.GameManage.Download.TargetFolder.Hint') }}</span
+            >{{ pclText('Setup.GameManage.Download.TargetFolder.Hint') }}</span
           >
           <span
             style="margin: 5px 0px; grid-row: 11 / span 1; grid-column: 1 / span 1"
             class="pcl-text"
-            >{{ text('Setup.GameManage.Download.InstallBehavior') }}</span
+            >{{ pclText('Setup.GameManage.Download.InstallBehavior') }}</span
           >
           <div
             style="
@@ -257,22 +255,22 @@ const text = pclText
               :disabled="!desktop || !ready"
               style="grid-row: 1 / span 1; grid-column: 1 / span 1"
               id="PageSetupGameManage-CheckDownloadAutoSelectVersion"
-              :label="text('Setup.GameManage.Download.AutoSelectInstance')"
+              :label="pclText('Setup.GameManage.Download.AutoSelectInstance')"
               v-model="values.CheckDownloadAutoSelectVersion"
             />
             <PCheckBox
               disabled
               style="margin: 0px 0px 0px 0px; grid-row: 1 / span 1; grid-column: 2 / span 1"
-              :title="text('Setup.GameManage.Download.FixAuthlib.ToolTip')"
+              :title="pclText('Setup.GameManage.Download.FixAuthlib.ToolTip')"
               id="PageSetupGameManage-CheckFixAuthlib"
-              :label="text('Setup.GameManage.Download.FixAuthlib')"
+              :label="pclText('Setup.GameManage.Download.FixAuthlib')"
               v-model="values.CheckFixAuthlib"
             />
           </div>
         </div>
       </div>
     </PCard>
-    <PCard :title="text('Setup.GameManage.Community.Title')">
+    <PCard :title="pclText('Setup.GameManage.Community.Title')">
       <div style="margin: 0px 25px 12px 25px; display: flex; flex-direction: column">
         <div
           style="
@@ -290,18 +288,18 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.GameManage.Community.Source') }}</span
+            >{{ pclText('Setup.GameManage.Community.Source') }}</span
           >
           <PComboBox
             disabled
             style="grid-row: 1 / span 1; grid-column: 2 / span 2"
             :options="[
-              { key: '0', text: text('Setup.GameManage.Source.UseMirror') },
+              { key: '0', text: pclText('Setup.GameManage.Source.UseMirror') },
               {
                 key: '1',
-                text: text('Setup.GameManage.Community.Source.PreferOfficialWithFallback'),
+                text: pclText('Setup.GameManage.Community.Source.PreferOfficialWithFallback'),
               },
-              { key: '2', text: text('Setup.GameManage.Source.UseOfficial') },
+              { key: '2', text: pclText('Setup.GameManage.Source.UseOfficial') },
             ]"
             v-model="values.ComboDownloadMod"
           />
@@ -314,18 +312,18 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.GameManage.Community.FilenameFormat') }}</span
+            >{{ pclText('Setup.GameManage.Community.FilenameFormat') }}</span
           >
           <PComboBox
             disabled
             style="grid-row: 3 / span 1; grid-column: 2 / span 2"
-            :title="text('Setup.GameManage.Community.FilenameFormat.ToolTip')"
+            :title="pclText('Setup.GameManage.Community.FilenameFormat.ToolTip')"
             :options="[
-              { key: '0', text: text('Setup.GameManage.Community.FilenameFormat.Style0') },
-              { key: '1', text: text('Setup.GameManage.Community.FilenameFormat.Style1') },
-              { key: '2', text: text('Setup.GameManage.Community.FilenameFormat.Style2') },
-              { key: '3', text: text('Setup.GameManage.Community.FilenameFormat.Style3') },
-              { key: '4', text: text('Setup.GameManage.Community.FilenameFormat.Style4') },
+              { key: '0', text: pclText('Setup.GameManage.Community.FilenameFormat.Style0') },
+              { key: '1', text: pclText('Setup.GameManage.Community.FilenameFormat.Style1') },
+              { key: '2', text: pclText('Setup.GameManage.Community.FilenameFormat.Style2') },
+              { key: '3', text: pclText('Setup.GameManage.Community.FilenameFormat.Style3') },
+              { key: '4', text: pclText('Setup.GameManage.Community.FilenameFormat.Style4') },
             ]"
             v-model="values.ComboDownloadTranslateV2"
           />
@@ -338,20 +336,20 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.GameManage.Community.ModManageStyle') }}</span
+            >{{ pclText('Setup.GameManage.Community.ModManageStyle') }}</span
           >
           <PComboBox
             disabled
             style="grid-row: 5 / span 1; grid-column: 2 / span 2"
-            :title="text('Setup.GameManage.Community.ModManageStyle.ToolTip')"
+            :title="pclText('Setup.GameManage.Community.ModManageStyle.ToolTip')"
             :options="[
               {
                 key: '0',
-                text: text('Setup.GameManage.Community.ModManageStyle.TitleTranslation'),
+                text: pclText('Setup.GameManage.Community.ModManageStyle.TitleTranslation'),
               },
               {
                 key: '1',
-                text: text('Setup.GameManage.Community.ModManageStyle.TitleFilename'),
+                text: pclText('Setup.GameManage.Community.ModManageStyle.TitleFilename'),
               },
             ]"
             v-model="values.ComboModLocalNameStyle"
@@ -365,22 +363,22 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.GameManage.Community.QuickDownload') }}</span
+            >{{ pclText('Setup.GameManage.Community.QuickDownload') }}</span
           >
           <PComboBox
             style="grid-row: 7 / span 1; grid-column: 2 / span 2"
-            :title="text('Setup.GameManage.Community.QuickDownload.ToolTip')"
+            :title="pclText('Setup.GameManage.Community.QuickDownload.ToolTip')"
             :options="[
-              { key: '0', text: text('Setup.GameManage.Community.QuickDownload.AlwaysAsk') },
+              { key: '0', text: pclText('Setup.GameManage.Community.QuickDownload.AlwaysAsk') },
               {
                 key: '1',
-                text: text('Setup.GameManage.Community.QuickDownload.CurrentInstance'),
+                text: pclText('Setup.GameManage.Community.QuickDownload.CurrentInstance'),
               },
               {
                 key: '2',
-                text: text('Setup.GameManage.Community.QuickDownload.AskInstance'),
+                text: pclText('Setup.GameManage.Community.QuickDownload.AskInstance'),
               },
-              { key: '3', text: text('Setup.GameManage.Community.QuickDownload.AskPath') },
+              { key: '3', text: pclText('Setup.GameManage.Community.QuickDownload.AskPath') },
             ]"
             v-model="values.ComboDownloadQuickBehavior"
           />
@@ -400,9 +398,9 @@ const text = pclText
               grid-row: 1 / span 1;
               grid-column: 1 / span 1;
             "
-            :title="text('Setup.GameManage.Community.HideQuilt.ToolTip')"
+            :title="pclText('Setup.GameManage.Community.HideQuilt.ToolTip')"
             id="PageSetupGameManage-CheckDownloadIgnoreQuilt"
-            :label="text('Setup.GameManage.Community.HideQuilt')"
+            :label="pclText('Setup.GameManage.Community.HideQuilt')"
             v-model="values.CheckDownloadIgnoreQuilt"
           />
           <PCheckBox
@@ -413,15 +411,15 @@ const text = pclText
               grid-row: 2 / span 1;
               grid-column: 1 / span 1;
             "
-            :title="text('Setup.GameManage.Community.AutoInstallDependencies.ToolTip')"
+            :title="pclText('Setup.GameManage.Community.AutoInstallDependencies.ToolTip')"
             id="PageSetupGameManage-CheckDownloadAutoInstallDependencies"
-            :label="text('Setup.GameManage.Community.AutoInstallDependencies')"
+            :label="pclText('Setup.GameManage.Community.AutoInstallDependencies')"
             v-model="values.CheckDownloadAutoInstallDependencies"
           />
         </div>
       </div>
     </PCard>
-    <PCard :title="text('Setup.GameManage.Accessibility.Title')">
+    <PCard :title="pclText('Setup.GameManage.Accessibility.Title')">
       <div
         style="
           margin: 0px 25px 17px 25px;
@@ -439,22 +437,22 @@ const text = pclText
             align-self: center;
           "
           class="pcl-text"
-          >{{ text('Setup.GameManage.Accessibility.GameUpdateNotice') }}</span
+          >{{ pclText('Setup.GameManage.Accessibility.GameUpdateNotice') }}</span
         >
         <PCheckBox
           disabled
           style="grid-row: 1 / span 1; grid-column: 2 / span 1"
-          :title="text('Setup.GameManage.Accessibility.ReleaseNotice.ToolTip')"
+          :title="pclText('Setup.GameManage.Accessibility.ReleaseNotice.ToolTip')"
           id="PageSetupGameManage-CheckUpdateRelease"
-          :label="text('Setup.GameManage.Accessibility.ReleaseNotice')"
+          :label="pclText('Setup.GameManage.Accessibility.ReleaseNotice')"
           v-model="values.CheckUpdateRelease"
         />
         <PCheckBox
           disabled
           style="height: 22px; grid-row: 1 / span 1; grid-column: 3 / span 1"
-          :title="text('Setup.GameManage.Accessibility.SnapshotNotice.ToolTip')"
+          :title="pclText('Setup.GameManage.Accessibility.SnapshotNotice.ToolTip')"
           id="PageSetupGameManage-CheckUpdateSnapshot"
-          :label="text('Setup.GameManage.Accessibility.SnapshotNotice')"
+          :label="pclText('Setup.GameManage.Accessibility.SnapshotNotice')"
           v-model="values.CheckUpdateSnapshot"
         />
         <span
@@ -466,21 +464,21 @@ const text = pclText
             align-self: center;
           "
           class="pcl-text"
-          >{{ text('Setup.GameManage.Accessibility.GameLanguage') }}</span
+          >{{ pclText('Setup.GameManage.Accessibility.GameLanguage') }}</span
         >
         <PCheckBox
           disabled
           style="grid-row: 3 / span 1; grid-column: 2 / span 5"
           id="PageSetupGameManage-CheckHelpLauncherLanguage"
-          :label="text('Setup.GameManage.Accessibility.AutoLauncherLanguage')"
+          :label="pclText('Setup.GameManage.Accessibility.AutoLauncherLanguage')"
           v-model="values.CheckHelpLauncherLanguage"
         />
         <PCheckBox
           disabled
           style="height: 22px; grid-row: 5 / span 1; grid-column: 1 / span 3"
-          :title="text('Setup.GameManage.Accessibility.ReadClipboard.ToolTip')"
+          :title="pclText('Setup.GameManage.Accessibility.ReadClipboard.ToolTip')"
           id="PageSetupGameManage-CheckDownloadClipboard"
-          :label="text('Setup.GameManage.Accessibility.ReadClipboard')"
+          :label="pclText('Setup.GameManage.Accessibility.ReadClipboard')"
           v-model="values.CheckDownloadClipboard"
         />
       </div>

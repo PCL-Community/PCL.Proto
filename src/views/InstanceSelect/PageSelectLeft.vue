@@ -12,7 +12,6 @@ import { importLocalModpack } from '@/api/modpack'
 const repo = useRepositoriesStore()
 const router = useRouter()
 const route = useRoute()
-const text = pclText
 async function add() {
   try {
     await repo.addNew()
@@ -21,7 +20,7 @@ async function add() {
   }
 }
 async function importModpack() {
-  if (!isTauri()) return sideTip.show(text('Proto.Desktop.Download'), 'warn')
+  if (!isTauri()) return sideTip.show(pclText('Proto.Desktop.Download'), 'warn')
   try {
     const path = await open({
       multiple: false,
@@ -30,12 +29,12 @@ async function importModpack() {
     if (!path) return
     await importLocalModpack(path)
   } catch (error) {
-    sideTip.show(text('Proto.Error.Download', [String(error)]), 'warn')
+    sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn')
   }
 }
 const groups = computed(() => [
   {
-    title: text('Select.Folder.ListTitle'),
+    title: pclText('Select.Folder.ListTitle'),
     content:
       repo.repositories?.map((item, index) => ({
         text: item.name,
@@ -44,15 +43,15 @@ const groups = computed(() => [
       })) || [],
   },
   {
-    title: text('Select.Folder.AddOrImport'),
+    title: pclText('Select.Folder.AddOrImport'),
     content: [
       {
-        text: text('Select.Folder.AddExisting.Title'),
+        text: pclText('Select.Folder.AddExisting.Title'),
         icon: () => h(PSvgIcon, { name: 'lucide/folder-plus' }),
         clickCallback: add,
       },
       {
-        text: text('Select.Folder.ImportModpack.Title'),
+        text: pclText('Select.Folder.ImportModpack.Title'),
         icon: () => h(PSvgIcon, { name: 'lucide/package' }),
         clickCallback: importModpack,
       },

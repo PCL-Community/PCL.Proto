@@ -87,7 +87,7 @@ function chooseSort(event: MouseEvent) {
   void popupNativeMenu(
     event.currentTarget as Element,
     ['ResourceName', 'FileName', 'AddTime', 'FileSize'].map((key) => ({
-      text: text(`Instance.Resource.Sort.${key}`),
+      text: pclText(`Instance.Resource.Sort.${key}`),
       action: () => {
         sort.value = key
       },
@@ -151,21 +151,19 @@ const visibleDatapacks = computed(() =>
           : a.name.localeCompare(b.name),
     ),
 )
-
-const text = pclText
 </script>
 <template>
   <div class="pcl-page">
-    <PLoading v-if="loading" :loading-text="text('Instance.Resource.Datapack.Loading')" />
+    <PLoading v-if="loading" :loading-text="pclText('Instance.Resource.Datapack.Loading')" />
     <template v-else>
-      <PCard :title="text('Instance.Saves.Info.LevelName')">
+      <PCard :title="pclText('Instance.Saves.Info.LevelName')">
         <div style="margin: 0px 15px 15px 15px">
           <PComboBox v-model="selectedSave" :options="saveOptions" />
         </div>
       </PCard>
       <template v-if="datapacks.length">
         <PSearchBox
-          :placeholder="text('Instance.Resource.Search.Hint')"
+          :placeholder="pclText('Instance.Resource.Search.Hint')"
           @search="(query: string) => (values.SearchBox = query || '')"
         />
         <PCard hide-title>
@@ -182,29 +180,29 @@ const text = pclText
               style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
               @click="resources.openFolder()"
               type="tint"
-              >{{ text('Common.Action.OpenFolder') }}</PButton
+              >{{ pclText('Common.Action.OpenFolder') }}</PButton
             >
             <PButton
               style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
               @click="resources.importFiles()"
-              >{{ text('Instance.Resource.InstallFromFiles') }}</PButton
+              >{{ pclText('Instance.Resource.InstallFromFiles') }}</PButton
             >
             <PButton
               style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
               @click="downloadDatapacks"
               :disabled="!selectedSave"
-              >{{ text('Instance.Resource.Datapack.DownloadNew') }}</PButton
+              >{{ pclText('Instance.Resource.Datapack.DownloadNew') }}</PButton
             >
             <PButton
               style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
               @click="() => visibleDatapacks.forEach((pack) => selected.add(pack.id))"
-              >{{ text('Instance.Resource.SelectAll') }}</PButton
+              >{{ pclText('Instance.Resource.SelectAll') }}</PButton
             >
             <PButton
               style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
-              :title="text('Instance.Resource.Datapack.ExportInfo.ToolTip')"
+              :title="pclText('Instance.Resource.Datapack.ExportInfo.ToolTip')"
               @click="showUnavailable"
-              >{{ text('Instance.Resource.ExportInfo') }}</PButton
+              >{{ pclText('Instance.Resource.ExportInfo') }}</PButton
             >
           </div>
         </PCard>
@@ -219,11 +217,11 @@ const text = pclText
                 :class="{ active: values.filter === filter }"
                 @click="values.filter = filter"
               >
-                {{ text(`Instance.Resource.Filter.${filter}`) }}
+                {{ pclText(`Instance.Resource.Filter.${filter}`) }}
               </button>
             </div>
             <PIconTextButton icon="lucide/arrow-up-down" @click="chooseSort">{{
-              text('Instance.Resource.Sort.Text', [text(`Instance.Resource.Sort.${sort}`)])
+              pclText('Instance.Resource.Sort.Text', [pclText(`Instance.Resource.Sort.${sort}`)])
             }}</PIconTextButton>
           </div>
           <div style="margin: 8px 18px 22px 20px; display: flex; flex-direction: column">
@@ -257,21 +255,21 @@ const text = pclText
       <PCard v-if="!datapacks.length" class="pcl-empty-state-card" hide-title>
         <div class="pcl-empty-state">
           <h2 class="pcl-empty-state-title pcl-text">
-            {{ text('Instance.Resource.Datapack.Empty.Title') }}
+            {{ pclText('Instance.Resource.Datapack.Empty.Title') }}
           </h2>
           <div class="pcl-divider" />
           <p class="pcl-empty-state-message pcl-text">
-            {{ text('Instance.Resource.Datapack.Empty.Description') }}
+            {{ pclText('Instance.Resource.Datapack.Empty.Description') }}
           </p>
           <div class="pcl-empty-state-actions">
             <PButton @click="resources.importFiles()" type="tint">{{
-              text('Instance.Resource.InstallFromFiles')
+              pclText('Instance.Resource.InstallFromFiles')
             }}</PButton>
             <PButton @click="downloadDatapacks" :disabled="!selectedSave">{{
-              text('Instance.Resource.Datapack.DownloadNew')
+              pclText('Instance.Resource.Datapack.DownloadNew')
             }}</PButton>
             <PButton @click="resources.openFolder()">{{
-              text('Common.Action.OpenFolder')
+              pclText('Common.Action.OpenFolder')
             }}</PButton>
           </div>
         </div>
@@ -284,9 +282,9 @@ const text = pclText
         :icon="`lucide/${action.icon}`"
         :disabled="selectionDisabled(action.id)"
         @click="runSelection(action.id)"
-        >{{ text(action.key) }}</PIconTextButton
+        >{{ pclText(action.key) }}</PIconTextButton
       ><PIconTextButton icon="lucide/x" @click="() => selected.clear()">{{
-        text('Instance.Resource.CancelSelection')
+        pclText('Instance.Resource.CancelSelection')
       }}</PIconTextButton>
     </PSelectionToolbar>
   </div>

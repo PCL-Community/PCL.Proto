@@ -22,7 +22,6 @@ const route = useRoute()
 const router = useRouter()
 const repos = useRepositoriesStore()
 const selected = useSelectedInstance()
-const text = pclText
 const instances = ref<GameInstance[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -71,19 +70,19 @@ const groups = computed(() => {
   return [
     {
       key: 'favorites',
-      title: text('Select.Instance.Card.Favorites'),
+      title: pclText('Select.Instance.Card.Favorites'),
       items: filtered.value.filter((item) => favorites.value.includes(item.directory)),
       favorite: true,
     },
     {
       key: 'modded',
-      title: text(`Select.Instance.Card.${label || 'Modable'}`),
+      title: pclText(`Select.Instance.Card.${label || 'Modable'}`),
       items: modded,
       favorite: false,
     },
     {
       key: 'regular',
-      title: text('Select.Instance.Card.Regular'),
+      title: pclText('Select.Instance.Card.Regular'),
       items: regular,
       favorite: false,
     },
@@ -158,11 +157,15 @@ async function folderAction(item: GameInstance, remove: boolean) {
   if (remove) {
     const modal = useModal()
     const result = await modal.open({
-      title: text('Select.Instance.Delete.ConfirmTitle'),
-      content: `${text('Select.Instance.Delete.ConfirmMessage', [item.name])}\n${text('Select.Instance.Delete.IsolatedWarning')}`,
+      title: pclText('Select.Instance.Delete.ConfirmTitle'),
+      content: `${pclText('Select.Instance.Delete.ConfirmMessage', [item.name])}\n${pclText('Select.Instance.Delete.IsolatedWarning')}`,
       buttons: [
-        { content: text('Common.Action.Delete'), type: 'warn', operation: () => modal.close(true) },
-        { content: text('Common.Action.Cancel'), operation: () => modal.close(false) },
+        {
+          content: pclText('Common.Action.Delete'),
+          type: 'warn',
+          operation: () => modal.close(true),
+        },
+        { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
       ],
     })
     if (!result.confirmed) return
@@ -177,7 +180,7 @@ async function folderAction(item: GameInstance, remove: boolean) {
     if (remove) {
       if (selected.instance_info?.directory === item.directory) selected.setInstance(null)
       if (favorites.value.includes(item.directory)) toggleFavorite(item)
-      sideTip.show(text('Select.Instance.Delete.RecycleBinSuccess', [item.name]), 'success')
+      sideTip.show(pclText('Select.Instance.Delete.RecycleBinSuccess', [item.name]), 'success')
       await load()
     }
   } catch (err) {
@@ -198,9 +201,12 @@ watch(
     <PSearchBox
       v-if="instances.length || query"
       v-model="query"
-      :placeholder="text('Select.Instance.Search.Hint')"
+      :placeholder="pclText('Select.Instance.Search.Hint')"
     />
-    <PLoading v-if="loading && !instances.length" :loading-text="text('Select.Instance.Loading')" />
+    <PLoading
+      v-if="loading && !instances.length"
+      :loading-text="pclText('Select.Instance.Loading')"
+    />
     <PHint v-else-if="error && !instances.length" severity="error"
       >{{ error
       }}<PButton inline @click="load">{{
@@ -209,19 +215,19 @@ watch(
     >
     <PCard v-else-if="!instances.length" hide-title class="empty-card"
       ><div class="empty-content">
-        <h2>{{ text('Select.Instance.Empty.Title') }}</h2>
+        <h2>{{ pclText('Select.Instance.Empty.Title') }}</h2>
         <hr />
-        <p>{{ text('Select.Instance.Empty.Message') }}</p>
+        <p>{{ pclText('Select.Instance.Empty.Message') }}</p>
         <PButton type="tint" @click="() => router.push('/download/game')">{{
-          text('Select.Instance.Empty.Download')
+          pclText('Select.Instance.Empty.Download')
         }}</PButton>
       </div></PCard
     >
     <PCard v-else-if="!filtered.length" hide-title class="empty-card"
       ><div class="empty-content">
-        <h2>{{ text('Select.Instance.EmptySearch.Title') }}</h2>
+        <h2>{{ pclText('Select.Instance.EmptySearch.Title') }}</h2>
         <hr />
-        <p>{{ text('Select.Instance.Search.NoResult', [query]) }}</p>
+        <p>{{ pclText('Select.Instance.Search.NoResult', [query]) }}</p>
       </div></PCard
     >
     <template v-else
@@ -245,14 +251,14 @@ watch(
                 class="pcl-icon-button"
                 type="button"
                 :title="
-                  text(
+                  pclText(
                     favorites.includes(item.directory)
                       ? 'Select.Instance.Unfavorite'
                       : 'Select.Instance.Favorite',
                   )
                 "
                 :aria-label="
-                  text(
+                  pclText(
                     favorites.includes(item.directory)
                       ? 'Select.Instance.Unfavorite'
                       : 'Select.Instance.Favorite',
@@ -271,8 +277,8 @@ watch(
               <button
                 class="pcl-icon-button"
                 type="button"
-                :title="text('Select.Instance.OpenFolder')"
-                :aria-label="text('Select.Instance.OpenFolder')"
+                :title="pclText('Select.Instance.OpenFolder')"
+                :aria-label="pclText('Select.Instance.OpenFolder')"
                 @click="folderAction(item, false)"
               >
                 <PSvgIcon name="lucide/folder-open" :size="15" />
@@ -280,8 +286,8 @@ watch(
               <button
                 class="pcl-icon-button"
                 type="button"
-                :title="text('Common.Action.Delete')"
-                :aria-label="text('Common.Action.Delete')"
+                :title="pclText('Common.Action.Delete')"
+                :aria-label="pclText('Common.Action.Delete')"
                 @click="folderAction(item, true)"
               >
                 <PSvgIcon name="lucide/trash-2" :size="15" />
@@ -289,8 +295,8 @@ watch(
               <button
                 class="pcl-icon-button"
                 type="button"
-                :title="text('Select.Instance.Settings')"
-                :aria-label="text('Select.Instance.Settings')"
+                :title="pclText('Select.Instance.Settings')"
+                :aria-label="pclText('Select.Instance.Settings')"
                 @click="settings(item)"
               >
                 <PSvgIcon name="lucide/settings" :size="15" />

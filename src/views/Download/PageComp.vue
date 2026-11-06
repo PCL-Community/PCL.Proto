@@ -22,15 +22,14 @@ import { useRoute } from 'vue-router'
 const props = defineProps<{
   projectType: 'mod' | 'modpack' | 'resourcepack' | 'shader' | 'datapack' | 'world'
 }>()
-const text = pclText
 const route = useRoute()
 const instance = useSelectedInstance()
 const datapackTarget = computed(() =>
   props.projectType === 'datapack' ? datapackTargetFromQuery(route.query) : undefined,
 )
 const searchHint = computed(() =>
-  text('Proto.Resource.Search', [
-    text(
+  pclText('Proto.Resource.Search', [
+    pclText(
       `Download.Comp.Type.${{ mod: 'Mod', modpack: 'Modpack', resourcepack: 'ResourcePack', shader: 'Shader', datapack: 'DataPack', world: 'World' }[props.projectType]}`,
     ),
   ]),
@@ -59,14 +58,14 @@ const modrinthUnsupported = computed(() => props.projectType === 'world')
 const sourceOptions = computed(() => [
   {
     key: 'all',
-    text: text('Common.Option.All'),
+    text: pclText('Common.Option.All'),
     disabled: !curseforgeReady.value || modrinthUnsupported.value,
   },
   {
     key: 'curseforge',
     text: 'CurseForge',
     disabled: !curseforgeReady.value,
-    title: curseforgeReady.value ? undefined : text('Proto.Resource.CurseForgeUnavailable'),
+    title: curseforgeReady.value ? undefined : pclText('Proto.Resource.CurseForgeUnavailable'),
   },
   { key: 'modrinth', text: 'Modrinth', disabled: modrinthUnsupported.value },
 ])
@@ -78,12 +77,12 @@ const loaderOptions = computed(() =>
     key: value,
     text:
       value === 'vanilla'
-        ? text('Download.Comp.Filter.Loader.VanillaAvailable')
+        ? pclText('Download.Comp.Filter.Loader.VanillaAvailable')
         : value
-          ? text(
+          ? pclText(
               `Common.Installation.${({ forge: 'Forge', neoforge: 'NeoForge', fabric: 'Fabric', quilt: 'Quilt', iris: 'Iris', optifine: 'OptiFine' } as Record<string, string>)[value]}`,
             )
-          : text('Download.Comp.Filter.Loader.Any'),
+          : pclText('Download.Comp.Filter.Loader.Any'),
   })),
 )
 async function search() {
@@ -169,29 +168,29 @@ watch(
     />
     <PCard hide-title
       ><div class="filters">
-        <label for="comp-source">{{ text('Download.Comp.Filter.Source') }}</label>
+        <label for="comp-source">{{ pclText('Download.Comp.Filter.Source') }}</label>
         <PComboBox
           v-model="values.source"
           input-id="comp-source"
           :options="sourceOptions"
           @update:model-value="firstSearch"
         />
-        <label for="comp-tag">{{ text('Download.Comp.Filter.Tag') }}</label>
+        <label for="comp-tag">{{ pclText('Download.Comp.Filter.Tag') }}</label>
         <PComboBox
           input-id="comp-tag"
           v-model="values.tag"
           :options="tagOptions"
           @update:model-value="firstSearch"
         />
-        <label for="comp-sort">{{ text('Download.Comp.Filter.Sort') }}</label>
+        <label for="comp-sort">{{ pclText('Download.Comp.Filter.Sort') }}</label>
         <PComboBox
           v-model="values.sort"
           input-id="comp-sort"
           :options="[
-            { key: '0', text: text('Common.Option.Default') },
+            { key: '0', text: pclText('Common.Option.Default') },
             ...['Relevance', 'Downloads', 'Follows', 'Latest', 'Updated'].map((item, index) => ({
               key: String(index + 1),
-              text: text(`Download.Comp.Sort.${item}`),
+              text: pclText(`Download.Comp.Sort.${item}`),
             })),
           ]"
           @update:model-value="firstSearch"
@@ -200,16 +199,16 @@ watch(
           type="button"
           class="pcl-icon-button reset"
           @click="() => reset()"
-          :title="text('Download.Comp.Filter.Reset')"
-          :aria-label="text('Download.Comp.Filter.Reset')"
+          :title="pclText('Download.Comp.Filter.Reset')"
+          :aria-label="pclText('Download.Comp.Filter.Reset')"
         >
           <PSvgIcon name="lucide/rotate-ccw" :size="16" />
         </button>
-        <label for="comp-version">{{ text('Download.Comp.Filter.Version') }}</label>
+        <label for="comp-version">{{ pclText('Download.Comp.Filter.Version') }}</label>
         <PTextBox
           v-model="values.version"
           input-id="comp-version"
-          :placeholder="text('Download.Comp.Filter.Version.Any')"
+          :placeholder="pclText('Download.Comp.Filter.Version.Any')"
           :suggestions="[
             '1.21.11',
             '1.21.1',
@@ -228,7 +227,7 @@ watch(
           @keydown.enter="firstSearch"
         />
         <template v-if="['mod', 'modpack', 'shader'].includes(projectType)">
-          <label for="comp-loader">{{ text('Download.Comp.Filter.Loader') }}</label>
+          <label for="comp-loader">{{ pclText('Download.Comp.Filter.Loader') }}</label>
           <PComboBox
             v-model="values.loader"
             input-id="comp-loader"
@@ -237,7 +236,7 @@ watch(
           />
         </template></div
     ></PCard>
-    <PLoading v-if="loading" :loading-text="text('Download.Version.LoadingList')" />
+    <PLoading v-if="loading" :loading-text="pclText('Download.Version.LoadingList')" />
     <PHint v-else-if="error" severity="error"
       >{{ error }}
       <PButton inline @click="search">{{

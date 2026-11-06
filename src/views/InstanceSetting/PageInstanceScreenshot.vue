@@ -40,24 +40,22 @@ async function openScreenshot(id: string) {
   try {
     await openInstancePath(directory, id)
   } catch (failure) {
-    sideTip.show(`${text('Instance.Screenshot.OpenFailed')} ${failure}`, 'warn')
+    sideTip.show(`${pclText('Instance.Screenshot.OpenFailed')} ${failure}`, 'warn')
   }
 }
-
-const text = pclText
 </script>
 <template>
   <div class="pcl-page">
     <PLoading
       v-if="resources.loading.value"
-      :loading-text="text('Instance.Saves.Status.Refreshing')"
+      :loading-text="pclText('Instance.Saves.Status.Refreshing')"
     />
     <PHint v-else-if="resources.error.value" severity="error">{{ resources.error.value }}</PHint>
     <div v-else-if="screenshots.length" class="screenshots-content">
-      <PCard :title="text('Instance.Screenshot.QuickActions')"
+      <PCard :title="pclText('Instance.Screenshot.QuickActions')"
         ><div class="screenshot-actions">
           <PButton type="tint" @click="resources.openFolder()">{{
-            text('Instance.Screenshot.OpenFolder')
+            pclText('Instance.Screenshot.OpenFolder')
           }}</PButton>
         </div></PCard
       >
@@ -79,10 +77,10 @@ const text = pclText
           </button>
           <div class="screenshot-card-actions">
             <PIconTextButton icon="lucide/folder-open" @click="openScreenshot(screenshot.id)">{{
-              text('Common.Action.Open')
+              pclText('Common.Action.Open')
             }}</PIconTextButton>
             <PIconTextButton icon="lucide/trash-2" @click="remove(screenshot.id)">{{
-              text('Common.Action.Delete')
+              pclText('Common.Action.Delete')
             }}</PIconTextButton>
           </div>
         </PCard>
@@ -91,15 +89,15 @@ const text = pclText
     <PCard v-else class="pcl-empty-state-card" hide-title>
       <div class="pcl-empty-state">
         <span class="pcl-empty-state-title pcl-text">{{
-          text('Instance.Screenshot.Empty.Title')
+          pclText('Instance.Screenshot.Empty.Title')
         }}</span>
         <div class="pcl-divider" />
         <span class="pcl-empty-state-message pcl-text">{{
-          text('Instance.Screenshot.Empty.Message')
+          pclText('Instance.Screenshot.Empty.Message')
         }}</span>
         <div class="pcl-empty-state-actions">
           <PButton type="tint" @click="resources.openFolder()">{{
-            text('Instance.Screenshot.OpenFolder')
+            pclText('Instance.Screenshot.OpenFolder')
           }}</PButton>
         </div>
       </div>

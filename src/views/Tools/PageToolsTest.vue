@@ -37,7 +37,7 @@ async function showLuck() {
   try {
     const luck = await invoke<number>('get_lucky_today')
     await useModal().open({
-      title: text('Tools.Test.Luck.Title'),
+      title: pclText('Tools.Test.Luck.Title'),
       content: pclText('Proto.Tools.Luck', [luck]),
       buttons: [{ type: 'tint', content: pclText('Common.Action.Confirm') }],
     })
@@ -79,21 +79,20 @@ async function saveSkin() {
       chunks.push(String.fromCharCode(...bytes.subarray(index, index + 0x8000)))
     }
     const destination = await save({
-      title: text('Tools.Test.Skin.Save'),
+      title: pclText('Tools.Test.Skin.Save'),
       defaultPath: `${current.name}.png`,
-      filters: [{ name: text('Launch.Skin.SaveDialog.Filter'), extensions: ['png'] }],
+      filters: [{ name: pclText('Launch.Skin.SaveDialog.Filter'), extensions: ['png'] }],
     })
     if (!destination) return
     await invoke('save_profile_skin', { destination, image: btoa(chunks.join('')) })
-    sideTip.show(text('Tools.Test.Skin.Saved', [current.name]), 'success')
+    sideTip.show(pclText('Tools.Test.Skin.Saved', [current.name]), 'success')
   } catch (err) {
-    sideTip.show(text('Launch.Skin.Save.Error'), 'warn')
+    sideTip.show(pclText('Launch.Skin.Save.Error'), 'warn')
   } finally {
     savingSkin.value = false
   }
 }
 
-const text = pclText
 watch(
   () => values.TextDownloadUrl,
   (value) => {
@@ -132,7 +131,10 @@ async function startCustomDownload() {
     const folder = String(values.TextDownloadFolder || '').trim()
     const destination = folder
       ? await join(folder, name)
-      : await save({ defaultPath: name, title: text('Tools.Test.CustomDownload.SelectLocation') })
+      : await save({
+          defaultPath: name,
+          title: pclText('Tools.Test.CustomDownload.SelectLocation'),
+        })
     if (!destination) return
     if (!folder) {
       values.TextDownloadFolder = await dirname(destination)
@@ -143,7 +145,7 @@ async function startCustomDownload() {
     values.TextDownloadName = ''
     sideTip.show(pclText('Download.Comp.QuickDownload.Hint.DownloadStarted', [name]), 'success')
     void task
-      .then(() => sideTip.show(text('Tools.Test.CustomDownload.Finished', [name]), 'success'))
+      .then(() => sideTip.show(pclText('Tools.Test.CustomDownload.Finished', [name]), 'success'))
       .catch((error) => {
         if (!isTaskCancelled(error))
           sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn')
@@ -166,7 +168,7 @@ async function openDownloadFolder() {
 </script>
 <template>
   <section class="pcl-page">
-    <PCard :title="text('Tools.Test.Title')">
+    <PCard :title="pclText('Tools.Test.Title')">
       <div
         style="
           margin: 0px 21px 5px 25px;
@@ -183,25 +185,25 @@ async function openDownloadFolder() {
         >
         <PButton
           style="min-width: 120px; margin: 0px 15px 15px 0px"
-          :title="text('Tools.Test.Clean.ToolTip')"
+          :title="pclText('Tools.Test.Clean.ToolTip')"
           @click="showUnavailable"
-          >{{ text('Tools.Test.Clean.Title') }}</PButton
+          >{{ pclText('Tools.Test.Clean.Title') }}</PButton
         >
         <PButton style="min-width: 100px; margin: 0px 15px 15px 0px" @click="showLuck">{{
-          text('Tools.Test.Luck.Title')
+          pclText('Tools.Test.Luck.Title')
         }}</PButton>
         <PButton
           style="min-width: 120px; margin: 0px 15px 15px 0px"
-          :title="text('Tools.Test.Shortcut.ToolTip')"
+          :title="pclText('Tools.Test.Shortcut.ToolTip')"
           @click="showUnavailable"
-          >{{ text('Tools.Test.Shortcut.Title') }}</PButton
+          >{{ pclText('Tools.Test.Shortcut.Title') }}</PButton
         >
         <PButton style="min-width: 120px; margin: 0px 15px 15px 0px" @click="showUnavailable">{{
-          text('Tools.Test.LaunchCount.Title')
+          pclText('Tools.Test.LaunchCount.Title')
         }}</PButton>
       </div>
     </PCard>
-    <PCard :title="text('Tools.Test.CustomDownload.Title')">
+    <PCard :title="pclText('Tools.Test.CustomDownload.Title')">
       <div style="margin: 0px 25px 20px 25px; display: flex; flex-direction: column">
         <span class="pcl-text">{{ pclText('Proto.Tools.CustomDownloadDescription') }}</span>
         <div
@@ -220,12 +222,12 @@ async function openDownloadFolder() {
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Tools.Test.CustomDownload.Url') }}</span
+            >{{ pclText('Tools.Test.CustomDownload.Url') }}</span
           >
           <PTextBox
-            :aria-label="text('Tools.Test.CustomDownload.Url')"
+            :aria-label="pclText('Tools.Test.CustomDownload.Url')"
             style="grid-row: 1 / span 1; grid-column: 2 / span 2"
-            :placeholder="text('')"
+            :placeholder="pclText('')"
             v-model="values.TextDownloadUrl"
           />
           <span
@@ -236,12 +238,12 @@ async function openDownloadFolder() {
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Tools.Test.CustomDownload.SaveTo') }}</span
+            >{{ pclText('Tools.Test.CustomDownload.SaveTo') }}</span
           >
           <PTextBox
-            :aria-label="text('Tools.Test.CustomDownload.SaveTo')"
+            :aria-label="pclText('Tools.Test.CustomDownload.SaveTo')"
             style="margin: 10px 0px; grid-row: 3 / span 1; grid-column: 2 / span 1"
-            :placeholder="text('')"
+            :placeholder="pclText('')"
             v-model="values.TextDownloadFolder"
           />
           <PButton
@@ -253,7 +255,7 @@ async function openDownloadFolder() {
             "
             @click="chooseDownloadFolder"
             inline
-            >{{ text('Tools.Test.CustomDownload.Select') }}</PButton
+            >{{ pclText('Tools.Test.CustomDownload.Select') }}</PButton
           >
           <span
             style="
@@ -263,12 +265,12 @@ async function openDownloadFolder() {
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Tools.Test.CustomDownload.FileName') }}</span
+            >{{ pclText('Tools.Test.CustomDownload.FileName') }}</span
           >
           <PTextBox
-            :aria-label="text('Tools.Test.CustomDownload.FileName')"
+            :aria-label="pclText('Tools.Test.CustomDownload.FileName')"
             style="grid-row: 4 / span 1; grid-column: 2 / span 2"
-            :placeholder="text('')"
+            :placeholder="pclText('')"
             v-model="values.TextDownloadName"
           />
         </div>
@@ -290,7 +292,7 @@ async function openDownloadFolder() {
             "
             @click="startCustomDownload"
             type="tint"
-            >{{ text('Tools.Test.CustomDownload.Start') }}</PButton
+            >{{ pclText('Tools.Test.CustomDownload.Start') }}</PButton
           >
           <PButton
             style="
@@ -301,16 +303,16 @@ async function openDownloadFolder() {
               justify-self: start;
             "
             @click="openDownloadFolder"
-            >{{ text('Common.Action.OpenFolder') }}</PButton
+            >{{ pclText('Common.Action.OpenFolder') }}</PButton
           >
         </div>
       </div>
     </PCard>
-    <PCard :title="text('Tools.Test.Skin.Title')">
+    <PCard :title="pclText('Tools.Test.Skin.Title')">
       <div class="skin-tool">
         <div class="skin-layout" :class="{ 'has-skin': skin }">
           <div class="skin-controls">
-            <label for="skin-player-name">{{ text('Tools.Test.Skin.PlayerName') }}</label>
+            <label for="skin-player-name">{{ pclText('Tools.Test.Skin.PlayerName') }}</label>
             <div class="skin-query">
               <PTextBox
                 input-id="skin-player-name"
@@ -325,25 +327,25 @@ async function openDownloadFolder() {
                 :aria-busy="loadingSkin"
                 @click="loadSkin"
               >
-                {{ text('Tools.ServerQuery.Action.Query') }}
+                {{ pclText('Tools.ServerQuery.Action.Query') }}
               </PButton>
             </div>
             <div v-if="loadingSkin" class="skin-status" role="status">
-              {{ text('Tools.Test.Skin.Fetching') }}
+              {{ pclText('Tools.Test.Skin.Fetching') }}
             </div>
             <Transition name="skin-reveal">
               <div v-if="skin" class="skin-result-actions">
                 <span class="skin-result-name"
-                  >{{ text('Proto.Label.PlayerSkin') }}: <strong>{{ skin.name }}</strong></span
+                  >{{ pclText('Proto.Label.PlayerSkin') }}: <strong>{{ skin.name }}</strong></span
                 >
                 <PButton compact :disabled="loadingSkin || savingSkin" @click="saveSkin">
-                  {{ text('Tools.Test.Skin.Save') }}
+                  {{ pclText('Tools.Test.Skin.Save') }}
                 </PButton>
                 <button
                   class="pcl-icon-button"
                   type="button"
-                  :title="text('Proto.Tools.CloseSkinPreview')"
-                  :aria-label="text('Proto.Tools.CloseSkinPreview')"
+                  :title="pclText('Proto.Tools.CloseSkinPreview')"
+                  :aria-label="pclText('Proto.Tools.CloseSkinPreview')"
                   :disabled="loadingSkin || savingSkin"
                   @click="skin = undefined"
                 >
@@ -355,17 +357,17 @@ async function openDownloadFolder() {
           <div class="skin-preview">
             <Transition name="skin-reveal">
               <div v-if="skin" class="skin-preview-content">
-                <SkinViewer :skin-url="skin.url" :aria-label="text('Proto.Label.PlayerSkin')" />
+                <SkinViewer :skin-url="skin.url" :aria-label="pclText('Proto.Label.PlayerSkin')" />
               </div>
             </Transition>
           </div>
         </div>
       </div>
     </PCard>
-    <PCard :title="text('Tools.Test.ServerQuery.Title')">
+    <PCard :title="pclText('Tools.Test.ServerQuery.Title')">
       <div style="margin: 0px 15px 15px 15px"><MinecraftServerCard embedded /></div>
     </PCard>
-    <PCard :title="text('Tools.Test.Achievement.Title')" default-fold-status="fold">
+    <PCard :title="pclText('Tools.Test.Achievement.Title')" default-fold-status="fold">
       <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
         <div
           style="
@@ -384,11 +386,11 @@ async function openDownloadFolder() {
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Tools.Test.Achievement.ItemId') }}</span
+            >{{ pclText('Tools.Test.Achievement.ItemId') }}</span
           >
           <PTextBox
             style="margin: 10px 0px; grid-row: 1 / span 1; grid-column: 2 / span 2"
-            :placeholder="text('')"
+            :placeholder="pclText('')"
             v-model="values.AchievementBlockTextBox"
           />
           <span
@@ -400,11 +402,11 @@ async function openDownloadFolder() {
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Tools.Test.Achievement.Name') }}</span
+            >{{ pclText('Tools.Test.Achievement.Name') }}</span
           >
           <PTextBox
             style="grid-row: 2 / span 1; grid-column: 2 / span 2"
-            :placeholder="text('')"
+            :placeholder="pclText('')"
             v-model="values.AchievementTitleTextBox"
           />
           <span
@@ -416,11 +418,11 @@ async function openDownloadFolder() {
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Tools.Test.Achievement.Line1') }}</span
+            >{{ pclText('Tools.Test.Achievement.Line1') }}</span
           >
           <PTextBox
             style="margin: 10px 0px; grid-row: 3 / span 1; grid-column: 2 / span 2"
-            :placeholder="text('')"
+            :placeholder="pclText('')"
             v-model="values.AchievementString1TextBox"
           />
           <span
@@ -432,11 +434,11 @@ async function openDownloadFolder() {
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Tools.Test.Achievement.Line2') }}</span
+            >{{ pclText('Tools.Test.Achievement.Line2') }}</span
           >
           <PTextBox
             style="grid-row: 4 / span 1; grid-column: 2 / span 2"
-            :placeholder="text('')"
+            :placeholder="pclText('')"
             v-model="values.AchievementString2TextBox"
           />
         </div>
@@ -458,7 +460,7 @@ async function openDownloadFolder() {
             "
             @click="showUnavailable"
             type="tint"
-            >{{ text('Tools.Test.Achievement.Preview') }}</PButton
+            >{{ pclText('Tools.Test.Achievement.Preview') }}</PButton
           >
           <PButton
             style="
@@ -469,12 +471,12 @@ async function openDownloadFolder() {
               justify-self: start;
             "
             @click="showUnavailable"
-            >{{ text('Tools.Test.Achievement.Save') }}</PButton
+            >{{ pclText('Tools.Test.Achievement.Save') }}</PButton
           >
         </div>
       </div>
     </PCard>
-    <PCard :title="text('Tools.Test.Avatar.Title')" default-fold-status="fold">
+    <PCard :title="pclText('Tools.Test.Avatar.Title')" default-fold-status="fold">
       <div style="margin: 0px 25px 20px 25px; display: flex; flex-direction: column">
         <div
           style="
@@ -491,7 +493,7 @@ async function openDownloadFolder() {
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Tools.Test.Avatar.Size') }}</span
+            >{{ pclText('Tools.Test.Avatar.Size') }}</span
           >
           <PComboBox
             style="height: 26px; grid-row: 1 / span 1; grid-column: 2 / span 1"
@@ -514,12 +516,12 @@ async function openDownloadFolder() {
               grid-column: 2 / span 1;
             "
             @click="showUnavailable"
-            >{{ text('Tools.Test.Avatar.SelectSkin') }}</PButton
+            >{{ pclText('Tools.Test.Avatar.SelectSkin') }}</PButton
           >
           <PButton
             style="width: 140px; height: 35px; grid-row: 1 / span 1; grid-column: 3 / span 1"
             @click="showUnavailable"
-            >{{ text('Tools.Test.Avatar.Save') }}</PButton
+            >{{ pclText('Tools.Test.Avatar.Save') }}</PButton
           >
         </div>
       </div>

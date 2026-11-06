@@ -31,8 +31,6 @@ const { isFavorite, toggleFavorite } = useInstanceFavorites()
 const busy = ref<string | null>(null)
 const description = ref('')
 
-const text = pclText
-
 watch(
   () => instance.instance_info?.directory,
   async (directory) => {
@@ -54,23 +52,23 @@ async function exportScript() {
   if (!info || busy.value || !isTauri()) return
   const windows = currentPlatform === 'windows'
   const target = await save({
-    title: text('Instance.Overall.Script.SelectSaveTitle'),
+    title: pclText('Instance.Overall.Script.SelectSaveTitle'),
     defaultPath: `启动 ${info.name}.${windows ? 'bat' : 'sh'}`,
     filters: windows
-      ? [{ name: text('Instance.Overall.Script.FileFilter'), extensions: ['bat'] }]
+      ? [{ name: pclText('Instance.Overall.Script.FileFilter'), extensions: ['bat'] }]
       : [{ name: 'Shell script', extensions: ['sh'] }],
   })
   if (!target) return
   busy.value = 'script'
-  sideTip.show(text('Instance.Overall.Script.ExportingWarning'))
+  sideTip.show(pclText('Instance.Overall.Script.ExportingWarning'))
   try {
     await invoke('export_launch_script', {
       instanceDirectory: info.directory,
       targetPath: target,
     })
-    sideTip.show(text('Minecraft.Launch.ExportScript.Success'), 'success')
+    sideTip.show(pclText('Minecraft.Launch.ExportScript.Success'), 'success')
   } catch (error) {
-    sideTip.show(`${text('Instance.Overall.Script.ExportFailed')}: ${error}`, 'warn')
+    sideTip.show(`${pclText('Instance.Overall.Script.ExportFailed')}: ${error}`, 'warn')
   } finally {
     busy.value = null
   }
@@ -80,12 +78,12 @@ async function repairFiles() {
   const info = instance.instance_info
   if (!info || busy.value || !isTauri()) return
   busy.value = 'repair'
-  sideTip.show(text('Instance.Overall.Repair.Processing'))
+  sideTip.show(pclText('Instance.Overall.Repair.Processing'))
   try {
     await invoke('repair_instance_files', { instanceDirectory: info.directory })
-    sideTip.show(text('Instance.Overall.Repair.Success'), 'success')
+    sideTip.show(pclText('Instance.Overall.Repair.Success'), 'success')
   } catch (error) {
-    sideTip.show(`${text('Instance.Overall.Repair.Failed')} ${error}`, 'warn')
+    sideTip.show(`${pclText('Instance.Overall.Repair.Failed')} ${error}`, 'warn')
   } finally {
     busy.value = null
   }
@@ -95,12 +93,12 @@ async function renameInstance() {
   const info = instance.instance_info
   if (!info || busy.value || !isTauri()) return
   const result = await modal.open({
-    title: text('Instance.Overall.Name.EditTitle'),
+    title: pclText('Instance.Overall.Name.EditTitle'),
     showInput: true,
     defaultInputText: info.name,
     buttons: [
-      { content: text('Common.Action.Confirm'), operation: () => modal.close(true) },
-      { content: text('Common.Action.Cancel'), operation: () => modal.close(false) },
+      { content: pclText('Common.Action.Confirm'), operation: () => modal.close(true) },
+      { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
     ],
   })
   const newName = (result.input || '').trim()
@@ -112,9 +110,9 @@ async function renameInstance() {
       newName,
     })
     instance.setInstance(renamed)
-    sideTip.show(text('Instance.Overall.Name.RenameSuccess'), 'success')
+    sideTip.show(pclText('Instance.Overall.Name.RenameSuccess'), 'success')
   } catch (error) {
-    sideTip.show(`${text('Instance.Overall.Error.OperationFailed')} ${error}`, 'warn')
+    sideTip.show(`${pclText('Instance.Overall.Error.OperationFailed')} ${error}`, 'warn')
   } finally {
     busy.value = null
   }
@@ -124,13 +122,13 @@ async function editDescription() {
   const info = instance.instance_info
   if (!info || busy.value || !isTauri()) return
   const result = await modal.open({
-    title: text('Instance.Overall.Description.EditTitle'),
-    content: text('Instance.Overall.Description.EditMessage'),
+    title: pclText('Instance.Overall.Description.EditTitle'),
+    content: pclText('Instance.Overall.Description.EditMessage'),
     showInput: true,
     defaultInputText: description.value,
     buttons: [
-      { content: text('Common.Action.Confirm'), operation: () => modal.close(true) },
-      { content: text('Common.Action.Cancel'), operation: () => modal.close(false) },
+      { content: pclText('Common.Action.Confirm'), operation: () => modal.close(true) },
+      { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
     ],
   })
   if (!result.confirmed) return
@@ -141,7 +139,7 @@ async function editDescription() {
       description: result.input || '',
     })
   } catch (error) {
-    sideTip.show(`${text('Instance.Overall.Error.OperationFailed')} ${error}`, 'warn')
+    sideTip.show(`${pclText('Instance.Overall.Error.OperationFailed')} ${error}`, 'warn')
   } finally {
     busy.value = null
   }
@@ -161,7 +159,7 @@ async function deleteInstance() {
   const repositoryIndex =
     repos.repositories?.findIndex((repo) => repo.path === info.global_dir) ?? -1
   if (repositoryIndex < 0) {
-    sideTip.show(text('Instance.Overall.Error.OperationFailed'), 'warn')
+    sideTip.show(pclText('Instance.Overall.Error.OperationFailed'), 'warn')
     return
   }
   const isolated = await getInstanceIsolation(info.directory).catch(() => false)
@@ -169,11 +167,15 @@ async function deleteInstance() {
     ? 'Instance.Overall.Delete.ConfirmMessageIsolated'
     : 'Instance.Overall.Delete.ConfirmMessage'
   const result = await modal.open({
-    title: text('Instance.Overall.Delete.ConfirmTitle'),
-    content: text(message, [info.name]),
+    title: pclText('Instance.Overall.Delete.ConfirmTitle'),
+    content: pclText(message, [info.name]),
     buttons: [
-      { content: text('Common.Action.Delete'), type: 'warn', operation: () => modal.close(true) },
-      { content: text('Common.Action.Cancel'), operation: () => modal.close(false) },
+      {
+        content: pclText('Common.Action.Delete'),
+        type: 'warn',
+        operation: () => modal.close(true),
+      },
+      { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
     ],
   })
   if (!result.confirmed) return
@@ -187,10 +189,10 @@ async function deleteInstance() {
     })
     if (isFavorite(info.directory)) toggleFavorite(info.directory)
     instance.setInstance(null)
-    sideTip.show(text('Instance.Overall.Delete.RecycleBinSuccess', [info.name]), 'success')
+    sideTip.show(pclText('Instance.Overall.Delete.RecycleBinSuccess', [info.name]), 'success')
     await router.push('/instance_select')
   } catch (error) {
-    sideTip.show(`${text('Instance.Overall.Error.OperationFailed')} ${error}`, 'warn')
+    sideTip.show(`${pclText('Instance.Overall.Error.OperationFailed')} ${error}`, 'warn')
   } finally {
     busy.value = null
   }
@@ -223,7 +225,7 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
         <p v-else class="pcl-empty">{{ pclText('Proto.Instance.SelectFirst') }}</p>
       </div>
     </PCard>
-    <PCard :title="text('Instance.Overall.Info.Title')">
+    <PCard :title="pclText('Instance.Overall.Info.Title')">
       <div style="margin: 0px 25px 5px 15px; display: flex; flex-direction: column">
         <p v-if="instance.instance_info">Minecraft {{ instance.instance_info.version }}</p>
         <p v-for="(version, loader) in instance.instance_info?.pluginsVersion" :key="loader">
@@ -233,7 +235,7 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
         <p v-if="description">{{ description }}</p>
       </div>
     </PCard>
-    <PCard :title="text('Instance.Overall.Personalization.Title')">
+    <PCard :title="pclText('Instance.Overall.Personalization.Title')">
       <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
         <div
           style="
@@ -251,27 +253,27 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Instance.Overall.Icon.Title') }}</span
+            >{{ pclText('Instance.Overall.Icon.Title') }}</span
           >
           <PComboBox
             style="grid-row: 1 / span 1; grid-column: 2 / span 1"
             :options="[
-              { key: '0', text: text('Common.Option.Auto') },
-              { key: '1', text: text('Common.Option.Customize') },
-              { key: '2', text: text('Instance.Overall.Icon.Cobblestone') },
-              { key: '3', text: text('Instance.Overall.Icon.CommandBlock') },
-              { key: '4', text: text('Instance.Overall.Icon.GoldBlock') },
-              { key: '5', text: text('Instance.Overall.Icon.GrassBlock') },
-              { key: '6', text: text('Instance.Overall.Icon.DirtPath') },
-              { key: '7', text: text('Instance.Overall.Icon.Anvil') },
-              { key: '8', text: text('Instance.Overall.Icon.RedstoneBlock') },
-              { key: '9', text: text('Instance.Overall.Icon.RedstoneLampOn') },
-              { key: '10', text: text('Instance.Overall.Icon.RedstoneLampOff') },
-              { key: '11', text: text('Instance.Overall.Icon.Egg') },
-              { key: '12', text: text('Instance.Overall.Icon.Fabric') },
-              { key: '13', text: text('Instance.Overall.Icon.Quilt') },
-              { key: '14', text: text('Instance.Overall.Icon.NeoForgeFox') },
-              { key: '15', text: text('Instance.Overall.Icon.Cleanroom') },
+              { key: '0', text: pclText('Common.Option.Auto') },
+              { key: '1', text: pclText('Common.Option.Customize') },
+              { key: '2', text: pclText('Instance.Overall.Icon.Cobblestone') },
+              { key: '3', text: pclText('Instance.Overall.Icon.CommandBlock') },
+              { key: '4', text: pclText('Instance.Overall.Icon.GoldBlock') },
+              { key: '5', text: pclText('Instance.Overall.Icon.GrassBlock') },
+              { key: '6', text: pclText('Instance.Overall.Icon.DirtPath') },
+              { key: '7', text: pclText('Instance.Overall.Icon.Anvil') },
+              { key: '8', text: pclText('Instance.Overall.Icon.RedstoneBlock') },
+              { key: '9', text: pclText('Instance.Overall.Icon.RedstoneLampOn') },
+              { key: '10', text: pclText('Instance.Overall.Icon.RedstoneLampOff') },
+              { key: '11', text: pclText('Instance.Overall.Icon.Egg') },
+              { key: '12', text: pclText('Instance.Overall.Icon.Fabric') },
+              { key: '13', text: pclText('Instance.Overall.Icon.Quilt') },
+              { key: '14', text: pclText('Instance.Overall.Icon.NeoForgeFox') },
+              { key: '15', text: pclText('Instance.Overall.Icon.Cleanroom') },
             ]"
             v-model="values.ComboDisplayLogo"
           />
@@ -284,21 +286,21 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Instance.Overall.Category.Title') }}</span
+            >{{ pclText('Instance.Overall.Category.Title') }}</span
           >
           <PComboBox
             style="grid-row: 3 / span 1; grid-column: 2 / span 1"
             :options="[
-              { key: '0', text: text('Common.Option.Auto') },
+              { key: '0', text: pclText('Common.Option.Auto') },
               {
                 key: '1',
-                text: text('Instance.Overall.Category.Hidden'),
-                title: text('Instance.Overall.Category.Hidden.ToolTip'),
+                text: pclText('Instance.Overall.Category.Hidden'),
+                title: pclText('Instance.Overall.Category.Hidden.ToolTip'),
               },
-              { key: '2', text: text('Instance.Overall.Category.Modable') },
-              { key: '3', text: text('Instance.Overall.Category.Regular') },
-              { key: '4', text: text('Instance.Overall.Category.LessUsed') },
-              { key: '5', text: text('Instance.Overall.Category.AprilFools') },
+              { key: '2', text: pclText('Instance.Overall.Category.Modable') },
+              { key: '3', text: pclText('Instance.Overall.Category.Regular') },
+              { key: '4', text: pclText('Instance.Overall.Category.LessUsed') },
+              { key: '5', text: pclText('Instance.Overall.Category.AprilFools') },
             ]"
             v-model="values.ComboDisplayType"
           />
@@ -321,7 +323,7 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
             "
             :disabled="!instance.instance_info || busy !== ''"
             @click="renameInstance"
-            >{{ text('Instance.Overall.Rename') }}</PButton
+            >{{ pclText('Instance.Overall.Rename') }}</PButton
           >
           <PButton
             style="
@@ -333,7 +335,7 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
             "
             :disabled="!instance.instance_info || busy !== ''"
             @click="editDescription"
-            >{{ text('Instance.Overall.EditDescription') }}</PButton
+            >{{ pclText('Instance.Overall.EditDescription') }}</PButton
           >
           <PButton
             style="
@@ -347,14 +349,14 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
             @click="toggleStar"
             >{{
               instance.instance_info && isFavorite(instance.instance_info.directory)
-                ? text('Instance.Overall.Unfavorite')
-                : text('Instance.Overall.Favorite')
+                ? pclText('Instance.Overall.Unfavorite')
+                : pclText('Instance.Overall.Favorite')
             }}</PButton
           >
         </div>
       </div>
     </PCard>
-    <PCard :title="text('Instance.Overall.Shortcuts.Title')">
+    <PCard :title="pclText('Instance.Overall.Shortcuts.Title')">
       <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
         <div
           style="
@@ -374,7 +376,7 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
               grid-column: 1 / span 1;
             "
             @click="openFolder('instance')"
-            >{{ text('Instance.Overall.Shortcuts.InstanceFolder') }}</PButton
+            >{{ pclText('Instance.Overall.Shortcuts.InstanceFolder') }}</PButton
           >
           <PButton
             :disabled="!instance.instance_info || !isTauri()"
@@ -386,7 +388,7 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
               grid-column: 2 / span 1;
             "
             @click="openFolder('saves')"
-            >{{ text('Instance.Overall.Shortcuts.SavesFolder') }}</PButton
+            >{{ pclText('Instance.Overall.Shortcuts.SavesFolder') }}</PButton
           >
           <PButton
             :disabled="!instance.instance_info || !isTauri()"
@@ -398,12 +400,12 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
               grid-column: 3 / span 1;
             "
             @click="openFolder('mods')"
-            >{{ text('Instance.Overall.Shortcuts.ModsFolder') }}</PButton
+            >{{ pclText('Instance.Overall.Shortcuts.ModsFolder') }}</PButton
           >
         </div>
       </div>
     </PCard>
-    <PCard :title="text('Instance.Overall.Manage.Title')">
+    <PCard :title="pclText('Instance.Overall.Manage.Title')">
       <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
         <div
           style="
@@ -418,37 +420,37 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
             style="height: 35px; min-width: 140px; margin: 7px 20px 0px 0px; padding: 0px 13px"
             :disabled="!instance.instance_info || busy !== ''"
             @click="exportScript"
-            >{{ text('Instance.Overall.Manage.ExportLaunchScript') }}</PButton
+            >{{ pclText('Instance.Overall.Manage.ExportLaunchScript') }}</PButton
           >
           <PButton
             style="height: 35px; min-width: 140px; margin: 7px 20px 0px 0px; padding: 0px 13px"
             @click="showUnavailable"
-            >{{ text('Instance.Overall.Manage.TestGame') }}</PButton
+            >{{ pclText('Instance.Overall.Manage.TestGame') }}</PButton
           >
           <PButton
             style="height: 35px; min-width: 140px; margin: 7px 20px 0px 0px; padding: 0px 13px"
-            :title="text('Instance.Overall.Manage.RepairFiles.ToolTip')"
+            :title="pclText('Instance.Overall.Manage.RepairFiles.ToolTip')"
             :disabled="!instance.instance_info || busy !== ''"
             @click="repairFiles"
-            >{{ text('Instance.Overall.Manage.RepairFiles') }}</PButton
+            >{{ pclText('Instance.Overall.Manage.RepairFiles') }}</PButton
           >
           <PButton
             style="height: 35px; min-width: 140px; margin: 7px 20px 0px 0px; padding: 0px 13px"
-            :title="text('Instance.Overall.Manage.Reinstall.ToolTip')"
+            :title="pclText('Instance.Overall.Manage.Reinstall.ToolTip')"
             @click="showUnavailable"
-            >{{ text('Common.Action.Reset') }}</PButton
+            >{{ pclText('Common.Action.Reset') }}</PButton
           >
           <PButton
             style="height: 35px; min-width: 140px; margin: 7px 20px 0px 0px; padding: 0px 13px"
             :disabled="!instance.instance_info || busy !== ''"
             @click="deleteInstance"
             type="warn"
-            >{{ text('Instance.Overall.Manage.Delete') }}</PButton
+            >{{ pclText('Instance.Overall.Manage.Delete') }}</PButton
           >
           <PButton
             style="height: 35px; min-width: 140px; margin: 7px 20px 0px 0px; padding: 0px 13px"
             @click="showUnavailable"
-            >{{ text('Instance.Overall.Manage.PatchCore') }}</PButton
+            >{{ pclText('Instance.Overall.Manage.PatchCore') }}</PButton
           >
         </div>
       </div>

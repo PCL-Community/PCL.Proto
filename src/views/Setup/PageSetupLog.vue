@@ -18,7 +18,6 @@ import {
 } from '@/api/logs'
 import { isTauri } from '@tauri-apps/api/core'
 
-const text = pclText
 const modal = useModal()
 
 const loading = ref(false)
@@ -48,13 +47,13 @@ function logTitle(entry: LogFileEntry) {
     const [, year, month, day, hour, minute, second, milli] = launch
     const date = new Date(+year, +month - 1, +day, +hour, +minute, +second, +milli)
     const title = date.toLocaleString(pclFormatLocale.value)
-    return entry.current ? text('Setup.Log.CurrentSuffix', [title]) : title
+    return entry.current ? pclText('Setup.Log.CurrentSuffix', [title]) : title
   }
   if (stem.startsWith('LastPending')) {
     const rest = stem.slice(11)
     return rest.length > 1
-      ? text('Setup.Log.TempStored', [rest.slice(1)])
-      : text('Setup.Log.TempUnoutput')
+      ? pclText('Setup.Log.TempStored', [rest.slice(1)])
+      : pclText('Setup.Log.TempUnoutput')
   }
   return entry.name
 }
@@ -87,17 +86,21 @@ async function openDirectory() {
 
 async function clearHistory() {
   const answer = await modal.open({
-    title: text('Setup.Log.Clear.Confirm.Title'),
-    content: text('Setup.Log.Clear.Confirm.Message'),
+    title: pclText('Setup.Log.Clear.Confirm.Title'),
+    content: pclText('Setup.Log.Clear.Confirm.Message'),
     buttons: [
-      { type: 'warn', content: text('Common.Action.Confirm'), operation: () => modal.close(true) },
-      { content: text('Common.Action.Cancel'), operation: () => modal.close(false) },
+      {
+        type: 'warn',
+        content: pclText('Common.Action.Confirm'),
+        operation: () => modal.close(true),
+      },
+      { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
     ],
   })
   if (!answer.confirmed) return
   try {
     await clearLogFiles()
-    sideTip.show(text('Setup.Log.Clear.Success'), 'success')
+    sideTip.show(pclText('Setup.Log.Clear.Success'), 'success')
     await refresh()
   } catch (error) {
     sideTip.show(String(error), 'warn')
@@ -106,7 +109,7 @@ async function clearHistory() {
 </script>
 <template>
   <div class="pcl-page">
-    <PCard :title="text('Setup.Log.Operations')">
+    <PCard :title="pclText('Setup.Log.Operations')">
       <div
         style="
           margin: 0px 20px 20px 25px;
@@ -120,22 +123,22 @@ async function clearHistory() {
           style="min-width: 100px; margin: 0px 15px 0px 0px"
           @click="exportCurrent"
           type="tint"
-          >{{ text('Setup.Log.Export') }}</PButton
+          >{{ pclText('Setup.Log.Export') }}</PButton
         >
         <PButton style="min-width: 120px; margin: 0px 15px 0px 0px" @click="exportAll">{{
-          text('Setup.Log.ExportAll')
+          pclText('Setup.Log.ExportAll')
         }}</PButton>
         <PButton style="min-width: 120px; margin: 0px 15px 0px 0px" @click="openDirectory">{{
-          text('Setup.Log.OpenDirectory')
+          pclText('Setup.Log.OpenDirectory')
         }}</PButton>
         <PButton style="min-width: 120px" @click="clearHistory" type="warn">{{
-          text('Setup.Log.ClearHistory')
+          pclText('Setup.Log.ClearHistory')
         }}</PButton>
       </div>
     </PCard>
-    <PCard :title="text('Setup.Log.AllLogs')">
+    <PCard :title="pclText('Setup.Log.AllLogs')">
       <div style="margin: 0px 18px 18px 20px; display: flex; flex-direction: column">
-        <PLoading v-if="loading" :card="false" :loading-text="text('Proto.Download.Loading')" />
+        <PLoading v-if="loading" :card="false" :loading-text="pclText('Proto.Download.Loading')" />
         <PHint v-else-if="loadError" severity="error">{{ loadError }}</PHint>
         <template v-else-if="logs.length">
           <PListItem
@@ -147,7 +150,7 @@ async function clearHistory() {
             @click="openLog(entry)"
           />
         </template>
-        <p v-else class="pcl-empty">{{ text('Proto.Empty.LogFiles') }}</p>
+        <p v-else class="pcl-empty">{{ pclText('Proto.Empty.LogFiles') }}</p>
       </div>
     </PCard>
   </div>

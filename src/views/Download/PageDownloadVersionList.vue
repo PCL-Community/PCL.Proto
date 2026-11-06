@@ -24,7 +24,6 @@ const props = defineProps<{
 }>()
 const localeName = computed(() => (props.loader === 'OptiFine' ? 'Optifine' : props.loader))
 const fabricFamily = computed(() => ['Fabric', 'LegacyFabric'].includes(props.loader))
-const text = pclText
 const minecraft = ref<string>()
 const minecraftOptions = ref<{ key: string; text: string }[]>([])
 const versions = shallowRef<McPluginReport[]>([])
@@ -95,16 +94,16 @@ async function selectVersion(version: McPluginReport) {
     if (!fabricFamily.value) {
       if (!minecraft.value) return
       const destination = await downloadForgelike(props.loader, minecraft.value, version.version)
-      if (destination) sideTip.show(text('Proto.Download.Saved', [destination]), 'success')
+      if (destination) sideTip.show(pclText('Proto.Download.Saved', [destination]), 'success')
       return
     }
     const destination = await save({
-      title: text('Download.Version.SelectSaveLocation'),
+      title: pclText('Download.Version.SelectSaveLocation'),
       defaultPath: `fabric-installer-${version.version}.jar`,
       filters: [{ name: 'JAR', extensions: ['jar'] }],
     })
     if (!destination) return
-    const name = text(`Minecraft.Download.Stage.${props.loader}InstallerDownload`, [
+    const name = pclText(`Minecraft.Download.Stage.${props.loader}InstallerDownload`, [
       version.version,
     ])
     const download = useTaskManager().downloadFabricInstaller(
@@ -113,21 +112,22 @@ async function selectVersion(version: McPluginReport) {
       version.version,
       destination,
     )
-    sideTip.show(text('Download.Comp.QuickDownload.Hint.DownloadStarted', [version.version]))
+    sideTip.show(pclText('Download.Comp.QuickDownload.Hint.DownloadStarted', [version.version]))
     await download
-    sideTip.show(text('Proto.Download.Saved', [destination]), 'success')
+    sideTip.show(pclText('Proto.Download.Saved', [destination]), 'success')
   } catch (error) {
-    if (!isTaskCancelled(error)) sideTip.show(text('Proto.Error.Download', [String(error)]), 'warn')
+    if (!isTaskCancelled(error))
+      sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn')
   }
 }
 </script>
 <template>
   <section class="pcl-page">
-    <PCard :title="text(`Download.Version.${localeName}.Intro.Title`)"
+    <PCard :title="pclText(`Download.Version.${localeName}.Intro.Title`)"
       ><div class="intro">
-        <p>{{ text(`Download.Version.${localeName}.Intro.Description`) }}</p>
+        <p>{{ pclText(`Download.Version.${localeName}.Intro.Description`) }}</p>
         <PButton type="tint" @click="() => openExternal(website)">{{
-          text('Download.Version.OpenWebsite')
+          pclText('Download.Version.OpenWebsite')
         }}</PButton>
       </div></PCard
     ><template v-if="supported"
@@ -139,7 +139,7 @@ async function selectVersion(version: McPluginReport) {
       /><PCard v-if="loading" hide-title
         ><PLoading
           :card="false"
-          :loading-text="text(`Download.Version.${localeName}.LoadingList`)" /></PCard
+          :loading-text="pclText(`Download.Version.${localeName}.LoadingList`)" /></PCard
       ><PHint v-else-if="error" severity="error"
         >{{ error
         }}<PButton inline @click="retry">{{
@@ -149,7 +149,7 @@ async function selectVersion(version: McPluginReport) {
         v-else
         :title="
           fabricFamily
-            ? text('Download.Version.VersionListCount', [versions.length])
+            ? pclText('Download.Version.VersionListCount', [versions.length])
             : minecraft || loader
         "
         ><div class="version-list">
@@ -162,7 +162,7 @@ async function selectVersion(version: McPluginReport) {
               :key="version.version"
               :title="version.version"
               :icon="loaderIcon(loader)"
-              :subtitle="version.stable ? text('Download.Version.Type.Stable') : undefined"
+              :subtitle="version.stable ? pclText('Download.Version.Type.Stable') : undefined"
               clickable
               @click="() => selectVersion(version)"
             />
@@ -173,7 +173,7 @@ async function selectVersion(version: McPluginReport) {
         </div></PCard
       ></template
     ><PHint v-else severity="info">{{
-      text('Proto.Download.InstallerUnavailable', [loader])
+      pclText('Proto.Download.InstallerUnavailable', [loader])
     }}</PHint>
   </section>
 </template>

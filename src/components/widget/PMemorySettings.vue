@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { toRef } from 'vue'
-import { pclText as text } from '@/api/pclLocale'
+import { pclText } from '@/api/pclLocale'
 import { memoryTickToMib } from '@/api/memorySettings'
 import { memoryGiB, useMemorySettings } from '@/composables/useMemorySettings'
 import PErrorRetry from './PErrorRetry.vue'
@@ -17,21 +17,21 @@ const { mode, maximum, initial, ready, error, preview, segments, load, save } = 
     <div class="memory-options">
       <label v-if="instance" class="pcl-radio inherit">
         <input v-model="mode" :disabled="!ready" type="radio" value="inherit" @change="save" />{{
-          text('Instance.Setup.FollowGlobal')
+          pclText('Instance.Setup.FollowGlobal')
         }}
       </label>
-      <label class="pcl-radio" :title="text('Setup.Launch.Memory.Auto.ToolTip')">
+      <label class="pcl-radio" :title="pclText('Setup.Launch.Memory.Auto.ToolTip')">
         <input v-model="mode" :disabled="!ready" type="radio" value="auto" @change="save" />{{
-          text('Setup.Launch.Memory.Auto')
+          pclText('Setup.Launch.Memory.Auto')
         }}
       </label>
       <label class="pcl-radio">
         <input v-model="mode" :disabled="!ready" type="radio" value="custom" @change="save" />{{
-          text('Common.Option.Customize')
+          pclText('Common.Option.Customize')
         }}
       </label>
-      <span class="pcl-text" :title="text('Setup.Launch.Memory.Max.ToolTip')"
-        >{{ text('Setup.Launch.Memory.Max')
+      <span class="pcl-text" :title="pclText('Setup.Launch.Memory.Max.ToolTip')"
+        >{{ pclText('Setup.Launch.Memory.Max')
         }}<template v-if="mode === 'custom'"> ({{ memoryTickToMib(maximum) }} MiB)</template></span
       >
       <input
@@ -42,18 +42,18 @@ const { mode, maximum, initial, ready, error, preview, segments, load, save } = 
         max="49"
         @change="save"
       />
-      <span class="pcl-text" :title="text('Setup.Launch.Memory.Initial.ToolTip')"
-        >{{ text('Setup.Launch.Memory.Initial')
+      <span class="pcl-text" :title="pclText('Setup.Launch.Memory.Initial.ToolTip')"
+        >{{ pclText('Setup.Launch.Memory.Initial')
         }}<template v-if="mode === 'custom'">
           ({{
-            initial ? `${memoryTickToMib(initial)} MiB` : text('Setup.Launch.Memory.Auto')
+            initial ? `${memoryTickToMib(initial)} MiB` : pclText('Setup.Launch.Memory.Auto')
           }})</template
         ></span
       >
       <input
         v-model.number="initial"
         :disabled="!ready || mode !== 'custom'"
-        :title="text('Setup.Launch.Memory.Initial.ToolTip')"
+        :title="pclText('Setup.Launch.Memory.Initial.ToolTip')"
         type="range"
         min="0"
         :max="maximum"
@@ -72,9 +72,9 @@ const { mode, maximum, initial, ready, error, preview, segments, load, save } = 
         :style="{ width: `${segments.empty}%`, marginLeft: `${segments.used + segments.game}%` }"
       />
       <span class="memory-title used-title">{{
-        text(instance ? 'Instance.Setup.Memory.Used' : 'Setup.Launch.Memory.UsedTotal')
+        pclText(instance ? 'Instance.Setup.Memory.Used' : 'Setup.Launch.Memory.UsedTotal')
       }}</span>
-      <span class="memory-title game-title">{{ text('Proto.Settings.MemoryEstimate') }}</span>
+      <span class="memory-title game-title">{{ pclText('Proto.Settings.MemoryEstimate') }}</span>
       <div class="memory-used">
         <span>{{ preview ? memoryGiB(preview.total_bytes - preview.available_bytes) : '—' }}</span
         ><span>{{ preview ? ` / ${memoryGiB(preview.total_bytes)}` : ' / —' }}</span>

@@ -11,7 +11,6 @@ import { useAccountInfo } from '@/stores/account'
 import { loginProgress } from '@/composables/useLoginSession'
 
 const emit = defineEmits<{ view: [view: ProfileView] }>()
-const text = pclText
 const account = useAccountInfo()
 // 登录会话由启动页统一驱动，避免登录途中切页丢掉弹窗与结果提示。
 const progress = loginProgress('microsoft')
@@ -34,7 +33,7 @@ function back() {
       compact
       :disabled="loggingIn"
       @click="login"
-      >{{ progress ?? text('Launch.Account.Microsoft.Start') }}</PButton
+      >{{ progress ?? pclText('Launch.Account.Microsoft.Start') }}</PButton
     >
     <div class="account-links login-links">
       <PButton
@@ -42,14 +41,14 @@ function back() {
         @click="
           () => openExternal('https://www.minecraft.net/store/minecraft-java-bedrock-edition-pc')
         "
-        >{{ text('Launch.Account.Microsoft.Purchase') }}</PButton
+        >{{ pclText('Launch.Account.Microsoft.Purchase') }}</PButton
       >
       <PButton inline @click="() => openExternal('https://www.minecraft.net')">{{
-        text('Launch.Account.Microsoft.Website')
+        pclText('Launch.Account.Microsoft.Website')
       }}</PButton>
     </div>
     <PButton v-if="!loggingIn" class="account-back login-back" inline @click="back">{{
-      text('Launch.Account.Back')
+      pclText('Launch.Account.Back')
     }}</PButton>
   </section>
 </template>

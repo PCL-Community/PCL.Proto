@@ -7,7 +7,7 @@ import PTextBox from '@/components/widget/PTextBox.vue'
 import PComboBox from '@/components/widget/PComboBox.vue'
 import PHint from '@/components/widget/PHint.vue'
 import PCustomHomepage from '@/components/widget/PCustomHomepage.vue'
-import { pclText as text } from '@/api/pclLocale'
+import { pclText } from '@/api/pclLocale'
 import { readLocalHomepage, saveLocalHomepage } from '@/api/customHomepage'
 import { controlName, homepageLimit, parseHomepage, serializeHomepage } from '@/util/homepageXaml'
 import template from '@/assets/homepage/Custom.xaml?raw'
@@ -53,7 +53,7 @@ watch(tree, (entries) => {
 })
 function componentLabel(node: Element) {
   const name = controlName(node)
-  return components.includes(name) ? text(`Proto.Homepage.Control.${name}`) : name
+  return components.includes(name) ? pclText(`Proto.Homepage.Control.${name}`) : name
 }
 function componentSummary(node: Element) {
   return String(
@@ -149,19 +149,19 @@ function add() {
     attributes: {},
   }
   if (name === 'MyCard') {
-    node.attributes = { Title: text('Proto.Homepage.NewCard'), Margin: '0,0,0,15' }
+    node.attributes = { Title: pclText('Proto.Homepage.NewCard'), Margin: '0,0,0,15' }
     node.elements = [
       { type: 'element', name: 'StackPanel', attributes: { Margin: '25,40,23,15' }, elements: [] },
     ]
   } else if (name === 'MyListItem')
     node.attributes = {
-      Title: text('Proto.Homepage.NewText'),
-      Info: text('Proto.Homepage.NewText'),
+      Title: pclText('Proto.Homepage.NewText'),
+      Info: pclText('Proto.Homepage.NewText'),
     }
   else if (name === 'MyImage')
     node.attributes = { Source: 'https://www.minecraft.net/favicon.ico', Height: '64' }
   else if (!['StackPanel', 'WrapPanel', 'Grid'].includes(name))
-    node.attributes = { Text: text('Proto.Homepage.NewText'), Margin: '0,0,0,10' }
+    node.attributes = { Text: pclText('Proto.Homepage.NewText'), Margin: '0,0,0,10' }
   if (name === 'MyHint') node.attributes!.Theme = 'Blue'
   if (name === 'MyButton')
     Object.assign(node.attributes!, {
@@ -267,7 +267,7 @@ async function apply() {
   try {
     await saveLocalHomepage(source.value)
     error.value = undefined
-    sideTip.show(text('Proto.Homepage.Applied'), 'success')
+    sideTip.show(pclText('Proto.Homepage.Applied'), 'success')
   } catch (failure) {
     error.value = String(failure)
   } finally {
@@ -277,16 +277,16 @@ async function apply() {
 </script>
 <template>
   <section class="pcl-page homepage-editor">
-    <PCard :title="text('Proto.Title.HomepageEditor')">
+    <PCard :title="pclText('Proto.Title.HomepageEditor')">
       <div class="editor-controls">
         <div class="editor-actions">
-          <PButton @click="fileInput?.click()">{{ text('Proto.Homepage.Import') }}</PButton>
+          <PButton @click="fileInput?.click()">{{ pclText('Proto.Homepage.Import') }}</PButton>
           <PButton @click="exportFile" :disabled="Boolean(parsed.error)">{{
-            text('Proto.Homepage.Export')
+            pclText('Proto.Homepage.Export')
           }}</PButton>
-          <PButton @click="load" :disabled="busy">{{ text('Proto.Homepage.Load') }}</PButton>
+          <PButton @click="load" :disabled="busy">{{ pclText('Proto.Homepage.Load') }}</PButton>
           <PButton type="tint" @click="apply" :disabled="busy || Boolean(parsed.error)">{{
-            text('Proto.Homepage.Apply')
+            pclText('Proto.Homepage.Apply')
           }}</PButton>
           <input
             ref="fileInput"
@@ -296,16 +296,16 @@ async function apply() {
             @change="importFile"
           />
         </div>
-        <PHint severity="info">{{ text('Proto.Homepage.EditorHint') }}</PHint>
+        <PHint severity="info">{{ pclText('Proto.Homepage.EditorHint') }}</PHint>
         <PHint v-if="error" severity="error">{{ error }}</PHint>
       </div>
     </PCard>
     <div class="editor-columns">
-      <PCard :title="text('Proto.Homepage.Edit')">
+      <PCard :title="pclText('Proto.Homepage.Edit')">
         <div class="editor-controls">
-          <div class="editor-modes" :aria-label="text('Proto.Homepage.Edit')">
+          <div class="editor-modes" :aria-label="pclText('Proto.Homepage.Edit')">
             <button type="button" :aria-pressed="!sourceMode" @click="sourceMode = false">
-              {{ text('Proto.Homepage.Visual') }}
+              {{ pclText('Proto.Homepage.Visual') }}
             </button>
             <button type="button" :aria-pressed="sourceMode" @click="sourceMode = true">
               XAML
@@ -324,24 +324,24 @@ async function apply() {
               <PComboBox
                 v-model="addType"
                 :options="
-                  components.map((key) => ({ key, text: text(`Proto.Homepage.Control.${key}`) }))
+                  components.map((key) => ({ key, text: pclText(`Proto.Homepage.Control.${key}`) }))
                 "
-                :aria-label="text('Proto.Homepage.Components')"
+                :aria-label="pclText('Proto.Homepage.Components')"
               />
               <PButton compact type="tint" @click="add" :disabled="Boolean(parsed.error)">{{
-                text('Proto.Homepage.Add')
+                pclText('Proto.Homepage.Add')
               }}</PButton>
             </div>
             <PHint v-if="parsed.error" severity="error">{{ parsed.error }}</PHint>
             <div class="outline-heading">
-              <span>{{ text('Proto.Homepage.Components') }}</span>
+              <span>{{ pclText('Proto.Homepage.Components') }}</span>
               <span class="component-count">{{ tree.length }}</span>
             </div>
             <div
               v-if="tree.length"
               class="component-tree"
               role="listbox"
-              :aria-label="text('Proto.Homepage.Components')"
+              :aria-label="pclText('Proto.Homepage.Components')"
               @keydown="navigateComponents"
             >
               <div
@@ -365,11 +365,13 @@ async function apply() {
                 </span>
               </div>
             </div>
-            <p v-else-if="!parsed.error" class="editor-empty">{{ text('Proto.Homepage.Empty') }}</p>
+            <p v-else-if="!parsed.error" class="editor-empty">
+              {{ pclText('Proto.Homepage.Empty') }}
+            </p>
             <template v-if="selected">
               <div class="inspector-heading">
                 <div>
-                  <p>{{ text('Proto.Homepage.Properties') }}</p>
+                  <p>{{ pclText('Proto.Homepage.Properties') }}</p>
                   <span class="component-type">{{ controlName(selected.node) }}</span>
                 </div>
                 <div class="editor-actions">
@@ -378,8 +380,8 @@ async function apply() {
                     class="inspector-action"
                     @click="move(-1)"
                     :disabled="moveTarget(-1) === undefined"
-                    :title="text('Proto.Homepage.Up')"
-                    :aria-label="text('Proto.Homepage.Up')"
+                    :title="pclText('Proto.Homepage.Up')"
+                    :aria-label="pclText('Proto.Homepage.Up')"
                   >
                     ↑
                   </button>
@@ -388,13 +390,13 @@ async function apply() {
                     class="inspector-action"
                     @click="move(1)"
                     :disabled="moveTarget(1) === undefined"
-                    :title="text('Proto.Homepage.Down')"
-                    :aria-label="text('Proto.Homepage.Down')"
+                    :title="pclText('Proto.Homepage.Down')"
+                    :aria-label="pclText('Proto.Homepage.Down')"
                   >
                     ↓
                   </button>
                   <button type="button" class="inspector-action delete-action" @click="remove">
-                    {{ text('Common.Action.Delete') }}
+                    {{ pclText('Common.Action.Delete') }}
                   </button>
                 </div>
               </div>
@@ -412,7 +414,7 @@ async function apply() {
         </div>
       </PCard>
       <div class="editor-preview">
-        <p class="preview-title">{{ text('Proto.Homepage.Preview') }}</p>
+        <p class="preview-title">{{ pclText('Proto.Homepage.Preview') }}</p>
         <PCustomHomepage :source="source" preview />
       </div>
     </div>

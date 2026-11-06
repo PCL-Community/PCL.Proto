@@ -103,8 +103,8 @@ const filterOptions = computed(() => {
   ]
 })
 function filterLabel(option: { key: string; count: number }) {
-  if (option.key === 'All' && query.value) return text('Instance.Resource.Filter.SearchResult')
-  return text(`Instance.Resource.Filter.${option.key}WithCount`, [option.count])
+  if (option.key === 'All' && query.value) return pclText('Instance.Resource.Filter.SearchResult')
+  return pclText(`Instance.Resource.Filter.${option.key}WithCount`, [option.count])
 }
 
 const visibleItems = computed(() => {
@@ -127,7 +127,7 @@ function chooseSort(event: MouseEvent) {
   void popupNativeMenu(
     event.currentTarget as Element,
     ['ResourceName', 'FileName', 'AddTime', 'FileSize'].map((key) => ({
-      text: text(`Instance.Resource.Sort.${key}`),
+      text: pclText(`Instance.Resource.Sort.${key}`),
       action: () => {
         sort.value = key
       },
@@ -160,7 +160,7 @@ function showInfo(id: string) {
     content: [entry.version, entry.description, entry.name, formatSize(entry.size)]
       .filter(Boolean)
       .join('\n'),
-    buttons: [{ content: text('Common.Action.Close'), operation: () => modal.close() }],
+    buttons: [{ content: pclText('Common.Action.Close'), operation: () => modal.close() }],
   })
 }
 
@@ -202,11 +202,10 @@ function downloadResources() {
 
 const loading = computed(() => resources.loading.value)
 const error = computed(() => resources.error.value)
-const text = pclText
 </script>
 <template>
   <div class="pcl-page">
-    <PLoading v-if="loading" :loading-text="text('Instance.Resource.Loading')" />
+    <PLoading v-if="loading" :loading-text="pclText('Instance.Resource.Loading')" />
     <template v-else>
       <PCard
         v-if="route.meta.resourceType === 'Schematic' && !schematicAvailable"
@@ -215,25 +214,25 @@ const text = pclText
       >
         <div class="pcl-empty-state">
           <h2 class="pcl-empty-state-title">
-            {{ text('Instance.Resource.Schematic.Unavailable.Title') }}
+            {{ pclText('Instance.Resource.Schematic.Unavailable.Title') }}
           </h2>
           <div class="pcl-divider" />
           <p class="pcl-empty-state-message">
-            {{ text('Instance.Resource.Schematic.Unavailable.Message') }}
+            {{ pclText('Instance.Resource.Schematic.Unavailable.Message') }}
           </p>
           <div class="pcl-empty-state-actions">
             <PButton type="tint" @click="downloadResources">{{
-              text('Instance.Resource.Schematic.DownloadMod')
+              pclText('Instance.Resource.Schematic.DownloadMod')
             }}</PButton>
             <PButton @click="() => router.push('/instance_select')">{{
-              text('Instance.Resource.Mod.Disabled.SelectInstance')
+              pclText('Instance.Resource.Mod.Disabled.SelectInstance')
             }}</PButton>
           </div>
         </div>
       </PCard>
       <template v-else>
         <template v-if="items.length && !error">
-          <PSearchBox v-model="query" :placeholder="text('Instance.Resource.Search.Hint')" />
+          <PSearchBox v-model="query" :placeholder="pclText('Instance.Resource.Search.Hint')" />
           <PCard hide-title class="resource-manage"
             ><div class="resource-actions">
               <PButton
@@ -267,12 +266,12 @@ const text = pclText
                 :key="action.id"
                 :type="action.id === 'BtnManageOpen' ? 'tint' : 'default'"
                 @click="action.run()"
-                >{{ text(action.key) }}</PButton
+                >{{ pclText(action.key) }}</PButton
               ><PButton
                 v-if="kind === 'mod'"
-                :title="text('Instance.Resource.Mod.JarInJar.Entry.ToolTip')"
+                :title="pclText('Instance.Resource.Mod.JarInJar.Entry.ToolTip')"
                 @click="router.push('/instance_setting/mod/jarinjar')"
-                >{{ text('Instance.Resource.Mod.JarInJar.Entry') }}</PButton
+                >{{ pclText('Instance.Resource.Mod.JarInJar.Entry') }}</PButton
               >
             </div></PCard
           >
@@ -292,7 +291,7 @@ const text = pclText
                 </button>
               </div>
               <PIconTextButton icon="lucide/arrow-up-down" @click="chooseSort">{{
-                text('Instance.Resource.Sort.Text', [text(`Instance.Resource.Sort.${sort}`)])
+                pclText('Instance.Resource.Sort.Text', [pclText(`Instance.Resource.Sort.${sort}`)])
               }}</PIconTextButton>
             </div>
             <div class="resource-list">
@@ -318,27 +317,27 @@ const text = pclText
         <PHint v-if="error" severity="error" class="resource-status"
           >{{ error
           }}<PButton inline @click="resources.refresh()">{{
-            text('Common.Action.Refresh')
+            pclText('Common.Action.Refresh')
           }}</PButton></PHint
         >
         <PCard v-if="!error && !items.length" class="pcl-empty-state-card" hide-title>
           <div class="pcl-empty-state">
             <h2 class="pcl-empty-state-title pcl-text">
-              {{ text('Instance.Resource.Empty.Title') }}
+              {{ pclText('Instance.Resource.Empty.Title') }}
             </h2>
             <div class="pcl-divider" />
             <p class="pcl-empty-state-message pcl-text">
-              {{ text('Instance.Resource.Empty.Description') }}
+              {{ pclText('Instance.Resource.Empty.Description') }}
             </p>
             <div class="pcl-empty-state-actions">
               <PButton @click="resources.importFiles()" type="tint">{{
-                text('Instance.Resource.InstallFromFiles')
+                pclText('Instance.Resource.InstallFromFiles')
               }}</PButton>
               <PButton @click="downloadResources">{{
-                text('Instance.Resource.DownloadNew')
+                pclText('Instance.Resource.DownloadNew')
               }}</PButton>
               <PButton @click="resources.openFolder()">{{
-                text('Common.Action.OpenFolder')
+                pclText('Common.Action.OpenFolder')
               }}</PButton>
             </div>
           </div>
@@ -356,9 +355,9 @@ const text = pclText
         :icon="`lucide/${action.icon}`"
         :disabled="selectionDisabled(action.id)"
         @click="runSelection(action.id)"
-        >{{ text(action.key) }}</PIconTextButton
+        >{{ pclText(action.key) }}</PIconTextButton
       ><PIconTextButton icon="lucide/x" @click="() => selected.clear()">{{
-        text('Instance.Resource.CancelSelection')
+        pclText('Instance.Resource.CancelSelection')
       }}</PIconTextButton>
     </PSelectionToolbar>
   </div>

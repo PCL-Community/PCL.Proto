@@ -11,7 +11,6 @@ import { logSlider, logSaveError, saveLogSettings, updateLogSlider } from '@/api
 import sideTip from '@/composables/sideTip'
 import { maxLogLines } from '@/util/logLines'
 const props = withDefaults(defineProps<{ log?: string; stack?: string }>(), { log: '', stack: '' })
-const text = pclText
 const cleared = ref(false)
 const autoScroll = ref(true)
 const logElement = ref<HTMLElement>()
@@ -30,7 +29,7 @@ const selected = computed(() => sessions.value.find((session) => session.id === 
 const options = computed(() =>
   sessions.value.map((session) => ({
     key: session.id,
-    text: `${session.instance_directory.split(/[\\/]/).pop()} (${session.pid}) - ${session.running ? text('Proto.Session.Running') : session.error || text('Proto.Session.Exited', [session.exit_code ?? '?'])}`,
+    text: `${session.instance_directory.split(/[\\/]/).pop()} (${session.pid}) - ${session.running ? pclText('Proto.Session.Running') : session.error || pclText('Proto.Session.Exited', [session.exit_code ?? '?'])}`,
   })),
 )
 let timer: ReturnType<typeof setTimeout> | undefined
@@ -77,7 +76,7 @@ async function clearLog() {
     await invoke('clear_game_session_log', { id: selected.value.id })
     await refresh()
   } catch (error) {
-    sideTip.show(text('Proto.Session.Error', [String(error)]), 'warn')
+    sideTip.show(pclText('Proto.Session.Error', [String(error)]), 'warn')
   }
 }
 async function stopGame() {
@@ -86,7 +85,7 @@ async function stopGame() {
     await invoke('stop_game_session', { id: selected.value.id })
     await refresh()
   } catch (error) {
-    sideTip.show(text('Proto.Session.Error', [String(error)]), 'warn')
+    sideTip.show(pclText('Proto.Session.Error', [String(error)]), 'warn')
     await refresh()
   }
 }
@@ -120,7 +119,7 @@ function exportText(value: string, filename: string) {
       v-if="sessions.length"
       v-model="selectedId"
       :options="options"
-      :title="text('Proto.Session.Select')"
+      :title="pclText('Proto.Session.Select')"
     />
     <PCard hide-title class="log-content">
       <pre ref="logElement">{{ content || pclText('Proto.Empty.Log') }}</pre>
@@ -130,27 +129,27 @@ function exportText(value: string, filename: string) {
         <PCheckBox
           id="CheckAutoScroll"
           v-model="autoScroll"
-          :label="text('LogPage.Action.Scroll')"
+          :label="pclText('LogPage.Action.Scroll')"
         />
         <PIconTextButton icon="lucide/save" @click="() => exportText(rawLog, 'PCL.Proto.log')">{{
-          text('LogPage.Action.Export')
+          pclText('LogPage.Action.Export')
         }}</PIconTextButton>
         <PIconTextButton icon="lucide/trash-2" @click="clearLog">{{
-          text('LogPage.Action.Clear')
+          pclText('LogPage.Action.Clear')
         }}</PIconTextButton>
         <PIconTextButton icon="lucide/x" :disabled="!selected?.running" @click="stopGame">{{
-          text('LogPage.Action.KillProcess')
+          pclText('LogPage.Action.KillProcess')
         }}</PIconTextButton>
         <PIconTextButton
           icon="lucide/package"
           :disabled="!stack"
           @click="() => exportText(stack, 'PCL.Proto-stack.log')"
-          >{{ text('LogPage.Action.ExportStack') }}</PIconTextButton
+          >{{ pclText('LogPage.Action.ExportStack') }}</PIconTextButton
         >
       </div>
       <PErrorRetry :error="logSaveError" @retry="saveLogSettings" />
       <div class="log-limit">
-        <label for="SliderMaxLog">{{ text('LogPage.MaxLines.Title') }}</label
+        <label for="SliderMaxLog">{{ pclText('LogPage.MaxLines.Title') }}</label
         ><input
           id="SliderMaxLog"
           type="range"
@@ -158,13 +157,13 @@ function exportText(value: string, filename: string) {
           max="29"
           :value="logSlider"
           @input="updateLogSlider(Number(($event.target as HTMLInputElement).value))"
-          :title="text('LogPage.MaxLines.ToolTip')"
+          :title="pclText('LogPage.MaxLines.ToolTip')"
         /><output>{{
-          Number.isFinite(maxLines) ? maxLines : text('LogPage.MaxLines.Unlimited')
+          Number.isFinite(maxLines) ? maxLines : pclText('LogPage.MaxLines.Unlimited')
         }}</output>
       </div></PCard
     >
-    <small>{{ text('Proto.Session.BufferLimit') }}</small>
+    <small>{{ pclText('Proto.Session.BufferLimit') }}</small>
   </article>
 </template>
 <style scoped>
