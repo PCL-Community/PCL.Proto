@@ -57,14 +57,13 @@ const visibleOptions = computed(() =>
   ),
 )
 
-const text = pclText
 </script>
 <template>
   <div class="pcl-page">
     <PHint
       v-if="values.CheckAdvancedModrinth && instance.plugins.includes('optifine')"
       severity="warning"
-      >{{ text('Instance.Export.ModrinthWarning') }}</PHint
+      >{{ pclText('Instance.Export.ModrinthWarning') }}</PHint
     >
     <PCard hide-title>
       <div
@@ -84,11 +83,11 @@ const text = pclText
             align-self: center;
           "
           class="pcl-text"
-          >{{ text('Instance.Export.PackName') }}</span
+          >{{ pclText('Instance.Export.PackName') }}</span
         >
         <PTextBox
           style="grid-row: 1 / span 1; grid-column: 2 / span 1"
-          :placeholder="text('')"
+          :placeholder="pclText('')"
           v-model="values.TextExportName"
         />
         <span
@@ -100,19 +99,19 @@ const text = pclText
             align-self: center;
           "
           class="pcl-text"
-          >{{ text('Instance.Export.PackVersion') }}</span
+          >{{ pclText('Instance.Export.PackVersion') }}</span
         >
         <PTextBox
           style="grid-row: 1 / span 1; grid-column: 4 / span 1"
-          :placeholder="text('')"
+          :placeholder="pclText('')"
           v-model="values.TextExportVersion"
         />
       </div>
     </PCard>
-    <PCard :title="text('Instance.Export.OptionListTitle')">
+    <PCard :title="pclText('Instance.Export.OptionListTitle')">
       <template #header-actions>
         <PIconTextButton icon="lucide/rotate-ccw" @click="() => reset()">{{
-          text('Common.Action.Reset')
+          pclText('Common.Action.Reset')
         }}</PIconTextButton>
       </template>
       <div style="padding: 0 25px 15px; display: flex; flex-direction: column">
@@ -121,35 +120,35 @@ const text = pclText
           :key="option.id"
           :id="`PageInstanceExport-${option.id}`"
           :style="{ marginLeft: option.indent ? '30px' : '0', minHeight: '26px' }"
-          :title="text(option.description)"
+          :title="pclText(option.description)"
           :disabled="option.disabled"
-          :label="text(option.title)"
+          :label="pclText(option.title)"
           :model-value="option.disabled || Boolean(values[option.id])"
           @update:model-value="(value) => (values[option.id] = value)"
         />
       </div>
     </PCard>
-    <PCard :title="text('Instance.Export.Advanced.Title')" default-fold-status="fold">
+    <PCard :title="pclText('Instance.Export.Advanced.Title')" default-fold-status="fold">
       <div style="margin: 0px 23px 20px 25px; display: flex; flex-direction: column">
         <PHint style="margin: 2px 0px 8px 0px" severity="warning">{{
-          text('Instance.Export.Advanced.BundleHint')
+          pclText('Instance.Export.Advanced.BundleHint')
         }}</PHint>
         <PCheckBox
           style="height: 26px"
-          :title="text('Instance.Export.Advanced.BundleFiles.ToolTip')"
+          :title="pclText('Instance.Export.Advanced.BundleFiles.ToolTip')"
           id="PageInstanceExport-CheckAdvancedInclude"
-          :label="text('Instance.Export.Advanced.BundleFiles')"
+          :label="pclText('Instance.Export.Advanced.BundleFiles')"
           v-model="values.CheckAdvancedInclude"
         />
         <PCheckBox
           style="height: 26px"
-          :title="text('Instance.Export.Advanced.Modrinth.ToolTip')"
+          :title="pclText('Instance.Export.Advanced.Modrinth.ToolTip')"
           id="PageInstanceExport-CheckAdvancedModrinth"
-          :label="text('Instance.Export.Advanced.Modrinth')"
+          :label="pclText('Instance.Export.Advanced.Modrinth')"
           v-model="values.CheckAdvancedModrinth"
         />
         <PHint style="margin: 20px 0px 2px 0px" severity="info" closable>{{
-          text('Instance.Export.Advanced.ConfigHint')
+          pclText('Instance.Export.Advanced.ConfigHint')
         }}</PHint>
         <div
           style="
@@ -169,7 +168,7 @@ const text = pclText
             "
             @click="showUnavailable"
             type="tint"
-            >{{ text('Instance.Export.Advanced.ImportConfig') }}</PButton
+            >{{ pclText('Instance.Export.Advanced.ImportConfig') }}</PButton
           >
           <PButton
             style="
@@ -180,7 +179,7 @@ const text = pclText
               grid-column: 2 / span 1;
             "
             @click="showUnavailable"
-            >{{ text('Instance.Export.Advanced.ExportConfig') }}</PButton
+            >{{ pclText('Instance.Export.Advanced.ExportConfig') }}</PButton
           >
         </div>
       </div>

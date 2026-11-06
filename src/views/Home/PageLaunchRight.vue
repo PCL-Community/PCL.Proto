@@ -18,7 +18,6 @@ import PHint from '@/components/widget/PHint.vue'
 import PCard from '@/components/widget/PCard.vue'
 defineProps<{ launchLog?: string }>()
 
-const text = pclText
 const website = !isTauri()
 const ComponentShowcase = defineAsyncComponent(
   () => import('@/components/website/ComponentShowcase.vue'),
@@ -71,7 +70,7 @@ watch(
             ? appearance.values.TextCustomNet
             : homepagePresets.find((preset) => preset.key === appearance.values.ComboCustomPreset)
                 ?.url
-        if (!url) throw new Error(text('Proto.Homepage.ChoosePreset'))
+        if (!url) throw new Error(pclText('Proto.Homepage.ChoosePreset'))
         if (!source.value) source.value = cachedHomepage(url)
         content = await downloadHomepage(url, signal)
       }
@@ -94,24 +93,24 @@ onBeforeUnmount(() => {
   <section class="pcl-page">
     <PCard
       v-if="website || welcome"
-      :title="text('Proto.About.Welcome')"
+      :title="pclText('Proto.About.Welcome')"
       default-fold-status="unfold"
     >
       <div class="proto-introduction">
-        <PHint severity="info">{{ text('Proto.About.Intro') }}</PHint>
-        <p>{{ text('Proto.About.Description') }}</p>
+        <PHint severity="info">{{ pclText('Proto.About.Intro') }}</PHint>
+        <p>{{ pclText('Proto.About.Description') }}</p>
       </div>
     </PCard>
     <template v-if="!website && mode !== '0' && !welcome">
       <PLoading
         v-if="loading && source === undefined"
-        :loading-text="text('Launch.Homepage.Loading')"
+        :loading-text="pclText('Launch.Homepage.Loading')"
       />
       <PHint v-if="error" severity="error">{{ error }}</PHint>
       <PageHomepageNewsView v-if="officialFeed" embedded />
       <PCustomHomepage v-if="source !== undefined" :source="source" />
     </template>
-    <PCard v-if="launchLog" :title="text('Launch.Right.Log.Title')">
+    <PCard v-if="launchLog" :title="pclText('Launch.Right.Log.Title')">
       <pre class="launch-log">{{ launchLog }}</pre>
     </PCard>
     <ComponentShowcase v-if="website" />

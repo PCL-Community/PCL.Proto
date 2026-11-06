@@ -27,7 +27,6 @@ defineProps<{ loadingInstances?: boolean }>()
 const router = useRouter()
 const instance = useSelectedInstance()
 const account = useAccountInfo()
-const text = pclText
 const website = !isTauri()
 const profileView = ref<ProfileView>(account.profile ? 'skin' : 'profiles')
 const accountViews = {
@@ -62,7 +61,7 @@ const { preparing, launching, downloadSpeed, leavingLaunch } = storeToRefs(launc
 function getLaunchMethod() {
   return account.profile
     ? getProfileTypeLabel(account.profile)
-    : text('Launch.Account.Type.Offline')
+    : pclText('Launch.Account.Type.Offline')
 }
 function startLaunching() {
   return launchState.start(instance.instance_info?.name || '', getLaunchMethod())
@@ -83,34 +82,34 @@ async function cancelLaunch() {
   if (attempt === null) return
   try {
     await invoke('cancel_launch')
-    sideTip.show(text('Minecraft.Launch.Cancelled'))
+    sideTip.show(pclText('Minecraft.Launch.Cancelled'))
   } catch (error) {
-    sideTip.show(text('Proto.Error.Launch', [String(error)]), 'warn')
+    sideTip.show(pclText('Proto.Error.Launch', [String(error)]), 'warn')
   }
   returnToHome(attempt)
 }
 function formatLaunchFailure(failure: LaunchFailure) {
   const [reason, suggestion] = failure.solution
     ? [
-        text('Crash.Reason.FabricSolution.WithDetail', [failure.solution]),
-        text('Crash.Suggestion.FollowLoaderInstructions'),
+        pclText('Crash.Reason.FabricSolution.WithDetail', [failure.solution]),
+        pclText('Crash.Suggestion.FollowLoaderInstructions'),
       ]
     : failure.details
       ? [
-          text('Crash.Reason.IncompatibleMods.WithDetail', [failure.details]),
-          text('Crash.Suggestion.FollowLoaderInstructions'),
+          pclText('Crash.Reason.IncompatibleMods.WithDetail', [failure.details]),
+          pclText('Crash.Suggestion.FollowLoaderInstructions'),
         ]
-      : [text('Crash.Reason.Unknown.Auto'), text('Crash.Suggestion.ExportReport')]
-  return text('Crash.Presentation.WithSuggestion', [reason, suggestion])
+      : [pclText('Crash.Reason.Unknown.Auto'), pclText('Crash.Suggestion.ExportReport')]
+  return pclText('Crash.Presentation.WithSuggestion', [reason, suggestion])
 }
 function showLaunchFailure(attempt: number, failure: LaunchFailure) {
   if (launchState.isCancelled(attempt) || !launchState.isCurrent(attempt)) return
   returnToHome(attempt)
   void modal.open({
-    title: text('Crash.Dialog.Title.Auto'),
+    title: pclText('Crash.Dialog.Title.Auto'),
     content: formatLaunchFailure(failure),
     width: ModalWidthVariant.Fat,
-    buttons: [{ content: text('Common.Action.Confirm'), operation: () => modal.close() }],
+    buttons: [{ content: pclText('Common.Action.Confirm'), operation: () => modal.close() }],
   })
 }
 async function launch(serverAddress?: string) {
@@ -118,7 +117,7 @@ async function launch(serverAddress?: string) {
   // CE：没有选中档案时不允许启动。
   if (!account.profile) {
     profileView.value = 'profiles'
-    sideTip.show(text('Launch.Account.Profile.SelectHint'), 'warn')
+    sideTip.show(pclText('Launch.Account.Profile.SelectHint'), 'warn')
     return
   }
   if (!instance.instance_info) {
@@ -141,28 +140,28 @@ async function launch(serverAddress?: string) {
     if (!info.runtime) {
       if (!info.download_major) {
         await modal.open({
-          title: text('Minecraft.Launch.Java.NotFound.Title'),
-          content: text('Proto.Java.ManualRequired', [
+          title: pclText('Minecraft.Launch.Java.NotFound.Title'),
+          content: pclText('Proto.Java.ManualRequired', [
             info.requirements.min[0],
             info.requirements.max[0],
           ]),
-          buttons: [{ content: text('Common.Action.Close'), operation: () => modal.close() }],
+          buttons: [{ content: pclText('Common.Action.Close'), operation: () => modal.close() }],
         })
         await abandonLaunch(attempt)
         returnToHome(attempt)
         return
       }
       const answer = await modal.open({
-        title: text('Minecraft.Launch.Java.AutoDownload.Title'),
-        content: text('Minecraft.Launch.Java.AutoDownload.Message', [
+        title: pclText('Minecraft.Launch.Java.AutoDownload.Title'),
+        content: pclText('Minecraft.Launch.Java.AutoDownload.Message', [
           `Java ${info.download_major}`,
         ]),
         buttons: [
           {
-            content: text('Minecraft.Launch.Java.AutoDownload.Action'),
+            content: pclText('Minecraft.Launch.Java.AutoDownload.Action'),
             operation: () => modal.close(true),
           },
-          { content: text('Common.Action.Cancel'), operation: () => modal.close(false) },
+          { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
         ],
       })
       if (
@@ -184,11 +183,11 @@ async function launch(serverAddress?: string) {
       if (launchState.isCancelled(attempt)) return
       info = await prepareGameJava(instanceDirectory)
       if (launchState.isCancelled(attempt)) return
-      if (!info.runtime) throw new Error(text('Proto.Java.ReadFailed'))
+      if (!info.runtime) throw new Error(pclText('Proto.Java.ReadFailed'))
     }
     if (launchState.isCancelled(attempt)) return
     for (const warning of info.warnings)
-      sideTip.show(text(warning.key, [warning.version, warning.min, warning.max]), 'warn')
+      sideTip.show(pclText(warning.key, [warning.version, warning.min, warning.max]), 'warn')
     const progress = new Channel<LaunchProgress>()
     progress.onmessage = (message) => {
       if (!launchState.update(attempt!, message)) return
@@ -207,10 +206,10 @@ async function launch(serverAddress?: string) {
     if (attempt !== undefined && launchState.isCurrent(attempt)) {
       await abandonLaunch(attempt)
       if (!launchState.isCancelled(attempt))
-        sideTip.show(text('Proto.Error.Launch', [String(err)]), 'warn')
+        sideTip.show(pclText('Proto.Error.Launch', [String(err)]), 'warn')
       returnToHome(attempt)
     } else if (attempt === undefined)
-      sideTip.show(text('Proto.Error.Launch', [String(err)]), 'warn')
+      sideTip.show(pclText('Proto.Error.Launch', [String(err)]), 'warn')
   } finally {
     if (attempt !== undefined) launchState.setPreparing(attempt, false)
   }
@@ -223,7 +222,7 @@ watch(
     if (pending.directory === instance.instance_info?.directory && !preparing.value) {
       void launch(pending.address || undefined)
     } else {
-      sideTip.show(text('Instance.Server.Card.LaunchFailed'), 'warn')
+      sideTip.show(pclText('Instance.Server.Card.LaunchFailed'), 'warn')
     }
   },
   { immediate: true },
@@ -252,7 +251,7 @@ function settings() {
           @click="() => launch()"
           :disabled="loadingInstances || preparing || !account.profile || account.loggingIn"
           ><span>{{
-            text(
+            pclText(
               loadingInstances
                 ? 'Launch.Home.Button.Loading'
                 : instance.instance_info
@@ -262,20 +261,20 @@ function settings() {
           }}</span
           ><small>{{
             loadingInstances
-              ? text('Launch.Home.VersionList.Loading')
-              : instance.instance_info?.name || text('Select.Instance.Empty.Title')
+              ? pclText('Launch.Home.VersionList.Loading')
+              : instance.instance_info?.name || pclText('Select.Instance.Empty.Title')
           }}</small></PButton
         ><PButton @click="() => router.push('/instance_select')">{{
-          text('Launch.Home.SelectInstance')
+          pclText('Launch.Home.SelectInstance')
         }}</PButton
-        ><PButton @click="settings">{{ text('Launch.Home.InstanceSettings') }}</PButton>
+        ><PButton @click="settings">{{ pclText('Launch.Home.InstanceSettings') }}</PButton>
       </div>
     </div>
     <section v-if="launching" class="launch-status" aria-live="polite">
       <PLoading class="launching-loader" :card="false" />
       <h2>
         {{
-          text(
+          pclText(
             launching.progress === 1
               ? 'Launch.Status.Title.Launched'
               : 'Launch.Status.Title.Launching',
@@ -283,25 +282,25 @@ function settings() {
         }}
       </h2>
       <p class="launch-name">{{ launching.name }}</p>
-      <div class="launch-progress" :aria-label="text('Launch.Status.LaunchProgress')">
+      <div class="launch-progress" :aria-label="pclText('Launch.Status.LaunchProgress')">
         <span :style="{ width: `${launching.progress * 100}%` }" />
       </div>
       <dl>
-        <dt>{{ text('Launch.Status.CurrentStep') }}</dt>
-        <dd>{{ text(launching.stage) }}</dd>
-        <dt>{{ text('Launch.Status.LoginMethod') }}</dt>
+        <dt>{{ pclText('Launch.Status.CurrentStep') }}</dt>
+        <dd>{{ pclText(launching.stage) }}</dd>
+        <dt>{{ pclText('Launch.Status.LoginMethod') }}</dt>
         <dd>{{ launching.method }}</dd>
-        <dt v-if="launching.progress < 1">{{ text('Launch.Status.LaunchProgress') }}</dt>
+        <dt v-if="launching.progress < 1">{{ pclText('Launch.Status.LaunchProgress') }}</dt>
         <dd v-if="launching.progress < 1">{{ `${(launching.progress * 100).toFixed(2)}%` }}</dd>
-        <dt v-if="launching.downloading">{{ text('Launch.Status.DownloadSpeed') }}</dt>
+        <dt v-if="launching.downloading">{{ pclText('Launch.Status.DownloadSpeed') }}</dt>
         <dd v-if="launching.downloading">{{ downloadSpeed || '0 B/s' }}</dd>
       </dl>
       <div v-if="launching.progress === 1" class="launch-trivia">
-        <span>{{ text('Launch.Status.Trivia') }}</span>
-        <p>{{ text('Launch.Status.Trivia.Placeholder') }}</p>
+        <span>{{ pclText('Launch.Status.Trivia') }}</span>
+        <p>{{ pclText('Launch.Status.Trivia.Placeholder') }}</p>
       </div>
       <PButton v-if="launching.progress < 1" class="launch-cancel" @click="cancelLaunch">{{
-        text('Common.Action.Cancel')
+        pclText('Common.Action.Cancel')
       }}</PButton>
     </section>
   </aside>

@@ -78,11 +78,10 @@ if (isTauri())
     .catch(console.error)
 
 const router = useRouter()
-const text = pclText
 </script>
 <template>
   <div class="pcl-page">
-    <PCard :title="text('Setup.Ui.Basic.Title')">
+    <PCard :title="pclText('Setup.Ui.Basic.Title')">
       <div style="margin: 0px 25px 10px 25px; display: grid">
         <div
           style="
@@ -109,7 +108,7 @@ const text = pclText
                 align-self: center;
               "
               class="pcl-text"
-              >{{ text('Setup.Ui.Basic.Opacity') }}</span
+              >{{ pclText('Setup.Ui.Basic.Opacity') }}</span
             >
             <input
               disabled
@@ -139,14 +138,14 @@ const text = pclText
                 align-self: center;
               "
               class="pcl-text"
-              >{{ text('Setup.Ui.Theme.Title') }}</span
+              >{{ pclText('Setup.Ui.Theme.Title') }}</span
             >
             <PComboBox
               style="grid-row: 1 / span 1; grid-column: 2 / span 1"
               :options="[
-                { key: '0', text: text('Setup.Ui.Theme.Light') },
-                { key: '1', text: text('Setup.Ui.Theme.Dark') },
-                { key: '2', text: text('Setup.Ui.Theme.FollowSystem') },
+                { key: '0', text: pclText('Setup.Ui.Theme.Light') },
+                { key: '1', text: pclText('Setup.Ui.Theme.Dark') },
+                { key: '2', text: pclText('Setup.Ui.Theme.FollowSystem') },
               ]"
               v-model="values.ComboDarkMode"
             />
@@ -158,14 +157,14 @@ const text = pclText
                 align-self: center;
               "
               class="pcl-text"
-              >{{ text('Setup.Ui.Theme.LightColor') }}</span
+              >{{ pclText('Setup.Ui.Theme.LightColor') }}</span
             >
             <PComboBox
               style="grid-row: 1 / span 1; grid-column: 4 / span 1"
               :options="
                 ['SkyBlue', 'CatBlue', 'CrashBlue'].map((color, index) => ({
                   key: String(index),
-                  text: text(`Setup.Ui.Theme.Color.${color}`),
+                  text: pclText(`Setup.Ui.Theme.Color.${color}`),
                 }))
               "
               v-model="values.ComboLightColor"
@@ -178,14 +177,14 @@ const text = pclText
                 align-self: center;
               "
               class="pcl-text"
-              >{{ text('Setup.Ui.Theme.DarkColor') }}</span
+              >{{ pclText('Setup.Ui.Theme.DarkColor') }}</span
             >
             <PComboBox
               style="grid-row: 1 / span 1; grid-column: 6 / span 1"
               :options="
                 ['SkyBlue', 'CatBlue', 'CrashBlue'].map((color, index) => ({
                   key: String(index),
-                  text: text(`Setup.Ui.Theme.Color.${color}`),
+                  text: pclText(`Setup.Ui.Theme.Color.${color}`),
                 }))
               "
               v-model="values.ComboDarkColor"
@@ -195,30 +194,30 @@ const text = pclText
             disabled
             style="height: 22px; margin: 0px 0px 7px -1px"
             id="PageSetupUI-CheckLauncherLogo"
-            :label="text('Setup.Ui.Basic.ShowLogo')"
+            :label="pclText('Setup.Ui.Basic.ShowLogo')"
             v-model="values.CheckLauncherLogo"
           />
           <PCheckBox
             disabled
             style="height: 22px; margin: 0px 0px 7px -1px"
             id="PageSetupUI-CheckLockWindowSize"
-            :label="text('Setup.Ui.Basic.LockWindow')"
+            :label="pclText('Setup.Ui.Basic.LockWindow')"
             v-model="values.CheckLockWindowSize"
           />
           <PCheckBox
             disabled
             style="height: 22px; margin: 0px 0px 7px -1px"
             id="PageSetupUI-CheckShowLaunchingHint"
-            :label="text('Setup.Ui.Basic.ShowTriviaHint')"
+            :label="pclText('Setup.Ui.Basic.ShowTriviaHint')"
             v-model="values.CheckShowLaunchingHint"
           />
           <div style="margin: 0px 0px 10px 0px; display: flex; flex-direction: column">
             <PCheckBox
               disabled
               style="height: 22px"
-              :title="text('Setup.Ui.Basic.AdvancedMaterial.ToolTip')"
+              :title="pclText('Setup.Ui.Basic.AdvancedMaterial.ToolTip')"
               id="PageSetupUI-CheckBlur"
-              :label="text('Setup.Ui.Basic.AdvancedMaterial')"
+              :label="pclText('Setup.Ui.Basic.AdvancedMaterial')"
               v-model="values.CheckBlur"
             />
             <div
@@ -238,12 +237,12 @@ const text = pclText
                   align-self: center;
                 "
                 class="pcl-text"
-                >{{ text('Setup.Ui.Basic.BlurRadius') }}</span
+                >{{ pclText('Setup.Ui.Basic.BlurRadius') }}</span
               >
               <input
                 disabled
                 style="grid-row: 1 / span 1; grid-column: 2 / span 3"
-                :title="text('Setup.Ui.Basic.BlurRadius.ToolTip')"
+                :title="pclText('Setup.Ui.Basic.BlurRadius.ToolTip')"
                 type="range"
                 min="0"
                 max="40"
@@ -257,12 +256,12 @@ const text = pclText
                   align-self: center;
                 "
                 class="pcl-text"
-                >{{ text('Setup.Ui.Basic.BlurSamplingRate') }}</span
+                >{{ pclText('Setup.Ui.Basic.BlurSamplingRate') }}</span
               >
               <input
                 disabled
                 style="grid-row: 3 / span 1; grid-column: 4 / span 1"
-                :title="text('Setup.Ui.Basic.BlurSamplingRate.ToolTip')"
+                :title="pclText('Setup.Ui.Basic.BlurSamplingRate.ToolTip')"
                 type="range"
                 min="0"
                 max="100"
@@ -276,7 +275,7 @@ const text = pclText
                   align-self: center;
                 "
                 class="pcl-text"
-                >{{ text('Setup.Ui.Basic.BlurMethod') }}</span
+                >{{ pclText('Setup.Ui.Basic.BlurMethod') }}</span
               >
               <PComboBox
                 disabled
@@ -286,17 +285,17 @@ const text = pclText
                   grid-row: 3 / span 1;
                   grid-column: 2 / span 1;
                 "
-                :title="text('Setup.Ui.Basic.BlurMethod.ToolTip')"
+                :title="pclText('Setup.Ui.Basic.BlurMethod.ToolTip')"
                 :options="[
                   {
                     key: '0',
-                    text: text('Setup.Ui.Basic.BlurMethod.Gaussian'),
-                    title: text('Setup.Ui.Basic.BlurMethod.Gaussian.ToolTip'),
+                    text: pclText('Setup.Ui.Basic.BlurMethod.Gaussian'),
+                    title: pclText('Setup.Ui.Basic.BlurMethod.Gaussian.ToolTip'),
                   },
                   {
                     key: '1',
-                    text: text('Setup.Ui.Basic.BlurMethod.Box'),
-                    title: text('Setup.Ui.Basic.BlurMethod.Box.ToolTip'),
+                    text: pclText('Setup.Ui.Basic.BlurMethod.Box'),
+                    title: pclText('Setup.Ui.Basic.BlurMethod.Box.ToolTip'),
                   },
                 ]"
                 v-model="values.ComboBlurType"
@@ -306,7 +305,7 @@ const text = pclText
         </div>
       </div>
     </PCard>
-    <PCard :title="text('Setup.Ui.Font.Title')">
+    <PCard :title="pclText('Setup.Ui.Font.Title')">
       <div
         style="
           margin: 0px 25px 15px 25px;
@@ -318,32 +317,32 @@ const text = pclText
         <span
           style="grid-row: 1 / span 1; grid-column: 1 / span 1; align-self: center"
           class="pcl-text"
-          >{{ text('Setup.Ui.Font.Global') }}</span
+          >{{ pclText('Setup.Ui.Font.Global') }}</span
         >
         <PComboBox
           style="grid-row: 1 / span 1; grid-column: 3 / span 1"
           :options="fontOptions"
-          :title="text('Setup.Ui.Font.Global.ToolTip')"
+          :title="pclText('Setup.Ui.Font.Global.ToolTip')"
           v-model="values.ComboUiFont"
         />
         <span
           style="grid-row: 3 / span 1; grid-column: 1 / span 1; align-self: center"
           class="pcl-text"
-          >{{ text('Setup.Ui.Font.Motd') }}</span
+          >{{ pclText('Setup.Ui.Font.Motd') }}</span
         >
         <PComboBox
           style="grid-row: 3 / span 1; grid-column: 3 / span 1"
           :options="fontOptions"
-          :title="text('Setup.Ui.Font.Motd.ToolTip')"
+          :title="pclText('Setup.Ui.Font.Motd.ToolTip')"
           v-model="values.ComboUiMotdFont"
         />
       </div>
     </PCard>
-    <PCard :title="text('Setup.Ui.Background.TitleDefault')">
+    <PCard :title="pclText('Setup.Ui.Background.TitleDefault')">
       <div style="margin: 0px 25px 20px 25px; display: flex; flex-direction: column">
         <template v-if="hasBackground">
           <div class="pcl-form-row">
-            <label>{{ text('Setup.Ui.Background.ContentAdapt') }}</label
+            <label>{{ pclText('Setup.Ui.Background.ContentAdapt') }}</label
             ><PComboBox
               disabled
               :options="
@@ -359,7 +358,7 @@ const text = pclText
                   'BottomRight',
                 ].map((key, index) => ({
                   key: String(index),
-                  text: text(`Setup.Ui.Background.Suit.${key}`),
+                  text: pclText(`Setup.Ui.Background.Suit.${key}`),
                 }))
               "
               :model-value="String(values.ComboBackgroundSuit)"
@@ -367,7 +366,7 @@ const text = pclText
             />
           </div>
           <div class="pcl-form-row">
-            <label for="background-opacity">{{ text('Setup.Ui.Basic.Opacity2') }}</label
+            <label for="background-opacity">{{ pclText('Setup.Ui.Basic.Opacity2') }}</label
             ><input
               disabled
               id="background-opacity"
@@ -378,7 +377,7 @@ const text = pclText
             />
           </div>
           <div class="pcl-form-row">
-            <label for="background-blur">{{ text('Setup.Ui.Background.Blur') }}</label
+            <label for="background-blur">{{ pclText('Setup.Ui.Background.Blur') }}</label
             ><input
               disabled
               id="background-blur"
@@ -392,15 +391,15 @@ const text = pclText
         <PCheckBox
           disabled
           style="height: 22px; margin: 0px 0px 8px -1px"
-          :title="text('Setup.Ui.Background.PauseVideo.ToolTip')"
+          :title="pclText('Setup.Ui.Background.PauseVideo.ToolTip')"
           id="PageSetupUI-CheckAutoPauseVideo"
-          :label="text('Setup.Ui.Background.PauseVideo')"
+          :label="pclText('Setup.Ui.Background.PauseVideo')"
           v-model="values.CheckAutoPauseVideo"
         />
         <PCheckBox
           style="height: 22px; margin: 0px 0px 8px -1px"
           id="PageSetupUI-CheckBackgroundColorful"
-          :label="text('Setup.Ui.Background.ColorOverlay')"
+          :label="pclText('Setup.Ui.Background.ColorOverlay')"
           v-model="values.CheckBackgroundColorful"
         />
         <div
@@ -419,9 +418,9 @@ const text = pclText
               grid-row: 1 / span 1;
               grid-column: 1 / span 1;
             "
-            :title="text('Setup.Ui.Background.OpenFolder.ToolTip')"
+            :title="pclText('Setup.Ui.Background.OpenFolder.ToolTip')"
             @click="showUnavailable"
-            >{{ text('Common.Action.OpenFolder') }}</PButton
+            >{{ pclText('Common.Action.OpenFolder') }}</PButton
           >
           <PButton
             style="
@@ -431,20 +430,20 @@ const text = pclText
               grid-row: 1 / span 1;
               grid-column: 2 / span 1;
             "
-            :title="text('Setup.Ui.Background.Refresh.ToolTip')"
+            :title="pclText('Setup.Ui.Background.Refresh.ToolTip')"
             @click="showUnavailable"
-            >{{ text('Setup.Ui.Background.Refresh') }}</PButton
+            >{{ pclText('Setup.Ui.Background.Refresh') }}</PButton
           ><PButton v-if="hasBackground" type="warn" @click="showUnavailable">{{
-            text('Setup.Ui.Background.Clear')
+            pclText('Setup.Ui.Background.Clear')
           }}</PButton>
         </div>
       </div>
     </PCard>
-    <PCard :title="text('Setup.Ui.Music.Title')">
+    <PCard :title="pclText('Setup.Ui.Music.Title')">
       <div style="margin: 2px 25px 20px 25px; display: flex; flex-direction: column">
         <template v-if="hasMusic">
           <div class="pcl-form-row">
-            <label for="music-volume">{{ text('Setup.Ui.Music.Volume') }}</label
+            <label for="music-volume">{{ pclText('Setup.Ui.Music.Volume') }}</label
             ><input
               disabled
               id="music-volume"
@@ -466,7 +465,7 @@ const text = pclText
               ]"
               :key="setting.id"
               :id="`PageSetupUI-${setting.id}`"
-              :label="text(`Setup.Ui.Music.${setting.key}`)"
+              :label="pclText(`Setup.Ui.Music.${setting.key}`)"
               :model-value="Boolean(values[setting.id])"
               @update:model-value="(value) => (values[setting.id] = value)"
             />
@@ -481,9 +480,9 @@ const text = pclText
               grid-row: 1 / span 1;
               grid-column: 1 / span 1;
             "
-            :title="text('Setup.Ui.Music.OpenFolder.ToolTip')"
+            :title="pclText('Setup.Ui.Music.OpenFolder.ToolTip')"
             @click="showUnavailable"
-            >{{ text('Common.Action.OpenFolder') }}</PButton
+            >{{ pclText('Common.Action.OpenFolder') }}</PButton
           >
           <PButton
             style="
@@ -493,36 +492,36 @@ const text = pclText
               grid-row: 1 / span 1;
               grid-column: 2 / span 1;
             "
-            :title="text('Setup.Ui.Music.Refresh.ToolTip')"
+            :title="pclText('Setup.Ui.Music.Refresh.ToolTip')"
             @click="showUnavailable"
-            >{{ text('Setup.Ui.Music.Refresh') }}</PButton
+            >{{ pclText('Setup.Ui.Music.Refresh') }}</PButton
           ><PButton v-if="hasMusic" type="warn" @click="showUnavailable">{{
-            text('Setup.Ui.Music.Clear')
+            pclText('Setup.Ui.Music.Clear')
           }}</PButton>
         </div>
       </div>
     </PCard>
-    <PCard :title="text('Setup.Ui.Logo.Title')">
+    <PCard :title="pclText('Setup.Ui.Logo.Title')">
       <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
         <div class="setup-radio-options">
           <label class="pcl-radio"
             ><input disabled type="radio" v-model="values['UiLogoType']" value="0" />{{
-              text('Setup.Ui.Logo.None')
+              pclText('Setup.Ui.Logo.None')
             }}</label
           >
           <label class="pcl-radio"
             ><input disabled type="radio" v-model="values['UiLogoType']" value="1" />{{
-              text('Common.Option.Default')
+              pclText('Common.Option.Default')
             }}</label
           >
           <label class="pcl-radio"
             ><input disabled type="radio" v-model="values['UiLogoType']" value="2" />{{
-              text('Setup.Ui.Logo.Text')
+              pclText('Setup.Ui.Logo.Text')
             }}</label
           >
           <label class="pcl-radio"
             ><input disabled type="radio" v-model="values['UiLogoType']" value="3" />{{
-              text('Setup.Ui.Logo.Image')
+              pclText('Setup.Ui.Logo.Image')
             }}</label
           >
         </div>
@@ -531,7 +530,7 @@ const text = pclText
           v-if="values.UiLogoType === '0'"
           style="margin: 8px 0 3px"
           id="PageSetupUI-CheckLogoLeft"
-          :label="text('Setup.Ui.Logo.LeftAlign')"
+          :label="pclText('Setup.Ui.Logo.LeftAlign')"
           v-model="values.CheckLogoLeft"
         />
         <div
@@ -551,12 +550,12 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.Ui.Logo.TextLabel') }}</span
+            >{{ pclText('Setup.Ui.Logo.TextLabel') }}</span
           >
           <PTextBox
             disabled
             style="grid-row: 1 / span 1; grid-column: 2 / span 1"
-            :placeholder="text('')"
+            :placeholder="pclText('')"
             v-model="values.TextLogoText"
           />
         </div>
@@ -579,7 +578,7 @@ const text = pclText
               grid-column: 1 / span 1;
             "
             @click="showUnavailable"
-            >{{ text('Setup.Ui.Logo.ChangeImage') }}</PButton
+            >{{ pclText('Setup.Ui.Logo.ChangeImage') }}</PButton
           >
           <PButton
             style="
@@ -591,12 +590,12 @@ const text = pclText
             "
             @click="showUnavailable"
             type="warn"
-            >{{ text('Setup.Ui.Logo.ClearImage') }}</PButton
+            >{{ pclText('Setup.Ui.Logo.ClearImage') }}</PButton
           >
         </div>
       </div>
     </PCard>
-    <PCard :title="text('Setup.Ui.Homepage.Title')">
+    <PCard :title="pclText('Setup.Ui.Homepage.Title')">
       <div class="homepage-settings">
         <div class="setup-radio-options homepage-options">
           <label v-for="option in homepageOptions" :key="option.key" class="pcl-radio">
@@ -606,20 +605,20 @@ const text = pclText
               :checked="values.UiCustomType === option.key"
               :value="option.key"
               @change="setHomepageType(option.key)"
-            />{{ text(option.title) }}
+            />{{ pclText(option.title) }}
           </label>
         </div>
         <PHint v-if="values.UiCustomType === '1'" severity="info" class="homepage-hint">{{
-          text('Proto.Homepage.LocalHint')
+          pclText('Proto.Homepage.LocalHint')
         }}</PHint>
         <PHint v-else-if="values.UiCustomType === '2'" severity="info" class="homepage-hint">
-          {{ text('Setup.Ui.Homepage.NetUpdate.Hint') }}
+          {{ pclText('Setup.Ui.Homepage.NetUpdate.Hint') }}
           <button
             type="button"
             class="homepage-hint-link"
             @click="openExternal('https://github.com/PCL-Community/PCL-CE/discussions')"
           >
-            {{ text('Proto.Homepage.Submit') }}
+            {{ pclText('Proto.Homepage.Submit') }}
           </button>
         </PHint>
         <PHint
@@ -630,10 +629,10 @@ const text = pclText
           severity="warning"
           closable
           @close="dismissHomepageWarning"
-          >{{ text('Setup.Ui.Homepage.NetWarning') }}</PHint
+          >{{ pclText('Setup.Ui.Homepage.NetWarning') }}</PHint
         >
         <div v-if="values.UiCustomType === '2'" class="pcl-form-row">
-          <label for="homepage-url">{{ text('Setup.Ui.Homepage.DownloadUrl') }}</label>
+          <label for="homepage-url">{{ pclText('Setup.Ui.Homepage.DownloadUrl') }}</label>
           <PTextBox
             input-id="homepage-url"
             v-model="values.TextCustomNet"
@@ -641,28 +640,28 @@ const text = pclText
           />
         </div>
         <div v-if="values.UiCustomType === '3'" class="pcl-form-row">
-          <label>{{ text('Setup.Ui.Homepage.PresetLabel') }}</label>
+          <label>{{ pclText('Setup.Ui.Homepage.PresetLabel') }}</label>
           <PComboBox
             v-model="values.ComboCustomPreset"
             :options="homepagePresetOptions"
-            :aria-label="text('Setup.Ui.Homepage.PresetLabel')"
+            :aria-label="pclText('Setup.Ui.Homepage.PresetLabel')"
           />
         </div>
         <div v-if="values.UiCustomType === '1'" class="homepage-actions">
           <PButton type="tint" @click="refreshHomepage">{{
-            text('Setup.Ui.Homepage.Refresh')
+            pclText('Setup.Ui.Homepage.Refresh')
           }}</PButton>
-          <PButton @click="editHomepage">{{ text('Proto.Title.HomepageEditor') }}</PButton>
+          <PButton @click="editHomepage">{{ pclText('Proto.Title.HomepageEditor') }}</PButton>
           <PButton @click="openExternal('https://docs.pclc.cc/ce/customization/xaml-format')">{{
-            text('Setup.Ui.Homepage.Tutorial')
+            pclText('Setup.Ui.Homepage.Tutorial')
           }}</PButton>
         </div>
       </div>
     </PCard>
-    <PCard :title="text('Setup.Ui.FeatureHide.Title')">
+    <PCard :title="pclText('Setup.Ui.FeatureHide.Title')">
       <div style="margin: 0px 15px 15px 25px; display: flex; flex-direction: column">
         <span style="margin: 1px 0px 1px 0px" class="pcl-text">{{
-          text('Setup.Ui.FeatureHide.Description')
+          pclText('Setup.Ui.FeatureHide.Description')
         }}</span>
         <div
           style="
@@ -681,27 +680,27 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.Ui.FeatureHide.MainPage') }}</span
+            >{{ pclText('Setup.Ui.FeatureHide.MainPage') }}</span
           >
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 2 / span 1; grid-column: 3 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenPageDownload"
-            :label="text('Setup.Ui.FeatureHide.Item.Download')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Download')"
             v-model="values.CheckHiddenPageDownload"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 2 / span 1; grid-column: 4 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenPageSetup"
-            :label="text('Setup.Ui.FeatureHide.Item.Settings')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Settings')"
             v-model="values.CheckHiddenPageSetup"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 2 / span 1; grid-column: 5 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenPageTools"
-            :label="text('Setup.Ui.FeatureHide.Item.Tools')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Tools')"
             v-model="values.CheckHiddenPageTools"
           />
           <span
@@ -712,83 +711,83 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.Ui.FeatureHide.SubSetup') }}</span
+            >{{ pclText('Setup.Ui.FeatureHide.SubSetup') }}</span
           >
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 3 / span 1; grid-column: 3 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupLaunch"
-            :label="text('Setup.Ui.FeatureHide.Item.Launch')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Launch')"
             v-model="values.CheckHiddenSetupLaunch"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 3 / span 1; grid-column: 4 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupJava"
-            :label="text('Java')"
+            :label="pclText('Java')"
             v-model="values.CheckHiddenSetupJava"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 3 / span 1; grid-column: 5 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupGameManage"
-            :label="text('Setup.Ui.FeatureHide.Item.GameManage')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.GameManage')"
             v-model="values.CheckHiddenSetupGameManage"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 3 / span 1; grid-column: 6 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupGameLink"
-            :label="text('Setup.Ui.FeatureHide.Item.GameLink')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.GameLink')"
             v-model="values.CheckHiddenSetupGameLink"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 3 / span 1; grid-column: 7 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupUI"
-            :label="text('Setup.Ui.FeatureHide.Item.Ui')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Ui')"
             v-model="values.CheckHiddenSetupUI"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 4 / span 1; grid-column: 3 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupLauncherLanguage"
-            :label="text('Setup.Ui.FeatureHide.Item.Language')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Language')"
             v-model="values.CheckHiddenSetupLauncherLanguage"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 4 / span 1; grid-column: 4 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenLauncherMisc"
-            :label="text('Setup.Ui.FeatureHide.Item.Misc')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Misc')"
             v-model="values.CheckHiddenLauncherMisc"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 4 / span 1; grid-column: 5 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupUpdate"
-            :label="text('Setup.Ui.FeatureHide.Item.Update')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Update')"
             v-model="values.CheckHiddenSetupUpdate"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 4 / span 1; grid-column: 6 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupAbout"
-            :label="text('Setup.Ui.FeatureHide.Item.About')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.About')"
             v-model="values.CheckHiddenSetupAbout"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 4 / span 1; grid-column: 7 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupFeedback"
-            :label="text('Setup.Ui.FeatureHide.Item.Feedback')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Feedback')"
             v-model="values.CheckHiddenSetupFeedback"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 4 / span 1; grid-column: 8 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupLog"
-            :label="text('Setup.Ui.FeatureHide.Item.Log')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Log')"
             v-model="values.CheckHiddenSetupLog"
           />
           <span
@@ -799,20 +798,20 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.Ui.FeatureHide.SubTools') }}</span
+            >{{ pclText('Setup.Ui.FeatureHide.SubTools') }}</span
           >
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 5 / span 1; grid-column: 3 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenToolsGameLink"
-            :label="text('Setup.Ui.FeatureHide.Item.Lobby')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Lobby')"
             v-model="values.CheckHiddenToolsGameLink"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 5 / span 1; grid-column: 4 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenToolsTest"
-            :label="text('Setup.Ui.FeatureHide.Item.Toolbox')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Toolbox')"
             v-model="values.CheckHiddenToolsTest"
           />
           <span
@@ -823,69 +822,69 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.Ui.FeatureHide.SubInstance') }}</span
+            >{{ pclText('Setup.Ui.FeatureHide.SubInstance') }}</span
           >
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 6 / span 1; grid-column: 3 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenVersionEdit"
-            :label="text('Setup.Ui.FeatureHide.Item.Edit')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Edit')"
             v-model="values.CheckHiddenVersionEdit"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 6 / span 1; grid-column: 4 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenVersionExport"
-            :label="text('Setup.Ui.FeatureHide.Item.Export')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Export')"
             v-model="values.CheckHiddenVersionExport"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 6 / span 1; grid-column: 5 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenVersionSave"
-            :label="text('Setup.Ui.FeatureHide.Item.Save')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Save')"
             v-model="values.CheckHiddenVersionSave"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 6 / span 1; grid-column: 6 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenVersionScreenshot"
-            :label="text('Setup.Ui.FeatureHide.Item.Screenshot')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Screenshot')"
             v-model="values.CheckHiddenVersionScreenshot"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 6 / span 1; grid-column: 7 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenVersionMod"
-            :label="text('Mod')"
+            :label="pclText('Mod')"
             v-model="values.CheckHiddenVersionMod"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 7 / span 1; grid-column: 3 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenVersionResourcePack"
-            :label="text('Setup.Ui.FeatureHide.Item.ResourcePack')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.ResourcePack')"
             v-model="values.CheckHiddenVersionResourcePack"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 7 / span 1; grid-column: 4 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenVersionShader"
-            :label="text('Setup.Ui.FeatureHide.Item.Shader')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Shader')"
             v-model="values.CheckHiddenVersionShader"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 7 / span 1; grid-column: 5 / span 2; align-self: center"
             id="PageSetupUI-CheckHiddenVersionSchematic"
-            :label="text('Setup.Ui.FeatureHide.Item.Schematic')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Schematic')"
             v-model="values.CheckHiddenVersionSchematic"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 7 / span 1; grid-column: 7 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenVersionServer"
-            :label="text('Setup.Ui.FeatureHide.Item.Server')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.Server')"
             v-model="values.CheckHiddenVersionServer"
           />
           <span
@@ -896,30 +895,30 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.Ui.FeatureHide.SpecificFeature') }}</span
+            >{{ pclText('Setup.Ui.FeatureHide.SpecificFeature') }}</span
           >
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 8 / span 1; grid-column: 3 / span 1; align-self: center"
-            :title="text('Setup.Ui.FeatureHide.Item.InstanceSelect.ToolTip')"
+            :title="pclText('Setup.Ui.FeatureHide.Item.InstanceSelect.ToolTip')"
             id="PageSetupUI-CheckHiddenFunctionSelect"
-            :label="text('Setup.Ui.FeatureHide.Item.InstanceSelect')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.InstanceSelect')"
             v-model="values.CheckHiddenFunctionSelect"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 8 / span 1; grid-column: 4 / span 1; align-self: center"
-            :title="text('Setup.Ui.FeatureHide.Item.ModUpdate.ToolTip')"
+            :title="pclText('Setup.Ui.FeatureHide.Item.ModUpdate.ToolTip')"
             id="PageSetupUI-CheckHiddenFunctionModUpdate"
-            :label="text('Setup.Ui.FeatureHide.Item.ModUpdate')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.ModUpdate')"
             v-model="values.CheckHiddenFunctionModUpdate"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 8 / span 1; grid-column: 5 / span 1; align-self: center"
-            :title="text('Setup.Ui.FeatureHide.Item.FeatureHide.ToolTip')"
+            :title="pclText('Setup.Ui.FeatureHide.Item.FeatureHide.ToolTip')"
             id="PageSetupUI-CheckHiddenFunctionHidden"
-            :label="text('Setup.Ui.FeatureHide.Item.FeatureHide')"
+            :label="pclText('Setup.Ui.FeatureHide.Item.FeatureHide')"
             v-model="values.CheckHiddenFunctionHidden"
           />
         </div>

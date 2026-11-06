@@ -15,7 +15,6 @@ import { authServerPreset } from './authServerPreset'
 const loginShape = paths.a734eac303dcf223.data
 const props = defineProps<{ registerUrl?: string }>()
 const emit = defineEmits<{ view: [view: ProfileView] }>()
-const text = pclText
 const account = useAccountInfo()
 // 登录会话由启动页统一驱动，避免登录途中切页丢掉弹窗与结果提示。
 const progress = loginProgress('auth')
@@ -79,11 +78,11 @@ function login() {
   if (loggingIn.value) return
   const address = server.value.trim()
   if (!address) {
-    sideTip.show(text('Launch.Account.Auth.EmptyFields'), 'warn')
+    sideTip.show(pclText('Launch.Account.Auth.EmptyFields'), 'warn')
     return
   }
   if (!/^https?:\/\//i.test(address)) {
-    sideTip.show(text('Launch.Account.Auth.InvalidServer'), 'warn')
+    sideTip.show(pclText('Launch.Account.Auth.InvalidServer'), 'warn')
     return
   }
   // 探测成功时用解析出的 API 地址，失败时退回用户输入（CE 的 BaseUrl）。
@@ -91,7 +90,7 @@ function login() {
   if (oauthMode.value) {
     const discovery = probe.value?.discoveryAddress
     if (!discovery) {
-      sideTip.show(text('Launch.Account.Auth.LoginFailed'), 'warn')
+      sideTip.show(pclText('Launch.Account.Auth.LoginFailed'), 'warn')
       return
     }
     void account.startLogin({
@@ -103,7 +102,7 @@ function login() {
     return
   }
   if (!username.value.trim() || !password.value) {
-    sideTip.show(text('Launch.Account.Auth.EmptyFields'), 'warn')
+    sideTip.show(pclText('Launch.Account.Auth.EmptyFields'), 'warn')
     return
   }
   void account.startLogin({
@@ -141,27 +140,27 @@ function openWebsite() {
 <template>
   <form class="account-form auth-form" @submit.prevent="login">
     <label class="server-row">
-      <span>{{ text('Launch.Account.Auth.SelectServer') }}</span>
+      <span>{{ pclText('Launch.Account.Auth.SelectServer') }}</span>
       <PTextBox v-model="server" placeholder="https://" :disabled="loggingIn" />
     </label>
     <template v-if="!oauthMode">
       <label class="auth-row"
-        ><span>{{ text('Launch.Account.Auth.Email') }}</span
+        ><span>{{ pclText('Launch.Account.Auth.Email') }}</span
         ><PTextBox v-model="username"
       /></label>
       <label class="auth-row"
-        ><span>{{ text('Launch.Account.Auth.Password') }}</span
+        ><span>{{ pclText('Launch.Account.Auth.Password') }}</span
         ><PTextBox type="password" v-model="password" autocomplete="off"
       /></label>
       <PButton v-if="registerUrl" class="account-text register-link" inline @click="openRegister">{{
-        text(registerMode ? 'Launch.Account.Auth.Register' : 'Launch.Account.Auth.ForgotPassword')
+        pclText(registerMode ? 'Launch.Account.Auth.Register' : 'Launch.Account.Auth.ForgotPassword')
       }}</PButton>
       <div class="account-links auth-links">
         <PButton inline @click="openWebsite">{{
-          text('Launch.Account.Microsoft.Website')
+          pclText('Launch.Account.Microsoft.Website')
         }}</PButton>
         <PButton v-if="probe?.oauthSupported" inline @click="() => (oauthMode = true)">{{
-          text('Launch.Account.Auth.UseOAuth')
+          pclText('Launch.Account.Auth.UseOAuth')
         }}</PButton>
       </div>
     </template>
@@ -171,27 +170,27 @@ function openWebsite() {
         compact
         :disabled="loggingIn"
         @click="login"
-        >{{ progress ?? text('Launch.Account.Auth.OAuthLogin') }}</PButton
+        >{{ progress ?? pclText('Launch.Account.Auth.OAuthLogin') }}</PButton
       >
       <div class="account-links auth-links">
         <PButton inline @click="openWebsite">{{
-          text('Launch.Account.Microsoft.Website')
+          pclText('Launch.Account.Microsoft.Website')
         }}</PButton>
         <PButton inline @click="() => (oauthMode = false)">{{
-          text('Launch.Account.Auth.UsePassword')
+          pclText('Launch.Account.Auth.UsePassword')
         }}</PButton>
       </div>
     </div>
     <div v-if="!oauthMode" class="auth-actions">
       <PButton compact :disabled="loggingIn" @click="back">{{
-        text('Launch.Account.Auth.Back')
+        pclText('Launch.Account.Auth.Back')
       }}</PButton
       ><PButton compact type="tint" :disabled="loggingIn" @click="login">{{
-        progress ?? text('Launch.Account.Auth.Login')
+        progress ?? pclText('Launch.Account.Auth.Login')
       }}</PButton>
     </div>
     <PButton v-else-if="!loggingIn" class="account-back oauth-back" inline @click="back">{{
-      text('Launch.Account.Back')
+      pclText('Launch.Account.Back')
     }}</PButton>
   </form>
 </template>

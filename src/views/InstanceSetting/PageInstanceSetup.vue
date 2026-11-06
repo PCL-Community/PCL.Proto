@@ -98,21 +98,21 @@ const javaChoice = computed(() => {
   return pref.kind === 'exist' ? pref.java_exe : pref.kind
 })
 const javaOptions = computed(() => [
-  { key: 'global', text: text('Instance.Setup.FollowGlobal') },
-  { key: 'auto', text: text('Instance.Setup.Options.Java.AutoSelect') },
+  { key: 'global', text: pclText('Instance.Setup.FollowGlobal') },
+  { key: 'auto', text: pclText('Instance.Setup.Options.Java.AutoSelect') },
   {
     key: 'relative',
     text:
       javaSettings.value.preference.kind === 'relative'
-        ? text('Instance.Setup.Options.Java.SelectRelative.WithJava', [
+        ? pclText('Instance.Setup.Options.Java.SelectRelative.WithJava', [
             javaSettings.value.preference.relative_path,
           ])
-        : text('Instance.Setup.Options.Java.SelectRelative'),
-    title: text('Proto.Java.RelativePathHint'),
+        : pclText('Instance.Setup.Options.Java.SelectRelative'),
+    title: pclText('Proto.Java.RelativePathHint'),
   },
   ...java.runtimes.map((runtime) => ({
     key: runtime.java_exe,
-    text: `${runtime.version} · ${runtime.architecture} · ${runtime.java_folder}${runtime.is_enabled ? '' : ` · ${text('Setup.Java.EnableBeforeSelect')}`}`,
+    text: `${runtime.version} · ${runtime.architecture} · ${runtime.java_folder}${runtime.is_enabled ? '' : ` · ${pclText('Setup.Java.EnableBeforeSelect')}`}`,
     disabled: !runtime.is_enabled,
   })),
   ...(javaSettings.value.preference.kind === 'exist' &&
@@ -120,7 +120,7 @@ const javaOptions = computed(() => [
     ? [
         {
           key: javaChoice.value,
-          text: `${javaChoice.value} · ${text('Setup.Java.Unavailable')}`,
+          text: `${javaChoice.value} · ${pclText('Setup.Java.Unavailable')}`,
           disabled: true,
         },
       ]
@@ -174,14 +174,14 @@ let rendererHinted = false
 let debugLogHinted = false
 async function confirmWarning(message: string) {
   const result = await modal.open({
-    title: text('Common.Dialog.Warning'),
+    title: pclText('Common.Dialog.Warning'),
     content: message,
     buttons: [
       {
-        content: text('Setup.Launch.Advanced.Renderer.Warning.Confirm'),
+        content: pclText('Setup.Launch.Advanced.Renderer.Warning.Confirm'),
         operation: () => modal.close(true),
       },
-      { content: text('Common.Action.Cancel'), operation: () => modal.close(false) },
+      { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
     ],
   })
   return !!result.confirmed
@@ -189,7 +189,7 @@ async function confirmWarning(message: string) {
 async function changeRenderer(value: string | undefined) {
   if (!value || Number(value) === launchSettings.renderer) return
   if (value !== '0' && !rendererHinted) {
-    if (!(await confirmWarning(text('Setup.Launch.Advanced.Renderer.Warning.Message')))) return
+    if (!(await confirmWarning(pclText('Setup.Launch.Advanced.Renderer.Warning.Message')))) return
     rendererHinted = true
   }
   launchSettings.renderer = Number(value)
@@ -198,7 +198,7 @@ async function changeRenderer(value: string | undefined) {
 async function changeDebugLog(value: boolean) {
   if (value === launchSettings.debug_log4j2) return
   if (value && !debugLogHinted) {
-    if (!(await confirmWarning(text('Instance.Setup.Advanced.UseDebugLog4j.Message')))) return
+    if (!(await confirmWarning(pclText('Instance.Setup.Advanced.UseDebugLog4j.Message')))) return
     debugLogHinted = true
   }
   launchSettings.debug_log4j2 = value
@@ -245,14 +245,14 @@ async function changeIsolation(value: string | undefined) {
   const revision = isolationRevision
   try {
     const result = await modal.open({
-      title: text('Common.Dialog.Warning'),
-      content: text('Instance.Setup.Options.InstanceIsolation.Message'),
+      title: pclText('Common.Dialog.Warning'),
+      content: pclText('Instance.Setup.Options.InstanceIsolation.Message'),
       buttons: [
         {
-          content: text('Setup.Launch.Advanced.Renderer.Warning.Confirm'),
+          content: pclText('Setup.Launch.Advanced.Renderer.Warning.Confirm'),
           operation: () => modal.close(true),
         },
-        { content: text('Common.Action.Cancel'), operation: () => modal.close(false) },
+        { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
       ],
     })
     if (!result.confirmed || revision !== isolationRevision || path !== directory.value) return
@@ -273,25 +273,24 @@ async function setLittleSkin() {
   const server = 'https://littleskin.cn/api/yggdrasil'
   if (values.TextServerAuthServer && values.TextServerAuthServer !== server) {
     const result = await modal.open({
-      title: text('Instance.Setup.Server.LittleSkin.Override.Title'),
-      content: text('Instance.Setup.Server.LittleSkin.Override.Message'),
+      title: pclText('Instance.Setup.Server.LittleSkin.Override.Title'),
+      content: pclText('Instance.Setup.Server.LittleSkin.Override.Message'),
       buttons: [
         {
-          content: text('Instance.Setup.Server.LittleSkin.Override.Continue'),
+          content: pclText('Instance.Setup.Server.LittleSkin.Override.Continue'),
           operation: () => modal.close(true),
         },
-        { content: text('Common.Action.Cancel'), operation: () => modal.close(false) },
+        { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
       ],
     })
     if (!result.confirmed) return
   }
   values.TextServerAuthServer = server
   values.TextServerAuthRegister = 'https://littleskin.cn/auth/register'
-  values.TextServerAuthName = text('Instance.Setup.Server.LittleSkin.Name')
+  values.TextServerAuthName = pclText('Instance.Setup.Server.LittleSkin.Name')
 }
 
 const router = useRouter()
-const text = pclText
 </script>
 <template>
   <div class="pcl-page">
@@ -302,11 +301,11 @@ const text = pclText
     />
     <PErrorRetry :error="launchSettingsError" @retry="saveLaunchSettings()" />
 
-    <PHint severity="info" closable>{{ text('Instance.Setup.Hint') }}</PHint>
-    <PCard :title="text('Setup.Launch.Options.Title')">
+    <PHint severity="info" closable>{{ pclText('Instance.Setup.Hint') }}</PHint>
+    <PCard :title="pclText('Setup.Launch.Options.Title')">
       <div style="margin: 0px 25px 21px 25px; display: flex; flex-direction: column">
         <div class="settings-grid">
-          <SetupItem :label="text('Instance.Setup.Options.InstanceIsolation')" v-slot="{ id }"
+          <SetupItem :label="pclText('Instance.Setup.Options.InstanceIsolation')" v-slot="{ id }"
             ><PComboBox
               :disabled="!isolationReady || isolationBusy"
               :key="isolationControlRevision"
@@ -314,52 +313,52 @@ const text = pclText
               :options="[
                 {
                   key: '0',
-                  text: text('Instance.Setup.Options.InstanceIsolation.Enabled'),
-                  title: text('Instance.Setup.Options.InstanceIsolation.Enabled.ToolTip'),
+                  text: pclText('Instance.Setup.Options.InstanceIsolation.Enabled'),
+                  title: pclText('Instance.Setup.Options.InstanceIsolation.Enabled.ToolTip'),
                 },
                 {
                   key: '1',
-                  text: text('Common.Action.Close'),
-                  title: text('Instance.Setup.Options.InstanceIsolation.Disabled.ToolTip'),
+                  text: pclText('Common.Action.Close'),
+                  title: pclText('Instance.Setup.Options.InstanceIsolation.Disabled.ToolTip'),
                 },
               ]"
               :model-value="isolationValue"
               @update:model-value="changeIsolation"
           /></SetupItem>
-          <SetupItem :label="text('Setup.Launch.Options.WindowTitle.Label')" v-slot="{ id }"
+          <SetupItem :label="pclText('Setup.Launch.Options.WindowTitle.Label')" v-slot="{ id }"
             ><PTextBox
               disabled
               :input-id="id"
-              :suggestions="[text('Setup.Launch.Options.WindowTitle.SampleFormat')]"
-              :title="text('Instance.Setup.Options.WindowTitle.ToolTip')"
-              :placeholder="text('')"
+              :suggestions="[pclText('Setup.Launch.Options.WindowTitle.SampleFormat')]"
+              :title="pclText('Instance.Setup.Options.WindowTitle.ToolTip')"
+              :placeholder="pclText('')"
               v-model="values.TextArgumentTitle"
           /></SetupItem>
           <PCheckBox
             disabled
             style="margin: 0px 0px 9px 0px; grid-column: 1 / -1"
-            :title="text('Instance.Setup.Options.WindowTitle.Default.ToolTip')"
+            :title="pclText('Instance.Setup.Options.WindowTitle.Default.ToolTip')"
             id="PageInstanceSetup-CheckArgumentTitleEmpty"
-            :label="text('Instance.Setup.Options.WindowTitle.Default')"
+            :label="pclText('Instance.Setup.Options.WindowTitle.Default')"
             v-model="values.CheckArgumentTitleEmpty"
           />
-          <SetupItem :label="text('Setup.Launch.Options.CustomInfo.Label')" v-slot="{ id }"
+          <SetupItem :label="pclText('Setup.Launch.Options.CustomInfo.Label')" v-slot="{ id }"
             ><PTextBox
               :disabled="!launchSettingsReady"
               :input-id="id"
-              :title="text('Instance.Setup.Options.CustomInfo.ToolTip')"
-              :placeholder="text('Instance.Setup.FollowGlobal')"
+              :title="pclText('Instance.Setup.Options.CustomInfo.ToolTip')"
+              :placeholder="pclText('Instance.Setup.FollowGlobal')"
               v-model="launchSettings.info"
               @blur="saveLaunchSettings()"
           /></SetupItem>
-          <SetupItem :label="text('Instance.Setup.Options.Java')" v-slot="{ id }"
+          <SetupItem :label="pclText('Instance.Setup.Options.Java')" v-slot="{ id }"
             ><PComboBox
               :key="javaChoiceRevision"
               :input-id="id"
-              :title="text('Instance.Setup.Options.Java.ToolTip')"
+              :title="pclText('Instance.Setup.Options.Java.ToolTip')"
               :options="
                 javaLoading
-                  ? [{ key: '0', text: text('Instance.Setup.Options.Java.Loading') }]
+                  ? [{ key: '0', text: pclText('Instance.Setup.Options.Java.Loading') }]
                   : javaOptions
               "
               :disabled="javaLoading || javaSaving || javaError"
@@ -370,34 +369,34 @@ const text = pclText
       </div>
     </PCard>
     <PHint v-if="javaError" severity="warning" style="margin-bottom: 15px"
-      >{{ text('Instance.Setup.Options.Java.LoadFailed')
-      }}<RouterLink to="/setup/java">{{ text('Instance.Setup.Options.Java') }}</RouterLink></PHint
+      >{{ pclText('Instance.Setup.Options.Java.LoadFailed')
+      }}<RouterLink to="/setup/java">{{ pclText('Instance.Setup.Options.Java') }}</RouterLink></PHint
     >
-    <PCard :title="text('Setup.Launch.Memory.Title')">
+    <PCard :title="pclText('Setup.Launch.Memory.Title')">
       <PHint v-if="java32Bit" severity="warning">{{
-        text('Setup.Launch.Memory.Warning.Java32Bit')
+        pclText('Setup.Launch.Memory.Warning.Java32Bit')
       }}</PHint>
       <PHint v-if="memoryOverLimit" severity="warning">{{
-        text('Setup.Launch.Memory.Warning.TooMuch')
+        pclText('Setup.Launch.Memory.Warning.TooMuch')
       }}</PHint>
       <PMemorySettings instance :directory="directory" :java64="memoryJava64" />
     </PCard>
-    <PCard :title="text('Instance.Setup.Server.Title')">
+    <PCard :title="pclText('Instance.Setup.Server.Title')">
       <div style="margin: 2px 25px 18px 25px; display: flex; flex-direction: column">
         <PHint v-if="loginLocked" severity="warning" style="margin-bottom: 13px">{{
-          text('Instance.Setup.Server.LoginLockHint')
+          pclText('Instance.Setup.Server.LoginLockHint')
         }}</PHint>
         <PHint
           v-if="authVisible && /^https:\/\//i.test(String(values.TextServerAuthServer))"
           severity="info"
           style="margin-bottom: 13px"
-          >{{ text('Instance.Setup.Server.SslWarning') }}</PHint
+          >{{ pclText('Instance.Setup.Server.SslWarning') }}</PHint
         >
         <PHint
           v-if="authVisible && /^http:\/\//i.test(String(values.TextServerAuthServer))"
           severity="warning"
           style="margin-bottom: 13px"
-          >{{ text('Instance.Setup.Server.HttpWarning') }}</PHint
+          >{{ pclText('Instance.Setup.Server.HttpWarning') }}</PHint
         >
         <div
           style="
@@ -415,29 +414,29 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Instance.Setup.Server.RestrictLogin') }}</span
+            >{{ pclText('Instance.Setup.Server.RestrictLogin') }}</span
           >
           <PComboBox
             disabled
             style="grid-row: 1 / span 1; grid-column: 2 / span 2"
             :options="[
-              { key: '0', text: text('Instance.Setup.Server.LoginMethod.Unlimited') },
-              { key: '1', text: text('Instance.Setup.Server.LoginMethod.MicrosoftOnly') },
-              { key: '2', text: text('Instance.Setup.Server.LoginMethod.AuthOnly') },
-              { key: '3', text: text('Instance.Setup.Server.LoginMethod.MicrosoftOrAuth') },
+              { key: '0', text: pclText('Instance.Setup.Server.LoginMethod.Unlimited') },
+              { key: '1', text: pclText('Instance.Setup.Server.LoginMethod.MicrosoftOnly') },
+              { key: '2', text: pclText('Instance.Setup.Server.LoginMethod.AuthOnly') },
+              { key: '3', text: pclText('Instance.Setup.Server.LoginMethod.MicrosoftOrAuth') },
             ]"
             v-model="values.ComboServerLoginRequire"
           />
           <template v-if="authVisible">
             <template v-for="field in authFields" :key="field.id">
               <label :for="field.id" :style="{ gridRow: field.row, alignSelf: 'center' }">
-                {{ text(`Instance.Setup.Server.${field.label}`) }}
+                {{ pclText(`Instance.Setup.Server.${field.label}`) }}
               </label>
               <PTextBox
                 disabled
                 :input-id="field.id"
                 :style="{ gridRow: field.row, gridColumn: '2 / span 2' }"
-                :placeholder="text(`Instance.Setup.Server.${field.label}.Hint`)"
+                :placeholder="pclText(`Instance.Setup.Server.${field.label}.Hint`)"
                 :model-value="String(values[field.key])"
               />
             </template>
@@ -451,13 +450,13 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Instance.Setup.Server.AutoJoin') }}</span
+            >{{ pclText('Instance.Setup.Server.AutoJoin') }}</span
           >
           <PTextBox
             disabled
             style="grid-row: 6 / span 1; grid-column: 2 / span 2"
-            :title="text('Instance.Setup.Server.AutoJoin.ToolTip')"
-            :placeholder="text('')"
+            :title="pclText('Instance.Setup.Server.AutoJoin.ToolTip')"
+            :placeholder="pclText('')"
             v-model="values.TextServerEnter"
           />
         </div>
@@ -467,86 +466,86 @@ const text = pclText
             @click="setLittleSkin"
             disabled
             type="tint"
-            >{{ text('Instance.Setup.Server.SetLittleSkin') }}</PButton
+            >{{ pclText('Instance.Setup.Server.SetLittleSkin') }}</PButton
           >
           <PButton
             style="height: 35px; min-width: 150px; margin: 0"
             @click="showUnavailable"
             disabled
-            >{{ text('Instance.Setup.Server.LockLoginMethod') }}</PButton
+            >{{ pclText('Instance.Setup.Server.LockLoginMethod') }}</PButton
           >
           <PButton
             v-if="canCreateProfile"
             style="height: 35px; min-width: 150px; margin: 0"
             @click="showUnavailable"
-            >{{ text('Instance.Setup.Server.CreateProfile') }}</PButton
+            >{{ pclText('Instance.Setup.Server.CreateProfile') }}</PButton
           >
         </div>
       </div>
     </PCard>
-    <PCard :title="text('Setup.Launch.Advanced.Title')" default-fold-status="fold">
+    <PCard :title="pclText('Setup.Launch.Advanced.Title')" default-fold-status="fold">
       <div class="settings-grid" style="margin: 0px 25px 15px 25px">
-        <SetupItem :label="text('Setup.Launch.Advanced.Renderer.Label')" v-slot="{ id }"
+        <SetupItem :label="pclText('Setup.Launch.Advanced.Renderer.Label')" v-slot="{ id }"
           ><PComboBox
             :disabled="!launchSettingsReady || rendererWindowsOnly"
             :input-id="id"
-            :title="rendererWindowsOnly ? text('Proto.Settings.RendererWindowsOnly') : undefined"
+            :title="rendererWindowsOnly ? pclText('Proto.Settings.RendererWindowsOnly') : undefined"
             :options="[
-              { key: '0', text: text('Instance.Setup.FollowGlobal') },
-              { key: '1', text: text('Setup.Launch.Advanced.Renderer.GameDefault') },
-              { key: '2', text: text('Setup.Launch.Advanced.Renderer.Software') },
-              { key: '3', text: text('Setup.Launch.Advanced.Renderer.DirectX12') },
-              { key: '4', text: text('Setup.Launch.Advanced.Renderer.Vulkan') },
+              { key: '0', text: pclText('Instance.Setup.FollowGlobal') },
+              { key: '1', text: pclText('Setup.Launch.Advanced.Renderer.GameDefault') },
+              { key: '2', text: pclText('Setup.Launch.Advanced.Renderer.Software') },
+              { key: '3', text: pclText('Setup.Launch.Advanced.Renderer.DirectX12') },
+              { key: '4', text: pclText('Setup.Launch.Advanced.Renderer.Vulkan') },
             ]"
             :model-value="String(launchSettings.renderer)"
             @update:model-value="changeRenderer"
         /></SetupItem>
-        <SetupItem :label="text('Setup.Launch.Advanced.JvmHead')" v-slot="{ id }"
+        <SetupItem :label="pclText('Setup.Launch.Advanced.JvmHead')" v-slot="{ id }"
           ><PTextBox
             :disabled="!argumentsReady"
             :input-id="id"
             multiline
             style="height: 100px; padding: 5px 0px"
             :title="
-              text('Instance.Setup.Advanced.JvmArgs.ToolTip') +
+              pclText('Instance.Setup.Advanced.JvmArgs.ToolTip') +
               '\n\n' +
-              text('Proto.LaunchArguments.Parsing') +
+              pclText('Proto.LaunchArguments.Parsing') +
               '\n' +
-              text('Proto.LaunchArguments.Hint')
+              pclText('Proto.LaunchArguments.Hint')
             "
-            :placeholder="text('Instance.Setup.FollowGlobal')"
+            :placeholder="pclText('Instance.Setup.FollowGlobal')"
             v-model="argumentJvm"
             @blur="saveArguments()"
         /></SetupItem>
-        <SetupItem :label="text('Setup.Launch.Advanced.GameTail')" v-slot="{ id }"
+        <SetupItem :label="pclText('Setup.Launch.Advanced.GameTail')" v-slot="{ id }"
           ><PTextBox
             :disabled="!argumentsReady"
             :input-id="id"
             :title="
-              text('Instance.Setup.Advanced.GameArgs.ToolTip') +
+              pclText('Instance.Setup.Advanced.GameArgs.ToolTip') +
               '\n\n' +
-              text('Proto.LaunchArguments.Parsing')
+              pclText('Proto.LaunchArguments.Parsing')
             "
-            :placeholder="text('Instance.Setup.FollowGlobal')"
+            :placeholder="pclText('Instance.Setup.FollowGlobal')"
             v-model="argumentGame"
             @blur="saveArguments()"
         /></SetupItem>
-        <SetupItem :label="text('Instance.Setup.Advanced.Classpath')" v-slot="{ id }"
+        <SetupItem :label="pclText('Instance.Setup.Advanced.Classpath')" v-slot="{ id }"
           ><PTextBox
             :disabled="!argumentsReady"
             :input-id="id"
-            :title="text('Instance.Setup.Advanced.Classpath.ToolTip')"
-            :placeholder="text('')"
+            :title="pclText('Instance.Setup.Advanced.Classpath.ToolTip')"
+            :placeholder="pclText('')"
             v-model="argumentClasspath"
             @blur="saveArguments()"
         /></SetupItem>
-        <SetupItem :label="text('Setup.Launch.Advanced.PreLaunchCommand')" v-slot="{ id }"
+        <SetupItem :label="pclText('Setup.Launch.Advanced.PreLaunchCommand')" v-slot="{ id }"
           ><PTextBox
             :disabled="!launchSettingsReady"
             :input-id="id"
             style="margin: 0px 0px 3px 0px"
-            :title="text('Instance.Setup.Advanced.PreLaunchCommand.ToolTip')"
-            :placeholder="text('')"
+            :title="pclText('Instance.Setup.Advanced.PreLaunchCommand.ToolTip')"
+            :placeholder="pclText('')"
             v-model="launchSettings.prelaunch_command"
             @blur="saveLaunchSettings()"
         /></SetupItem>
@@ -563,7 +562,7 @@ const text = pclText
             style="margin: 0 0 8px"
             id="PageInstanceSetup-CheckAdvanceRunWait"
             :disabled="!launchSettingsReady"
-            :label="text('Setup.Launch.Advanced.PreLaunchCommand.Wait')"
+            :label="pclText('Setup.Launch.Advanced.PreLaunchCommand.Wait')"
             :model-value="launchSettings.prelaunch_wait"
             @update:model-value="
               (value) => {
@@ -575,15 +574,15 @@ const text = pclText
 
           <PCheckBox
             disabled
-            :title="text('Proto.Settings.ModUpdateUnavailable')"
+            :title="pclText('Proto.Settings.ModUpdateUnavailable')"
             id="PageInstanceSetup-CheckAdvanceDisableModUpdate"
-            :label="text('Instance.Setup.Advanced.DisableModUpdate')"
+            :label="pclText('Instance.Setup.Advanced.DisableModUpdate')"
             v-model="values.CheckAdvanceDisableModUpdate"
           />
           <PCheckBox
-            :title="text('Instance.Setup.Advanced.IgnoreJavaCompatibility.ToolTip')"
+            :title="pclText('Instance.Setup.Advanced.IgnoreJavaCompatibility.ToolTip')"
             id="PageInstanceSetup-CheckAdvanceJava"
-            :label="text('Instance.Setup.Advanced.IgnoreJavaCompatibility')"
+            :label="pclText('Instance.Setup.Advanced.IgnoreJavaCompatibility')"
             :disabled="javaLoading || javaSaving || javaError"
             :model-value="javaSettings.ignore_compatibility"
             @update:model-value="
@@ -591,10 +590,10 @@ const text = pclText
             "
           />
           <PCheckBox
-            :title="text('Instance.Setup.Advanced.DisableFileVerification.ToolTip')"
+            :title="pclText('Instance.Setup.Advanced.DisableFileVerification.ToolTip')"
             id="PageInstanceSetup-CheckAdvanceAssetsV2"
             :disabled="!launchSettingsReady"
-            :label="text('Instance.Setup.Advanced.DisableFileVerification')"
+            :label="pclText('Instance.Setup.Advanced.DisableFileVerification')"
             :model-value="launchSettings.disable_asset_verify"
             @update:model-value="
               (value) => {
@@ -604,10 +603,10 @@ const text = pclText
             "
           />
           <PCheckBox
-            :title="text('Instance.Setup.Advanced.UseGlobalProxy.ToolTip')"
+            :title="pclText('Instance.Setup.Advanced.UseGlobalProxy.ToolTip')"
             id="PageInstanceSetup-CheckAdvanceUseProxyV2"
             :disabled="!launchSettingsReady"
-            :label="text('Instance.Setup.Advanced.UseGlobalProxy')"
+            :label="pclText('Instance.Setup.Advanced.UseGlobalProxy')"
             :model-value="launchSettings.use_proxy"
             @update:model-value="
               (value) => {
@@ -619,12 +618,12 @@ const text = pclText
           <PCheckBox
             :title="
               jlwForced
-                ? text('Setup.Launch.Advanced.DisableJlw.Arm64ToolTip')
-                : text('Setup.Launch.Advanced.DisableJlw.ToolTip')
+                ? pclText('Setup.Launch.Advanced.DisableJlw.Arm64ToolTip')
+                : pclText('Setup.Launch.Advanced.DisableJlw.ToolTip')
             "
             id="PageInstanceSetup-CheckAdvanceDisableJLW"
             :disabled="jlwForced || !launchSettingsReady"
-            :label="text('Setup.Launch.Advanced.DisableJlw')"
+            :label="pclText('Setup.Launch.Advanced.DisableJlw')"
             :model-value="jlwForced || launchSettings.disable_jlw"
             @update:model-value="
               (value) => {
@@ -634,10 +633,10 @@ const text = pclText
             "
           />
           <PCheckBox
-            :title="text('Setup.Launch.Advanced.DisableLF.ToolTip')"
+            :title="pclText('Setup.Launch.Advanced.DisableLF.ToolTip')"
             id="PageInstanceSetup-CheckAdvanceDisableLF"
             :disabled="!launchSettingsReady"
-            :label="text('Setup.Launch.Advanced.DisableLF')"
+            :label="pclText('Setup.Launch.Advanced.DisableLF')"
             :model-value="launchSettings.disable_legacy_fix"
             @update:model-value="
               (value) => {
@@ -649,15 +648,15 @@ const text = pclText
           <PCheckBox
             id="PageInstanceSetup-CheckUseDebugLog4j2Config"
             :disabled="!launchSettingsReady"
-            :label="text('Instance.Setup.Advanced.UseDebugLog4j')"
+            :label="pclText('Instance.Setup.Advanced.UseDebugLog4j')"
             :model-value="launchSettings.debug_log4j2"
             @update:model-value="changeDebugLog"
           />
           <PCheckBox
-            :title="text('Setup.Launch.Advanced.DisableLwjglUnsafeAgent.ToolTip')"
+            :title="pclText('Setup.Launch.Advanced.DisableLwjglUnsafeAgent.ToolTip')"
             id="PageInstanceSetup-CheckAdvanceDisableLwjglUnsafeAgent"
             :disabled="!launchSettingsReady"
-            :label="text('Setup.Launch.Advanced.DisableLwjglUnsafeAgent')"
+            :label="pclText('Setup.Launch.Advanced.DisableLwjglUnsafeAgent')"
             :model-value="launchSettings.disable_lwjgl_unsafe_agent"
             @update:model-value="
               (value) => {
@@ -671,7 +670,7 @@ const text = pclText
     </PCard>
     <PPrimaryAction @click="() => router.push('/setup/launch')"
       ><PSvgIcon name="lucide/arrow-right" :size="16" />{{
-        text('Instance.Setup.OpenGlobalSettings')
+        pclText('Instance.Setup.OpenGlobalSettings')
       }}</PPrimaryAction
     >
   </div>

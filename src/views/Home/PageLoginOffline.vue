@@ -9,7 +9,6 @@ import sideTip from '@/composables/sideTip'
 import { dialog } from '@/util/loginErrors'
 
 const emit = defineEmits<{ view: [view: ProfileView] }>()
-const text = pclText
 const account = useAccountInfo()
 const username = ref(account.username || '')
 const uuidType = ref<UuidMode>('standard')
@@ -23,21 +22,21 @@ async function create() {
   const name = username.value.trim()
   if (!/^[A-Za-z0-9_]{3,16}$/.test(name)) {
     const { confirmed } = await dialog({
-      title: text('Launch.Account.Offline.InvalidPlayerId.Title'),
-      content: text('Launch.Account.Offline.InvalidPlayerId.Message'),
-      ok: text('Common.Action.Continue'),
-      cancel: text('Common.Action.Cancel'),
+      title: pclText('Launch.Account.Offline.InvalidPlayerId.Title'),
+      content: pclText('Launch.Account.Offline.InvalidPlayerId.Message'),
+      ok: pclText('Common.Action.Continue'),
+      cancel: pclText('Common.Action.Cancel'),
     })
     if (!confirmed) return
   }
   if (uuidType.value === 'custom' && !/^[a-fA-F0-9]{32}$/.test(uuid.value.replaceAll('-', ''))) {
-    sideTip.show(text('Launch.Account.Offline.Uuid.Custom.Input.ToolTip'), 'warn')
+    sideTip.show(pclText('Launch.Account.Offline.Uuid.Custom.Input.ToolTip'), 'warn')
     return
   }
   creating.value = true
   try {
     await account.createOffline(name, uuidType.value, uuid.value.replaceAll('-', '') || undefined)
-    sideTip.show(text('Launch.Account.Profile.Created'), 'success')
+    sideTip.show(pclText('Launch.Account.Profile.Created'), 'success')
     emit('view', 'skin')
   } catch (error) {
     const failure = toAuthFailure(error)
@@ -54,13 +53,13 @@ function back() {
 <template>
   <form class="account-form offline-form" @submit.prevent="create">
     <label class="form-row"
-      ><span>{{ text('Launch.Account.Offline.PlayerId') }}</span
+      ><span>{{ pclText('Launch.Account.Offline.PlayerId') }}</span
       ><PTextBox v-model="username" /></label
-    ><strong>{{ text('Launch.Account.Offline.UuidStandard') }}</strong>
+    ><strong>{{ pclText('Launch.Account.Offline.UuidStandard') }}</strong>
     <div class="uuid-types">
       <label v-for="kind in uuidModes" :key="kind"
         ><input type="radio" v-model="uuidType" :value="kind" />{{
-          text(
+          pclText(
             kind === 'custom'
               ? 'Common.Option.Customize'
               : `Launch.Account.Offline.Uuid.${kind === 'standard' ? 'Standard' : 'Legacy'}`,
@@ -73,10 +72,10 @@ function back() {
     /></label>
     <div class="form-actions">
       <PButton compact :disabled="creating" @click="back">{{
-        text('Launch.Account.Offline.Back')
+        pclText('Launch.Account.Offline.Back')
       }}</PButton
       ><PButton compact type="tint" :disabled="creating" @click="create">{{
-        text('Launch.Account.Offline.Create')
+        pclText('Launch.Account.Offline.Create')
       }}</PButton>
     </div>
   </form>

@@ -10,14 +10,13 @@ const { values } = usePageSettings('PageSetupGameLink', {
   ComboPreferProtocol: '0',
 })
 
-const text = pclText
 </script>
 <template>
   <div class="pcl-page">
-    <PCard :title="text('EasyTier')">
+    <PCard :title="pclText('EasyTier')">
       <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
         <PHint style="margin: 0px 0px 10px 0px" severity="warning">{{
-          text('Setup.GameLink.RestartRequired')
+          pclText('Setup.GameLink.RestartRequired')
         }}</PHint>
         <div
           style="
@@ -35,13 +34,13 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.GameLink.Username') }}</span
+            >{{ pclText('Setup.GameLink.Username') }}</span
           >
           <PTextBox
             disabled
             style="grid-row: 1 / span 1; grid-column: 3 / span 2"
-            :title="text('Setup.GameLink.Username.ToolTip')"
-            :placeholder="text('')"
+            :title="pclText('Setup.GameLink.Username.ToolTip')"
+            :placeholder="pclText('')"
             v-model="values.TextLinkUsername"
           />
           <span
@@ -52,7 +51,7 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.GameLink.Protocol.Preference') }}</span
+            >{{ pclText('Setup.GameLink.Protocol.Preference') }}</span
           >
           <PComboBox
             disabled
@@ -60,13 +59,13 @@ const text = pclText
             :options="[
               {
                 key: '0',
-                text: text('Setup.GameLink.Protocol.Tcp'),
-                title: text('Setup.GameLink.Protocol.Tcp.ToolTip'),
+                text: pclText('Setup.GameLink.Protocol.Tcp'),
+                title: pclText('Setup.GameLink.Protocol.Tcp.ToolTip'),
               },
               {
                 key: '1',
-                text: text('Setup.GameLink.Protocol.Udp'),
-                title: text('Setup.GameLink.Protocol.Udp.ToolTip'),
+                text: pclText('Setup.GameLink.Protocol.Udp'),
+                title: pclText('Setup.GameLink.Protocol.Udp.ToolTip'),
               },
             ]"
             v-model="values.ComboPreferProtocol"
@@ -74,33 +73,33 @@ const text = pclText
           <PCheckBox
             disabled
             style="grid-row: 5 / span 1; grid-column: 1 / span 3"
-            :title="text('Setup.GameLink.LatencyFirstMode.ToolTip')"
+            :title="pclText('Setup.GameLink.LatencyFirstMode.ToolTip')"
             id="PageSetupGameLink-CheckLatencyFirstMode"
-            :label="text('Setup.GameLink.LatencyFirstMode')"
+            :label="pclText('Setup.GameLink.LatencyFirstMode')"
             v-model="values.CheckLatencyFirstMode"
           />
           <PCheckBox
             disabled
             style="grid-row: 6 / span 1; grid-column: 1 / span 3"
-            :title="text('Setup.GameLink.PortGuessNat.ToolTip')"
+            :title="pclText('Setup.GameLink.PortGuessNat.ToolTip')"
             id="PageSetupGameLink-CheckTryPunchSym"
-            :label="text('Setup.GameLink.PortGuessNat')"
+            :label="pclText('Setup.GameLink.PortGuessNat')"
             v-model="values.CheckTryPunchSym"
           />
           <PCheckBox
             disabled
             style="grid-row: 7 / span 1; grid-column: 1 / span 3"
-            :title="text('Setup.GameLink.EnableIPv6.ToolTip')"
+            :title="pclText('Setup.GameLink.EnableIPv6.ToolTip')"
             id="PageSetupGameLink-CheckEnableIPv6"
-            :label="text('Setup.GameLink.EnableIPv6')"
+            :label="pclText('Setup.GameLink.EnableIPv6')"
             v-model="values.CheckEnableIPv6"
           />
           <PCheckBox
             disabled
             style="grid-row: 8 / span 1; grid-column: 1 / span 3"
-            :title="text('Setup.GameLink.CliDebugOutput.ToolTip')"
+            :title="pclText('Setup.GameLink.CliDebugOutput.ToolTip')"
             id="PageSetupGameLink-CheckEnableCliOutput"
-            :label="text('Setup.GameLink.CliDebugOutput')"
+            :label="pclText('Setup.GameLink.CliDebugOutput')"
             v-model="values.CheckEnableCliOutput"
           />
         </div>

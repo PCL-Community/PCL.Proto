@@ -24,8 +24,8 @@ const query = ref('')
 
 function chooseSort(event: MouseEvent) {
   void popupNativeMenu(event.currentTarget as Element, [
-    { text: text('Instance.Saves.SortFileName'), action: () => (sort.value = 'name') },
-    { text: text('Instance.Saves.SortModifyTime'), action: () => (sort.value = 'modified') },
+    { text: pclText('Instance.Saves.SortFileName'), action: () => (sort.value = 'name') },
+    { text: pclText('Instance.Saves.SortModifyTime'), action: () => (sort.value = 'modified') },
   ])
 }
 
@@ -73,37 +73,36 @@ async function openSave(id: string) {
   try {
     await openInstancePath(directory, id)
   } catch (failure) {
-    sideTip.show(`${text('Instance.Saves.Error.OperationFailed')} ${failure}`, 'warn')
+    sideTip.show(`${pclText('Instance.Saves.Error.OperationFailed')} ${failure}`, 'warn')
   }
 }
 
-const text = pclText
 </script>
 <template>
   <div class="pcl-page">
     <PLoading
       v-if="resources.loading.value"
-      :loading-text="text('Instance.Saves.Status.Refreshing')"
+      :loading-text="pclText('Instance.Saves.Status.Refreshing')"
     />
     <PHint v-else-if="resources.error.value" severity="error">{{ resources.error.value }}</PHint>
     <div v-else-if="saves.length" class="saves-list">
-      <PSearchBox v-model="query" :placeholder="text('Instance.Saves.SearchHint')" />
-      <PCard :title="text('Instance.Saves.QuickActions')"
+      <PSearchBox v-model="query" :placeholder="pclText('Instance.Saves.SearchHint')" />
+      <PCard :title="pclText('Instance.Saves.QuickActions')"
         ><div class="saves-actions">
           <PButton type="tint" @click="resources.openFolder()">{{
-            text('Instance.Saves.OpenFolder')
+            pclText('Instance.Saves.OpenFolder')
           }}</PButton
           ><PButton
             @click="() => router.push({ path: '/download/world', query: { instance: 'selected' } })"
-            >{{ text('Instance.Resource.DownloadNew') }}</PButton
+            >{{ pclText('Instance.Resource.DownloadNew') }}</PButton
           ><PButton @click="resources.importFiles()">{{
-            text('Instance.Resource.InstallFromFiles')
+            pclText('Instance.Resource.InstallFromFiles')
           }}</PButton>
         </div></PCard
       >
       <PCard
         :title="
-          text(query ? 'Instance.Saves.SearchResultTitle' : 'Instance.Saves.SaveListTitle', [
+          pclText(query ? 'Instance.Saves.SearchResultTitle' : 'Instance.Saves.SaveListTitle', [
             savesSorted.length,
           ])
         "
@@ -111,8 +110,8 @@ const text = pclText
         <template #header-actions>
           <PIconTextButton icon="lucide/arrow-up-down" @click="chooseSort">
             {{
-              text('Instance.Saves.SortBy', [
-                text(
+              pclText('Instance.Saves.SortBy', [
+                pclText(
                   sort === 'name' ? 'Instance.Saves.SortFileName' : 'Instance.Saves.SortModifyTime',
                 ),
               ])
@@ -133,8 +132,8 @@ const text = pclText
               <button
                 class="pcl-icon-button"
                 type="button"
-                :title="text('Common.Action.OpenFolder')"
-                :aria-label="text('Common.Action.OpenFolder')"
+                :title="pclText('Common.Action.OpenFolder')"
+                :aria-label="pclText('Common.Action.OpenFolder')"
                 @click="openSave(save.id)"
               >
                 <PSvgIcon name="lucide/folder-open" :size="15" />
@@ -142,8 +141,8 @@ const text = pclText
               <button
                 class="pcl-icon-button"
                 type="button"
-                :title="text('Common.Action.Delete')"
-                :aria-label="text('Common.Action.Delete')"
+                :title="pclText('Common.Action.Delete')"
+                :aria-label="pclText('Common.Action.Delete')"
                 @click="removeSave(save.id)"
               >
                 <PSvgIcon name="lucide/trash-2" :size="15" />
@@ -154,21 +153,21 @@ const text = pclText
     </div>
     <PCard v-else class="pcl-empty-state-card" hide-title>
       <div class="pcl-empty-state">
-        <span class="pcl-empty-state-title pcl-text">{{ text('Instance.Saves.Empty.Title') }}</span>
+        <span class="pcl-empty-state-title pcl-text">{{ pclText('Instance.Saves.Empty.Title') }}</span>
         <div class="pcl-divider" />
         <span class="pcl-empty-state-message pcl-text">{{
-          text('Instance.Saves.Empty.Message')
+          pclText('Instance.Saves.Empty.Message')
         }}</span>
         <div class="pcl-empty-state-actions">
           <PButton @click="resources.openFolder()" type="tint">{{
-            text('Instance.Saves.OpenFolder')
+            pclText('Instance.Saves.OpenFolder')
           }}</PButton>
           <PButton
             @click="() => router.push({ path: '/download/world', query: { instance: 'selected' } })"
-            >{{ text('Instance.Resource.DownloadNew') }}</PButton
+            >{{ pclText('Instance.Resource.DownloadNew') }}</PButton
           >
           <PButton @click="resources.importFiles()">{{
-            text('Instance.Resource.InstallFromFiles')
+            pclText('Instance.Resource.InstallFromFiles')
           }}</PButton>
         </div>
       </div>

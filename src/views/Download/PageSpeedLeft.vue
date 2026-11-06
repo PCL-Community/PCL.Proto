@@ -6,7 +6,6 @@ import { useTaskManager } from '@/stores/task'
 import useSideNavState from '@/stores/windowState'
 import { pclText } from '@/api/pclLocale'
 const tasks = useTaskManager()
-const text = pclText
 const network = ref<DownloadStats | null>(null)
 const totalSpeed = computed(() => network.value?.speed ?? 0)
 const speed = computed(() =>
@@ -56,7 +55,7 @@ onUnmounted(() => {
 <template>
   <aside class="speed-left">
     <div v-for="stat in stats" :key="stat.title" class="stat">
-      <span>{{ text(stat.title) }}</span>
+      <span>{{ pclText(stat.title) }}</span>
       <hr />
       <strong>{{ stat.value }}</strong>
     </div>

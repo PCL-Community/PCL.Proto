@@ -92,7 +92,7 @@ async function load() {
     if (!request.signal.aborted) issues.value = result
   } catch (err) {
     if (!request.signal.aborted)
-      error.value = `${text('Setup.Feedback.LoadFailed')}：${String(err)}`
+      error.value = `${pclText('Setup.Feedback.LoadFailed')}：${String(err)}`
   } finally {
     if (!request.signal.aborted) loading.value = false
   }
@@ -100,21 +100,20 @@ async function load() {
 onMounted(load)
 onUnmounted(() => controller?.abort())
 
-const text = pclText
 const image = (value: string) => pclImagePath(value, import.meta.env.BASE_URL)
 </script>
 <template>
   <section class="pcl-page feedback-page">
-    <PCard :title="text('Setup.Feedback.Submit.Title')"
+    <PCard :title="pclText('Setup.Feedback.Submit.Title')"
       ><div class="submit-content">
-        <p>{{ text('Setup.Feedback.Submit.Description') }}</p>
+        <p>{{ pclText('Setup.Feedback.Submit.Description') }}</p>
         <PButton type="tint" @click="() => openExternal(`${repository}/issues`)">{{
-          text('Setup.Feedback.Submit.Open')
+          pclText('Setup.Feedback.Submit.Open')
         }}</PButton>
       </div></PCard
     >
     <PCard v-if="loading" hide-title
-      ><PLoading :card="false" :loading-text="text('Setup.Feedback.Loading')"
+      ><PLoading :card="false" :loading-text="pclText('Setup.Feedback.Loading')"
     /></PCard>
     <PHint v-else-if="error" severity="error"
       >{{ error
@@ -126,7 +125,7 @@ const image = (value: string) => pclImagePath(value, import.meta.env.BASE_URL)
       <PCard
         v-for="group in groups"
         :key="group.key"
-        :title="text(`Setup.Feedback.Status.${group.key}`)"
+        :title="pclText(`Setup.Feedback.Status.${group.key}`)"
         :default-fold-status="
           ['Completed', 'Declined', 'Ignored', 'Duplicate'].includes(group.key) ? 'fold' : 'unfold'
         "

@@ -164,35 +164,34 @@ onUnmounted(() => {
 })
 
 import { pclText } from '@/api/pclLocale'
-const text = pclText
 </script>
 <template>
   <section class="pcl-page lobby-page">
     <template v-if="!connected && !operation">
       <div class="lobby-status">
         <PCard hide-title>
-          <div class="lobby-status-item" :title="text('Tools.GameLink.Nat.Title')">
+          <div class="lobby-status-item" :title="pclText('Tools.GameLink.Nat.Title')">
             <PSvgIcon style="width: 14px; margin: 0px 7px 0px 12px" name="lucide/ethernet-port" />
             <span
               style="margin: 0px 12px 0px 0px; color: var(--color-text-grey)"
               class="pcl-text"
-              >{{ text('Tools.GameLink.Nat.Test') }}</span
+              >{{ pclText('Tools.GameLink.Nat.Test') }}</span
             >
           </div>
         </PCard>
         <PCard hide-title>
-          <div class="lobby-status-item" :title="text('Tools.GameLink.Natayark.Account')">
+          <div class="lobby-status-item" :title="pclText('Tools.GameLink.Natayark.Account')">
             <PSvgIcon style="width: 14px; margin: 0px 7px 0px 12px" name="lucide/user" />
             <div style="margin: 0px 12px 0px 0px; color: var(--color-text-grey)">
-              <span>{{ account.username || text('Tools.GameLink.Natayark.Login') }}</span>
+              <span>{{ account.username || pclText('Tools.GameLink.Natayark.Login') }}</span>
             </div>
           </div>
         </PCard>
       </div>
-      <PCard :title="text('Tools.GameLink.Join.Title')">
+      <PCard :title="pclText('Tools.GameLink.Join.Title')">
         <div style="margin: 0px 10px 10px 10px; display: flex; flex-direction: column">
           <span style="margin: 10px 10px -2px 10px; font-size: 14px" class="pcl-text">{{
-            text('Tools.GameLink.Join.Description')
+            pclText('Tools.GameLink.Join.Description')
           }}</span>
           <div class="lobby-controls">
             <PButton
@@ -201,35 +200,35 @@ const text = pclText
               style="width: 50px; margin: 0px 0px 0px 10px"
               @click="connect(values.TextJoinLobbyId)"
               type="tint"
-              >{{ text('Tools.GameLink.Join.Action') }}</PButton
+              >{{ pclText('Tools.GameLink.Join.Action') }}</PButton
             >
             <PButton
               class="lobby-action-paste"
               compact
               style="width: 50px; margin: 0px 0px 0px 10px"
               @click="pasteLobbyId"
-              >{{ text('Tools.GameLink.Join.Paste') }}</PButton
+              >{{ pclText('Tools.GameLink.Join.Paste') }}</PButton
             >
             <PButton
               class="lobby-action-clear"
               compact
               style="width: 50px; margin: 0px 0px 0px 10px"
               @click="clearLobbyId"
-              >{{ text('Tools.GameLink.Join.Clear') }}</PButton
+              >{{ pclText('Tools.GameLink.Join.Clear') }}</PButton
             >
             <PTextBox
-              :placeholder="text('Tools.GameLink.Join.IdHint')"
+              :placeholder="pclText('Tools.GameLink.Join.IdHint')"
               v-model="values.TextJoinLobbyId"
-              :aria-label="text('Tools.GameLink.Join.IdHint')"
+              :aria-label="pclText('Tools.GameLink.Join.IdHint')"
               @keydown.enter="connect(values.TextJoinLobbyId)"
             />
           </div>
         </div>
       </PCard>
-      <PCard :title="text('Tools.GameLink.Create.Title')" default-fold-status="unfold">
+      <PCard :title="pclText('Tools.GameLink.Create.Title')" default-fold-status="unfold">
         <div style="margin: 0px 10px 10px 10px; display: flex; flex-direction: column">
           <span style="margin: 10px 10px 0px 10px; font-size: 14px" class="pcl-text">{{
-            text('Tools.GameLink.Create.Description')
+            pclText('Tools.GameLink.Create.Description')
           }}</span>
           <div class="lobby-controls">
             <PButton
@@ -238,26 +237,26 @@ const text = pclText
               style="width: 50px; margin: 0px 0px 0px 10px"
               @click="create(selectedPort)"
               type="tint"
-              >{{ text('Tools.GameLink.Create.Action') }}</PButton
+              >{{ pclText('Tools.GameLink.Create.Action') }}</PButton
             >
             <PButton
               class="lobby-action-refresh"
               compact
               style="width: 50px; margin: 0px 0px 0px 10px"
               @click="refreshPorts"
-              >{{ text('Common.Action.Refresh') }}</PButton
+              >{{ pclText('Common.Action.Refresh') }}</PButton
             >
             <PButton
               class="lobby-action-port"
               compact
               style="width: 80px; margin: 0px 0px 0px 10px"
               @click="inputPort"
-              >{{ text('Tools.GameLink.Create.ManualInput') }}</PButton
+              >{{ pclText('Tools.GameLink.Create.ManualInput') }}</PButton
             >
             <PComboBox
               :options="options"
               v-model="selectedPort"
-              :aria-label="text('Tools.GameLink.Create.Title')"
+              :aria-label="pclText('Tools.GameLink.Create.Title')"
             />
           </div>
         </div>
@@ -267,7 +266,7 @@ const text = pclText
       ><PLoading
         :card="false"
         :loading-text="
-          text(
+          pclText(
             operation === 'create'
               ? 'Tools.GameLink.Loading.Creating'
               : 'Tools.GameLink.Loading.ConnectingServer',
@@ -276,19 +275,19 @@ const text = pclText
     /></PCard>
     <template v-if="connected">
       <p v-if="versionMismatch" class="pcl-text">
-        {{ text('Tools.GameLink.EasyTierVersion') }}
+        {{ pclText('Tools.GameLink.EasyTierVersion') }}
       </p>
-      <PCard :title="text('Tools.GameLink.Finish.InfoTitle')">
+      <PCard :title="pclText('Tools.GameLink.Finish.InfoTitle')">
         <div style="margin: 0px 10px 10px 10px; display: flex; flex-direction: column">
-          <p v-if="latency" :title="text('Tools.GameLink.Finish.PingToHost')">
+          <p v-if="latency" :title="pclText('Tools.GameLink.Finish.PingToHost')">
             {{ latency }}
           </p>
-          <p v-if="connectionType" :title="text('Tools.GameLink.Finish.ConnectionType')">
+          <p v-if="connectionType" :title="pclText('Tools.GameLink.Finish.ConnectionType')">
             {{ connectionType }}
           </p>
           <div
             style="margin: 5px; display: flex; flex-direction: row; align-items: center"
-            :title="text('Tools.GameLink.Finish.ConnectionStatus')"
+            :title="pclText('Tools.GameLink.Finish.ConnectionStatus')"
           >
             <PPath
               style="width: 14px; margin: 0px 7px 0px 0px"
@@ -296,7 +295,7 @@ const text = pclText
             />
             <div style="margin: 0px 12px 0px 0px; color: var(--color-text-grey)">
               <span>{{
-                text(
+                pclText(
                   ['host-ok', 'guest-ok'].includes(terracotta.state)
                     ? 'Tools.GameLink.Finish.Connected'
                     : 'Tools.GameLink.Finish.Connecting',
@@ -306,7 +305,7 @@ const text = pclText
           </div>
           <div
             style="margin: 5px; display: flex; flex-direction: row; align-items: center"
-            :title="text('Tools.GameLink.Finish.LobbyId')"
+            :title="pclText('Tools.GameLink.Finish.LobbyId')"
           >
             <PPath
               style="width: 14px; margin: 0px 7px 0px 0px"
@@ -322,7 +321,7 @@ const text = pclText
         <div style="display: flex; flex-direction: row; align-items: center">
           <div
             style="display: flex; flex-direction: row; align-items: center"
-            :title="text('Tools.GameLink.Finish.UserName')"
+            :title="pclText('Tools.GameLink.Finish.UserName')"
           >
             <PPath
               style="width: 14px; margin: 0px 7px 0px 12px"
@@ -333,11 +332,11 @@ const text = pclText
             </div>
           </div>
           <span style="margin: 8.8px 0px 8px 0px; opacity: 0.3" class="pcl-text">{{
-            text('|')
+            pclText('|')
           }}</span>
           <div
             style="display: flex; flex-direction: row; align-items: center"
-            :title="text('Tools.GameLink.Finish.UserType')"
+            :title="pclText('Tools.GameLink.Finish.UserType')"
           >
             <PPath
               style="width: 13px; height: 13px; margin: 0px 7px 0px 12px"
@@ -345,7 +344,7 @@ const text = pclText
             />
             <div style="margin: 0px 12px 0px 0px; color: var(--color-text-grey)">
               <span>{{
-                text(
+                pclText(
                   terracotta.state.startsWith('host')
                     ? 'Tools.GameLink.Finish.Host'
                     : 'Tools.GameLink.Finish.Guest',
@@ -355,24 +354,24 @@ const text = pclText
           </div>
         </div>
       </PCard>
-      <PCard :title="text('Tools.GameLink.Finish.Actions')">
+      <PCard :title="pclText('Tools.GameLink.Finish.Actions')">
         <div style="margin: 0px 10px 10px 10px; display: flex; flex-direction: column">
           <PIconTextButton icon="lucide/copy" style="margin: 1px -2px" @click="copyIp">{{
-            text('Tools.GameLink.Finish.CopyVirtualIp')
+            pclText('Tools.GameLink.Finish.CopyVirtualIp')
           }}</PIconTextButton>
           <PIconTextButton icon="lucide/copy" style="margin: 1px -2px" @click="copy(roomCode)">{{
-            text('Tools.GameLink.Finish.CopyLobbyId')
+            pclText('Tools.GameLink.Finish.CopyLobbyId')
           }}</PIconTextButton>
           <PIconTextButton icon="lucide/power" style="margin: 1px -2px" @click="leave">{{
-            text('Tools.GameLink.Finish.Exit')
+            pclText('Tools.GameLink.Finish.Exit')
           }}</PIconTextButton>
         </div>
       </PCard>
       <PCard
         :title="
           terracotta.profiles
-            ? text('Tools.GameLink.Member.ListCount', [terracotta.profiles.length])
-            : text('Tools.GameLink.Member.ListLoading')
+            ? pclText('Tools.GameLink.Member.ListCount', [terracotta.profiles.length])
+            : pclText('Tools.GameLink.Member.ListLoading')
         "
       >
         <div style="margin: 0px 6px 8px 5px; display: flex; flex-direction: column">
@@ -389,29 +388,29 @@ const text = pclText
       <div style="margin: 8px; opacity: 0.75; display: flex; flex-direction: column">
         <div class="lobby-footer-line">
           <PButton @click="openWebsite('https://qm.qq.com/q/zfml1KaPWS')" inline>{{
-            text('Tools.GameLink.Link.Report')
+            pclText('Tools.GameLink.Link.Report')
           }}</PButton>
-          <span class="pcl-text">{{ text(' | ') }}</span>
+          <span class="pcl-text">{{ pclText(' | ') }}</span>
           <PButton @click="openWebsite('https://account.naids.com/policy')" inline>{{
-            text('Tools.GameLink.Link.Terms')
+            pclText('Tools.GameLink.Link.Terms')
           }}</PButton>
-          <span class="pcl-text">{{ text(' | ') }}</span>
+          <span class="pcl-text">{{ pclText(' | ') }}</span>
           <PButton
             @click="openWebsite('https://www.pclc.cc/privacy/personal-info-brief.html')"
             inline
-            >{{ text('Tools.GameLink.Link.Privacy') }}</PButton
+            >{{ pclText('Tools.GameLink.Link.Privacy') }}</PButton
           >
-          <span class="pcl-text">{{ text(' | ') }}</span>
-          <PButton @click="disableLobby" inline>{{ text('Tools.GameLink.Link.Disable') }}</PButton>
+          <span class="pcl-text">{{ pclText(' | ') }}</span>
+          <PButton @click="disableLobby" inline>{{ pclText('Tools.GameLink.Link.Disable') }}</PButton>
         </div>
         <div class="lobby-footer-line">
-          <span class="pcl-text">{{ text('Tools.GameLink.Link.Friends') }}</span>
+          <span class="pcl-text">{{ pclText('Tools.GameLink.Link.Friends') }}</span>
           <PButton @click="openWebsite('https://easytier.cn/')" inline>{{
-            text('Tools.GameLink.Link.EasyTier')
+            pclText('Tools.GameLink.Link.EasyTier')
           }}</PButton>
-          <span class="pcl-text">{{ text(' | ') }}</span>
+          <span class="pcl-text">{{ pclText(' | ') }}</span>
           <PButton @click="openWebsite('https://pysio.online/')" inline>{{
-            text("Pysio's Home")
+            pclText("Pysio's Home")
           }}</PButton>
         </div>
       </div>

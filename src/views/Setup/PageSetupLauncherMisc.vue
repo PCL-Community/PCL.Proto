@@ -29,17 +29,16 @@ const {
 } = useProxySettings()
 async function applyProxy() {
   await saveProxy()
-  if (!proxyError.value) sideTip.show(text('Proto.Settings.ProxySaved'), 'success')
+  if (!proxyError.value) sideTip.show(pclText('Proto.Settings.ProxySaved'), 'success')
 }
 
-const text = pclText
 </script>
 <template>
   <div class="pcl-page">
     <PErrorRetry :error="logSaveError" @retry="saveLogSettings" />
     <PErrorRetry :error="proxyError" @retry="saveProxy()" />
 
-    <PCard :title="text('Setup.Misc.System.Title')">
+    <PCard :title="pclText('Setup.Misc.System.Title')">
       <div
         style="
           margin: 0px 25px 16px 25px;
@@ -57,7 +56,7 @@ const text = pclText
             align-self: center;
           "
           class="pcl-text"
-          >{{ text('Setup.Misc.System.Announcement') }}</span
+          >{{ pclText('Setup.Misc.System.Announcement') }}</span
         >
         <PComboBox
           disabled
@@ -65,11 +64,11 @@ const text = pclText
           :options="[
             {
               key: '0',
-              text: text('Setup.Misc.System.Announcement.All'),
-              title: text('Setup.Misc.System.Announcement.All.ToolTip'),
+              text: pclText('Setup.Misc.System.Announcement.All'),
+              title: pclText('Setup.Misc.System.Announcement.All.ToolTip'),
             },
-            { key: '1', text: text('Setup.Misc.System.Announcement.ImportantOnly') },
-            { key: '2', text: text('Setup.Misc.System.Announcement.Disabled') },
+            { key: '1', text: pclText('Setup.Misc.System.Announcement.ImportantOnly') },
+            { key: '2', text: pclText('Setup.Misc.System.Announcement.Disabled') },
           ]"
           v-model="values.ComboSystemActivity"
         />
@@ -82,12 +81,12 @@ const text = pclText
             align-self: center;
           "
           class="pcl-text"
-          >{{ text('Setup.Misc.System.MaxFps') }}</span
+          >{{ pclText('Setup.Misc.System.MaxFps') }}</span
         >
         <input
           disabled
           style="grid-row: 3 / span 1; grid-column: 2 / span 1"
-          :title="text('Setup.Misc.System.MaxFps.ToolTip')"
+          :title="pclText('Setup.Misc.System.MaxFps.ToolTip')"
           type="range"
           min="0"
           max="59"
@@ -102,11 +101,11 @@ const text = pclText
             align-self: center;
           "
           class="pcl-text"
-          >{{ text('Setup.Misc.System.MaxLogLines') }}</span
+          >{{ pclText('Setup.Misc.System.MaxLogLines') }}</span
         >
         <input
           style="grid-row: 5 / span 1; grid-column: 2 / span 1"
-          :title="text('Setup.Misc.System.MaxLogLines.ToolTip')"
+          :title="pclText('Setup.Misc.System.MaxLogLines.ToolTip')"
           type="range"
           min="0"
           max="29"
@@ -126,15 +125,15 @@ const text = pclText
             disabled
             style="grid-row: 1 / span 1; grid-column: 1 / span 1"
             id="PageSetupLauncherMisc-CheckSystemDisableHardwareAcceleration"
-            :label="text('Setup.Misc.System.DisableHardwareAcceleration')"
+            :label="pclText('Setup.Misc.System.DisableHardwareAcceleration')"
             v-model="values.CheckSystemDisableHardwareAcceleration"
           />
           <PCheckBox
             disabled
             style="grid-row: 1 / span 1; grid-column: 2 / span 1"
-            :title="text('Setup.Misc.System.Telemetry.ToolTip')"
+            :title="pclText('Setup.Misc.System.Telemetry.ToolTip')"
             id="PageSetupLauncherMisc-CheckSystemTelemetry"
-            :label="text('Setup.Misc.System.Telemetry')"
+            :label="pclText('Setup.Misc.System.Telemetry')"
             v-model="values.CheckSystemTelemetry"
           />
         </div>
@@ -156,7 +155,7 @@ const text = pclText
               grid-column: 1 / span 1;
             "
             @click="showUnavailable"
-            >{{ text('Setup.Misc.System.ExportSettings') }}</PButton
+            >{{ pclText('Setup.Misc.System.ExportSettings') }}</PButton
           >
           <PButton
             style="
@@ -167,7 +166,7 @@ const text = pclText
               grid-column: 2 / span 1;
             "
             @click="showUnavailable"
-            >{{ text('Setup.Misc.System.ImportSettings') }}</PButton
+            >{{ pclText('Setup.Misc.System.ImportSettings') }}</PButton
           >
           <PButton
             style="
@@ -179,12 +178,12 @@ const text = pclText
             "
             @click="() => showUnavailable()"
             type="warn"
-            >{{ text('Setup.Misc.System.StopUsingPclCe') }}</PButton
+            >{{ pclText('Setup.Misc.System.StopUsingPclCe') }}</PButton
           >
         </div>
       </div>
     </PCard>
-    <PCard :title="text('Setup.Misc.Network.Title')">
+    <PCard :title="pclText('Setup.Misc.Network.Title')">
       <div
         style="
           margin: 0px 25px 15px 25px;
@@ -196,9 +195,9 @@ const text = pclText
         <PCheckBox
           disabled
           style="grid-row: 1 / span 1; grid-column: 1 / span 2"
-          :title="text('Setup.Misc.Network.DoH.ToolTip')"
+          :title="pclText('Setup.Misc.Network.DoH.ToolTip')"
           id="PageSetupLauncherMisc-CheckNetDohEnable"
-          :label="text('Setup.Misc.Network.DoH')"
+          :label="pclText('Setup.Misc.Network.DoH')"
           v-model="values.CheckNetDohEnable"
         />
         <span
@@ -210,7 +209,7 @@ const text = pclText
             align-self: center;
           "
           class="pcl-text"
-          >{{ text('Setup.Misc.Network.HttpProxy') }}</span
+          >{{ pclText('Setup.Misc.Network.HttpProxy') }}</span
         >
         <div
           style="
@@ -224,21 +223,21 @@ const text = pclText
             style="height: 22px; grid-row: 1 / span 1; grid-column: 1 / span 1"
             class="pcl-radio"
             ><input :disabled="!proxyReady" type="radio" v-model="proxyMode" value="off" />{{
-              text('Setup.Misc.Network.Proxy.None')
+              pclText('Setup.Misc.Network.Proxy.None')
             }}</label
           >
           <label
             style="height: 22px; grid-row: 1 / span 1; grid-column: 2 / span 1"
             class="pcl-radio"
             ><input :disabled="!proxyReady" type="radio" v-model="proxyMode" value="system" />{{
-              text('Setup.Misc.Network.Proxy.System')
+              pclText('Setup.Misc.Network.Proxy.System')
             }}</label
           >
           <label
             style="height: 22px; grid-row: 1 / span 1; grid-column: 3 / span 1"
             class="pcl-radio"
             ><input :disabled="!proxyReady" type="radio" v-model="proxyMode" value="custom" />{{
-              text('Setup.Misc.Network.Proxy.Custom')
+              pclText('Setup.Misc.Network.Proxy.Custom')
             }}</label
           >
         </div>
@@ -252,13 +251,13 @@ const text = pclText
           "
         >
           <PHint style="grid-row: 1 / span 1; grid-column: 1 / span 5" severity="warning">{{
-            text('Setup.Misc.Network.Proxy.UntrustedWarning')
+            pclText('Setup.Misc.Network.Proxy.UntrustedWarning')
           }}</PHint>
           <PTextBox
             style="grid-row: 3 / span 1; grid-column: 1 / span 5"
             :disabled="!proxyReady || proxyMode !== 'custom'"
-            :title="text('Setup.Misc.Network.Proxy.InvalidWarning')"
-            :placeholder="text('Proto.Settings.ProxyExample')"
+            :title="pclText('Setup.Misc.Network.Proxy.InvalidWarning')"
+            :placeholder="pclText('Proto.Settings.ProxyExample')"
             v-model="proxyAddress"
           />
           <span
@@ -270,13 +269,13 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.Misc.Network.Proxy.Username') }}</span
+            >{{ pclText('Setup.Misc.Network.Proxy.Username') }}</span
           >
           <PTextBox
             disabled
             style="margin: 0px 5px 0px 0px; grid-row: 5 / span 1; grid-column: 2 / span 1"
-            :title="text('Proto.Settings.ProxyCredentialsHint')"
-            :placeholder="text('Setup.Misc.Network.Proxy.Optional')"
+            :title="pclText('Proto.Settings.ProxyCredentialsHint')"
+            :placeholder="pclText('Setup.Misc.Network.Proxy.Optional')"
             v-model="values.TextSystemHttpProxyCustomUsername"
           />
           <span
@@ -288,26 +287,26 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.Misc.Network.Proxy.Password') }}</span
+            >{{ pclText('Setup.Misc.Network.Proxy.Password') }}</span
           >
           <PTextBox
             disabled
             type="password"
             style="margin: 0px 5px 0px 0px; grid-row: 5 / span 1; grid-column: 4 / span 1"
-            :title="text('Proto.Settings.ProxyCredentialsHint')"
-            :placeholder="text('Setup.Misc.Network.Proxy.Optional')"
+            :title="pclText('Proto.Settings.ProxyCredentialsHint')"
+            :placeholder="pclText('Setup.Misc.Network.Proxy.Optional')"
             v-model="values.TextSystemHttpProxyCustomPassword"
           />
           <PButton
             style="grid-row: 5 / span 1; grid-column: 5 / span 1"
             :disabled="!proxyReady || proxyBusy"
             @click="applyProxy"
-            >{{ text('Setup.Misc.Network.Proxy.Apply') }}</PButton
+            >{{ pclText('Setup.Misc.Network.Proxy.Apply') }}</PButton
           >
         </div>
       </div>
     </PCard>
-    <PCard :title="text('Setup.Misc.Debug.Title')" default-fold-status="fold">
+    <PCard :title="pclText('Setup.Misc.Debug.Title')" default-fold-status="fold">
       <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
         <div
           style="
@@ -326,7 +325,7 @@ const text = pclText
               align-self: center;
             "
             class="pcl-text"
-            >{{ text('Setup.Misc.Debug.AnimationSpeed') }}</span
+            >{{ pclText('Setup.Misc.Debug.AnimationSpeed') }}</span
           >
           <input
             disabled
@@ -346,25 +345,25 @@ const text = pclText
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 1 / span 1; grid-column: 1 / span 1"
-            :title="text('Setup.Misc.Debug.SkipCopy.ToolTip')"
+            :title="pclText('Setup.Misc.Debug.SkipCopy.ToolTip')"
             id="PageSetupLauncherMisc-CheckDebugSkipCopy"
-            :label="text('Setup.Misc.Debug.SkipCopy')"
+            :label="pclText('Setup.Misc.Debug.SkipCopy')"
             v-model="values.CheckDebugSkipCopy"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 1 / span 1; grid-column: 2 / span 1"
-            :title="text('Setup.Misc.Debug.Mode.ToolTip')"
+            :title="pclText('Setup.Misc.Debug.Mode.ToolTip')"
             id="PageSetupLauncherMisc-CheckDebugMode"
-            :label="text('Setup.Misc.Debug.Mode')"
+            :label="pclText('Setup.Misc.Debug.Mode')"
             v-model="values.CheckDebugMode"
           />
           <PCheckBox
             disabled
             style="height: 22px; grid-row: 1 / span 1; grid-column: 3 / span 1"
-            :title="text('Setup.Misc.Debug.Delay.ToolTip')"
+            :title="pclText('Setup.Misc.Debug.Delay.ToolTip')"
             id="PageSetupLauncherMisc-CheckDebugDelay"
-            :label="text('Setup.Misc.Debug.Delay')"
+            :label="pclText('Setup.Misc.Debug.Delay')"
             v-model="values.CheckDebugDelay"
           />
         </div>

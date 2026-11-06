@@ -29,7 +29,6 @@ const status = computed(() =>
 onMounted(() => void checkLauncherUpdate())
 const openRelease = () => openExternal(releaseUrl.value)
 
-const text = pclText
 </script>
 <template>
   <section class="pcl-page update-page">
@@ -41,15 +40,15 @@ const text = pclText
           <p>{{ status }}</p>
         </div>
         <PButton type="tint" :disabled="launcherUpdateChecking" @click="checkLauncherUpdate">{{
-          text('Setup.Update.CheckAgain')
+          pclText('Setup.Update.CheckAgain')
         }}</PButton
-        ><PButton @click="openRelease">{{ text('Setup.Update.Changelog.View') }}</PButton>
+        ><PButton @click="openRelease">{{ pclText('Setup.Update.Changelog.View') }}</PButton>
       </div></PCard
     >
     <PHint v-if="launcherUpdateError" severity="error">{{
       pclText('Proto.Update.Failed', [launcherUpdateError])
     }}</PHint>
-    <PCard :title="text('Setup.Update.Changelog.View')"
+    <PCard :title="pclText('Setup.Update.Changelog.View')"
       ><div class="changelog">
         <PMarkdown
           :content="
@@ -58,7 +57,7 @@ const text = pclText
               : pclText('Proto.Update.NotesPlaceholder')
           "
         />
-        <PButton inline @click="openRelease">{{ text('Setup.Update.Changelog.MoreInfo') }}</PButton
+        <PButton inline @click="openRelease">{{ pclText('Setup.Update.Changelog.MoreInfo') }}</PButton
         ><PButton v-if="launcherUpdate" type="tint" @click="openRelease">{{
           pclText('Proto.Update.Download')
         }}</PButton>

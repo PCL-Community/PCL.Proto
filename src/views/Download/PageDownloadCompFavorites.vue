@@ -14,7 +14,6 @@ import sideTip from '@/composables/sideTip'
 import { useCompFavorites } from '@/stores/compFavorites'
 import { pclText } from '@/api/pclLocale'
 const favorites = useCompFavorites()
-const text = pclText
 const query = ref('')
 const folder = ref('default')
 
@@ -28,7 +27,7 @@ function select(id: string, checked: boolean) {
 }
 async function share(ids: string[]) {
   if (!ids.length) {
-    sideTip.show(text('Download.Comp.Favorites.Hint.NothingShared'))
+    sideTip.show(pclText('Download.Comp.Favorites.Hint.NothingShared'))
     return
   }
   try {
@@ -53,19 +52,19 @@ const items = computed(() =>
     <div class="search-row">
       <PSearchBox
         v-model="query"
-        :placeholder="text('Download.Comp.Favorites.Search.Hint')"
+        :placeholder="pclText('Download.Comp.Favorites.Search.Hint')"
       /><PCard hide-title class="folder-card" overflow-visible
         ><div class="folder-row">
           <PComboBox
             v-model="folder"
             :options="[
-              { key: 'default', text: text('Download.Comp.Detail.Favorites.DefaultName') },
+              { key: 'default', text: pclText('Download.Comp.Detail.Favorites.DefaultName') },
             ]"
           />
           <details class="manage-menu">
             <summary
-              :aria-label="text('Download.Comp.Favorites.Manage')"
-              :title="text('Download.Comp.Favorites.Manage')"
+              :aria-label="pclText('Download.Comp.Favorites.Manage')"
+              :title="pclText('Download.Comp.Favorites.Manage')"
             >
               <PSvgIcon name="lucide/settings" :size="18" />
             </summary>
@@ -75,12 +74,12 @@ const items = computed(() =>
                 :key="action"
                 inline
                 @click="showUnavailable"
-                >{{ text(`Download.Comp.Favorites.Menu.${action}`) }}</PButton
+                >{{ pclText(`Download.Comp.Favorites.Menu.${action}`) }}</PButton
               >
               <PButton
                 inline
                 @click="() => share(favorites.items.map((item) => item.project_id))"
-                >{{ text('Download.Comp.Favorites.Menu.Share') }}</PButton
+                >{{ pclText('Download.Comp.Favorites.Menu.Share') }}</PButton
               >
             </div>
           </details>
@@ -90,8 +89,8 @@ const items = computed(() =>
     <PCard
       v-if="items.length"
       :title="
-        text('Download.Comp.Favorites.CardTitle', [
-          text('Download.Comp.Detail.Favorites.DefaultName'),
+        pclText('Download.Comp.Favorites.CardTitle', [
+          pclText('Download.Comp.Detail.Favorites.DefaultName'),
           items.length,
         ])
       "
@@ -108,34 +107,34 @@ const items = computed(() =>
         </div></div></PCard
     ><PCard v-else hide-title class="empty-card"
       ><div class="empty-content">
-        <h2>{{ text('Download.Comp.Favorites.Empty.Title') }}</h2>
+        <h2>{{ pclText('Download.Comp.Favorites.Empty.Title') }}</h2>
         <hr />
         <p>
           {{
             query
               ? pclText('Proto.Empty.Resources')
-              : text('Download.Comp.Favorites.Empty.Description')
+              : pclText('Download.Comp.Favorites.Empty.Description')
           }}
         </p>
       </div></PCard
     >
     <PSelectionToolbar
       :count="selectedItems.length"
-      :label="text('Download.Comp.Favorites.Hint.SelectedCount', [selectedItems.length])"
+      :label="pclText('Download.Comp.Favorites.Hint.SelectedCount', [selectedItems.length])"
     >
       <PIconTextButton icon="lucide/heart-filled" @click="unfavoriteSelected">{{
-        text('Download.Comp.Favorites.Cancel')
+        pclText('Download.Comp.Favorites.Cancel')
       }}</PIconTextButton>
       <PIconTextButton
         icon="lucide/share-2"
         @click="() => share(selectedItems.map((item) => item.project_id))"
-        >{{ text('Download.Comp.Favorites.Share') }}</PIconTextButton
+        >{{ pclText('Download.Comp.Favorites.Share') }}</PIconTextButton
       >
       <PIconTextButton icon="lucide/download" @click="showUnavailable">{{
-        text('Download.Comp.Favorites.Download')
+        pclText('Download.Comp.Favorites.Download')
       }}</PIconTextButton>
       <PIconTextButton icon="lucide/x" @click="() => selected.clear()">{{
-        text('Download.Comp.Favorites.Deselect')
+        pclText('Download.Comp.Favorites.Deselect')
       }}</PIconTextButton>
     </PSelectionToolbar>
   </section>

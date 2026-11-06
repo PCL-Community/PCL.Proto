@@ -43,32 +43,31 @@ const groups = computed(() =>
 )
 
 const router = useRouter()
-const text = pclText
 </script>
 <template>
   <section class="pcl-page">
-    <PLoading v-if="loading" :loading-text="text('Instance.Resource.Loading')" />
+    <PLoading v-if="loading" :loading-text="pclText('Instance.Resource.Loading')" />
     <PHint v-else-if="error" severity="error"
       >{{ error
       }}<PButton inline @click="() => emit('refresh')">{{
-        text('Common.Action.Refresh')
+        pclText('Common.Action.Refresh')
       }}</PButton></PHint
     >
     <template v-else-if="relations.length || bundled.length || warnings.length || conflicts.length">
       <PCard hide-title
         ><div class="manage">
           <PButton type="tint" @click="() => router.back()">{{
-            text('Instance.Resource.BackToParent')
+            pclText('Instance.Resource.BackToParent')
           }}</PButton>
-          <PButton @click="() => emit('refresh')">{{ text('Common.Action.Refresh') }}</PButton>
-          <span>{{ text('Instance.Resource.Mod.JarInJar.Message') }}</span>
+          <PButton @click="() => emit('refresh')">{{ pclText('Common.Action.Refresh') }}</PButton>
+          <span>{{ pclText('Instance.Resource.Mod.JarInJar.Message') }}</span>
         </div></PCard
       >
       <PSearchBox
-        :placeholder="text('Instance.Resource.Mod.JarInJar.Search.Hint')"
+        :placeholder="pclText('Instance.Resource.Mod.JarInJar.Search.Hint')"
         @search="(value: string) => (query = value || '')"
       />
-      <PCard v-if="warnings.length" :title="text('Instance.Resource.Mod.JarInJar.Section.Warnings')"
+      <PCard v-if="warnings.length" :title="pclText('Instance.Resource.Mod.JarInJar.Section.Warnings')"
         ><div class="issues">
           <PHint v-for="entry in warnings" :key="entry.id" severity="warning"
             >{{ entry.title }}
@@ -78,8 +77,8 @@ const text = pclText
       >
       <PCard
         v-if="conflicts.length"
-        :title="text('Instance.Resource.Mod.JarInJar.Section.Conflicts')"
-        ><div class="issues" :title="text('Instance.Resource.Mod.JarInJar.Conflict.Tooltip')">
+        :title="pclText('Instance.Resource.Mod.JarInJar.Section.Conflicts')"
+        ><div class="issues" :title="pclText('Instance.Resource.Mod.JarInJar.Conflict.Tooltip')">
           <PListItem
             v-for="entry in conflicts"
             :key="entry.id"
@@ -89,7 +88,7 @@ const text = pclText
       ></PCard>
       <template v-for="group in groups" :key="group.key"
         ><section v-if="group.entries.length">
-          <h2>{{ text(`Instance.Resource.Mod.JarInJar.Section.${group.key}`) }}</h2>
+          <h2>{{ pclText(`Instance.Resource.Mod.JarInJar.Section.${group.key}`) }}</h2>
           <PListItem
             v-for="entry in group.entries"
             :key="entry.id"
@@ -104,15 +103,15 @@ const text = pclText
     <PCard v-else hide-title class="pcl-empty-state-card"
       ><div class="pcl-empty-state">
         <h2 class="pcl-empty-state-title">
-          {{ text('Instance.Resource.Mod.JarInJar.Empty.Title') }}
+          {{ pclText('Instance.Resource.Mod.JarInJar.Empty.Title') }}
         </h2>
         <div class="pcl-divider" />
         <p class="pcl-empty-state-message">
-          {{ text('Instance.Resource.Mod.JarInJar.Empty.Message') }}
+          {{ pclText('Instance.Resource.Mod.JarInJar.Empty.Message') }}
         </p>
         <div class="pcl-empty-state-actions">
           <PButton type="tint" @click="() => router.back()">{{
-            text('Instance.Resource.BackToParent')
+            pclText('Instance.Resource.BackToParent')
           }}</PButton>
         </div>
       </div></PCard

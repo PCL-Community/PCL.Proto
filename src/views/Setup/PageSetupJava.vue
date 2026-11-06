@@ -16,7 +16,6 @@ const modal = useModal()
 const loading = ref(false)
 const saving = ref(false)
 const error = ref<string | null>(null)
-const text = pclText
 const architectureLabels = {
   X86: 'x86',
   X64: 'x86-64',
@@ -26,7 +25,7 @@ const architectureLabels = {
 }
 async function load(refresh = false) {
   if (!isTauri()) {
-    error.value = text('Proto.Desktop.JavaScan')
+    error.value = pclText('Proto.Desktop.JavaScan')
     return
   }
   loading.value = true
@@ -34,7 +33,7 @@ async function load(refresh = false) {
   try {
     await java.load(undefined, refresh)
   } catch (err) {
-    error.value = text('Proto.Java.ReadFailed')
+    error.value = pclText('Proto.Java.ReadFailed')
     console.error(err)
   } finally {
     loading.value = false
@@ -42,7 +41,7 @@ async function load(refresh = false) {
 }
 async function change(operation: () => Promise<unknown>) {
   if (!isTauri()) {
-    sideTip.show(text('Proto.Desktop.JavaScan'), 'warn')
+    sideTip.show(pclText('Proto.Desktop.JavaScan'), 'warn')
     return
   }
   if (saving.value || loading.value) return
@@ -58,14 +57,14 @@ async function change(operation: () => Promise<unknown>) {
 }
 async function select(runtime: IJavaRuntimeInfo | null) {
   if (runtime && !runtime.is_enabled) {
-    sideTip.show(text('Setup.Java.EnableBeforeSelect'), 'warn')
+    sideTip.show(pclText('Setup.Java.EnableBeforeSelect'), 'warn')
     return
   }
   await change(() => java.selectGlobal(runtime?.java_exe || null))
 }
 async function toggle(runtime: IJavaRuntimeInfo) {
   if (runtime.is_enabled && java.globalJava === runtime.java_exe) {
-    sideTip.show(text('Setup.Java.DeselectBeforeDisable'), 'warn')
+    sideTip.show(pclText('Setup.Java.DeselectBeforeDisable'), 'warn')
     return
   }
   await change(() => java.setEnabled(runtime))
@@ -75,22 +74,22 @@ async function addJava() {
     const runtime = await invoke<IJavaRuntimeInfo | null>('add_java')
     if (runtime) {
       await java.load()
-      sideTip.show(text('Setup.Java.Added'), 'success')
+      sideTip.show(pclText('Setup.Java.Added'), 'success')
     }
   })
 }
 function info(runtime: IJavaRuntimeInfo) {
   void modal.open({
-    title: text('Setup.Java.Info.Title'),
-    content: text('Setup.Java.Info.Format', [
+    title: pclText('Setup.Java.Info.Title'),
+    content: pclText('Setup.Java.Info.Format', [
       runtime.is_jre ? 'JRE' : 'JDK',
       runtime.version,
       architectureLabels[runtime.architecture],
       runtime.is_64_bit ? '64 Bit' : '32 Bit',
-      runtime.vendor || text('Common.State.Unknown'),
+      runtime.vendor || pclText('Common.State.Unknown'),
       runtime.java_folder,
     ]),
-    buttons: [{ content: text('Common.Action.Close'), operation: () => modal.close() }],
+    buttons: [{ content: pclText('Common.Action.Close'), operation: () => modal.close() }],
   })
 }
 onMounted(() => load())
@@ -100,24 +99,24 @@ onMounted(() => load())
     <PCard hide-title>
       <div style="margin: 8px; display: flex; gap: 8px">
         <PIconTextButton icon="lucide/circle-plus" @click="addJava" :disabled="loading || saving">
-          {{ text('Setup.Java.Add') }}
+          {{ pclText('Setup.Java.Add') }}
         </PIconTextButton>
         <PIconTextButton
           icon="lucide/refresh-cw"
           @click="() => load(true)"
           :disabled="loading || saving"
         >
-          {{ text('Common.Action.Refresh') }}
+          {{ pclText('Common.Action.Refresh') }}
         </PIconTextButton>
       </div>
     </PCard>
     <PCard hide-title>
       <div style="margin: 15px; display: flex; flex-direction: column">
         <PHint v-if="error" severity="error">{{ error }}</PHint>
-        <PHint v-if="loading" severity="info">{{ text('Setup.Java.Loading') }}</PHint>
+        <PHint v-if="loading" severity="info">{{ pclText('Setup.Java.Loading') }}</PHint>
         <PListItem
-          :title="text('Setup.Java.AutoSelect.Title')"
-          :subtitle="text('Setup.Java.AutoSelect.Info')"
+          :title="pclText('Setup.Java.AutoSelect.Title')"
+          :subtitle="pclText('Setup.Java.AutoSelect.Info')"
           clickable
           :selected="!java.globalJava"
           @click="select(null)"
@@ -138,8 +137,8 @@ onMounted(() => load())
             <button
               class="pcl-icon-button"
               type="button"
-              :title="text('Common.Action.Open')"
-              :aria-label="text('Common.Action.Open')"
+              :title="pclText('Common.Action.Open')"
+              :aria-label="pclText('Common.Action.Open')"
               @click="() => change(() => invoke('open_java_folder', { javaExe: runtime.java_exe }))"
               :disabled="saving || loading"
             >
@@ -148,8 +147,8 @@ onMounted(() => load())
             <button
               class="pcl-icon-button"
               type="button"
-              :title="text('Setup.Java.Detail.ToolTip')"
-              :aria-label="text('Setup.Java.Detail.ToolTip')"
+              :title="pclText('Setup.Java.Detail.ToolTip')"
+              :aria-label="pclText('Setup.Java.Detail.ToolTip')"
               @click="info(runtime)"
             >
               <PSvgIcon name="lucide/info" :size="15" />
@@ -157,8 +156,8 @@ onMounted(() => load())
             <button
               class="pcl-icon-button"
               type="button"
-              :title="text(runtime.is_enabled ? 'Setup.Java.Disable' : 'Setup.Java.Enable')"
-              :aria-label="text(runtime.is_enabled ? 'Setup.Java.Disable' : 'Setup.Java.Enable')"
+              :title="pclText(runtime.is_enabled ? 'Setup.Java.Disable' : 'Setup.Java.Enable')"
+              :aria-label="pclText(runtime.is_enabled ? 'Setup.Java.Disable' : 'Setup.Java.Enable')"
               @click="toggle(runtime)"
               :disabled="saving || loading"
             >
@@ -170,7 +169,7 @@ onMounted(() => load())
           </template>
         </PListItem>
         <PHint v-if="!loading && !java.runtimes.length && !error" severity="info">{{
-          text('Instance.Setup.Options.Java.NoRuntime')
+          pclText('Instance.Setup.Options.Java.NoRuntime')
         }}</PHint>
       </div>
     </PCard>
