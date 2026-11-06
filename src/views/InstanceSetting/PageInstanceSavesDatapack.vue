@@ -151,7 +151,6 @@ const visibleDatapacks = computed(() =>
           : a.name.localeCompare(b.name),
     ),
 )
-
 </script>
 <template>
   <div class="pcl-page">

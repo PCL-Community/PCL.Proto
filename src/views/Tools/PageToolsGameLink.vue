@@ -401,7 +401,9 @@ import { pclText } from '@/api/pclLocale'
             >{{ pclText('Tools.GameLink.Link.Privacy') }}</PButton
           >
           <span class="pcl-text">{{ pclText(' | ') }}</span>
-          <PButton @click="disableLobby" inline>{{ pclText('Tools.GameLink.Link.Disable') }}</PButton>
+          <PButton @click="disableLobby" inline>{{
+            pclText('Tools.GameLink.Link.Disable')
+          }}</PButton>
         </div>
         <div class="lobby-footer-line">
           <span class="pcl-text">{{ pclText('Tools.GameLink.Link.Friends') }}</span>

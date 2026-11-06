@@ -212,7 +212,9 @@ onUnmounted(() => {
     <template v-else-if="servers.length">
       <PCard :title="pclText('Instance.Server.QuickActions')">
         <div class="server-actions">
-          <PButton type="tint" @click="refresh">{{ pclText('Instance.Server.RefreshAll') }}</PButton>
+          <PButton type="tint" @click="refresh">{{
+            pclText('Instance.Server.RefreshAll')
+          }}</PButton>
           <PButton :disabled="busy" @click="() => edit()">{{
             pclText('Instance.Server.AddServer')
           }}</PButton>
@@ -237,9 +239,13 @@ onUnmounted(() => {
       <div class="pcl-empty-state">
         <h2 class="pcl-empty-state-title pcl-text">{{ pclText('Instance.Server.Empty.Title') }}</h2>
         <div class="pcl-divider" />
-        <p class="pcl-empty-state-message pcl-text">{{ pclText('Instance.Server.Empty.Message') }}</p>
+        <p class="pcl-empty-state-message pcl-text">
+          {{ pclText('Instance.Server.Empty.Message') }}
+        </p>
         <div class="pcl-empty-state-actions">
-          <PButton type="tint" @click="refresh">{{ pclText('Instance.Server.RefreshInfo') }}</PButton>
+          <PButton type="tint" @click="refresh">{{
+            pclText('Instance.Server.RefreshInfo')
+          }}</PButton>
           <PButton :disabled="busy || !revision" @click="() => edit()">{{
             pclText('Instance.Server.AddServer')
           }}</PButton>

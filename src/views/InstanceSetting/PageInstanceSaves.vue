@@ -76,7 +76,6 @@ async function openSave(id: string) {
     sideTip.show(`${pclText('Instance.Saves.Error.OperationFailed')} ${failure}`, 'warn')
   }
 }
-
 </script>
 <template>
   <div class="pcl-page">
@@ -153,7 +152,9 @@ async function openSave(id: string) {
     </div>
     <PCard v-else class="pcl-empty-state-card" hide-title>
       <div class="pcl-empty-state">
-        <span class="pcl-empty-state-title pcl-text">{{ pclText('Instance.Saves.Empty.Title') }}</span>
+        <span class="pcl-empty-state-title pcl-text">{{
+          pclText('Instance.Saves.Empty.Title')
+        }}</span>
         <div class="pcl-divider" />
         <span class="pcl-empty-state-message pcl-text">{{
           pclText('Instance.Saves.Empty.Message')

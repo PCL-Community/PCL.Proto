@@ -365,7 +365,9 @@ async function apply() {
                 </span>
               </div>
             </div>
-            <p v-else-if="!parsed.error" class="editor-empty">{{ pclText('Proto.Homepage.Empty') }}</p>
+            <p v-else-if="!parsed.error" class="editor-empty">
+              {{ pclText('Proto.Homepage.Empty') }}
+            </p>
             <template v-if="selected">
               <div class="inspector-heading">
                 <div>

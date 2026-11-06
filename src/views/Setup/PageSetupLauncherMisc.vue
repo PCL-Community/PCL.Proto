@@ -31,7 +31,6 @@ async function applyProxy() {
   await saveProxy()
   if (!proxyError.value) sideTip.show(pclText('Proto.Settings.ProxySaved'), 'success')
 }
-
 </script>
 <template>
   <div class="pcl-page">

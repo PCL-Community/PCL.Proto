@@ -9,7 +9,6 @@ import PTextBox from '@/components/widget/PTextBox.vue'
 const { values } = usePageSettings('PageSetupGameLink', {
   ComboPreferProtocol: '0',
 })
-
 </script>
 <template>
   <div class="pcl-page">

@@ -153,7 +153,9 @@ function openWebsite() {
         ><PTextBox type="password" v-model="password" autocomplete="off"
       /></label>
       <PButton v-if="registerUrl" class="account-text register-link" inline @click="openRegister">{{
-        pclText(registerMode ? 'Launch.Account.Auth.Register' : 'Launch.Account.Auth.ForgotPassword')
+        pclText(
+          registerMode ? 'Launch.Account.Auth.Register' : 'Launch.Account.Auth.ForgotPassword',
+        )
       }}</PButton>
       <div class="account-links auth-links">
         <PButton inline @click="openWebsite">{{

@@ -273,7 +273,9 @@ const unavailableAdvancedOptions = [
     <PCard :title="pclText('Setup.Launch.Options.Title')">
       <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
         <div class="settings-grid">
-          <SetupItem :label="pclText('Setup.Launch.Options.InstanceIsolation.Label')" v-slot="{ id }"
+          <SetupItem
+            :label="pclText('Setup.Launch.Options.InstanceIsolation.Label')"
+            v-slot="{ id }"
             ><PComboBox
               :disabled="!desktop || !isolationReady || isolationBusy"
               :key="isolationControlRevision"
@@ -483,7 +485,9 @@ const unavailableAdvancedOptions = [
         <SetupItem
           ><template #label="{ id }"
             ><div style="display: flex; flex-direction: row; align-items: center">
-              <label :for="id" class="pcl-text">{{ pclText('Setup.Launch.Advanced.JvmHead') }}</label>
+              <label :for="id" class="pcl-text">{{
+                pclText('Setup.Launch.Advanced.JvmHead')
+              }}</label>
               <button
                 type="button"
                 class="pcl-icon-button"

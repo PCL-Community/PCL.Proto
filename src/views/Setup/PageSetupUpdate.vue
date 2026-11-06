@@ -28,7 +28,6 @@ const status = computed(() =>
 )
 onMounted(() => void checkLauncherUpdate())
 const openRelease = () => openExternal(releaseUrl.value)
-
 </script>
 <template>
   <section class="pcl-page update-page">
@@ -57,7 +56,9 @@ const openRelease = () => openExternal(releaseUrl.value)
               : pclText('Proto.Update.NotesPlaceholder')
           "
         />
-        <PButton inline @click="openRelease">{{ pclText('Setup.Update.Changelog.MoreInfo') }}</PButton
+        <PButton inline @click="openRelease">{{
+          pclText('Setup.Update.Changelog.MoreInfo')
+        }}</PButton
         ><PButton v-if="launcherUpdate" type="tint" @click="openRelease">{{
           pclText('Proto.Update.Download')
         }}</PButton>

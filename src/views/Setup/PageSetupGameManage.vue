@@ -63,7 +63,6 @@ onScopeDispose(() => {
     applyDownloadSettings()
   }
 })
-
 </script>
 <template>
   <div class="pcl-page">

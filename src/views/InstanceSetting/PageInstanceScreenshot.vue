@@ -43,7 +43,6 @@ async function openScreenshot(id: string) {
     sideTip.show(`${pclText('Instance.Screenshot.OpenFailed')} ${failure}`, 'warn')
   }
 }
-
 </script>
 <template>
   <div class="pcl-page">

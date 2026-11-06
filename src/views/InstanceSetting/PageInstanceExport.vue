@@ -56,7 +56,6 @@ const visibleOptions = computed(() =>
             ))),
   ),
 )
-
 </script>
 <template>
   <div class="pcl-page">

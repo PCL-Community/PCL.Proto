@@ -131,7 +131,10 @@ async function startCustomDownload() {
     const folder = String(values.TextDownloadFolder || '').trim()
     const destination = folder
       ? await join(folder, name)
-      : await save({ defaultPath: name, title: pclText('Tools.Test.CustomDownload.SelectLocation') })
+      : await save({
+          defaultPath: name,
+          title: pclText('Tools.Test.CustomDownload.SelectLocation'),
+        })
     if (!destination) return
     if (!folder) {
       values.TextDownloadFolder = await dirname(destination)

@@ -116,7 +116,8 @@ async function selectVersion(version: McPluginReport) {
     await download
     sideTip.show(pclText('Proto.Download.Saved', [destination]), 'success')
   } catch (error) {
-    if (!isTaskCancelled(error)) sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn')
+    if (!isTaskCancelled(error))
+      sideTip.show(pclText('Proto.Error.Download', [String(error)]), 'warn')
   }
 }
 </script>

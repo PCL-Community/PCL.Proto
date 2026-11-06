@@ -67,7 +67,9 @@ const router = useRouter()
         :placeholder="pclText('Instance.Resource.Mod.JarInJar.Search.Hint')"
         @search="(value: string) => (query = value || '')"
       />
-      <PCard v-if="warnings.length" :title="pclText('Instance.Resource.Mod.JarInJar.Section.Warnings')"
+      <PCard
+        v-if="warnings.length"
+        :title="pclText('Instance.Resource.Mod.JarInJar.Section.Warnings')"
         ><div class="issues">
           <PHint v-for="entry in warnings" :key="entry.id" severity="warning"
             >{{ entry.title }}

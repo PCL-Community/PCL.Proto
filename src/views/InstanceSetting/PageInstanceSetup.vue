@@ -370,7 +370,9 @@ const router = useRouter()
     </PCard>
     <PHint v-if="javaError" severity="warning" style="margin-bottom: 15px"
       >{{ pclText('Instance.Setup.Options.Java.LoadFailed')
-      }}<RouterLink to="/setup/java">{{ pclText('Instance.Setup.Options.Java') }}</RouterLink></PHint
+      }}<RouterLink to="/setup/java">{{
+        pclText('Instance.Setup.Options.Java')
+      }}</RouterLink></PHint
     >
     <PCard :title="pclText('Setup.Launch.Memory.Title')">
       <PHint v-if="java32Bit" severity="warning">{{

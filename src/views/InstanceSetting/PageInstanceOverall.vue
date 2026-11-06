@@ -170,7 +170,11 @@ async function deleteInstance() {
     title: pclText('Instance.Overall.Delete.ConfirmTitle'),
     content: pclText(message, [info.name]),
     buttons: [
-      { content: pclText('Common.Action.Delete'), type: 'warn', operation: () => modal.close(true) },
+      {
+        content: pclText('Common.Action.Delete'),
+        type: 'warn',
+        operation: () => modal.close(true),
+      },
       { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
     ],
   })

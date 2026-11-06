@@ -160,7 +160,11 @@ async function folderAction(item: GameInstance, remove: boolean) {
       title: pclText('Select.Instance.Delete.ConfirmTitle'),
       content: `${pclText('Select.Instance.Delete.ConfirmMessage', [item.name])}\n${pclText('Select.Instance.Delete.IsolatedWarning')}`,
       buttons: [
-        { content: pclText('Common.Action.Delete'), type: 'warn', operation: () => modal.close(true) },
+        {
+          content: pclText('Common.Action.Delete'),
+          type: 'warn',
+          operation: () => modal.close(true),
+        },
         { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
       ],
     })
@@ -199,7 +203,10 @@ watch(
       v-model="query"
       :placeholder="pclText('Select.Instance.Search.Hint')"
     />
-    <PLoading v-if="loading && !instances.length" :loading-text="pclText('Select.Instance.Loading')" />
+    <PLoading
+      v-if="loading && !instances.length"
+      :loading-text="pclText('Select.Instance.Loading')"
+    />
     <PHint v-else-if="error && !instances.length" severity="error"
       >{{ error
       }}<PButton inline @click="load">{{
