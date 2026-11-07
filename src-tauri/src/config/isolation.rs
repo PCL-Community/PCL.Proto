@@ -112,63 +112,6 @@ pub fn directory<'a>(
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use pcl_core::minecraft::instance::folder::McFolder;
-
-    #[test]
-    fn defaults_and_existing_content_determine_isolation_once_per_directory() {
-        let root = std::env::temp_dir().join(format!("pcl-isolation-{}", uuid::Uuid::new_v4()));
-        let path = root.join("versions/first");
-        fs::create_dir_all(&path).unwrap();
-        let metadata = path.join("first.json");
-        fs::write(
-            &metadata,
-            r#"{"id":"1.20.1","type":"release","releaseTime":"2023-06-12T00:00:00Z"}"#,
-        )
-        .unwrap();
-        fs::write(path.join("first.jar"), b"jar").unwrap();
-        let repo = McFolder::new("test", root.clone());
-        let mut instance = McInstance::from_version_folder(&path, &repo).unwrap();
-        for (mode, expected) in [
-            (IsolationDefault::Off, false),
-            (IsolationDefault::Modded, false),
-            (IsolationDefault::NonRelease, false),
-            (IsolationDefault::ModdedOrNonRelease, false),
-            (IsolationDefault::All, true),
-        ] {
-            assert_eq!(initial(&instance, mode).unwrap(), expected);
-        }
-        instance.plugins_version.insert("fabric".into(), "1".into());
-        assert!(initial(&instance, IsolationDefault::Modded).unwrap());
-        assert!(!initial(&instance, IsolationDefault::NonRelease).unwrap());
-        assert!(initial(&instance, IsolationDefault::ModdedOrNonRelease).unwrap());
-        instance.plugins_version.clear();
-        fs::write(
-            &metadata,
-            r#"{"id":"1.2.5","type":"release","releaseTime":"2012-04-04T00:00:00Z"}"#,
-        )
-        .unwrap();
-        assert!(initial(&instance, IsolationDefault::NonRelease).unwrap());
-        fs::write(&metadata, r#"{"id":"20w14infinite","type":"snapshot"}"#).unwrap();
-        instance.version = "20w14infinite".into();
-        assert!(initial(&instance, IsolationDefault::NonRelease).unwrap());
-        fs::create_dir(path.join("mods")).unwrap();
-        fs::write(path.join("mods/mod.jar"), b"mod").unwrap();
-        assert!(initial(&instance, IsolationDefault::Off).unwrap());
-        fs::remove_dir_all(path.join("mods")).unwrap();
-        fs::create_dir_all(path.join("saves/world")).unwrap();
-        assert!(initial(&instance, IsolationDefault::Off).unwrap());
-        fs::remove_dir_all(path.join("saves")).unwrap();
-        let mut overrides = std::collections::HashMap::new();
-        assert_eq!(directory(&overrides, &instance), path);
-        overrides.insert(path.clone(), false);
-        assert_eq!(directory(&overrides, &instance), root);
-        fs::remove_dir_all(root).unwrap();
-    }
-}
-
 use crate::config::java_preference::current_instance;
 
 use crate::config::states::AppState;
@@ -228,4 +171,61 @@ pub fn set_default(state: &mut AppState, value: IsolationDefault) -> Result<(), 
     }
     state.isolation_default = value;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pcl_core::minecraft::instance::folder::McFolder;
+
+    #[test]
+    fn defaults_and_existing_content_determine_isolation_once_per_directory() {
+        let root = std::env::temp_dir().join(format!("pcl-isolation-{}", uuid::Uuid::new_v4()));
+        let path = root.join("versions/first");
+        fs::create_dir_all(&path).unwrap();
+        let metadata = path.join("first.json");
+        fs::write(
+            &metadata,
+            r#"{"id":"1.20.1","type":"release","releaseTime":"2023-06-12T00:00:00Z"}"#,
+        )
+        .unwrap();
+        fs::write(path.join("first.jar"), b"jar").unwrap();
+        let repo = McFolder::new("test", root.clone());
+        let mut instance = McInstance::from_version_folder(&path, &repo).unwrap();
+        for (mode, expected) in [
+            (IsolationDefault::Off, false),
+            (IsolationDefault::Modded, false),
+            (IsolationDefault::NonRelease, false),
+            (IsolationDefault::ModdedOrNonRelease, false),
+            (IsolationDefault::All, true),
+        ] {
+            assert_eq!(initial(&instance, mode).unwrap(), expected);
+        }
+        instance.plugins_version.insert("fabric".into(), "1".into());
+        assert!(initial(&instance, IsolationDefault::Modded).unwrap());
+        assert!(!initial(&instance, IsolationDefault::NonRelease).unwrap());
+        assert!(initial(&instance, IsolationDefault::ModdedOrNonRelease).unwrap());
+        instance.plugins_version.clear();
+        fs::write(
+            &metadata,
+            r#"{"id":"1.2.5","type":"release","releaseTime":"2012-04-04T00:00:00Z"}"#,
+        )
+        .unwrap();
+        assert!(initial(&instance, IsolationDefault::NonRelease).unwrap());
+        fs::write(&metadata, r#"{"id":"20w14infinite","type":"snapshot"}"#).unwrap();
+        instance.version = "20w14infinite".into();
+        assert!(initial(&instance, IsolationDefault::NonRelease).unwrap());
+        fs::create_dir(path.join("mods")).unwrap();
+        fs::write(path.join("mods/mod.jar"), b"mod").unwrap();
+        assert!(initial(&instance, IsolationDefault::Off).unwrap());
+        fs::remove_dir_all(path.join("mods")).unwrap();
+        fs::create_dir_all(path.join("saves/world")).unwrap();
+        assert!(initial(&instance, IsolationDefault::Off).unwrap());
+        fs::remove_dir_all(path.join("saves")).unwrap();
+        let mut overrides = std::collections::HashMap::new();
+        assert_eq!(directory(&overrides, &instance), path);
+        overrides.insert(path.clone(), false);
+        assert_eq!(directory(&overrides, &instance), root);
+        fs::remove_dir_all(root).unwrap();
+    }
 }

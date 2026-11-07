@@ -59,6 +59,22 @@ pub fn builder_for(settings: &ProxySettings) -> reqwest::ClientBuilder {
     }
 }
 
+pub fn clients(settings: &ProxySettings) -> Result<(reqwest::Client, reqwest::Client), String> {
+    let build = |http1| {
+        let mut builder = builder_for(settings)
+            .connect_timeout(std::time::Duration::from_secs(15))
+            .read_timeout(std::time::Duration::from_secs(15))
+            .pool_max_idle_per_host(64)
+            .pool_idle_timeout(std::time::Duration::from_secs(90));
+        if http1 {
+            builder = builder.http1_only();
+        }
+        builder.build().map_err(|error| error.to_string())
+    };
+    settings.validate()?;
+    Ok((build(false)?, build(true)?))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -79,20 +95,4 @@ mod tests {
         assert!(settings.validate().is_ok());
         assert_eq!(settings.game_endpoint(), None);
     }
-}
-
-pub fn clients(settings: &ProxySettings) -> Result<(reqwest::Client, reqwest::Client), String> {
-    let build = |http1| {
-        let mut builder = builder_for(settings)
-            .connect_timeout(std::time::Duration::from_secs(15))
-            .read_timeout(std::time::Duration::from_secs(15))
-            .pool_max_idle_per_host(64)
-            .pool_idle_timeout(std::time::Duration::from_secs(90));
-        if http1 {
-            builder = builder.http1_only();
-        }
-        builder.build().map_err(|error| error.to_string())
-    };
-    settings.validate()?;
-    Ok((build(false)?, build(true)?))
 }

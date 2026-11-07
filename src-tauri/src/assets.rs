@@ -76,7 +76,6 @@ impl Assets {
             log4j2_legacy_debug: bundled(resources::LOG4J2_LEGACY_DEBUG_NAME),
             mesa_loader: Some(resources::mesa_loader_path(&self.directory)),
             macos_arm_libraries,
-            ..Default::default()
         })
     }
 }

@@ -10,7 +10,10 @@ use serde::Serialize;
 #[serde(rename_all = "snake_case")]
 pub enum LinkRuntimeState {
     Ready,
+    // Npcap 只在 Windows 上探测与安装，其他平台始终是 Ready。
+    #[cfg(windows)]
     NeedsInstall,
+    #[cfg(windows)]
     NeedsRestart,
 }
 
