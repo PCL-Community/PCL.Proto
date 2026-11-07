@@ -68,20 +68,24 @@ const backClicked = () => {
   }
 }
 
-appWindow?.onResized(async () => {
-  isFullscreen.value = await appWindow!.isFullscreen()
-})
+if (appWindow && currentPlatform === 'macos') {
+  const updateFullscreen = async () => {
+    isFullscreen.value = await appWindow.isFullscreen()
+  }
+  void updateFullscreen()
+  void appWindow.onResized(updateFullscreen)
+}
 </script>
 
 <template lang="pug">
-  header(data-tauri-drag-region :class="{ 'windows-drag-region': currentPlatform === 'windows' }")
+  header(data-tauri-drag-region :class="{ 'windows-drag-region': currentPlatform === 'windows', 'mac-header': currentPlatform === 'macos' && !isFullscreen }")
     Transition(name="nav")
-      .left.title(v-if="!isSubPage" :class="{ 'mac-margin-title': currentPlatform == 'macos' }")
+      .left.title(v-if="!isSubPage")
         title-logo(v-if="logoType === '1'")
         .title-tag(v-if="logoType === '1'") Proto
         .custom-title(v-else-if="logoType === '2'") {{ appearance.values.TextLogoText }}
         img.custom-logo(v-else-if="logoType === '3' && logoImage" :src="logoImage" alt="")
-      .left(v-else :class="{ 'mac-margin-title': currentPlatform == 'macos' }")
+      .left(v-else)
         i.button-animated(@click="backClicked")
           PSvgIcon(name="lucide/arrow-left" :size="18")
         span.title-text(v-if="title" data-tauri-drag-region) {{ pclText(title) }}
@@ -89,7 +93,7 @@ appWindow?.onResized(async () => {
 
     Transition(name="nav")
       .center(v-if="!isSubPage" :class="{ 'logo-left': logoLeft }" data-tauri-drag-region)
-        nav#main-nav(:class="{ 'mac-margin-nav': currentPlatform == 'macos' && !logoLeft, 'logo-left': logoLeft }")
+        nav#main-nav
           RouterLink(v-for="item in navItems" :key="item.to" :to="lastSubTabOf(item.to) ?? item.to")
             component(:is="item.icon")
             | {{ pclText(item.label) }}
@@ -118,17 +122,22 @@ appWindow?.onResized(async () => {
 }
 
 header {
+  --header-left: 18px;
   width: 100%;
   height: 48px;
   background: var(--color-titlebar);
 
   display: flex;
   align-items: center;
-  padding: 0 18px;
+  padding: 0 18px 0 var(--header-left);
   flex-shrink: 0;
   z-index: 4;
   position: relative;
   color: white;
+}
+
+header.mac-header {
+  --header-left: 82px;
 }
 
 /* WebView2 native drag regions also support touch input. */
@@ -160,14 +169,13 @@ header .left {
   display: flex;
   gap: 10px;
   position: absolute;
-  left: 18px;
+  left: var(--header-left);
   top: 0;
   height: 100%;
   align-items: center;
 }
 
 header .center.logo-left { justify-content: flex-start; }
-#main-nav.logo-left { margin-left: 64px; }
 
 .custom-title { color: white; }
 .custom-logo { max-width: 180px; max-height: 32px; object-fit: contain; }
@@ -179,15 +187,6 @@ header .center {
   align-items: center;
   height: 100%;
 }
-
-.mac-margin-title {
-  margin-left: v-bind("isFullscreen ? '0px' : '64px'");
-}
-
-.mac-margin-nav {
-  margin-left: v-bind("isFullscreen ? '0px' : '40px'");
-}
-
 
 header .right {
   display: flex;

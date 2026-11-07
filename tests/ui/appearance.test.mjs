@@ -37,10 +37,24 @@ const result = await build({
           path: 'settings',
           namespace: 'test',
         }))
-        builder.onLoad({ filter: /.*/, namespace: 'test' }, () => ({
+        builder.onResolve({ filter: /^@\/api\/pclLocale$/ }, () => ({
+          path: 'locale',
+          namespace: 'test',
+        }))
+        builder.onResolve({ filter: /^@\/composables\/sideTip$/ }, () => ({
+          path: 'sideTip',
+          namespace: 'test',
+        }))
+        builder.onLoad({ filter: /^settings$/, namespace: 'test' }, () => ({
           contents:
             "import { reactive } from 'vue'; export const usePageSettings = (_, defaults) => ({ values: reactive(defaults) })",
           resolveDir: process.cwd(),
+        }))
+        builder.onLoad({ filter: /^locale$/, namespace: 'test' }, () => ({
+          contents: 'export const pclText = (key) => key',
+        }))
+        builder.onLoad({ filter: /^sideTip$/, namespace: 'test' }, () => ({
+          contents: 'export default { show() {} }',
         }))
       },
     },

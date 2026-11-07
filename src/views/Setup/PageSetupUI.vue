@@ -494,22 +494,22 @@ async function clearTitleLogo() {
       <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
         <div class="setup-radio-options">
           <label class="pcl-radio"
-            ><input type="radio" v-model="values['UiLogoType']" value="0" />{{
+            ><input type="radio" name="title-logo-type" :checked="values.UiLogoType === '0'" value="0" @change="values.UiLogoType = '0'" />{{
               pclText('Setup.Ui.Logo.None')
             }}</label
           >
           <label class="pcl-radio"
-            ><input type="radio" v-model="values['UiLogoType']" value="1" />{{
+            ><input type="radio" name="title-logo-type" :checked="values.UiLogoType === '1'" value="1" @change="values.UiLogoType = '1'" />{{
               pclText('Common.Option.Default')
             }}</label
           >
           <label class="pcl-radio"
-            ><input type="radio" v-model="values['UiLogoType']" value="2" />{{
+            ><input type="radio" name="title-logo-type" :checked="values.UiLogoType === '2'" value="2" @change="values.UiLogoType = '2'" />{{
               pclText('Setup.Ui.Logo.Text')
             }}</label
           >
           <label class="pcl-radio"
-            ><input type="radio" v-model="values['UiLogoType']" value="3" />{{
+            ><input type="radio" name="title-logo-type" :checked="values.UiLogoType === '3'" value="3" @change="values.UiLogoType = '3'" />{{
               pclText('Setup.Ui.Logo.Image')
             }}</label
           >
