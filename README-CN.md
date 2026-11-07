@@ -29,7 +29,7 @@
 - 请安装 Bun 1.4.4 或更新版本。项目使用 Bun 管理依赖、运行脚本、格式化和执行 UI 检查。
 - 设备应已安装可用的`rust`工具链。对于 Windows，需要使用 MSVC 版本的工具链。并确保你已经在 Visual Studio 安装器中安装了 C++ 开发工具中的 MSVC 套件以及 Windows SDK；对于 macOS，需要确保已安装 Xcode。
 
-- 对于 Windows 平台，你还需要下载并配置 [Npcap SDK](https://npcap.com/#download)；对于 macOS，你需要通过 Homebrew 安装 protobuf（`brew install protobuf`）；对于 Ubuntu，你需要安装以下软件包：`libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf protobuf-compiler`。
+- 对于 Windows 平台，运行 `bun run setup:windows` 准备 Npcap SDK、Protobuf 编译器和 WinDivert 驱动，并安装完整的 Npcap 运行时及 WebView2。Npcap 安装时需要启用 WinPcap API-compatible Mode，仅安装 SDK 无法解决 `packet.dll` 缺失。对于 macOS，你需要通过 Homebrew 安装 protobuf（`brew install protobuf`）；对于 Ubuntu，你需要安装以下软件包：`libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf protobuf-compiler`。
 
 > [!NOTE]
 > 如有疑惑，可参考 [前置要求 | Tauri](https://tauri.app/zh-cn/start/prerequisites/)。

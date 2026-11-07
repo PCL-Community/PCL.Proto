@@ -143,8 +143,7 @@ impl JavaInstallation {
             "Java executable does not exist: {}",
             java_path.display()
         );
-        let mut java_exe = java_path
-            .canonicalize()
+        let mut java_exe = crate::utils::canonicalize(java_path)
             .with_context(|| format!("Invalid Java path: {}", java_path.display()))?;
         let mut release = read_release_near(&java_exe);
         let mut probed = None;
@@ -155,7 +154,7 @@ impl JavaInstallation {
                 .and_then(|probe| probe.home.as_ref())
                 .map(|home| home.join("bin").join(java_binary()))
                 .filter(|actual| actual.is_file())
-                .and_then(|actual| actual.canonicalize().ok())
+                .and_then(|actual| crate::utils::canonicalize(actual).ok())
             {
                 java_exe = actual;
                 release = read_release_near(&java_exe);

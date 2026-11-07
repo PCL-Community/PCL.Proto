@@ -7,7 +7,7 @@ use pcl_core::utils::platform::OS;
 
 /// 可执行文件旁边的 `.minecraft`（AppImage 使用原始路径）。
 pub fn launcher_minecraft_directory() -> Option<PathBuf> {
-    let executable = std::env::current_exe().ok()?.canonicalize().ok()?;
+    let executable = pcl_core::utils::canonicalize(std::env::current_exe().ok()?).ok()?;
     let appimage = std::env::var_os("APPIMAGE").map(PathBuf::from);
     let os = OS::current();
     if os == OS::macOS {
@@ -45,7 +45,7 @@ pub fn create_default_directory(
     let prepare = |path: &Path| -> std::io::Result<PathBuf> {
         std::fs::create_dir_all(path.join("versions"))?;
         tempfile::tempfile_in(path)?;
-        path.canonicalize()
+        pcl_core::utils::canonicalize(path)
     };
     if let Some(path) = portable {
         match prepare(path) {

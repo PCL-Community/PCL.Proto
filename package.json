@@ -10,7 +10,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun run tauri dev",
-    "build": "bun scripts/check-icons.js && bun run tauri build",
+    "build": "bun run tauri build",
     "ui:dev": "vite",
     "ui:build": "bun run check:ui && bun run --parallel type-check ui:build-only",
     "ui:build-only": "vite build",
@@ -19,7 +19,9 @@
     "format": "bun fmt src/",
     "deploy": "bun run ui:build && gh-pages -d dist",
     "icons": "tauri icon public/PCL.Proto.png",
-    "tauri": "tauri",
+    "tauri": "bun scripts/tauri.js",
+    "setup:windows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/windows/setup-development.ps1",
+    "package:portable": "bun scripts/package-portable.js",
     "check:ui": "bun test --isolate --max-concurrency=1 tests/ui/*.test.mjs"
   },
   "dependencies": {

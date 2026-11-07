@@ -23,6 +23,7 @@ pub mod session;
 pub mod skin;
 pub mod sources;
 pub mod system;
+pub mod title_logo;
 pub mod versions;
 
 /// 把 Tauri 的进度通道包装成核心库认识的普通回调；界面关闭后事件被丢弃。

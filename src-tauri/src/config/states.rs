@@ -12,12 +12,12 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 /// PCL global setup info, which user can modify
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(default)]
 pub struct LauncherSetup {
     setup_version: i32,
     theme: Theme,
     pub api_provider: ApiProvider,
     pub max_memory: usize,
-    #[serde(default)]
     pub selected_java: Option<PathBuf>,
 }
 
@@ -78,57 +78,38 @@ impl ProfileConfig {
 
 /// Something that would be shared all over the app and may be displayed
 #[derive(Clone, serde::Serialize, serde::Deserialize, Default)]
+#[serde(default)]
 pub struct AppState {
     pub java_runtimes: Vec<pcl_core::minecraft::java::JavaEntry>,
-    #[serde(default)]
     pub profile: ProfileConfig,
     #[serde(rename = "pcl_setup_info")]
     pub launcher_setup: LauncherSetup,
     pub repositories: Vec<McFolder>,
     pub active_game_instance: Option<Arc<McInstance>>,
     pub active_repo_path: PathBuf,
-    #[serde(default)]
     pub java_preferences: HashMap<PathBuf, crate::config::java_preference::InstanceJavaSettings>,
-    #[serde(default)]
     pub download_settings: Option<crate::config::download::DownloadSettings>,
-    #[serde(default)]
     pub log_max_lines: Option<u32>,
-    #[serde(default)]
     pub window_settings: Option<WindowSettings>,
-    #[serde(default)]
     pub memory_settings: Option<crate::config::memory::MemorySettings>,
-    #[serde(default)]
     pub instance_memory_settings: HashMap<PathBuf, crate::config::memory::MemorySettings>,
-    #[serde(default)]
     pub memory_custom: Option<crate::config::memory::MemoryCustom>,
-    #[serde(default)]
     pub instance_memory_custom: HashMap<PathBuf, crate::config::memory::MemoryCustom>,
-    #[serde(default)]
     pub isolation_default: crate::config::isolation::IsolationDefault,
-    #[serde(default)]
     pub instance_isolation: HashMap<PathBuf, bool>,
-    #[serde(default)]
     pub launch_arguments: Option<crate::config::arguments::LaunchArguments>,
-    #[serde(default)]
     pub instance_launch_arguments: HashMap<PathBuf, crate::config::arguments::LaunchArguments>,
-    #[serde(default)]
     pub launcher_visibility: crate::window::LauncherVisibility,
-    #[serde(default)]
     pub instance_launch_settings:
         HashMap<PathBuf, crate::config::launch_settings::InstanceLaunchSettings>,
-    #[serde(default)]
     pub renderer: u8,
     #[serde(default = "crate::config::metadata::default_version_info")]
     pub version_info: String,
     #[serde(default = "default_true")]
     pub disable_jlw: bool,
-    #[serde(default)]
     pub disable_legacy_fix: bool,
-    #[serde(default)]
     pub disable_lwjgl_unsafe_agent: bool,
-    #[serde(default)]
     pub proxy: crate::config::network::ProxySettings,
-    #[serde(default)]
     pub instance_descriptions: HashMap<PathBuf, String>,
 }
 

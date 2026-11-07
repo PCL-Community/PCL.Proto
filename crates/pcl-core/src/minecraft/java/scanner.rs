@@ -208,7 +208,7 @@ pub(crate) fn discover_paths(roots: Vec<PathBuf>) -> HashSet<PathBuf> {
     let mut visited = HashSet::new();
     let mut queue: VecDeque<_> = roots.into_iter().map(|p| (p, 0)).collect();
     while let Some((path, depth)) = queue.pop_front() {
-        let Ok(path) = path.canonicalize() else {
+        let Ok(path) = crate::utils::canonicalize(path) else {
             continue;
         };
         if !visited.insert(path.clone()) || depth > 6 {

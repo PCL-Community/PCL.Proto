@@ -480,7 +480,11 @@ mod download_tests {
         assert_eq!(runtime.major_version(), 25);
         assert!(runtime.is_enabled);
         assert!(!runtime.is_jdk());
-        assert!(runtime.java_exe.starts_with(temp.0.canonicalize().unwrap()));
+        assert!(
+            runtime
+                .java_exe
+                .starts_with(crate::utils::canonicalize(&temp.0).unwrap())
+        );
         let root = runtime.java_folder.parent().unwrap();
         assert_eq!(fs::read(root.join("legal/NOTICE")).unwrap(), b"license");
         assert!(fs::read_dir(&temp.0).unwrap().all(|e| {

@@ -32,11 +32,6 @@ const baseColor = {
         : disabled
           ? 'var(--color-text-grey)'
           : baseColor[type ?? 'default'],
-      borderColor: inline
-        ? undefined
-        : disabled
-          ? 'var(--color-text-grey)'
-          : baseColor[type ?? 'default'],
       cursor: disabled ? 'not-allowed' : 'pointer',
     }"
     @click="!disabled && emit('click', $event)"
@@ -62,20 +57,29 @@ const baseColor = {
   padding: 0.5rem;
   /* 背景过渡由 CSS 处理，Motion 只负责缩放。 */
   background-color: var(--color-tint-rest);
-  transition: background-color 0.2s linear;
+  transition: background-color 0.2s linear, border-color 0.2s linear;
   border-radius: 4px;
-  border: 1px solid rgba(52, 61, 74, 1);
+  border: 1px solid var(--color-text-black);
   outline: none;
+}
+
+.mybutton.tint {
+  border-color: var(--ce-color-2);
 }
 
 /* 警告按钮静止态也用警告色、仅 alpha 0，保证过渡只改 alpha。 */
 .mybutton.warn {
+  border-color: var(--color-warn);
   background-color: rgb(from var(--color-warn) r g b / 0);
 }
 
 .mybutton:not(:disabled):is(:hover, :active) {
   background-color: var(--color-tint-lighter);
   transition-duration: 0.1s;
+}
+
+.mybutton.default:not(:disabled):is(:hover, :active) {
+  border-color: var(--ce-color-2);
 }
 
 .mybutton.warn:not(:disabled):is(:hover, :active) {

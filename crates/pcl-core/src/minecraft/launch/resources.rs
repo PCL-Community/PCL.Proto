@@ -9,15 +9,67 @@ pub const LWJGL_UNSAFE_AGENT_NAME: &str = "lwjgl-unsafe-agent.jar";
 pub const LOG4J2_DEBUG_NAME: &str = "log4j2-debug.xml";
 pub const LOG4J2_LEGACY_DEBUG_NAME: &str = "log4j2-legacy-debug.xml";
 
-pub const JAVA_WRAPPER: &[u8] = include_bytes!("../../../resources/launch/java-wrapper.jar");
-pub const LEGACY_FIX: &[u8] = include_bytes!("../../../resources/launch/legacyfix.jar");
-pub const LWJGL_UNSAFE_AGENT: &[u8] =
-    include_bytes!("../../../resources/launch/lwjgl-unsafe-agent.jar");
-pub const LOG4J2_DEBUG: &[u8] = include_bytes!("../../../resources/launch/log4j2-debug.xml");
-pub const LOG4J2_LEGACY_DEBUG: &[u8] =
-    include_bytes!("../../../resources/launch/log4j2-legacy-debug.xml");
-pub const MACOS_ARM_LIBRARIES: &str =
-    include_str!("../../../resources/launch/macos-arm64-libraries.json");
+pub const MACOS_ARM_LIBRARIES_NAME: &str = "macos-arm64-libraries.json";
+
+/// 外部资源宿主关闭 embedded-resources 后，辅助文件不会进入可执行文件。
+pub fn embedded(name: &str) -> Option<&'static [u8]> {
+    #[cfg(feature = "embedded-resources")]
+    return match name {
+        JAVA_WRAPPER_NAME => Some(include_bytes!("../../../resources/launch/java-wrapper.jar")),
+        LEGACY_FIX_NAME => Some(include_bytes!("../../../resources/launch/legacyfix.jar")),
+        LWJGL_UNSAFE_AGENT_NAME => Some(include_bytes!(
+            "../../../resources/launch/lwjgl-unsafe-agent.jar"
+        )),
+        LOG4J2_DEBUG_NAME => Some(include_bytes!("../../../resources/launch/log4j2-debug.xml")),
+        LOG4J2_LEGACY_DEBUG_NAME => Some(include_bytes!(
+            "../../../resources/launch/log4j2-legacy-debug.xml"
+        )),
+        super::super::installer::forgelike::BRIDGE_NAME => Some(include_bytes!(
+            "../../../resources/installer/forge-installer.jar"
+        )),
+        MACOS_ARM_LIBRARIES_NAME => Some(include_bytes!(
+            "../../../resources/launch/macos-arm64-libraries.json"
+        )),
+        _ => None,
+    };
+    #[cfg(not(feature = "embedded-resources"))]
+    {
+        let _ = name;
+        None
+    }
+}
+
+/// 优先使用宿主提供的文件；缺失时明确报错，不能生成空 JAR 或回退到旧缓存。
+pub fn helper_path(
+    supplied: Option<&Path>,
+    directory: &Path,
+    name: &str,
+) -> std::io::Result<PathBuf> {
+    if let Some(path) = supplied {
+        let metadata = std::fs::metadata(path).map_err(|error| {
+            std::io::Error::new(
+                error.kind(),
+                format!("Missing resource {}: {error}", path.display()),
+            )
+        })?;
+        if !metadata.is_file() || metadata.len() == 0 {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Invalid resource: {}", path.display()),
+            ));
+        }
+        return Ok(path.to_owned());
+    }
+    let bytes = embedded(name).ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!("The host must provide {name}; embedded-resources is disabled"),
+        )
+    })?;
+    let path = directory.join(name);
+    crate::io::files::write_embedded(&path, bytes)?;
+    Ok(path)
+}
 
 /// 渲染器代理的版本，对照 CE 的 mesa-loader-windows。
 pub const MESA_LOADER_VERSION: &str = "26.0.4";

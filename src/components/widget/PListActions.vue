@@ -8,28 +8,28 @@
   align-items: center;
   flex-shrink: 0;
   gap: 0;
+  max-width: 0;
+  overflow: hidden;
   opacity: 0;
   pointer-events: none;
   transition: opacity 72ms;
 }
 :global(.gameinfo-container:hover .list-actions),
-:global(.gameinfo-container:focus-within .list-actions) {
+:global(.gameinfo-container:focus-within .list-actions),
+:global(.gameinfo-container .list-actions:has(details[open])),
+:global(.comp-item:hover .list-actions),
+:global(.comp-item:focus-within .list-actions) {
+  max-width: none;
+  overflow: visible;
   opacity: 1;
   pointer-events: auto;
   transition-duration: 84ms;
   transition-delay: 36ms;
 }
-:global(.gameinfo-container .list-actions:has(details[open])) {
-  opacity: 1;
-  pointer-events: auto;
-}
-:global(.comp-item:hover .list-actions),
-:global(.comp-item:focus-within .list-actions) {
-  opacity: 1;
-  pointer-events: auto;
-}
 @media (hover: none) {
   .list-actions {
+    max-width: none;
+    overflow: visible;
     opacity: 1;
     pointer-events: auto;
   }

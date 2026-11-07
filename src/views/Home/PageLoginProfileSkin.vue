@@ -316,7 +316,7 @@ async function openMenu(event: MouseEvent, actions: readonly string[]) {
         website ? 'https://minotar.net/skin/AMagicPear' : account.skinFor(profile?.profileId)
       "
     /><strong>{{ profile?.userName || 'Player' }}</strong
-    ><span>{{ getProfileInfo(profile) }}</span>
+    ><span :title="getProfileInfo(profile)">{{ getProfileInfo(profile) }}</span>
     <div class="profile-actions-reveal">
       <PCard hide-title class="profile-actions-card"
         ><div class="profile-actions">
@@ -375,8 +375,12 @@ async function openMenu(event: MouseEvent, actions: readonly string[]) {
   font-weight: normal;
 }
 .profile-skin > span {
+  max-width: 100%;
+  overflow: hidden;
   color: var(--color-text-grey);
   font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .profile-actions {
   display: flex;

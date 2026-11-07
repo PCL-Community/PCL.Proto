@@ -214,7 +214,10 @@ mod tests {
         let state = tokio::sync::Mutex::new(state);
         let candidates = installer_candidates(&state).await;
         assert_eq!(candidates.len(), 1);
-        assert_eq!(candidates[0].java_exe, executable.canonicalize().unwrap());
+        assert_eq!(
+            candidates[0].java_exe,
+            pcl_core::utils::canonicalize(&executable).unwrap()
+        );
         std::fs::remove_dir_all(root).unwrap();
         assert!(installer_candidates(&state).await.is_empty());
     }

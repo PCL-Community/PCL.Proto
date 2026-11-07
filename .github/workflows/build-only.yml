@@ -18,7 +18,7 @@ jobs:
           - platform: 'ubuntu-22.04'
             args: ''
           - platform: 'windows-latest'
-            args: ''
+            args: '--no-bundle'
 
     steps:
       - uses: actions/checkout@v7
@@ -52,17 +52,10 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: download and setup npcap sdk (windows only)
+      - name: prepare Windows native dependencies
         if: matrix.platform == 'windows-latest'
-        run: |
-          $url = "https://npcap.com/dist/npcap-sdk-1.16.zip"
-          $output = "npcap-sdk.zip"
-          Invoke-WebRequest -Uri $url -OutFile $output
-          Expand-Archive -Path $output -DestinationPath "npcap-sdk"
-          $npcapLibPath = (Resolve-Path "npcap-sdk\Lib\x64").Path
-          echo "NPCAP_SDK_LIB=$npcapLibPath" >> $env:GITHUB_ENV
-          echo "LIB=$npcapLibPath;$env:LIB" >> $env:GITHUB_ENV
-          echo "设置 LIB 环境变量为: $npcapLibPath"
+        shell: pwsh
+        run: ./scripts/windows/prepare-ci.ps1
 
       - name: install frontend dependencies
         run: bun install --frozen-lockfile
@@ -70,8 +63,9 @@ jobs:
       - name: generate icons
         run: bun run icons
 
-      - name: build frontend
-        run: bun run ui:build
+      - name: build frontend resources for macOS tests
+        if: matrix.platform == 'macos-latest'
+        run: bun run ui:build-only
 
       - name: test core crate
         shell: bash
@@ -83,12 +77,16 @@ jobs:
           cargo test -p pcl-proto --lib
 
       - name: build tauri app
-        run: bun run tauri build ${{ matrix.args }}
+        run: bun x --no-install tauri build ${{ matrix.args }}
         env:
           # 对于 Windows，确保 LIB 环境变量被传递到构建过程
           LIB: ${{ matrix.platform == 'windows-latest' && env.LIB || '' }}
           CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
           MS_CLIENT_ID: ${{ secrets.MS_CLIENT_ID }}
+
+      - name: package portable application
+        if: matrix.platform != 'macos-latest'
+        run: bun run package:portable
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
@@ -96,8 +94,8 @@ jobs:
           name: tauri-build-${{ matrix.platform }}-${{ matrix.args == '' && 'default' || matrix.args }}
           path: |
             ${{ matrix.platform == 'macos-latest' && 'target/**/release/bundle/**/*.dmg' || '' }}
-            ${{ matrix.platform == 'windows-latest' && 'target/**/release/bundle/**/*.exe' || '' }}
-            ${{ matrix.platform == 'windows-latest' && 'target/**/release/bundle/**/*.msi' || '' }}
+            ${{ matrix.platform != 'macos-latest' && 'target/portable/*.zip' || '' }}
+            ${{ matrix.platform != 'macos-latest' && 'target/portable/*.tar.gz' || '' }}
             ${{ matrix.platform == 'ubuntu-22.04' && 'target/**/release/bundle/**/*.deb' || '' }}
             ${{ matrix.platform == 'ubuntu-22.04' && 'target/**/release/bundle/**/*.rpm' || '' }}
           if-no-files-found: error

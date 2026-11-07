@@ -11,7 +11,9 @@ keywords = ["minecraft", "launcher", "mod-loader", "instance"]
 categories = ["games"]
 
 [features]
-default = []
+default = ["embedded-resources"]
+# 独立使用 core 时可按需释放辅助文件；外部资源宿主关闭默认功能并传入路径。
+embedded-resources = []
 # Modrinth / CurseForge 资源接入与下载；凭据由调用方提供。
 community = []
 # 微软 OAuth / Xbox / Minecraft 登录；Client ID 由调用方提供。
@@ -62,10 +64,11 @@ trash = "5.2.9"
 fastnbt = "2.6.3"
 flate2 = "1.1.10"
 tempfile = "3.27.0"
+dunce = "1"
 terracotta = { path = "../terracotta", version = "2.5.0-pcl.proto", optional = true }
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_Globalization"] }
+windows-sys = { version = "0.61", features = ["Win32_Globalization", "Win32_System_Threading"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

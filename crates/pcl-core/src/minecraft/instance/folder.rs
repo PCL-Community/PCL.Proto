@@ -20,15 +20,12 @@ pub fn discover_repositories(
         else {
             continue;
         };
-        let Ok(path) = path.canonicalize() else {
+        let Ok(path) = crate::utils::canonicalize(path) else {
             continue;
         };
         if known.iter().chain(&discovered).any(|repo| {
             repo.path == path
-                || repo
-                    .path
-                    .canonicalize()
-                    .is_ok_and(|existing| existing == path)
+                || crate::utils::canonicalize(&repo.path).is_ok_and(|existing| existing == path)
         }) {
             continue;
         }

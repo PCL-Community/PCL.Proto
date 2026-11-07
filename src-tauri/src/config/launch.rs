@@ -68,7 +68,7 @@ pub fn request(state: &AppState, java: Arc<JavaEntry>) -> Result<LaunchOption, G
             name: LAUNCHER_NAME.into(),
             version: APP_VERSION.into(),
         },
-        helpers: crate::assets::Assets::new(config.config_dir()).launch_helpers(),
+        helpers: crate::assets::Assets::new(config.config_dir()).launch_helpers()?,
         instance: Arc::clone(game_instance),
         profile: account.clone(),
         java,

@@ -82,6 +82,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::system::system_fonts,
+            commands::title_logo::get_title_logo,
+            commands::title_logo::set_title_logo,
+            commands::title_logo::clear_title_logo,
             commands::homepage::load_custom_homepage,
             commands::homepage::save_custom_homepage,
             commands::launch::begin_launch,

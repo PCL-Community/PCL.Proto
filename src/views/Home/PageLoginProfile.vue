@@ -240,9 +240,9 @@ async function createProfile() {
 }
 .profile-item :deep(.subtitle) {
   font-size: 12px;
-}
-.profile-item :deep(.list-actions) {
-  margin-right: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .profile-head {
   position: relative;
@@ -259,7 +259,7 @@ async function createProfile() {
   left: 50%;
   top: 50%;
   margin: 0;
-  transform: translate(-50%, -50%) scale(0.625);
+  transform: translate(-50%, -50%) scale(0.5357);
 }
 .create-card {
   align-self: center;

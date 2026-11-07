@@ -18,10 +18,11 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.7.4", features = [] }
 
 [dependencies]
-pcl-core = { path = "../crates/pcl-core", features = ["community", "microsoft", "link"] }
+pcl-core = { path = "../crates/pcl-core", default-features = false, features = ["community", "microsoft", "link"] }
 
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+serde_yaml = "0.9"
 log = "0.4.35"
 anyhow = "1.0.104"
 tauri = { version = "2.12.5", features = [] }
@@ -47,6 +48,9 @@ tauri = { version = "2.12.5", features = ["test"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Globalization"] }
+
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+pcl-core = { path = "../crates/pcl-core", default-features = false, features = ["embedded-resources"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

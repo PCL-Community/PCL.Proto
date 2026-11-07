@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TitleLogo from '@/assets/icons/TitleLogo.svg'
 import useSideNavState from '@/stores/windowState'
@@ -11,6 +11,8 @@ import { debug } from '@tauri-apps/plugin-log'
 import { isTauri } from '@tauri-apps/api/core'
 import PSvgIcon from './widget/PSvgIcon.vue'
 import { pclText } from '@/api/pclLocale'
+import { appearance } from '@/api/appearance'
+import { invoke } from '@tauri-apps/api/core'
 
 const sideNavState = useSideNavState()
 const appWindow = isTauri() ? getCurrentWindow() : null
@@ -22,6 +24,18 @@ const router = useRouter()
 const fromPage = ref<string>() // 在进入特殊页面时记录的来源页面
 const title = ref<string>() // 页面标题
 const isFullscreen = ref(false)
+const logoImage = ref<string>()
+const logoType = computed(() => appearance.values.UiLogoType)
+const logoLeft = computed(() => logoType.value === '0' && appearance.values.CheckLogoLeft)
+
+if (isTauri()) {
+  void invoke<string | null>('get_title_logo')
+    .then((image) => { logoImage.value = image ?? undefined })
+    .catch((error) => console.error('Failed to load title logo:', error))
+  window.addEventListener('title-logo-updated', (event) => {
+    logoImage.value = (event as CustomEvent<string | null>).detail ?? undefined
+  })
+}
 
 // 监听路由变化，判断是否为特殊页面，并记录来源页面
 watch(
@@ -60,11 +74,13 @@ appWindow?.onResized(async () => {
 </script>
 
 <template lang="pug">
-  header(data-tauri-drag-region)
+  header(data-tauri-drag-region :class="{ 'windows-drag-region': currentPlatform === 'windows' }")
     Transition(name="nav")
       .left.title(v-if="!isSubPage" :class="{ 'mac-margin-title': currentPlatform == 'macos' }")
-        title-logo()
-        .title-tag Proto
+        title-logo(v-if="logoType === '1'")
+        .title-tag(v-if="logoType === '1'") Proto
+        .custom-title(v-else-if="logoType === '2'") {{ appearance.values.TextLogoText }}
+        img.custom-logo(v-else-if="logoType === '3' && logoImage" :src="logoImage" alt="")
       .left(v-else :class="{ 'mac-margin-title': currentPlatform == 'macos' }")
         i.button-animated(@click="backClicked")
           PSvgIcon(name="lucide/arrow-left" :size="18")
@@ -72,8 +88,8 @@ appWindow?.onResized(async () => {
 
 
     Transition(name="nav")
-      .center(v-if="!isSubPage" data-tauri-drag-region)
-        nav#main-nav(:class="{ 'mac-margin-nav': currentPlatform == 'macos' }")
+      .center(v-if="!isSubPage" :class="{ 'logo-left': logoLeft }" data-tauri-drag-region)
+        nav#main-nav(:class="{ 'mac-margin-nav': currentPlatform == 'macos' && !logoLeft, 'logo-left': logoLeft }")
           RouterLink(v-for="item in navItems" :key="item.to" :to="lastSubTabOf(item.to) ?? item.to")
             component(:is="item.icon")
             | {{ pclText(item.label) }}
@@ -115,6 +131,19 @@ header {
   color: white;
 }
 
+/* WebView2 native drag regions also support touch input. */
+header.windows-drag-region,
+.windows-drag-region .center,
+.windows-drag-region .title-text {
+  app-region: drag;
+}
+
+.windows-drag-region #main-nav,
+.windows-drag-region .left i,
+.windows-drag-region .right {
+  app-region: no-drag;
+}
+
 header > .left.title {
   /* 屏蔽标题栏左侧鼠标事件 */
   pointer-events: none;
@@ -137,6 +166,12 @@ header .left {
   align-items: center;
 }
 
+header .center.logo-left { justify-content: flex-start; }
+#main-nav.logo-left { margin-left: 64px; }
+
+.custom-title { color: white; }
+.custom-logo { max-width: 180px; max-height: 32px; object-fit: contain; }
+
 header .center {
   flex: 1;
   display: flex;
@@ -152,6 +187,7 @@ header .center {
 .mac-margin-nav {
   margin-left: v-bind("isFullscreen ? '0px' : '40px'");
 }
+
 
 header .right {
   display: flex;

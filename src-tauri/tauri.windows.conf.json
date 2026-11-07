@@ -1,5 +1,8 @@
 {
   "identifier": "pcl-community.pcl.proto",
+  "bundle": {
+    "active": false
+  },
   "app": {
     "windows": [
       {

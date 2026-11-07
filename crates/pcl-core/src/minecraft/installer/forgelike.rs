@@ -7,7 +7,6 @@ use std::{fs, io::Read, path::Path};
 
 /// 默认 Forge / NeoForge 处理器桥接，宿主可随应用打包并传入替代路径。
 pub const BRIDGE_NAME: &str = "forge-installer.jar";
-pub const BRIDGE: &[u8] = include_bytes!("../../../resources/installer/forge-installer.jar");
 
 const MAX_JSON_BYTES: u64 = 4 * 1024 * 1024;
 const MAX_ENTRY_BYTES: u64 = 512 * 1024 * 1024;
@@ -470,14 +469,8 @@ pub(super) async fn run_processors(
         serde_json::to_vec(metadata)?,
     )?;
     fs::write(root.join("launcher_profiles.json"), b"{\"profiles\":{}}")?;
-    let bridge = match forge_installer {
-        Some(path) => path.to_owned(),
-        None => {
-            let path = root.join(BRIDGE_NAME);
-            crate::io::files::write_embedded(&path, BRIDGE)?;
-            path
-        }
-    };
+    let bridge =
+        crate::minecraft::launch::resources::helper_path(forge_installer, root, BRIDGE_NAME)?;
     let classpath = std::env::join_paths([bridge.as_path(), prepared.archive.as_path()])?;
     let stdout = root.join("installer.stdout.log");
     let stderr = root.join("installer.stderr.log");
@@ -1035,7 +1028,7 @@ echo true
                     version: serde_json::json!({}),
                 },
             };
-            run_processors(
+            let result = run_processors(
                 &prepared,
                 &java,
                 &serde_json::json!({}),
@@ -1045,10 +1038,18 @@ echo true
                 &event_sink(|_| ()),
                 supplied,
             )
-            .await
-            .unwrap();
+            .await;
+            if supplied.is_none() && !cfg!(feature = "embedded-resources") {
+                assert!(result.is_err());
+                assert!(!default.exists());
+                continue;
+            }
+            result.unwrap();
             if supplied.is_none() {
-                assert_eq!(fs::read(&default).unwrap(), BRIDGE);
+                assert_eq!(
+                    fs::read(&default).unwrap(),
+                    crate::minecraft::launch::resources::embedded(BRIDGE_NAME).unwrap()
+                );
             } else {
                 assert!(!default.exists());
                 assert_eq!(fs::read(&custom).unwrap(), b"custom");

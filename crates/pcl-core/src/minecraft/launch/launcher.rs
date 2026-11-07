@@ -164,6 +164,11 @@ impl LaunchOption {
     /// Launch a Minecraft game with the given options
     fn launch(&self) -> Result<std::process::Child, GameLaunchError> {
         let mut command = self.command()?;
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(windows_sys::Win32::System::Threading::CREATE_NO_WINDOW);
+        }
         crate::minecraft::launch::settings::run_prelaunch(
             &self.extras,
             &self.game_instance.global_dir,
@@ -289,7 +294,6 @@ impl LaunchOption {
         let path = self.helper_path(
             self.helpers.java_wrapper.as_deref(),
             resources::JAVA_WRAPPER_NAME,
-            resources::JAVA_WRAPPER,
         )?;
         let mut args = Vec::new();
         if self.java_runtime.major_version() >= 9 {
@@ -307,14 +311,12 @@ impl LaunchOption {
         &self,
         supplied: Option<&std::path::Path>,
         name: &str,
-        bytes: &[u8],
     ) -> Result<std::path::PathBuf, GameLaunchError> {
-        if let Some(path) = supplied {
-            return Ok(path.to_owned());
-        }
-        let path = self.helper_directory.join(name);
-        crate::io::files::write_embedded(&path, bytes)?;
-        Ok(path)
+        Ok(resources::helper_path(
+            supplied,
+            &self.helper_directory,
+            name,
+        )?)
     }
 
     fn build_jvm_arguments(&self, custom_initial: bool) -> Result<Vec<String>, GameLaunchError> {
@@ -392,13 +394,11 @@ impl LaunchOption {
                 self.helper_path(
                     self.helpers.log4j2_legacy_debug.as_deref(),
                     resources::LOG4J2_LEGACY_DEBUG_NAME,
-                    resources::LOG4J2_LEGACY_DEBUG,
                 )?
             } else {
                 self.helper_path(
                     self.helpers.log4j2_debug.as_deref(),
                     resources::LOG4J2_DEBUG_NAME,
-                    resources::LOG4J2_DEBUG,
                 )?
             };
             args.push(format!("-Dlog4j.configurationFile={}", path.display()));
@@ -407,7 +407,6 @@ impl LaunchOption {
             let path = self.helper_path(
                 self.helpers.lwjgl_unsafe_agent.as_deref(),
                 resources::LWJGL_UNSAFE_AGENT_NAME,
-                resources::LWJGL_UNSAFE_AGENT,
             )?;
             args.push(format!("-javaagent:{}", path.display()));
         }
@@ -415,7 +414,6 @@ impl LaunchOption {
             let path = self.helper_path(
                 self.helpers.legacy_fix.as_deref(),
                 resources::LEGACY_FIX_NAME,
-                resources::LEGACY_FIX,
             )?;
             args.push(format!("-javaagent:{}", path.display()));
             if self
@@ -745,10 +743,10 @@ impl LaunchOption {
         patch_macos_arm_libraries(
             &mut self.version_details,
             &context,
-            self.helpers
-                .macos_arm_libraries
-                .as_deref()
-                .unwrap_or(resources::MACOS_ARM_LIBRARIES),
+            self.helpers.macos_arm_libraries.as_deref().or_else(|| {
+                resources::embedded(resources::MACOS_ARM_LIBRARIES_NAME)
+                    .and_then(|bytes| std::str::from_utf8(bytes).ok())
+            }),
         )?;
         patch_macos_jna(&mut self.version_details, &context)?;
         let natives = crate::minecraft::installer::prepare_launch_libraries(
@@ -840,7 +838,7 @@ fn patch_macos_jna(details: &mut McVersion, context: &McRuleContext) -> anyhow::
 fn patch_macos_arm_libraries(
     details: &mut McVersion,
     context: &McRuleContext,
-    mapping: &str,
+    mapping: Option<&str>,
 ) -> anyhow::Result<()> {
     if context.os != "osx"
         || context.arch != "aarch64"
@@ -861,7 +859,12 @@ fn patch_macos_arm_libraries(
     let replacements: std::collections::HashMap<
         String,
         Option<crate::minecraft::version::McLibrary>,
-    > = serde_json::from_str(mapping)?;
+    > = serde_json::from_str(mapping.ok_or_else(|| {
+        anyhow::anyhow!(
+            "The host must provide {}",
+            resources::MACOS_ARM_LIBRARIES_NAME
+        )
+    })?)?;
     let mut libraries = Vec::new();
     for library in &details.libraries {
         if !library.rule_allow(context)? {
@@ -951,10 +954,10 @@ mod macos_arm_patch_tests {
             version: String::new(),
             features: Default::default(),
         };
-        patch_macos_arm_libraries(&mut details, &context, MAPPING).unwrap();
+        patch_macos_arm_libraries(&mut details, &context, Some(MAPPING)).unwrap();
         assert_eq!(details.libraries[0].name, "org.lwjgl:lwjgl:3.2.1");
         context.arch = "aarch64".into();
-        patch_macos_arm_libraries(&mut details, &context, MAPPING).unwrap();
+        patch_macos_arm_libraries(&mut details, &context, Some(MAPPING)).unwrap();
         let names: Vec<_> = details
             .libraries
             .iter()
@@ -979,7 +982,7 @@ mod macos_arm_patch_tests {
                 }
             }
         }
-        patch_macos_arm_libraries(&mut details, &context, MAPPING).unwrap();
+        patch_macos_arm_libraries(&mut details, &context, Some(MAPPING)).unwrap();
         assert_eq!(details.libraries.len(), 3);
     }
 }
@@ -1211,15 +1214,20 @@ mod tests {
         assert!(!option.helper_directory.exists());
         option.extras.debug_log4j2 = true;
         let log_config = option.helper_directory.join(resources::LOG4J2_DEBUG_NAME);
-        assert!(option.agent_arguments().unwrap().contains(&format!(
-            "-Dlog4j.configurationFile={}",
-            log_config.display()
-        )));
-        assert_eq!(fs::read(&log_config).unwrap(), resources::LOG4J2_DEBUG);
+        if let Some(bytes) = resources::embedded(resources::LOG4J2_DEBUG_NAME) {
+            assert!(option.agent_arguments().unwrap().contains(&format!(
+                "-Dlog4j.configurationFile={}",
+                log_config.display()
+            )));
+            assert_eq!(fs::read(&log_config).unwrap(), bytes);
+            fs::remove_file(&log_config).unwrap();
+        } else {
+            assert!(option.agent_arguments().is_err());
+            assert!(!log_config.exists());
+        }
         let supplied = root.join("custom-log.xml");
         fs::write(&supplied, b"custom").unwrap();
         option.helpers.log4j2_debug = Some(supplied.clone());
-        fs::remove_file(&log_config).unwrap();
         assert!(
             option
                 .agent_arguments()
@@ -1229,6 +1237,7 @@ mod tests {
         assert!(!log_config.exists());
         assert_eq!(fs::read(&supplied).unwrap(), b"custom");
         option.helpers.log4j2_debug = None;
+        fs::create_dir_all(&option.helper_directory).unwrap();
         fs::create_dir(&log_config).unwrap();
         assert!(option.agent_arguments().is_err());
         fs::remove_dir(&log_config).unwrap();

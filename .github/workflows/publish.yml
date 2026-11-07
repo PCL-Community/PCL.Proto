@@ -73,7 +73,7 @@ jobs:
           - platform: 'ubuntu-22.04' # for Tauri v1 you could replace this with ubuntu-20.04.
             args: ''
           - platform: 'windows-latest'
-            args: ''
+            args: '--no-bundle'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -111,17 +111,10 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: download and setup npcap sdk (windows only)
+      - name: prepare Windows native dependencies
         if: matrix.platform == 'windows-latest'
-        run: |
-          $url = "https://npcap.com/dist/npcap-sdk-1.16.zip"
-          $output = "npcap-sdk.zip"
-          Invoke-WebRequest -Uri $url -OutFile $output
-          Expand-Archive -Path $output -DestinationPath "npcap-sdk"
-          $npcapLibPath = (Resolve-Path "npcap-sdk\Lib\x64").Path
-          echo "NPCAP_SDK_LIB=$npcapLibPath" >> $env:GITHUB_ENV
-          echo "LIB=$npcapLibPath;$env:LIB" >> $env:GITHUB_ENV
-          echo "设置 LIB 环境变量为: $npcapLibPath"
+        shell: pwsh
+        run: ./scripts/windows/prepare-ci.ps1
 
       - name: install frontend dependencies
         run: bun install --frozen-lockfile
@@ -131,6 +124,7 @@ jobs:
           bun run icons
 
       - uses: tauri-apps/tauri-action@v0
+        if: matrix.platform != 'windows-latest'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
@@ -138,6 +132,34 @@ jobs:
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
+
+      - name: build Windows portable application
+        if: matrix.platform == 'windows-latest'
+        run: bun x --no-install tauri build --no-bundle
+        env:
+          CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
+          MS_CLIENT_ID: ${{ secrets.MS_CLIENT_ID }}
+
+      - name: package portable application
+        if: matrix.platform != 'macos-latest'
+        run: bun run package:portable
+
+      - name: upload portable release assets
+        if: matrix.platform != 'macos-latest'
+        uses: actions/github-script@v9
+        env:
+          RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
+        with:
+          script: |
+            const fs = require('fs')
+            const release_id = Number(process.env.RELEASE_ID)
+            const params = { owner: context.repo.owner, repo: context.repo.repo, release_id }
+            const existing = await github.paginate(github.rest.repos.listReleaseAssets, params)
+            for (const name of fs.readdirSync('target/portable').filter(name => /\.(zip|tar\.gz)$/.test(name))) {
+              const previous = existing.find(asset => asset.name === name)
+              if (previous) await github.rest.repos.deleteReleaseAsset({ owner: context.repo.owner, repo: context.repo.repo, asset_id: previous.id })
+              await github.rest.repos.uploadReleaseAsset({ ...params, name, data: fs.readFileSync(`target/portable/${name}`) })
+            }
 
   publish-release:
     if: github.repository == 'PCL-Community/PCL.Proto'

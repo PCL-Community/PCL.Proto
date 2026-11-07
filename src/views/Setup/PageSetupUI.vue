@@ -13,6 +13,7 @@ import PComboBox from '@/components/widget/PComboBox.vue'
 import PHint from '@/components/widget/PHint.vue'
 import PTextBox from '@/components/widget/PTextBox.vue'
 import { openExternal } from '@/util/externalLink'
+import { open } from '@tauri-apps/plugin-dialog'
 import sideTip from '@/composables/sideTip'
 withDefaults(defineProps<{ hasBackground?: boolean; hasMusic?: boolean }>(), {
   hasBackground: false,
@@ -78,6 +79,29 @@ if (isTauri())
     .catch(console.error)
 
 const router = useRouter()
+async function changeTitleLogo() {
+  if (!isTauri()) return
+  const path = await open({ multiple: false, filters: [{ name: 'Image', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }] })
+  if (typeof path !== 'string') return
+  try {
+    const dataUrl = await invoke<string>('set_title_logo', { path })
+    values.value.UiLogoType = '3'
+    window.dispatchEvent(new CustomEvent('title-logo-updated', { detail: dataUrl }))
+  } catch (error) {
+    console.error(error)
+    sideTip.show(pclText('Setup.Ui.Error.OperationFailed'), 'warn')
+  }
+}
+async function clearTitleLogo() {
+  try {
+    await invoke('clear_title_logo')
+    values.value.UiLogoType = '1'
+    window.dispatchEvent(new CustomEvent('title-logo-updated', { detail: null }))
+  } catch (error) {
+    console.error(error)
+    sideTip.show(pclText('Setup.Ui.Error.OperationFailed'), 'warn')
+  }
+}
 </script>
 <template>
   <div class="pcl-page">
@@ -91,34 +115,6 @@ const router = useRouter()
             flex-direction: column;
           "
         >
-          <div
-            style="
-              margin: 0px 0px 6px 0px;
-              display: grid;
-              grid-template-columns: auto minmax(0, 1fr) 30px auto minmax(0, 1fr);
-              grid-template-rows: auto auto auto;
-            "
-          >
-            <span
-              style="
-                margin: 0px 20px 0px 0px;
-                grid-row: 1 / span 1;
-                grid-column: 1 / span 1;
-                justify-self: start;
-                align-self: center;
-              "
-              class="pcl-text"
-              >{{ pclText('Setup.Ui.Basic.Opacity') }}</span
-            >
-            <input
-              disabled
-              style="grid-row: 1 / span 1; grid-column: 2 / span 5"
-              type="range"
-              min="0"
-              max="600"
-              v-model.number="values['SliderLauncherOpacity']"
-            />
-          </div>
           <div
             style="
               height: 28px;
@@ -191,14 +187,7 @@ const router = useRouter()
             />
           </div>
           <PCheckBox
-            disabled
-            style="height: 22px; margin: 0px 0px 7px -1px"
-            id="PageSetupUI-CheckLauncherLogo"
-            :label="pclText('Setup.Ui.Basic.ShowLogo')"
-            v-model="values.CheckLauncherLogo"
-          />
-          <PCheckBox
-            disabled
+            :disabled="!isTauri()"
             style="height: 22px; margin: 0px 0px 7px -1px"
             id="PageSetupUI-CheckLockWindowSize"
             :label="pclText('Setup.Ui.Basic.LockWindow')"
@@ -505,28 +494,27 @@ const router = useRouter()
       <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
         <div class="setup-radio-options">
           <label class="pcl-radio"
-            ><input disabled type="radio" v-model="values['UiLogoType']" value="0" />{{
+            ><input type="radio" v-model="values['UiLogoType']" value="0" />{{
               pclText('Setup.Ui.Logo.None')
             }}</label
           >
           <label class="pcl-radio"
-            ><input disabled type="radio" v-model="values['UiLogoType']" value="1" />{{
+            ><input type="radio" v-model="values['UiLogoType']" value="1" />{{
               pclText('Common.Option.Default')
             }}</label
           >
           <label class="pcl-radio"
-            ><input disabled type="radio" v-model="values['UiLogoType']" value="2" />{{
+            ><input type="radio" v-model="values['UiLogoType']" value="2" />{{
               pclText('Setup.Ui.Logo.Text')
             }}</label
           >
           <label class="pcl-radio"
-            ><input disabled type="radio" v-model="values['UiLogoType']" value="3" />{{
+            ><input type="radio" v-model="values['UiLogoType']" value="3" />{{
               pclText('Setup.Ui.Logo.Image')
             }}</label
           >
         </div>
         <PCheckBox
-          disabled
           v-if="values.UiLogoType === '0'"
           style="margin: 8px 0 3px"
           id="PageSetupUI-CheckLogoLeft"
@@ -553,9 +541,8 @@ const router = useRouter()
             >{{ pclText('Setup.Ui.Logo.TextLabel') }}</span
           >
           <PTextBox
-            disabled
             style="grid-row: 1 / span 1; grid-column: 2 / span 1"
-            :placeholder="pclText('')"
+            :placeholder="pclText('Setup.Ui.Logo.TextLabel')"
             v-model="values.TextLogoText"
           />
         </div>
@@ -577,7 +564,7 @@ const router = useRouter()
               grid-row: 1 / span 1;
               grid-column: 1 / span 1;
             "
-            @click="showUnavailable"
+            @click="changeTitleLogo"
             >{{ pclText('Setup.Ui.Logo.ChangeImage') }}</PButton
           >
           <PButton
@@ -588,7 +575,7 @@ const router = useRouter()
               grid-row: 1 / span 1;
               grid-column: 2 / span 1;
             "
-            @click="showUnavailable"
+            @click="clearTitleLogo"
             type="warn"
             >{{ pclText('Setup.Ui.Logo.ClearImage') }}</PButton
           >

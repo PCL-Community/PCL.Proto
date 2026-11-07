@@ -83,7 +83,7 @@ pub fn relative_java(root: &Path, relative: &Path) -> anyhow::Result<PathBuf> {
         "Java path is outside the launcher directory"
     );
     ensure!(path.is_file(), "Java executable not found");
-    Ok(path)
+    Ok(pcl_core::utils::simplify(&path).to_owned())
 }
 
 pub fn is_game_set_64_bit(
@@ -333,7 +333,7 @@ mod tests {
         fs::write(&executable, b"java").unwrap();
         assert_eq!(
             relative_java(&root, Path::new(&format!("runtime/bin/{}", java_binary()))).unwrap(),
-            executable.canonicalize().unwrap()
+            pcl_core::utils::canonicalize(&executable).unwrap()
         );
         for path in [Path::new("../outside"), executable.as_path()] {
             assert!(relative_java(&root, path).is_err());

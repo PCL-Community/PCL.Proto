@@ -2,6 +2,9 @@
 const SECRET_KEYS: [&str; 2] = ["CURSEFORGE_API_KEY", "MS_CLIENT_ID"];
 
 fn main() {
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
+        prepare_windows_driver();
+    }
     for key in SECRET_KEYS {
         println!("cargo:rerun-if-env-changed={key}");
     }
@@ -27,6 +30,25 @@ fn main() {
             .windows_attributes(tauri_build::WindowsAttributes::new_without_app_manifest());
     }
     tauri_build::try_build(attributes).expect("failed to build Tauri resources")
+}
+
+fn prepare_windows_driver() {
+    use std::path::PathBuf;
+    println!("cargo:rerun-if-env-changed=WINDIVERT_DRIVER");
+    let driver = std::env::var_os("WINDIVERT_DRIVER")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../target/build-tools/windivert-2.2.2/WinDivert-2.2.2-A/x64/WinDivert64.sys")
+        });
+    println!("cargo:rerun-if-changed={}", driver.display());
+    let out = PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
+    let profile = out.ancestors().nth(3).expect("Cargo profile directory");
+    for directory in [profile.to_path_buf(), profile.join("deps")] {
+        std::fs::create_dir_all(&directory).expect("create native runtime directory");
+        std::fs::copy(&driver, directory.join("WinDivert64.sys"))
+            .expect("could not stage WinDivert64.sys; run bun run setup:windows");
+    }
 }
 
 /// 从 `.env` 文本里取出一个键的值，允许两侧引号。

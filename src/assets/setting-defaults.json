@@ -98,8 +98,7 @@
     "CheckDebugDelay": false
   },
   "PageSetupUI": {
-    "SliderLauncherOpacity": 600,
-    "CheckLauncherLogo": true,
+    "UiLogoType": "1",
     "CheckLockWindowSize": false,
     "CheckShowLaunchingHint": true,
     "CheckBlur": false,

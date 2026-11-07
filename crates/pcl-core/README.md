@@ -24,6 +24,8 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 这些 feature 彼此独立。Modrinth 不需要 CurseForge Key；关闭 `community` 仍可安装原版/加载器和导入本地 mrpack。关闭 `microsoft` 仍可用宿主自行认证的微软档案启动。服务器 ping 不需要 `link`。
 core 不读取 `.env` 或任何启动器的凭据；只在对应功能调用时接收参数，缺少一类凭据不会阻止其他功能初始化。PCL.Proto 的 Tauri 应用显式启用三个 feature，并分别按需读取自己的 CurseForge Key 和微软 Client ID。
 
+`embedded-resources` 默认启用，提供启动辅助 JAR、Log4j 配置、Forge 处理器桥接和 macOS ARM64 库映射。需要将资源作为独立文件打包的宿主应设置 `default-features = false`，通过 `LaunchHelpers` 和安装器参数传入外部资源。未提供必需文件会明确报错，不会生成空文件或使用旧缓存。PCL.Proto 的 macOS 应用关闭此 feature，所有这些文件从 `.app/Contents/Resources/launcher` 读取；开发模式直接读取仓库文件。
+
 Terracotta 来自同仓 Git 子模块，使用 AGPL-3.0；使用 Git CLI/镜像时也须能访问子模块地址。
 
 ## 网络与下载

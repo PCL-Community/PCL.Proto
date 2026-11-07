@@ -15,7 +15,8 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     watch: {
-      ignored: ['**/src-tauri/**', '**/crates/terracotta/**'],
+      // Rust 编译产物位于工作区根目录，避免启动时遍历整个 target。
+      ignored: ['**/target/**', '**/src-tauri/**', '**/crates/terracotta/**'],
     },
   },
   envPrefix: ['VITE_', 'TAURI_ENV_*'],

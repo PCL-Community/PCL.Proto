@@ -29,11 +29,16 @@ renaming the complete `.app` is supported. Distribute the complete `.app` via th
 DMG or Tauri's app archive; the executable in `Contents/MacOS` alone is insufficient.
 Bundle resources are read-only at runtime and must be included before code signing.
 
-`bun run dev` continues to use Vite; core prepares embedded launcher helpers on demand.
+`bun run dev` continues to use Vite and reads helper files from the checkout.
 The helper files live in `crates/pcl-core/resources/{launch,installer}`. macOS
 packaging copies them into the bundle, and the app supplies those paths to core.
-Core also carries default resources for standalone consumers; bundle routing does
-not guarantee that the executable excludes their embedded bytes.
+The macOS app disables core's `embedded-resources` feature. Its executable contains
+no embedded helper JARs, Log4j XML, or ARM64 library mapping. Core's default feature
+still provides embedded resources for other consumers; a host can disable it with
+`default-features = false` and supply its own helper paths and ARM64 mapping.
+Missing external files fail explicitly instead of falling back to an extracted
+cache. Use package-specific builds when distributing the app; `cargo build
+--workspace --all-features` intentionally enables core's embedded resources too.
 Configuration, accounts, Minecraft instances, downloaded runtime files, and caches
 stay in their existing writable locations. Downloaded Mesa loader files always
 use the writable configuration resource directory, including in a macOS bundle.
@@ -44,10 +49,47 @@ never included as a bundle resource.
 
 ## Windows and Linux
 
+Windows is distributed as a portable ZIP, not an MSI or NSIS setup installer.
+Build with `bun run build`, then run `bun run package:portable`. The ZIP in
+`target/portable` contains `PCL.Proto.exe`, `WinDivert64.sys`, its license, a
+prerequisite installation script, and a README. Extract the entire directory.
+Run `Start.cmd` to check/install prerequisites and open the launcher; subsequent
+launches can use the EXE directly. `Install-Dependencies.cmd` only prepares the
+prerequisites. No executable packer or self-extracting app wrapper is used.
+
+The prerequisite script installs the complete Npcap runtime, including its driver
+and WinPcap API-compatible mode, and Microsoft Edge WebView2 when absent. The
+Npcap SDK only supplies link libraries; it cannot fix a missing `Packet.dll` at
+runtime. Npcap is downloaded from its publisher and installed interactively with
+administrator permission. The free Npcap license does not grant redistribution
+rights or silent installation, so its DLLs and installer are not release assets.
+See the [Npcap license](https://github.com/nmap/npcap/blob/master/LICENSE) and
+[installation guide](https://npcap.com/guide/npcap-users-guide.html).
+
+For Windows development, run `bun run setup:windows` once. This prepares the
+Npcap SDK, Protobuf compiler, and WinDivert driver under `target/build-tools`,
+then installs/checks the same full runtime used by end users. `bun run dev` and
+`bun run build` reject missing prerequisites; they do not disable networking.
+Build scripts stage `WinDivert64.sys` beside the executable and test binaries.
+If invoking Cargo directly, set `PROTOC` to the prepared `bin/protoc.exe` and add
+the SDK's `Lib/x64` directory to `LIB` (or use your existing system toolchain).
+
+CI downloads checksum-pinned native dependencies. Its ephemeral Windows runner
+uses the Npcap user-mode DLLs for unit/loader checks; these files are excluded from
+the ZIP. CI does not install or exercise the Npcap kernel driver. Actual packet
+capture needs verification on a Windows machine with the full runtime installed.
+
+On Linux, `bun run package:portable` creates a conventional `tar.gz` beside the
+deb/rpm packages. It uses system GTK 3 and WebKitGTK 4.1 libraries; users who want
+package-managed prerequisites should use deb/rpm. The archive does not bundle
+an entire Linux runtime or introduce an executable wrapper.
+
 The frontend is embedded. Core prepares its default launcher helpers in the
 application-selected writable resource directory only when a launch needs them.
 Forge processor bridges are prepared in the installation temporary directory.
-The macOS resource map does not apply to these targets.
+The macOS resource map does not apply to these targets. If future dependencies
+need additional files, ship them beside the executable or in its resource
+directory instead of forcing them into a single EXE.
 
 New installations use `.minecraft` beside the launcher executable as the default
 game directory on Windows and Linux. AppImage builds use the directory containing

@@ -31,7 +31,6 @@ section.pcl-page.proto-about
             PListItem(:icon="picPCLProto"
                 title="Plain Craft Launcher: Edition Prototype"
                 :subtitle="pclText('Proto.About.Version', [version])"
-                :roundImg="true"
                 :btn="{text: pclText('Proto.About.Repository'), link:'https://github.com/PCL-Community/PCL.Proto.git'}"
                 )
     PCard

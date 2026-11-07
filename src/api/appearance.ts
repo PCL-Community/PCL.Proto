@@ -1,5 +1,9 @@
 import { watch } from 'vue'
+import { isTauri } from '@tauri-apps/api/core'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import { usePageSettings } from '@/composables/usePageSettings'
+import { pclText } from '@/api/pclLocale'
+import sideTip from '@/composables/sideTip'
 
 export const appearance = usePageSettings('PageSetupUI', {
   ComboUiFont: '',
@@ -8,7 +12,9 @@ export const appearance = usePageSettings('PageSetupUI', {
   ComboLightColor: '1',
   ComboDarkColor: '1',
   CheckBackgroundColorful: true,
-  UiLogoType: '0',
+  UiLogoType: '1',
+  CheckLogoLeft: false,
+  TextLogoText: '',
 })
 
 for (const key of ['ComboUiFont', 'ComboUiMotdFont'] as const) {
@@ -54,3 +60,18 @@ function applyAppearance() {
 
 watch(appearance.values, applyAppearance, { deep: true, flush: 'sync', immediate: true })
 systemDark.addEventListener('change', applyAppearance)
+
+if (isTauri()) {
+  const window = getCurrentWindow()
+  let pending = Promise.resolve()
+  watch(
+    () => appearance.values.CheckLockWindowSize,
+    (locked) => {
+      pending = pending.then(() => window.setResizable(!locked)).catch((error) => {
+        console.error('Failed to update window resizability:', error)
+        sideTip.show(pclText('Setup.Ui.Error.OperationFailed'), 'warn')
+      })
+    },
+    { immediate: true },
+  )
+}
