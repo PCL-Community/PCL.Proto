@@ -257,5 +257,20 @@
   "Proto.Homepage.SettingsHint": "Local homepages read Custom.xaml from the launcher configuration directory. Import, edit and apply it in the homepage editor. Online and PCL CE XAML homepages use the same native components.",
   "Proto.Homepage.Tip1": "Switch between local and online homepages in Personalization settings.",
   "Proto.Homepage.Tip2": "The editor preview and launch page share the same native PCL components.",
-  "Proto.Homepage.Tip3": "Export Custom.xaml to use your homepage with PCL CE."
+  "Proto.Homepage.Tip3": "Export Custom.xaml to use your homepage with PCL CE.",
+  "Proto.Link.Runtime.Title": "Multiplayer component",
+  "Proto.Link.Runtime.Message": "Multiplayer requires the Npcap network component.\nThe installer is downloaded from npcap.com and needs administrator permission. You normally do not need to restart afterwards.\n\nNpcap is a third-party system component. You approve its installation; we never bundle or silently install it.",
+  "Proto.Link.Runtime.Install": "Download and install",
+  "Proto.Link.Runtime.Downloading": "Downloading multiplayer component: {0}%",
+  "Proto.Link.Runtime.Verifying": "Verifying the installer...",
+  "Proto.Link.Runtime.Installing": "Complete the Npcap installer in the window that opened...",
+  "Proto.Link.Runtime.Ready": "Multiplayer component is ready.",
+  "Proto.Link.Runtime.NeedsRestart": "Multiplayer component installed. Restart the launcher to continue.",
+  "Proto.Link.Runtime.Cancelled": "Installation cancelled.",
+  "Proto.Link.Runtime.Failed": "Could not install the multiplayer component: {0}",
+  "Proto.Link.Runtime.StatusMissing": "Multiplayer needs the Npcap network component (one-time installation).",
+  "Proto.Link.Runtime.StatusNeedsRestart": "Npcap is installed. Restart the launcher to continue.",
+  "Proto.Link.Runtime.StatusError": "Could not determine the multiplayer component status. Please retry.",
+  "Proto.Link.Runtime.LearnMore": "About Npcap",
+  "Proto.Link.Runtime.Retry": "Retry"
 }

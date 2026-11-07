@@ -41,13 +41,25 @@ trash = "5.2.9"
 directories = "6.0.0"
 tempfile = "3.27.0"
 base64 = "0.23.1"
+sha2 = "0.10"
 uuid = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
 tauri = { version = "2.12.5", features = ["test"] }
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_Globalization"] }
+pnet_datalink = "0.35.0"
+winreg = "0.56"
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Globalization",
+    "Win32_Security_Cryptography",
+    "Win32_Security_WinTrust",
+    "Win32_System_Registry",
+    "Win32_System_Threading",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 pcl-core = { path = "../crates/pcl-core", default-features = false, features = ["embedded-resources"] }

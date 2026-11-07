@@ -51,33 +51,34 @@ never included as a bundle resource.
 
 Windows is distributed as a portable ZIP, not an MSI or NSIS setup installer.
 Build with `bun run build`, then run `bun run package:portable`. The ZIP in
-`target/portable` contains `PCL.Proto.exe`, `WinDivert64.sys`, its license, a
-prerequisite installation script, and a README. Extract the entire directory.
-Run `Start.cmd` to check/install prerequisites and open the launcher; subsequent
-launches can use the EXE directly. `Install-Dependencies.cmd` only prepares the
-prerequisites. No executable packer or self-extracting app wrapper is used.
+`target/portable` contains `PCL.Proto.exe`, `WinDivert64.sys`, its license, and a
+README. Extract the entire directory and run `PCL.Proto.exe` directly; there is no
+prerequisite script or wrapper. No executable packer or self-extracting app
+wrapper is used.
 
-The prerequisite script installs the complete Npcap runtime, including its driver
-and WinPcap API-compatible mode, and Microsoft Edge WebView2 when absent. The
-Npcap SDK only supplies link libraries; it cannot fix a missing `Packet.dll` at
-runtime. Npcap is downloaded from its publisher and installed interactively with
+`WinDivert64.sys` stays beside the executable and is loaded on demand by EasyTier.
+Npcap is not a build dependency: the vendored `pnet_datalink` backend loads
+`Packet.dll` from `System32\Npcap` or `System32` only when the WinDivert path is
+unavailable, instead of linking it into the import table. On first use of the
+multiplayer lobby, the launcher downloads the pinned Npcap installer, verifies its
+SHA-256 and Authenticode signature, and starts the official installer with
 administrator permission. The free Npcap license does not grant redistribution
 rights or silent installation, so its DLLs and installer are not release assets.
-See the [Npcap license](https://github.com/nmap/npcap/blob/master/LICENSE) and
+See [PATCHES.md](../vendor/pnet-datalink/PATCHES.md), the
+[Npcap license](https://github.com/nmap/npcap/blob/master/LICENSE), and the
 [installation guide](https://npcap.com/guide/npcap-users-guide.html).
 
-For Windows development, run `bun run setup:windows` once. This prepares the
-Npcap SDK, Protobuf compiler, and WinDivert driver under `target/build-tools`,
-then installs/checks the same full runtime used by end users. `bun run dev` and
-`bun run build` reject missing prerequisites; they do not disable networking.
-Build scripts stage `WinDivert64.sys` beside the executable and test binaries.
-If invoking Cargo directly, set `PROTOC` to the prepared `bin/protoc.exe` and add
-the SDK's `Lib/x64` directory to `LIB` (or use your existing system toolchain).
+WebView2 is a Tauri runtime prerequisite and is not managed by the launcher.
 
-CI downloads checksum-pinned native dependencies. Its ephemeral Windows runner
-uses the Npcap user-mode DLLs for unit/loader checks; these files are excluded from
-the ZIP. CI does not install or exercise the Npcap kernel driver. Actual packet
-capture needs verification on a Windows machine with the full runtime installed.
+For Windows development, run `bun run setup:windows` once. This prepares the
+Protobuf compiler and WinDivert driver under `target/build-tools`. `bun run dev`
+and `bun run build` reject missing build tools; the Npcap SDK is no longer needed.
+Build scripts stage `WinDivert64.sys` beside the executable and test binaries.
+If invoking Cargo directly, set `PROTOC` to the prepared `bin/protoc.exe` (or use
+your existing system toolchain).
+
+CI downloads checksum-pinned native dependencies; only the WinDivert driver is
+needed on the Windows runner.
 
 On Linux, `bun run package:portable` creates a conventional `tar.gz` beside the
 deb/rpm packages. It uses system GTK 3 and WebKitGTK 4.1 libraries; users who want

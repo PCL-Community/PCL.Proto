@@ -257,5 +257,20 @@
   "Proto.Homepage.SettingsHint": "本地主页读取启动器配置目录中的 Custom.xaml，可通过主页制作器导入、编辑和应用。联网主页与 PCL CE 的 XAML 使用同一套原生组件渲染。",
   "Proto.Homepage.Tip1": "可以在个性化设置中切换本地文件和联网主页。",
   "Proto.Homepage.Tip2": "主页制作器的预览与启动页使用相同的 PCL 原生组件。",
-  "Proto.Homepage.Tip3": "导出 Custom.xaml 后，可以将文件用于 PCL CE 的自定义主页。"
+  "Proto.Homepage.Tip3": "导出 Custom.xaml 后，可以将文件用于 PCL CE 的自定义主页。",
+  "Proto.Link.Runtime.Title": "联机组件",
+  "Proto.Link.Runtime.Message": "联机功能需要 Npcap 网络组件。\n下载后需要管理员权限完成一次安装；安装完成后通常无需重启。\n\nNpcap 是第三方系统组件，安装过程由你确认，我们不会附带或静默安装它。",
+  "Proto.Link.Runtime.Install": "下载并安装",
+  "Proto.Link.Runtime.Downloading": "正在下载联机组件：{0}%",
+  "Proto.Link.Runtime.Verifying": "正在校验安装包……",
+  "Proto.Link.Runtime.Installing": "请在弹出的 Npcap 安装程序中完成安装……",
+  "Proto.Link.Runtime.Ready": "联机组件已就绪。",
+  "Proto.Link.Runtime.NeedsRestart": "联机组件已安装，请重启启动器后再试。",
+  "Proto.Link.Runtime.Cancelled": "已取消安装。",
+  "Proto.Link.Runtime.Failed": "联机组件安装失败：{0}",
+  "Proto.Link.Runtime.StatusMissing": "使用联机功能需要安装 Npcap 网络组件（仅首次）。",
+  "Proto.Link.Runtime.StatusNeedsRestart": "联机组件已安装，请重启启动器。",
+  "Proto.Link.Runtime.StatusError": "无法确认联机组件状态，请重试。",
+  "Proto.Link.Runtime.LearnMore": "了解 Npcap",
+  "Proto.Link.Runtime.Retry": "重试"
 }

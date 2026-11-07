@@ -16,6 +16,12 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAccountInfo } from '@/stores/account'
 import { openExternal } from '@/util/externalLink'
+import {
+  getLinkRuntimeStatus,
+  installLinkRuntime,
+  type LinkRuntimeEvent,
+  type LinkRuntimeStatus,
+} from '@/api/linkRuntime'
 const props = defineProps<{
   connected?: boolean
   connectionType?: string
@@ -30,14 +36,115 @@ const terracotta = useTerracottaStore()
 const values = reactive({ TextJoinLobbyId: '' })
 const selectedPort = ref('')
 const error = ref<string | null>(null)
+const runtime = ref<LinkRuntimeStatus | null>(null)
+const runtimeBusy = ref(false)
+const runtimePhase = ref<string | null>(null)
+const runtimePercent = ref<number | null>(null)
+const runtimeError = ref<string | null>(null)
 const roomCode = computed(() => String(route.query.code || terracotta.room || ''))
 const options = computed(() =>
   terracotta.avaliable_mc_ports.map((port) => ({ key: String(port), text: String(port) })),
 )
+const runtimeMessage = computed(() => {
+  if (runtimeError.value) return pclText('Proto.Link.Runtime.Failed', [runtimeError.value])
+  if (runtimeBusy.value) {
+    if (runtimePhase.value === 'downloading')
+      return runtimePercent.value === null
+        ? pclText('Link.Mod.DownloadingDeps')
+        : pclText('Proto.Link.Runtime.Downloading', [runtimePercent.value])
+    if (runtimePhase.value === 'verifying') return pclText('Proto.Link.Runtime.Verifying')
+    if (runtimePhase.value === 'installing') return pclText('Proto.Link.Runtime.Installing')
+    return pclText('Link.Mod.DownloadingDeps')
+  }
+  if (runtime.value?.state === 'needs_restart')
+    return pclText('Proto.Link.Runtime.StatusNeedsRestart')
+  if (runtime.value?.state === 'error')
+    return pclText('Proto.Link.Runtime.Failed', [
+      runtime.value.message || pclText('Proto.Link.Runtime.StatusError'),
+    ])
+  return pclText('Proto.Link.Runtime.StatusMissing')
+})
 watch(options, (list) => {
   if (!list.some((option) => option.key === selectedPort.value))
     selectedPort.value = list[0]?.key || ''
 })
+async function loadRuntime() {
+  if (!isTauri() || props.connected) return
+  try {
+    runtime.value = await getLinkRuntimeStatus()
+    runtimeError.value = null
+  } catch (err) {
+    runtime.value = { state: 'error', message: String(err) }
+    runtimeError.value = String(err)
+  }
+}
+
+async function installRuntime(): Promise<boolean> {
+  if (!isTauri()) return true
+  if (runtime.value?.state === 'ready') return true
+  if (runtimeBusy.value) return false
+  if (runtime.value?.state === 'needs_restart') {
+    sideTip.show(pclText('Proto.Link.Runtime.NeedsRestart'), 'warn')
+    return false
+  }
+  runtimeBusy.value = true
+  try {
+    const modal = useModal()
+    const result = await modal.open({
+      title: pclText('Proto.Link.Runtime.Title'),
+      content: pclText('Proto.Link.Runtime.Message'),
+      buttons: [
+        {
+          type: 'tint',
+          content: pclText('Proto.Link.Runtime.Install'),
+          operation: () => modal.close(true),
+        },
+        {
+          type: 'default',
+          content: pclText('Proto.Link.Runtime.LearnMore'),
+          operation: () => {
+            void openExternal('https://npcap.com/')
+          },
+        },
+        {
+          type: 'warn',
+          content: pclText('Common.Action.Cancel'),
+          operation: () => modal.close(false),
+        },
+      ],
+    })
+    if (!result.confirmed) return false
+    runtimeError.value = null
+    runtimePhase.value = 'checking'
+    runtimePercent.value = null
+    const status = await installLinkRuntime((event: LinkRuntimeEvent) => {
+      runtimePhase.value = event.phase
+      if (event.phase === 'downloading' && typeof event.progress === 'number')
+        runtimePercent.value = Math.round(event.progress * 100)
+      if (event.phase === 'error') runtimeError.value = event.message ?? null
+    })
+    runtime.value = status
+    if (status.state === 'ready') {
+      sideTip.show(pclText('Proto.Link.Runtime.Ready'), 'success')
+      return true
+    }
+    if (status.state === 'needs_restart') {
+      sideTip.show(pclText('Proto.Link.Runtime.NeedsRestart'), 'warn')
+      return false
+    }
+    if (runtimePhase.value === 'cancelled') sideTip.show(pclText('Proto.Link.Runtime.Cancelled'))
+    return false
+  } catch (err) {
+    runtimeError.value = String(err)
+    sideTip.show(pclText('Proto.Link.Runtime.Failed', [String(err)]), 'warn')
+    return false
+  } finally {
+    runtimeBusy.value = false
+    runtimePhase.value = null
+    runtimePercent.value = null
+  }
+}
+
 async function connect(code: string) {
   error.value = null
   code = code.trim()
@@ -49,6 +156,7 @@ async function connect(code: string) {
     sideTip.show(pclText('Proto.Desktop.Link'), 'warn')
     return
   }
+  if (!(await installRuntime())) return
   operation.value = 'join'
   try {
     if (await terracotta.setGuesting(code, account.username || 'PCL.Proto Anonymous Guest'))
@@ -69,6 +177,7 @@ async function create(port: string) {
     sideTip.show(pclText('Proto.Desktop.Link'), 'warn')
     return
   }
+  if (!(await installRuntime())) return
   operation.value = 'create'
   try {
     const code = await terracotta.setHostStarting(n, account.username || 'PCL.Proto Anonymous Host')
@@ -156,6 +265,7 @@ onMounted(async () => {
     await router.replace({ path: '/tools/lobby/inner', query: { code: terracotta.room } })
     return
   }
+  await loadRuntime()
   terracotta.startAutoUpdate()
 })
 onUnmounted(() => {
@@ -168,6 +278,26 @@ import { pclText } from '@/api/pclLocale'
 <template>
   <section class="pcl-page lobby-page">
     <template v-if="!connected && !operation">
+      <PCard v-if="runtime && runtime.state !== 'ready'" hide-title class="lobby-runtime-card">
+        <div class="lobby-runtime">
+          <PSvgIcon name="lucide/download" :size="20" />
+          <div class="lobby-runtime-text">
+            <span class="lobby-runtime-title">{{ pclText('Proto.Link.Runtime.Title') }}</span>
+            <span class="lobby-runtime-desc">{{ runtimeMessage }}</span>
+          </div>
+          <PButton
+            v-if="!runtimeBusy && runtime.state !== 'needs_restart'"
+            type="tint"
+            compact
+            @click="installRuntime()"
+            >{{
+              runtime.state === 'error'
+                ? pclText('Proto.Link.Runtime.Retry')
+                : pclText('Proto.Link.Runtime.Install')
+            }}</PButton
+          >
+        </div>
+      </PCard>
       <div class="lobby-status">
         <PCard hide-title>
           <div class="lobby-status-item" :title="pclText('Tools.GameLink.Nat.Title')">
@@ -197,6 +327,7 @@ import { pclText } from '@/api/pclLocale'
             <PButton
               class="lobby-action-join"
               compact
+              :disabled="runtimeBusy"
               style="width: 50px; margin: 0px 0px 0px 10px"
               @click="connect(values.TextJoinLobbyId)"
               type="tint"
@@ -234,6 +365,7 @@ import { pclText } from '@/api/pclLocale'
             <PButton
               class="lobby-action-create"
               compact
+              :disabled="runtimeBusy"
               style="width: 50px; margin: 0px 0px 0px 10px"
               @click="create(selectedPort)"
               type="tint"
@@ -421,6 +553,32 @@ import { pclText } from '@/api/pclLocale'
 </template>
 
 <style scoped>
+.lobby-runtime {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 12px;
+}
+
+.lobby-runtime-text {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lobby-runtime-title {
+  color: var(--color-text-black);
+  font-size: 14px;
+}
+
+.lobby-runtime-desc {
+  color: var(--color-text-grey);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
 .lobby-status {
   display: flex;
   justify-content: flex-end;

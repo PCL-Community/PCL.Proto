@@ -5308,10 +5308,12 @@ dependencies = [
  "log",
  "open",
  "pcl-core",
+ "pnet_datalink",
  "reqwest 0.13.5",
  "serde",
  "serde_json",
  "serde_yaml",
+ "sha2",
  "sysinfo",
  "tauri",
  "tauri-build",
@@ -5323,6 +5325,7 @@ dependencies = [
  "trash",
  "uuid",
  "windows-sys 0.61.2",
+ "winreg 0.56.0",
  "zip 9.1.3",
 ]
 
@@ -5551,11 +5554,10 @@ dependencies = [
 [[package]]
 name = "pnet_datalink"
 version = "0.35.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e79e70ec0be163102a332e1d2d5586d362ad76b01cec86f830241f2b6452a7b7"
 dependencies = [
  "ipnetwork",
  "libc",
+ "libloading 0.8.9",
  "pnet_base",
  "pnet_sys",
  "serde",

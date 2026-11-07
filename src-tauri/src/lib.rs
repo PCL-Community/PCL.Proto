@@ -215,6 +215,8 @@ pub fn run() {
             commands::link::set_terracotta_host_scanning,
             commands::link::set_terracotta_host_starting,
             commands::link::set_terracotta_guesting,
+            commands::link_runtime::get_link_runtime_status,
+            commands::link_runtime::install_link_runtime,
         ])
         .run(context)
         .expect("error while running tauri application");

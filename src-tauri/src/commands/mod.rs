@@ -14,6 +14,7 @@ pub mod java;
 pub mod launch;
 pub mod launch_settings;
 pub mod link;
+pub mod link_runtime;
 pub mod logs;
 pub mod memory;
 pub mod network;

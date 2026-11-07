@@ -33,7 +33,7 @@ In case you would like to modify the prototype design file, you are welcome to [
 
 ### Platform Specific
 
-- Windows: the MSVC toolchain, C++ development tools, and Windows SDK are required. Run `bun run setup:windows` to prepare the Npcap SDK, Protobuf compiler, and WinDivert driver, and install the complete Npcap runtime and WebView2. Enable WinPcap API-compatible Mode in Npcap's installer. The SDK alone cannot resolve a missing `packet.dll`.
+- Windows: the MSVC toolchain, C++ development tools, and Windows SDK are required. Run `bun run setup:windows` to prepare the Protobuf compiler and WinDivert driver. Npcap is no longer a build dependency; the launcher installs it on demand the first time multiplayer is used. The Tauri WebView2 runtime is assumed to be present.
 - macOS: make sure that Xcode is installed. You also need to install protobuf via Homebrew (`brew install protobuf`).
 - Ubuntu: you need to install the following packages: `libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf protobuf-compiler`.
 

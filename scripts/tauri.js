@@ -13,9 +13,6 @@ if (process.platform === 'win32' && ['dev', 'build'].includes(args[0])) {
   if (!env.PROTOC || !existsSync(env.PROTOC)) {
     env.PROTOC = Bun.which('protoc') ?? path.join(tools, 'protoc-33.0', 'bin', 'protoc.exe')
   }
-  const sdk = [env.NPCAP_SDK_LIB, ...(env.LIB ?? '').split(';'), path.join(tools, 'npcap-sdk-1.16', 'Lib', 'x64')]
-    .find((directory) => directory && existsSync(path.join(directory, 'Packet.lib')))
-  env.LIB = [sdk, env.LIB].filter(Boolean).join(';')
   env.WINDIVERT_DRIVER ??= path.join(tools, 'windivert-2.2.2', 'WinDivert-2.2.2-A', 'x64', 'WinDivert64.sys')
 }
 if (['dev', 'build'].includes(args[0])) {

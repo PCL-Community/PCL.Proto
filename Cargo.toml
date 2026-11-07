@@ -11,6 +11,10 @@ members = [
 version = "0.10.0"
 edition = "2024"
 
+[patch.crates-io]
+# Windows backend keeps Packet.dll out of the import table; see PATCHES.md.
+pnet_datalink = { path = "vendor/pnet-datalink" }
+
 [workspace.dependencies]
 serde = "1"
 serde_json = "1"
