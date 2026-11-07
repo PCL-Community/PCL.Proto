@@ -1,9 +1,10 @@
 [workspace]
 resolver = "3"
 members = [
+    "crates/pcl-core",
     "src-tauri",
-    "src-terracotta",
-    "src-terracotta/timestamp",
+    "crates/terracotta",
+    "crates/terracotta/timestamp",
 ]
 
 [workspace.package]

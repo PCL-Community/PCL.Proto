@@ -84,6 +84,18 @@ Tauri's development and build hooks use Bun directly.
 
 The reusable controls are packaged as `@amagicpear/pcl-proto-components`. See the [component package guide](packages/components/README.md) for imports, styling, locale, and licensing. To build a local npm package, run `bun run components:build` followed by `npm pack ./packages/components`. Publishing requires access to the npm scope and is a separate step.
 
+## Rust Core
+
+The launcher core is a standalone crate at `crates/pcl-core`, usable to build another launcher:
+
+```toml
+[dependencies]
+pcl-core = { git = "https://github.com/PCL-Community/PCL.Proto", rev = "<commit>" }
+```
+
+See the [core crate guide](crates/pcl-core/README.md) for explicit HTTP clients, credentials,
+launch inputs, and the built-in installation and launch helpers.
+
 ## Credits
 
 > If I have seen further it is by standing on ye shoulder of Giants.
@@ -114,6 +126,6 @@ The reusable controls are packaged as `@amagicpear/pcl-proto-components`. See th
 
 ### Localization
 
-[应用多语言方案与文案约定](docs/LOCALIZATION.md)
+[应用多语言方案与文案约定](docs/DEVELOPMENT.md#应用多语言)
 
 [Code organization and maintenance boundaries](docs/ARCHITECTURE.md)

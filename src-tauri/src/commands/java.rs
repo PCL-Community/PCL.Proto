@@ -1,11 +1,8 @@
-use crate::{
-    AppState,
-    app::config::ConfigManager,
+use crate::config::java_preference::{InstanceJavaSettings, JavaLaunchInfo, JavaPreference};
+use crate::config::{current_instance, manager::ConfigManager, states::AppState};
+use pcl_core::{
     io::files::open_directory,
-    minecraft::java::{
-        self, JavaEntry, JavaSource,
-        preference::{InstanceJavaSettings, JavaLaunchInfo, JavaPreference, current_instance},
-    },
+    minecraft::java::{self, JavaEntry, JavaSource},
 };
 use std::sync::Arc;
 use tauri::{AppHandle, State};
@@ -57,7 +54,7 @@ pub async fn get_java_list(
 
 #[tauri::command]
 pub async fn refresh_java_list() -> Result<Vec<JavaEntry>, String> {
-    java::refresh(true).await
+    crate::config::java::refresh(true).await
 }
 
 #[derive(serde::Serialize)]
@@ -90,12 +87,12 @@ pub async fn get_java_settings(
     let global_java = state.launcher_setup.selected_java.clone();
     drop(state);
     tauri::async_runtime::spawn_blocking(move || {
-        let global_is_64_bit = java::preference::is_game_set_64_bit(
+        let global_is_64_bit = crate::config::java_preference::is_game_set_64_bit(
             &runtimes,
             global_java.as_deref(),
             &JavaPreference::Global,
         );
-        let instance_is_64_bit = java::preference::is_game_set_64_bit(
+        let instance_is_64_bit = crate::config::java_preference::is_game_set_64_bit(
             &runtimes,
             global_java.as_deref(),
             &instance.preference,
@@ -167,7 +164,7 @@ pub async fn set_instance_java_settings(
 ) -> Result<(), String> {
     let validated = settings.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        java::preference::validate_preference(&validated.preference)
+        crate::config::java_preference::validate_preference(&validated.preference)
     })
     .await
     .map_err(|e| e.to_string())?
@@ -185,7 +182,7 @@ pub async fn set_instance_java_settings(
 #[tauri::command]
 pub async fn select_relative_java(app: AppHandle) -> Result<Option<JavaPreference>, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let root = java::launcher_directory().map_err(|e| e.to_string())?;
+        let root = crate::config::paths::launcher_directory().map_err(|e| e.to_string())?;
         let Some(file) = app
             .dialog()
             .file()
@@ -204,7 +201,8 @@ pub async fn select_relative_java(app: AppHandle) -> Result<Option<JavaPreferenc
             .strip_prefix(&root)
             .map_err(|_| "Java path is outside the launcher directory")?
             .to_owned();
-        java::preference::relative_java(&root, &relative).map_err(|e| e.to_string())?;
+        crate::config::java_preference::relative_java(&root, &relative)
+            .map_err(|e| e.to_string())?;
         JavaEntry::probe(&path).map_err(|e| e.to_string())?;
         Ok(Some(JavaPreference::Relative {
             relative_path: relative,
@@ -226,7 +224,7 @@ pub async fn open_java_folder(java_exe: std::path::PathBuf) -> Result<(), String
 pub async fn prepare_game_java(
     instance_directory: std::path::PathBuf,
 ) -> Result<JavaLaunchInfo, String> {
-    java::preference::prepare(instance_directory).await
+    crate::config::java::prepare(instance_directory).await
 }
 
 static JAVA_INSTALL: Mutex<Option<tokio::task::AbortHandle>> = Mutex::const_new(None);
@@ -239,13 +237,13 @@ pub async fn download_game_java(
     if active.is_some() {
         return Err("A Java download is already running".into());
     }
-    let info = java::preference::prepare(instance_directory).await?;
+    let info = crate::config::java::prepare(instance_directory).await?;
     let config = ConfigManager::instance();
-    let bases = config.api_client.api_bases_async().await;
+    let downloader = config.api_client.downloader().await;
     let task = tauri::async_runtime::spawn(java::install::install(
         info.requirements,
         config.java_runtime_dir(),
-        bases,
+        downloader,
         move |update| {
             let _ = progress.send(update);
         },

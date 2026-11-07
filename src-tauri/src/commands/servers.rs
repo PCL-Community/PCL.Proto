@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
-use crate::{commands::instance_resources::instance_game_directory, minecraft::servers};
+use crate::commands::instance_resources::instance_game_directory;
+use pcl_core::minecraft::servers;
 
 #[tauri::command]
 pub async fn list_servers(instance_directory: PathBuf) -> Result<servers::ServerList, String> {

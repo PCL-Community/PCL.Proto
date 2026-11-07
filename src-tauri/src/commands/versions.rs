@@ -1,4 +1,4 @@
-use crate::{
+use pcl_core::{
     io::net::http::api_client::{self, plugins::McPluginReport},
     minecraft::mod_loader,
 };

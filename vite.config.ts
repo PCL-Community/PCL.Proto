@@ -15,7 +15,7 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     watch: {
-      ignored: ['**/src-tauri/**', '**/src-terracotta/**'],
+      ignored: ['**/src-tauri/**', '**/crates/terracotta/**'],
     },
   },
   envPrefix: ['VITE_', 'TAURI_ENV_*'],

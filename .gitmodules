@@ -1,3 +1,3 @@
-[submodule "src-terracotta"]
-	path = src-terracotta
+[submodule "crates/terracotta"]
+	path = crates/terracotta
 	url = https://github.com/PCL-Community/Terracotta-lib.git

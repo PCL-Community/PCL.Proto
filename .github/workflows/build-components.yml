@@ -1,0 +1,34 @@
+name: 'build-components'
+
+on:
+  workflow_dispatch: # 手动触发
+  pull_request:
+
+jobs:
+  build-components:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      - name: install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: build component package
+        run: bun run components:build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: component-package
+          path: |
+            packages/components/dist/**
+          if-no-files-found: error
+          retention-days: 7

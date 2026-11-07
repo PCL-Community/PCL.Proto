@@ -2,12 +2,44 @@
 //!
 //! 档案读写会阻塞式锁住配置，所以统一放进 `spawn_blocking`。
 
+use crate::config::manager::ConfigManager;
 use serde::{Deserialize, Serialize};
 
-use crate::minecraft::profile::auth::session::{self, LoginRequest, View};
-use crate::minecraft::profile::auth::{AuthError, AuthResult, authlib, connect, microsoft};
-use crate::minecraft::profile::service::blocking;
-use crate::minecraft::profile::{McProfile, ProfileType, SafeProfile, service, uuid};
+use crate::config::profiles as service;
+use crate::config::profiles::blocking;
+use crate::login::{self, LoginRequest, View};
+use pcl_core::minecraft::profile::auth::{AuthError, AuthResult, authlib, connect};
+use pcl_core::minecraft::profile::{McProfile, ProfileType, uuid};
+
+/// UI-safe projection of a profile, mirroring `PCL.Core.Minecraft.Profile.Models.SafeProfile`.
+///
+/// Tokens and provider secrets stay in the backend; the webview only receives
+/// identity and display fields.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SafeProfile {
+    pub profile_id: String,
+    pub user_name: String,
+    pub uuid: String,
+    pub profile_type: ProfileType,
+    pub description: String,
+    pub server: Option<String>,
+    pub server_name: Option<String>,
+}
+
+impl From<&McProfile> for SafeProfile {
+    fn from(profile: &McProfile) -> Self {
+        Self {
+            profile_id: profile.profile_id.clone(),
+            user_name: profile.user_name.clone(),
+            uuid: profile.uuid.clone(),
+            profile_type: profile.profile_type,
+            description: profile.description.clone(),
+            server: profile.server.clone(),
+            server_name: profile.server_name.clone(),
+        }
+    }
+}
 
 /// 档案列表与当前选择，界面一次拿全。
 #[derive(Clone, Debug, Serialize)]
@@ -169,7 +201,7 @@ pub async fn rename_microsoft_profile(
     if profile.profile_type != ProfileType::Microsoft {
         return Err(AuthError::configuration("只有正版账号能在启动器里改名"));
     }
-    let provider = microsoft::MicrosoftProvider::new()?;
+    let provider = crate::secrets::microsoft_provider()?;
     let renamed = provider.change_name(&profile.access_token, name).await?;
     blocking(move || {
         let mut updated = profile;
@@ -185,13 +217,13 @@ pub async fn rename_microsoft_profile(
 #[tauri::command]
 pub async fn probe_auth_server(address: String) -> Result<AuthServerInfo, AuthError> {
     let address = address.trim().to_owned();
-    let client = crate::minecraft::profile::auth::http_client()?;
+    let client = ConfigManager::instance().api_client.http_client();
     let api_location = authlib::resolve_api_location(&client, &address).await;
     let normalized = authlib::normalize_server(&api_location)?;
     // CE：主机名命中内置 ClientId 时直接认为支持 OAuth。
     let built_in = reqwest::Url::parse(&normalized).ok().and_then(|url| {
         url.host_str()
-            .and_then(connect::built_in_client_id)
+            .and_then(crate::secrets::built_in_client_id)
             .map(str::to_owned)
     });
     let server_name = authlib::server_name(&client, &normalized).await;
@@ -233,18 +265,18 @@ async fn fetch_discovery(client: &reqwest::Client, api_root: &str) -> Option<Str
 
 #[tauri::command]
 pub async fn start_login(request: LoginRequest) -> Result<String, AuthError> {
-    session::start(request)
+    login::start(request)
 }
 
 #[tauri::command]
 pub async fn login_state(session_id: String) -> Result<View, AuthError> {
-    session::view(&session_id)
+    login::view(&session_id)
         .ok_or_else(|| AuthError::new("session_not_found", "登录会话已结束，请重新登录。"))
 }
 
 #[tauri::command]
 pub async fn cancel_login(session_id: String) {
-    session::cancel(&session_id);
+    login::cancel(&session_id);
 }
 
 #[tauri::command]
@@ -252,5 +284,28 @@ pub async fn select_login_profile(
     session_id: String,
     candidate_id: Option<String>,
 ) -> Result<(), AuthError> {
-    session::select(&session_id, candidate_id)
+    login::select(&session_id, candidate_id)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pcl_core::minecraft::profile::OfflineSkin;
+
+    #[test]
+    fn safe_profile_never_exposes_tokens() {
+        let mut profile = McProfile::microsoft("Player", "uuid", "access", "refresh", "xuid");
+        profile.offline_skin = Some(OfflineSkin {
+            image: "image".into(),
+            slim: false,
+        });
+        let safe = SafeProfile::from(&profile);
+        let value = serde_json::to_value(&safe).unwrap();
+        assert_eq!(value["userName"], "Player");
+        assert_eq!(value["profileType"], "microsoft");
+        assert!(value.get("accessToken").is_none());
+        assert!(value.get("refreshToken").is_none());
+        assert!(value.get("xuid").is_none());
+        assert!(value.get("offlineSkin").is_none());
+    }
 }

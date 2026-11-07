@@ -81,6 +81,17 @@ macOS 打包目录与资源读取方式见 [应用打包说明](docs/PACKAGING.m
 
 可复用的基础控件以 `@amagicpear/pcl-proto-components` 打包。导入、样式、语言和许可说明见[组件包文档](packages/components/README.md)。运行 `bun run components:build` 后执行 `npm pack ./packages/components` 可生成本地安装包；发布到 npm 需要对应命名空间的权限，须单独执行。
 
+## Rust 核心库
+
+启动器核心以独立 crate 的形式放在 `crates/pcl-core`，可用于构建自己的启动器：
+
+```toml
+[dependencies]
+pcl-core = { git = "https://github.com/PCL-Community/PCL.Proto", rev = "<commit>" }
+```
+
+运行目录、凭据注入、启动输入和内置安装/启动辅助资源的说明见[核心库文档](crates/pcl-core/README.md)。
+
 ## 鸣谢
 
 ### 直接引用项目
@@ -111,6 +122,6 @@ macOS 打包目录与资源读取方式见 [应用打包说明](docs/PACKAGING.m
 
 ### 多语言开发
 
-[应用多语言方案与文案约定](docs/LOCALIZATION.md)
+[应用多语言方案与文案约定](docs/DEVELOPMENT.md#应用多语言)
 
 [代码组织与维护边界](docs/ARCHITECTURE.md)

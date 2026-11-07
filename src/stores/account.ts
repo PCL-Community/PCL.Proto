@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 
 export type ProfileType = 'microsoft' | 'offline' | 'authlib' | 'yggdrasilConnect'
 
-/** IPC view of `minecraft::profile::SafeProfile`. */
+/** IPC view of `commands::account::SafeProfile`. */
 export interface McProfile {
   profileId: string
   userName: string

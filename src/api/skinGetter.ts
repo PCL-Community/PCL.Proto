@@ -19,21 +19,11 @@ export default async function getSkinUrl(
         onUpdate(base64SkinCached)
         break
       } catch (err) {
-        const session_data = await invoke<{
-          id: string
-          name: string
-          profileActions: []
-          properties: [{ name: string; value: string }]
-        }>('fetch_uuid_profile', { uuid: src })
-        console.debug('session_data', session_data)
-        const textures: {
-          profileId: string
-          profileName: string
-          textures: { SKIN: { url: string }; CAPE?: { url: string } }
-          timestamp: number
-        } = JSON.parse(atob(session_data.properties[0].value))
-        console.debug('textures', textures)
-        const skinUrl = textures.textures.SKIN.url
+        const skinUrl = await invoke<string | null>('fetch_skin_url', { uuid: src })
+        if (!skinUrl) {
+          onUpdate(`${import.meta.env.BASE_URL}pcl/images/Skins/Steve.png`)
+          break
+        }
         try {
           const base64Skin = await invoke<string>('fetch_skin_from_url', {
             url: skinUrl,

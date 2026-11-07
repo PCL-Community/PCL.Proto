@@ -5,7 +5,7 @@ use std::sync::OnceLock;
 
 use tauri::{AppHandle, Manager};
 
-use crate::io::files::open_directory;
+use pcl_core::io::files::open_directory;
 
 /// Name stem (without extension) of the log file this session writes to,
 /// following CE's `Launch-yyyy-M-d-HHmmssfff` naming.

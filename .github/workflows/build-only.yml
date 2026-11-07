@@ -67,16 +67,20 @@ jobs:
       - name: install frontend dependencies
         run: bun install --frozen-lockfile
 
-      - name: build component package
-        run: bun run components:build
-
       - name: generate icons
         run: bun run icons
 
-      - name: test Java selection and configuration
+      - name: build frontend
+        run: bun run ui:build
+
+      - name: test core crate
+        shell: bash
         run: |
-          cargo test -p pcl-proto --lib core::java::
-          cargo test -p pcl-proto --lib setup::java_config_tests
+          cargo test -p pcl-core --no-default-features --lib
+          cargo check -p pcl-core --no-default-features --features community
+          cargo check -p pcl-core --no-default-features --features microsoft
+          cargo test -p pcl-core --all-features --lib
+          cargo test -p pcl-proto --lib
 
       - name: build tauri app
         run: bun run tauri build ${{ matrix.args }}

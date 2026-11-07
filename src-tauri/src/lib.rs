@@ -9,38 +9,24 @@ use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_log::{Target, TargetKind};
 
-mod app;
+mod assets;
 mod commands;
-mod io;
-mod link;
-mod minecraft;
+mod config;
+mod external;
+mod identity;
+mod login;
 mod protocol;
-mod utils;
+mod resources;
+mod secrets;
+mod window;
 
-pub use app::config::{AppState, CONFIG_MANAGER, ConfigManager};
-
-#[tauri::command]
-async fn system_fonts() -> Result<Vec<String>, String> {
-    tauri::async_runtime::spawn_blocking(|| {
-        let mut db = fontdb::Database::new();
-        db.load_system_fonts();
-        let mut names: Vec<_> = db
-            .faces()
-            .flat_map(|face| face.families.iter().map(|(name, _)| name.clone()))
-            .collect();
-        names.sort();
-        names.dedup();
-        names
-    })
-    .await
-    .map_err(|error| error.to_string())
-}
+pub use config::manager::{AppState, CONFIG_MANAGER, ConfigManager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(all(target_os = "macos", not(dev)))]
     let context = tauri::generate_context!(
-        assets = app::resources::FrontendAssets::new()
+        assets = resources::FrontendAssets::new()
             .expect("could not load frontend resources from the .app bundle")
     );
     #[cfg(not(all(target_os = "macos", not(dev))))]
@@ -66,12 +52,12 @@ pub fn run() {
                 .build(),
         )
         .setup(|app| {
-            if let Ok(config_manager) = app::config::CONFIG_MANAGER.as_ref() {
+            if let Ok(config_manager) = crate::config::manager::CONFIG_MANAGER.as_ref() {
                 app.manage(Arc::clone(&config_manager.app_state));
                 app.manage(&config_manager.api_client);
-                terracotta::init_lib(config_manager.identifier_path());
+                pcl_core::link::init(config_manager.identifier_path());
             } else {
-                log::error!("Config manager failed: {:?}", app::config::CONFIG_MANAGER.as_ref().err());
+                log::error!("Config manager failed: {:?}", crate::config::manager::CONFIG_MANAGER.as_ref().err());
                 app.dialog()
                     .message("Could not load the launcher configuration. The existing configuration has not been overwritten. Check the logs before restarting.")
                     .title("Fatal Error! 完🥚辣！")
@@ -85,9 +71,9 @@ pub fn run() {
             // let window = app.get_webview_window("main").unwrap();
             // window.on_navigation(move |url| {});
             // search for Java during init
-            if app::config::CONFIG_MANAGER.is_ok() {
+            if crate::config::manager::CONFIG_MANAGER.is_ok() {
                 tauri::async_runtime::spawn(async move {
-                    if let Err(error) = minecraft::java::refresh(false).await {
+                    if let Err(error) = config::java::refresh(false).await {
                         log::error!("Java scan failed: {error}");
                     }
                 });
@@ -95,26 +81,26 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            system_fonts,
+            commands::system::system_fonts,
             commands::homepage::load_custom_homepage,
             commands::homepage::save_custom_homepage,
             commands::launch::begin_launch,
             commands::launch::cancel_launch,
             commands::launch::launch_game,
-            minecraft::launch::session::get_game_sessions,
-            minecraft::launch::session::stop_game_session,
-            minecraft::launch::session::clear_game_session_log,
-            io::download::resources::get_download_stats,
-            io::download::resources::set_download_settings,
-            io::download::resources::get_download_settings,
-            app::config::get_log_max_lines,
-            app::config::set_log_max_lines,
-            app::config::get_window_settings,
-            app::config::set_window_settings,
-            app::config::get_launcher_visibility,
-            app::config::set_launcher_visibility,
-            app::config::get_version_info,
-            app::config::set_version_info,
+            commands::session::get_game_sessions,
+            commands::session::stop_game_session,
+            commands::session::clear_game_session_log,
+            commands::download::get_download_stats,
+            commands::download::set_download_settings,
+            commands::download::get_download_settings,
+            commands::config::get_log_max_lines,
+            commands::config::set_log_max_lines,
+            commands::config::get_window_settings,
+            commands::config::set_window_settings,
+            commands::config::get_launcher_visibility,
+            commands::config::set_launcher_visibility,
+            commands::config::get_version_info,
+            commands::config::set_version_info,
             commands::memory::get_memory_settings,
             commands::memory::set_memory_settings,
             commands::memory::preview_memory_settings,
@@ -138,7 +124,7 @@ pub fn run() {
             commands::instance_resources::repair_instance_files,
             commands::instances::get_instance_description,
             commands::instance_resources::instance_resource_destination,
-            minecraft::export::resource::download_resource,
+            commands::export::download_resource,
             commands::instances::set_instance_description,
             commands::instances::rename_instance,
             commands::instance_resources::list_instance_resources,
@@ -151,8 +137,8 @@ pub fn run() {
             commands::instance_resources::set_instance_resources_enabled,
             commands::instance_resources::delete_instance_resources,
             commands::instance_resources::import_instance_resources,
-            utils::toys::get_lucky_today,
-            utils::external::open_external_url,
+            commands::system::get_lucky_today,
+            commands::system::open_external_url,
             commands::java::add_java,
             commands::java::get_java_list,
             commands::java::refresh_java_list,
@@ -185,34 +171,34 @@ pub fn run() {
             commands::instances::select_instance,
             commands::versions::get_version_manifest,
             commands::versions::handle_clicked_on_version,
-            minecraft::export::version::export_minecraft_version,
-            minecraft::export::version::open_minecraft_wiki,
-            minecraft::export::loader::save_loader_file,
-            minecraft::export::loader::open_loader_changelog,
-            io::download::download_custom_file,
-            io::download::tasks::prepare_download_task,
-            io::download::tasks::cancel_download_task,
-            io::download::tasks::release_download_task,
-            io::download::download_fabric_installer,
-            io::download::open_custom_download_folder,
-            minecraft::installer::download_minecraft_version,
-            minecraft::installer::forgelike::prepare_forgelike_java,
-            minecraft::installer::forgelike::forgelike_installer_name,
-            minecraft::installer::forgelike::download_forgelike_installer,
-            minecraft::installer::modpack::inspect_modpack,
-            minecraft::installer::modpack::install_modpack,
-            minecraft::installer::modpack::prepare_online_modpack,
-            minecraft::installer::modpack::release_online_modpack,
-            minecraft::installer::modpack::install_online_modpack,
+            commands::export::export_minecraft_version,
+            commands::export::open_minecraft_wiki,
+            commands::export::save_loader_file,
+            commands::export::open_loader_changelog,
+            commands::download::download_custom_file,
+            commands::download::prepare_download_task,
+            commands::download::cancel_download_task,
+            commands::download::release_download_task,
+            commands::download::download_fabric_installer,
+            commands::download::open_custom_download_folder,
+            commands::installer::download_minecraft_version,
+            commands::installer::prepare_forgelike_java,
+            commands::installer::forgelike_installer_name,
+            commands::installer::download_forgelike_installer,
+            commands::installer::inspect_modpack,
+            commands::installer::install_modpack,
+            commands::installer::prepare_online_modpack,
+            commands::installer::release_online_modpack,
+            commands::installer::install_online_modpack,
             commands::versions::get_plugin_versions,
             commands::versions::get_fabric_installers,
             commands::instances::get_active_instance,
-            link::mcping::server_query,
+            commands::system::server_query,
             commands::skin::fetch_username_uuid,
-            commands::skin::fetch_uuid_profile,
-            io::net::http::api_client::fetch_with_modrinth,
-            io::net::http::api_client::fetch_with_curseforge,
-            io::net::http::api_client::curseforge_available,
+            commands::skin::fetch_skin_url,
+            commands::sources::fetch_with_modrinth,
+            commands::sources::fetch_with_curseforge,
+            commands::sources::curseforge_available,
             commands::skin::fetch_skin_from_uuid_cached,
             commands::skin::fetch_skin_from_url,
             commands::skin::fetch_profile_skin,
@@ -220,12 +206,12 @@ pub fn run() {
             commands::skin::save_profile_skin,
             commands::skin::change_microsoft_skin,
             // scaffolding
-            link::scaffolding::get_terracotta_meta,
-            link::scaffolding::get_terracotta_state,
-            link::scaffolding::set_terracotta_waiting,
-            link::scaffolding::set_terracotta_host_scanning,
-            link::scaffolding::set_terracotta_host_starting,
-            link::scaffolding::set_terracotta_guesting,
+            commands::link::get_terracotta_meta,
+            commands::link::get_terracotta_state,
+            commands::link::set_terracotta_waiting,
+            commands::link::set_terracotta_host_scanning,
+            commands::link::set_terracotta_host_starting,
+            commands::link::set_terracotta_guesting,
         ])
         .run(context)
         .expect("error while running tauri application");

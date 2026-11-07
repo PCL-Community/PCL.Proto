@@ -15,7 +15,18 @@ fn main() {
             println!("cargo:rustc-env={key}={value}");
         }
     }
-    tauri_build::build()
+    let mut attributes = tauri_build::Attributes::new();
+    if std::env::var("TARGET").unwrap().ends_with("windows-msvc") {
+        // Common Controls v6 must also be activated for the library's test executable.
+        let manifest =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("windows-app-manifest.xml");
+        println!("cargo:rerun-if-changed={}", manifest.display());
+        println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+        println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest.display());
+        attributes = attributes
+            .windows_attributes(tauri_build::WindowsAttributes::new_without_app_manifest());
+    }
+    tauri_build::try_build(attributes).expect("failed to build Tauri resources")
 }
 
 /// 从 `.env` 文本里取出一个键的值，允许两侧引号。

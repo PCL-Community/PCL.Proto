@@ -31,7 +31,8 @@
     },
     "resources": {
       "../dist/": "frontend/",
-      "resources/": "launcher/"
+      "../crates/pcl-core/resources/launch/": "launcher/",
+      "../crates/pcl-core/resources/installer/": "launcher/"
     }
   }
 }

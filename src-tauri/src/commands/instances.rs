@@ -1,18 +1,14 @@
-use crate::{
-    AppState,
-    app::config::ConfigManager,
+use crate::config::{current_instance, manager::ConfigManager, states::AppState};
+use pcl_core::{
     io::files::open_directory,
-    minecraft::{
-        instance::{McInstance, McInstanceFolder},
-        java::preference::current_instance,
-    },
+    minecraft::instance::{McInstance, McInstanceFolder},
 };
 use std::sync::Arc;
 use tauri::State;
 use tokio::sync::Mutex;
 
 #[tauri::command]
-pub async fn get_isolation_default() -> crate::minecraft::instance::isolation::IsolationDefault {
+pub async fn get_isolation_default() -> crate::config::isolation::IsolationDefault {
     ConfigManager::instance()
         .app_state
         .lock()
@@ -22,11 +18,11 @@ pub async fn get_isolation_default() -> crate::minecraft::instance::isolation::I
 
 #[tauri::command]
 pub async fn set_isolation_default(
-    value: crate::minecraft::instance::isolation::IsolationDefault,
+    value: crate::config::isolation::IsolationDefault,
 ) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
         ConfigManager::instance()
-            .update(|state| crate::minecraft::instance::isolation::set_default(state, value))
+            .update(|state| crate::config::isolation::set_default(state, value))
     })
     .await
     .map_err(|error| error.to_string())?
@@ -68,10 +64,14 @@ pub async fn open_instance_folder(
         let state = ConfigManager::instance().app_state.blocking_lock();
         let instance =
             current_instance(&state, &instance_directory).map_err(|error| error.to_string())?;
-        let game_directory = crate::minecraft::instance::isolation::directory(&state, instance);
-        let directory =
-            crate::minecraft::instance::prepare_shortcut_directory(instance, game_directory, kind)
-                .map_err(|error| error.to_string())?;
+        let game_directory =
+            crate::config::isolation::directory(&state.instance_isolation, instance);
+        let directory = pcl_core::minecraft::instance::prepare_shortcut_directory(
+            instance,
+            game_directory,
+            kind,
+        )
+        .map_err(|error| error.to_string())?;
         open_directory(&directory)
     })
     .await
@@ -84,7 +84,7 @@ pub async fn instance_folder_action(
     instance_directory: std::path::PathBuf,
     delete: bool,
 ) -> Result<(), String> {
-    crate::io::files::validate_file_name(&instance_name).map_err(|e| e.to_string())?;
+    pcl_core::io::files::validate_file_name(&instance_name).map_err(|e| e.to_string())?;
     tauri::async_runtime::spawn_blocking(move || {
         let manager = ConfigManager::instance();
         let repo = manager
@@ -178,7 +178,7 @@ pub async fn rename_instance(
     instance_directory: std::path::PathBuf,
     new_name: String,
 ) -> Result<McInstance, String> {
-    crate::io::files::validate_file_name(&new_name).map_err(|error| error.to_string())?;
+    pcl_core::io::files::validate_file_name(&new_name).map_err(|error| error.to_string())?;
     tauri::async_runtime::spawn_blocking(move || {
         rename_instance_inner(instance_directory, new_name)
     })
@@ -229,7 +229,7 @@ fn rename_instance_inner(
     if new_directory.exists() {
         return Err("An instance with that name already exists".into());
     }
-    crate::minecraft::instance::rename_instance_files(
+    pcl_core::minecraft::instance::rename_instance_files(
         &instance.directory,
         &new_directory,
         &old_name,
@@ -312,7 +312,7 @@ pub async fn select_instance(
     repository_index: usize,
     instance_name: String,
 ) -> Result<McInstance, String> {
-    crate::io::files::validate_file_name(&instance_name).map_err(|error| error.to_string())?;
+    pcl_core::io::files::validate_file_name(&instance_name).map_err(|error| error.to_string())?;
     let repo = state
         .lock()
         .await

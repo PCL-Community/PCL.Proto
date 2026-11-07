@@ -1,4 +1,4 @@
-use crate::app::config::ConfigManager;
+use crate::config::manager::ConfigManager;
 use std::io::{Read, Write};
 
 const MAX_BYTES: usize = 2 * 1024 * 1024;
@@ -31,18 +31,22 @@ pub async fn load_custom_homepage(url: Option<String>) -> Result<String, String>
             return Err("Invalid homepage URL".into());
         }
         use futures_util::StreamExt;
-        let settings = crate::io::download::resources::DOWNLOAD_RESOURCES.settings();
-        let response = crate::io::download::send_request(
-            settings.http_mode,
-            false,
-            url.as_str(),
-            None,
-            Some(std::time::Duration::from_secs(20)),
-        )
-        .await
-        .map_err(|error| error.to_string())?
-        .error_for_status()
-        .map_err(|error| error.to_string())?;
+        let settings = ConfigManager::instance().api_client.resources().settings();
+        let response = crate::config::manager::ConfigManager::instance()
+            .api_client
+            .downloader()
+            .await
+            .send_request(
+                settings.http_mode,
+                false,
+                url.as_str(),
+                None,
+                Some(std::time::Duration::from_secs(20)),
+            )
+            .await
+            .map_err(|error| error.to_string())?
+            .error_for_status()
+            .map_err(|error| error.to_string())?;
         let mut bytes = Vec::new();
         let mut stream = response.bytes_stream();
         while let Some(chunk) = stream.next().await {

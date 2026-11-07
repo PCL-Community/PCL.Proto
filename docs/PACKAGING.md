@@ -29,16 +29,24 @@ renaming the complete `.app` is supported. Distribute the complete `.app` via th
 DMG or Tauri's app archive; the executable in `Contents/MacOS` alone is insufficient.
 Bundle resources are read-only at runtime and must be included before code signing.
 
-`bun run dev` continues to use Vite and source-tree launcher resources.
+`bun run dev` continues to use Vite; core prepares embedded launcher helpers on demand.
+The helper files live in `crates/pcl-core/resources/{launch,installer}`. macOS
+packaging copies them into the bundle, and the app supplies those paths to core.
+Core also carries default resources for standalone consumers; bundle routing does
+not guarantee that the executable excludes their embedded bytes.
 Configuration, accounts, Minecraft instances, downloaded runtime files, and caches
-stay in their existing writable locations. Existing extracted launcher resources
-are left in place for older installed versions, but the macOS app no longer uses them.
+stay in their existing writable locations. Downloaded Mesa loader files always
+use the writable configuration resource directory, including in a macOS bundle.
+Existing extracted launcher resources are left in place for older installed
+versions, but the macOS app no longer uses them.
 Build-time API configuration retains its existing handling; the root `.env` is
 never included as a bundle resource.
 
 ## Windows and Linux
 
-The existing embedded frontend and launcher-resource extraction remain unchanged.
+The frontend is embedded. Core prepares its default launcher helpers in the
+application-selected writable resource directory only when a launch needs them.
+Forge processor bridges are prepared in the installation temporary directory.
 The macOS resource map does not apply to these targets.
 
 New installations use `.minecraft` beside the launcher executable as the default
