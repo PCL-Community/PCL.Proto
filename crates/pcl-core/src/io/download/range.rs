@@ -62,7 +62,7 @@ impl Drop for RateLease<'_> {
 impl Downloader {
     pub(super) async fn probe_range(
         &self,
-        url: &str,
+        target: &RequestTarget,
         expected: Option<u64>,
     ) -> Result<Option<u64>, McApiError> {
         // A one-byte probe avoids opening several full responses on non-Range servers.
@@ -72,7 +72,7 @@ impl Downloader {
             .send_request(
                 self.resources().settings().http_mode,
                 true,
-                url,
+                target,
                 Some((0, 0)),
                 None,
             )
@@ -122,7 +122,7 @@ impl Downloader {
         &self,
         info: &DownloadFile,
         path: &Path,
-        url: &str,
+        target: &RequestTarget,
         progress: ProgressSink<'_>,
     ) -> Result<(), McApiError> {
         let output = std::fs::OpenOptions::new()
@@ -162,7 +162,7 @@ impl Downloader {
                     segment,
                     info.size,
                     path,
-                    url,
+                    target,
                     &downloaded,
                     &rates,
                     progress,
@@ -219,7 +219,7 @@ impl Downloader {
         mut segment: Segment,
         total: u64,
         path: &Path,
-        url: &str,
+        target: &RequestTarget,
         downloaded: &AtomicU64,
         rates: &Mutex<Rates>,
         progress: ProgressSink<'_>,
@@ -235,7 +235,7 @@ impl Downloader {
                 .send_request(
                     self.resources().settings().http_mode,
                     true,
-                    url,
+                    target,
                     Some((segment.offset, segment.end)),
                     None,
                 )

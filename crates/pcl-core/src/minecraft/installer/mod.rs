@@ -432,7 +432,8 @@ async fn maven_metadata_request(
     url: &str,
 ) -> anyhow::Result<reqwest::Response> {
     let mut last_error = None;
-    for source in downloader.source_urls(url) {
+    for source in downloader.resolve_sources(url, crate::io::net::http::resources::SourceKind::File)
+    {
         match downloader
             .transport()
             .send_request(
@@ -986,7 +987,7 @@ async fn install_version_with_modpack(
         speed: None,
     });
     let mut metadata = client.get_version_metadata(version_id).await?;
-    let downloader = client.downloader().await;
+    let downloader = client.downloader();
     let mut forgelike = None;
     if let Some(loader) = loader {
         on_event(TaskItemReport {
@@ -1000,8 +1001,8 @@ async fn install_version_with_modpack(
         match loader.family {
             LoaderFamily::Fabric | LoaderFamily::Legacyfabric => {
                 let family = match loader.family {
-                    LoaderFamily::Fabric => crate::io::net::http::api_client::FabricFamily::Fabric,
-                    _ => crate::io::net::http::api_client::FabricFamily::Legacyfabric,
+                    LoaderFamily::Fabric => crate::minecraft::mod_loader::FabricFamily::Fabric,
+                    _ => crate::minecraft::mod_loader::FabricFamily::Legacyfabric,
                 };
                 let profile = client
                     .get_fabric_profile(version_id, &loader.version, family)

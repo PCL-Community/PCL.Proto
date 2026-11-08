@@ -1,12 +1,9 @@
 //! Persisted launcher state, mirroring `PCL.Core.App.States` groups.
 
 use crate::config::metadata::constants;
-use pcl_core::{
-    io::net::http::api_client::ApiProvider,
-    minecraft::{
-        instance::{McInstance, folder::McFolder},
-        profile::McProfile,
-    },
+use pcl_core::minecraft::{
+    instance::{McInstance, folder::McFolder},
+    profile::McProfile,
 };
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
@@ -16,7 +13,6 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 pub struct LauncherSetup {
     setup_version: i32,
     theme: Theme,
-    pub api_provider: ApiProvider,
     pub max_memory: usize,
     pub selected_java: Option<PathBuf>,
 }
@@ -35,7 +31,6 @@ impl Default for LauncherSetup {
         LauncherSetup {
             setup_version: constants::DEFAULT_JAVA_LIST_CACHE_VERSION,
             theme: Theme::BlueLight,
-            api_provider: ApiProvider::Official,
             max_memory: 2048,
             selected_java: None,
         }

@@ -2,7 +2,7 @@
 use std::{
     sync::{
         Arc, Mutex, RwLock,
-        atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
+        atomic::{AtomicU64, AtomicUsize, Ordering},
     },
     time::{Duration, Instant},
 };
@@ -100,7 +100,6 @@ pub struct DownloadResources {
     speed: Mutex<SpeedSample>,
     bandwidth: tokio::sync::Mutex<Bandwidth>,
     changed: Notify,
-    pub official_fast: AtomicBool,
 }
 
 impl Default for DownloadResources {
@@ -119,7 +118,6 @@ impl Default for DownloadResources {
                 tokens: 128.0 * 1024.0,
             }),
             changed: Notify::new(),
-            official_fast: AtomicBool::new(true),
         }
     }
 }

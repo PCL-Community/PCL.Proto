@@ -7,7 +7,7 @@ use tauri::State;
 #[tauri::command]
 pub async fn get_fabric_installers(
     client: State<'_, &api_client::MinecraftApiClient>,
-    family: api_client::FabricFamily,
+    family: mod_loader::FabricFamily,
 ) -> Result<Vec<McPluginReport>, String> {
     client
         .get_fabric_installers(family)
@@ -57,12 +57,12 @@ pub async fn get_plugin_versions(
         mod_loader::ModLoaderType::NeoForge => api_client.get_neoforge_versions(mc_version).await,
         mod_loader::ModLoaderType::Fabric => {
             api_client
-                .get_fabric_versions(mc_version, api_client::FabricFamily::Fabric)
+                .get_fabric_versions(mc_version, mod_loader::FabricFamily::Fabric)
                 .await
         }
         mod_loader::ModLoaderType::LegacyFabric => {
             api_client
-                .get_fabric_versions(mc_version, api_client::FabricFamily::Legacyfabric)
+                .get_fabric_versions(mc_version, mod_loader::FabricFamily::Legacyfabric)
                 .await
         }
         _ => Err(api_client::McApiError::PluginMismatch(plugin_type)),

@@ -278,7 +278,7 @@ async fn launch_game_inner(
         option = option.with_window_size(size.width as usize, size.height as usize);
     }
     let config = ConfigManager::instance();
-    let downloader = wait_for_launch(&mut ticket.receiver, config.api_client.downloader()).await?;
+    let downloader = config.api_client.downloader();
     report("Minecraft.Launch.Stage.CompleteFiles", 0.35, true);
     wait_for_launch(&mut ticket.receiver, option.prepare_natives(&downloader))
         .await?
@@ -489,7 +489,7 @@ pub async fn export_launch_script(
         }
         option = option.with_window_size(size.width as usize, size.height as usize);
     }
-    let downloader = ConfigManager::instance().api_client.downloader().await;
+    let downloader = ConfigManager::instance().api_client.downloader();
     option
         .prepare_natives(&downloader)
         .await

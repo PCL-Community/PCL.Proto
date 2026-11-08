@@ -377,7 +377,7 @@ fn instance_requirements_inherit_metadata_and_detect_cycles() {
 #[cfg(unix)]
 mod download_tests {
     use super::*;
-    use crate::io::net::http::api_client::{ApiBases, ApiProvider};
+    use crate::minecraft::sources::ApiEndpoints;
     use sha1::Digest;
     use std::{collections::HashMap, sync::Arc};
     use tokio::{
@@ -387,7 +387,7 @@ mod download_tests {
     };
 
     struct Mirror {
-        bases: ApiBases,
+        bases: ApiEndpoints,
         task: tokio::task::JoinHandle<()>,
     }
     impl Drop for Mirror {
@@ -436,7 +436,7 @@ mod download_tests {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let base: &'static str =
             Box::leak(format!("http://{}", listener.local_addr().unwrap()).into_boxed_str());
-        let mut bases = ApiBases::new(&ApiProvider::Official);
+        let mut bases = ApiEndpoints::default();
         bases.meta_base = base;
         let task = tokio::spawn(async move {
             let mut connections = JoinSet::new();
@@ -472,10 +472,10 @@ mod download_tests {
         let runtime = install::install(
             req,
             temp.0.clone(),
-            crate::io::download::Downloader::with_bases(
-                crate::io::net::http::HttpTransport::default(),
+            crate::io::net::http::api_client::MinecraftApiClient::with_test_endpoints(
                 mirror.bases.clone(),
-            ),
+            )
+            .downloader(),
             |_| {},
         )
         .await
@@ -509,10 +509,10 @@ mod download_tests {
                 install::install(
                     requirements(25, 999),
                     temp.0.clone(),
-                    crate::io::download::Downloader::with_bases(
-                        crate::io::net::http::HttpTransport::default(),
+                    crate::io::net::http::api_client::MinecraftApiClient::with_test_endpoints(
                         mirror.bases.clone()
-                    ),
+                    )
+                    .downloader(),
                     |_| {}
                 )
                 .await
@@ -534,10 +534,10 @@ mod download_tests {
         let task = tokio::spawn(install::install(
             requirements(25, 999),
             temp.0.clone(),
-            crate::io::download::Downloader::with_bases(
-                crate::io::net::http::HttpTransport::default(),
+            crate::io::net::http::api_client::MinecraftApiClient::with_test_endpoints(
                 mirror.bases.clone(),
-            ),
+            )
+            .downloader(),
             progress,
         ));
         tokio::time::timeout(Duration::from_secs(5), started.notified())

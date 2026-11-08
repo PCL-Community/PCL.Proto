@@ -207,10 +207,7 @@ fn fabric_api_is_staged_inside_the_instance_mods_folder() {
 async fn official_vanilla_install_with_custom_name() {
     let root = std::env::temp_dir().join(format!("pcl-install-smoke-{}", uuid::Uuid::new_v4()));
     fs::create_dir(&root).unwrap();
-    let client = MinecraftApiClient::new(
-        crate::io::net::http::HttpTransport::default(),
-        &crate::io::net::http::api_client::ApiProvider::Official,
-    );
+    let client = MinecraftApiClient::new(crate::io::net::http::HttpTransport::default());
     let result = install_version_for_test(
         &client,
         &root,
@@ -301,15 +298,13 @@ impl MockMirror {
     }
 
     fn client(&self) -> MinecraftApiClient {
-        let mut bases = crate::io::net::http::api_client::ApiBases::new(
-            &crate::io::net::http::api_client::ApiProvider::Official,
-        );
+        let mut bases = crate::minecraft::sources::ApiEndpoints::default();
         bases.meta_base = self.url;
         bases.fabric_base = Box::leak(format!("{}/fabric", self.url).into_boxed_str());
         bases.legacy_fabric_base =
             Box::leak(format!("{}/legacy-fabric", self.url).into_boxed_str());
         bases.resources_base = Box::leak(format!("{}/assets", self.url).into_boxed_str());
-        MinecraftApiClient::with_test_bases(bases)
+        MinecraftApiClient::with_test_endpoints(bases)
     }
 
     fn count(&self, path: &str) -> usize {
@@ -344,7 +339,7 @@ async fn maven_libraries_are_verified_and_published_before_launch() {
         ]),
         false,
     );
-    let downloader = server.client().downloader().await;
+    let downloader = server.client().downloader();
     let root = std::env::temp_dir().join(format!("pcl-maven-{}", uuid::Uuid::new_v4()));
     fs::create_dir(&root).unwrap();
     let download = json!({"sha1":"a".repeat(40),"size":1,"url":"https://example.org/file"});
@@ -402,11 +397,8 @@ async fn maven_libraries_are_verified_and_published_before_launch() {
 #[tokio::test]
 #[ignore = "Downloads official Fabric profile libraries into a temporary directory"]
 async fn official_fabric_maven_libraries_smoke() {
-    use crate::io::net::http::api_client::{ApiProvider, FabricFamily};
-    let client = MinecraftApiClient::new(
-        crate::io::net::http::HttpTransport::default(),
-        &ApiProvider::Official,
-    );
+    use crate::minecraft::mod_loader::FabricFamily;
+    let client = MinecraftApiClient::new(crate::io::net::http::HttpTransport::default());
     for (game, version, family) in [
         ("1.20.1", "0.16.14", FabricFamily::Fabric),
         ("1.12.2", "0.20.1", FabricFamily::Legacyfabric),
@@ -456,7 +448,7 @@ async fn official_legacy_fabric_install_smoke() {
     official_fabric_install(
         "1.12.2",
         "0.20.1",
-        crate::io::net::http::api_client::FabricFamily::Legacyfabric,
+        crate::minecraft::mod_loader::FabricFamily::Legacyfabric,
         "net/legacyfabric/intermediary/1.12.2/",
     )
     .await;
@@ -469,7 +461,7 @@ async fn official_fabric_install_smoke() {
     official_fabric_install(
         "1.20.1",
         "0.16.14",
-        crate::io::net::http::api_client::FabricFamily::Fabric,
+        crate::minecraft::mod_loader::FabricFamily::Fabric,
         "net/fabricmc/intermediary/1.20.1/",
     )
     .await;
@@ -479,25 +471,19 @@ async fn official_fabric_install_smoke() {
 async fn official_fabric_install(
     game: &str,
     version: &str,
-    family: crate::io::net::http::api_client::FabricFamily,
+    family: crate::minecraft::mod_loader::FabricFamily,
     intermediary: &str,
 ) {
-    use crate::{
-        io::net::http::api_client::ApiProvider,
-        minecraft::{launch::launcher::LaunchOption, profile::McProfile},
-    };
+    use crate::minecraft::{launch::launcher::LaunchOption, profile::McProfile};
     use std::os::unix::fs::PermissionsExt;
     let root = std::env::temp_dir().join(format!("pcl-fabric-full-{}", uuid::Uuid::new_v4()));
     fs::create_dir(&root).unwrap();
     let result: anyhow::Result<()> = async {
-        let client = MinecraftApiClient::new(
-            crate::io::net::http::HttpTransport::default(),
-            &ApiProvider::Official,
-        );
+        let client = MinecraftApiClient::new(crate::io::net::http::HttpTransport::default());
         let choice = LoaderInstall {
             family: match family {
-                crate::io::net::http::api_client::FabricFamily::Fabric => LoaderFamily::Fabric,
-                crate::io::net::http::api_client::FabricFamily::Legacyfabric => {
+                crate::minecraft::mod_loader::FabricFamily::Fabric => LoaderFamily::Fabric,
+                crate::minecraft::mod_loader::FabricFamily::Legacyfabric => {
                     LoaderFamily::Legacyfabric
                 }
             },
@@ -539,7 +525,7 @@ async fn official_fabric_install(
             Arc::new(runtime),
             directory,
         ))?;
-        let natives = option.prepare_natives(&client.downloader().await).await?;
+        let natives = option.prepare_natives(&client.downloader()).await?;
         ensure!(
             option.launch_checked()?.wait()?.success(),
             "Fake Java failed"
@@ -732,7 +718,7 @@ async fn launch_preparation_selects_java_classifier_and_isolates_natives() {
     assert_eq!(fs::read(repaired.join("native.bin")).unwrap(), b"32");
     fs::remove_file(root.join("libraries/test/32.jar")).unwrap();
     let mirror = MockMirror::new([("/maven/test/32.jar".into(), archive32)].into(), false);
-    let downloader = mirror.client().downloader().await;
+    let downloader = mirror.client().downloader();
     let downloaded = prepare_launch_libraries(&details, &root, &root, &x86, &downloader, true)
         .await
         .unwrap();
@@ -970,7 +956,7 @@ async fn fabric_profile_rejects_wrong_game_or_loader() {
             .get_fabric_profile(
                 "1.test",
                 "0.16",
-                crate::io::net::http::api_client::FabricFamily::Fabric
+                crate::minecraft::mod_loader::FabricFamily::Fabric
             )
             .await
             .is_err()
@@ -981,7 +967,7 @@ async fn fabric_profile_rejects_wrong_game_or_loader() {
             .get_fabric_profile(
                 "../bad",
                 "0.16",
-                crate::io::net::http::api_client::FabricFamily::Fabric
+                crate::minecraft::mod_loader::FabricFamily::Fabric
             )
             .await
             .is_err()
@@ -990,7 +976,7 @@ async fn fabric_profile_rejects_wrong_game_or_loader() {
 
 #[tokio::test]
 async fn legacy_fabric_list_and_install_use_legacy_intermediary() {
-    use crate::io::net::http::api_client::FabricFamily;
+    use crate::minecraft::mod_loader::FabricFamily;
     let mut files = fixture_files(false);
     let hash = crate::io::files::sha1_hex(sha1::Sha1::digest(b"library"));
     let library = |name: &str| json!({"name":name,"url":"https://libraries.minecraft.net/","sha1":hash,"size":7});
@@ -1127,7 +1113,7 @@ async fn full_install_retries_publishes_custom_name_and_reuses_verified_cache() 
     assert_eq!(instances.len(), 1, "the same repository sees new installs");
     assert_eq!(instances[0].version, "1.test");
     let details = instances[0].read_version_json().unwrap();
-    let downloader = client.downloader().await;
+    let downloader = client.downloader();
     prepare_legacy_assets(&details, &root, &root, &downloader, true)
         .await
         .unwrap();
@@ -1298,10 +1284,7 @@ async fn tampered_version_json_fails_before_downloading_files() {
 #[tokio::test]
 #[ignore = "Fetches official version JSON and asset indexes; run explicitly"]
 async fn official_metadata_across_generations() {
-    let client = MinecraftApiClient::new(
-        crate::io::net::http::HttpTransport::default(),
-        &crate::io::net::http::api_client::ApiProvider::Official,
-    );
+    let client = MinecraftApiClient::new(crate::io::net::http::HttpTransport::default());
     let root = std::env::temp_dir().join(format!("pcl-metadata-smoke-{}", uuid::Uuid::new_v4()));
     fs::create_dir(&root).unwrap();
     let manifest: crate::minecraft::version::McVersionManifest = client

@@ -50,7 +50,7 @@ impl Drop for PartialFile {
 #[derive(Clone)]
 pub struct Downloader {
     transport: HttpTransport,
-    pub(crate) bases: crate::io::net::http::api_client::ApiBases,
+    sources: Arc<SourceResolver>,
 }
 
 impl Default for Downloader {
@@ -65,40 +65,35 @@ mod range;
 pub mod tasks;
 
 use crate::io::net::http::{
-    HttpTransport,
+    HttpTransport, RequestTarget,
     resources::{DownloadResources, SourceKind},
 };
 use std::sync::{Arc, atomic::Ordering};
+type SourceResolver = dyn Fn(&str, SourceKind) -> Vec<RequestTarget> + Send + Sync;
 use tokio::io::BufWriter;
 
 pub(super) const SMALL_FILE_THRESHOLD: u64 = 4 * 1024 * 1024;
 type ProgressSink<'a> = Option<(&'a DownloadConfig, &'a mpsc::Sender<ProgressUpdate>)>;
 
 impl Downloader {
-    pub(crate) fn source_urls(&self, url: &str) -> Vec<String> {
-        let settings = self.resources().settings();
-        self.bases.download_urls(
-            url,
-            SourceKind::File,
-            &settings,
-            self.resources().official_fast.load(Ordering::Relaxed),
-        )
+    pub(crate) fn resolve_sources(&self, url: &str, kind: SourceKind) -> Vec<RequestTarget> {
+        (self.sources)(url, kind)
     }
 
     pub fn new(transport: HttpTransport) -> Self {
-        Self::with_bases(
+        Self {
             transport,
-            crate::io::net::http::api_client::ApiBases::new(
-                &crate::io::net::http::api_client::ApiProvider::Official,
-            ),
-        )
+            sources: Arc::new(|url, _| vec![RequestTarget::new(url)]),
+        }
     }
 
-    pub fn with_bases(
-        transport: HttpTransport,
-        bases: crate::io::net::http::api_client::ApiBases,
+    /// Supply ordered destinations with their headers; the engine handles retries and verification.
+    pub fn with_sources(
+        mut self,
+        resolver: impl Fn(&str, SourceKind) -> Vec<RequestTarget> + Send + Sync + 'static,
     ) -> Self {
-        Self { transport, bases }
+        self.sources = Arc::new(resolver);
+        self
     }
 
     pub fn transport(&self) -> &HttpTransport {
@@ -215,16 +210,18 @@ impl Downloader {
             .ok_or_else(|| McApiError::InvalidMetadata("Missing destination parent".into()))?;
         // Complete directory creation before a cancelled task can remove its staging tree.
         std::fs::create_dir_all(parent)?;
-        let urls = self.source_urls(&info.url);
-        let mut disabled = vec![false; urls.len()];
+        let targets = self.resolve_sources(&info.url, SourceKind::File);
+        let mut disabled = vec![false; targets.len()];
         let mut last_error = None;
         for attempt in 0..3 {
-            for (index, url) in urls.iter().enumerate() {
+            for (index, target) in targets.iter().enumerate() {
                 if disabled[index] {
                     continue;
                 }
                 report(progress, 0, TaskStatus::Running).await;
-                let result = self.transfer_from(info, path, url, progress, verify).await;
+                let result = self
+                    .transfer_from(info, path, target, progress, verify)
+                    .await;
                 match result {
                     Ok(size) => return Ok(size),
                     Err(error) => {
@@ -232,7 +229,11 @@ impl Downloader {
                             return Err(error);
                         }
                         disabled[index] = permanent_http_error(&error);
-                        log::warn!("Download attempt {} failed for {url}: {error}", attempt + 1);
+                        log::warn!(
+                            "Download attempt {} failed for {}: {error}",
+                            attempt + 1,
+                            target.url
+                        );
                         last_error = Some(error);
                     }
                 }
@@ -250,7 +251,7 @@ impl Downloader {
         &self,
         info: &DownloadFile,
         path: &Path,
-        url: &str,
+        target: &RequestTarget,
         progress: ProgressSink<'_>,
         verify: bool,
     ) -> Result<u64, McApiError> {
@@ -258,23 +259,23 @@ impl Downloader {
             && (info.size == 0 || info.size >= SMALL_FILE_THRESHOLD)
         {
             let Some(size) = self
-                .probe_range(url, (info.size > 0).then_some(info.size))
+                .probe_range(target, (info.size > 0).then_some(info.size))
                 .await?
             else {
                 return self
-                    .transfer_sequential(info, path, url, progress, verify)
+                    .transfer_sequential(info, path, target, progress, verify)
                     .await;
             };
             if size < SMALL_FILE_THRESHOLD {
                 return self
-                    .transfer_sequential(info, path, url, progress, verify)
+                    .transfer_sequential(info, path, target, progress, verify)
                     .await;
             }
             let mut ranged = info.clone();
             ranged.size = size;
             let partial = partial_file(path);
             match self
-                .download_ranges(&ranged, &partial.0, url, progress)
+                .download_ranges(&ranged, &partial.0, target, progress)
                 .await
             {
                 Ok(()) => {
@@ -294,13 +295,16 @@ impl Downloader {
                     return Ok(size);
                 }
                 Err(McApiError::RangeUnsupported) => {
-                    log::debug!("Range unavailable, using sequential download: {url}");
+                    log::debug!(
+                        "Range unavailable, using sequential download: {}",
+                        target.url
+                    );
                     report(progress, 0, TaskStatus::Running).await;
                 }
                 Err(error) => return Err(error),
             }
         }
-        self.transfer_sequential(info, path, url, progress, verify)
+        self.transfer_sequential(info, path, target, progress, verify)
             .await
     }
 
@@ -308,7 +312,7 @@ impl Downloader {
         &self,
         info: &DownloadFile,
         path: &Path,
-        url: &str,
+        target: &RequestTarget,
         progress: ProgressSink<'_>,
         verify: bool,
     ) -> Result<u64, McApiError> {
@@ -318,7 +322,7 @@ impl Downloader {
             .send_request(
                 self.resources().settings().http_mode,
                 info.size == 0 || info.size >= SMALL_FILE_THRESHOLD,
-                url,
+                target,
                 None,
                 None,
             )
@@ -455,7 +459,7 @@ async fn run_custom_download(
 
 pub async fn download_fabric_installer(
     downloader: &Downloader,
-    family: crate::io::net::http::api_client::FabricFamily,
+    family: crate::minecraft::mod_loader::FabricFamily,
     version: String,
     destination: PathBuf,
     task_id: i32,

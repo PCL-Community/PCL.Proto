@@ -21,6 +21,7 @@ type RequestLog = Arc<Mutex<Vec<Option<(u64, u64)>>>>;
 struct Server {
     url: String,
     requests: RequestLog,
+    keys: Arc<Mutex<Vec<Option<String>>>>,
     peak: Arc<AtomicUsize>,
     task: tokio::task::JoinHandle<()>,
 }
@@ -34,10 +35,12 @@ impl Server {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let url = format!("http://{}/file.jar", listener.local_addr().unwrap());
         let requests = Arc::new(Mutex::new(Vec::new()));
+        let keys = Arc::new(Mutex::new(Vec::new()));
         let peak = Arc::new(AtomicUsize::new(0));
         let active = Arc::new(AtomicUsize::new(0));
         let disconnected = Arc::new(AtomicBool::new(false));
         let recorded = requests.clone();
+        let recorded_keys = keys.clone();
         let maximum = peak.clone();
         let task = tokio::spawn(async move {
             let mut connections = JoinSet::new();
@@ -48,6 +51,7 @@ impl Server {
                         let body = body.clone(); let recorded = recorded.clone();
                         let active = active.clone(); let maximum = maximum.clone();
                         let disconnected = disconnected.clone();
+                        let recorded_keys = recorded_keys.clone();
                         connections.spawn(async move {
                             let mut request = Vec::new();
                             loop {
@@ -57,6 +61,7 @@ impl Server {
                                 assert!(request.len() < 8192);
                             }
                             let request = String::from_utf8(request).unwrap().to_ascii_lowercase();
+                            recorded_keys.lock().unwrap().push(request.lines().find_map(|line| line.strip_prefix("x-api-key: ")).map(str::to_owned));
                             let range = request.lines().find_map(|line| line.strip_prefix("range: bytes="))
                                 .map(|value| { let (a, b) = value.split_once('-').unwrap(); (a.parse::<u64>().unwrap(), b.parse::<u64>().unwrap()) });
                             recorded.lock().unwrap().push(range);
@@ -97,6 +102,7 @@ impl Server {
         Self {
             url,
             requests,
+            keys,
             peak,
             task,
         }
@@ -180,12 +186,26 @@ async fn custom_download_parallelizes_and_recovers_interrupted_ranges() {
     )
     .await;
     let temp = Temp::new();
-    let downloader = downloader(2, 3);
+    let downloader = downloader(2, 3).with_sources(|url, _| {
+        let mut target = RequestTarget::new(url);
+        target
+            .headers
+            .insert("x-api-key", "range-key".parse().unwrap());
+        vec![target]
+    });
     download_unknown(&downloader, &server.url, &temp.file())
         .await
         .unwrap();
     assert_eq!(std::fs::read(temp.file()).unwrap(), *body);
     assert_eq!(server.peak.load(Ordering::SeqCst), 2);
+    assert!(
+        server
+            .keys
+            .lock()
+            .unwrap()
+            .iter()
+            .all(|key| key.as_deref() == Some("range-key"))
+    );
     assert!(
         server
             .requests
@@ -463,11 +483,8 @@ async fn per_file_limit_bounds_workers_even_with_a_larger_global_quota() {
 #[tokio::test]
 #[ignore = "Downloads the official 1.21.1 client into a disposable directory"]
 async fn official_large_client_range_smoke() {
-    use crate::io::net::http::api_client::{ApiProvider, MinecraftApiClient};
-    let client = MinecraftApiClient::new(
-        crate::io::net::http::HttpTransport::default(),
-        &ApiProvider::Official,
-    );
+    use crate::io::net::http::api_client::MinecraftApiClient;
+    let client = MinecraftApiClient::new(crate::io::net::http::HttpTransport::default());
     let metadata = client.get_version_metadata("1.21.1").await.unwrap();
     let info: DownloadFile =
         serde_json::from_value(metadata["downloads"]["client"].clone()).unwrap();

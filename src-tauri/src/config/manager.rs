@@ -7,7 +7,7 @@ use std::os::unix::fs::OpenOptionsExt;
 use tokio::sync::Mutex;
 
 use pcl_core::{
-    io::net::http::api_client::{ApiProvider, MinecraftApiClient},
+    io::net::http::api_client::MinecraftApiClient,
     minecraft::instance::{
         McInstance,
         folder::{McFolder, McFolderType},
@@ -242,15 +242,12 @@ impl ConfigManager {
             config_path,
             config_dir: config_dir.to_path_buf(),
             app_state: Arc::new(Mutex::new(AppState::default())),
-            api_client: MinecraftApiClient::new(
-                {
-                    let (client, http1) = crate::config::network::clients(&Default::default())
-                        .map_err(|_| ConfigManagerError::ApiClientBuildError)?;
-                    pcl_core::io::net::http::HttpTransport::new(client, http1)
-                        .with_request_signer(crate::secrets::curseforge_signer())
-                },
-                &ApiProvider::default(),
-            ),
+            api_client: MinecraftApiClient::new({
+                let (client, http1) = crate::config::network::clients(&Default::default())
+                    .map_err(|_| ConfigManagerError::ApiClientBuildError)?;
+                pcl_core::io::net::http::HttpTransport::new(client, http1)
+            })
+            .with_curseforge_api_key(crate::secrets::CURSEFORGE_API_KEY.as_deref()),
             pcl_identifier,
         };
         instance.load_or_init(
@@ -405,9 +402,6 @@ impl ConfigManager {
             .map_err(|_| ConfigManagerError::ApiClientBuildError)?;
         let mut state = self.app_state.blocking_lock();
         *state = state_read;
-        // update the api provider
-        self.api_client
-            .switch_provider(&state.launcher_setup.api_provider);
         self.api_client.replace_clients(client, http1);
         Ok(())
     }
@@ -690,10 +684,7 @@ mod java_config_tests {
                 isolation_default: crate::config::isolation::IsolationDefault::Off,
                 ..Default::default()
             })),
-            api_client: MinecraftApiClient::new(
-                pcl_core::io::net::http::HttpTransport::default(),
-                &ApiProvider::default(),
-            ),
+            api_client: MinecraftApiClient::new(pcl_core::io::net::http::HttpTransport::default()),
             pcl_identifier: String::new(),
         };
         fs::create_dir(&config_path).unwrap();
@@ -746,10 +737,7 @@ mod java_config_tests {
                 active_game_instance: Some(Arc::new(instances[0].clone())),
                 ..Default::default()
             })),
-            api_client: MinecraftApiClient::new(
-                pcl_core::io::net::http::HttpTransport::default(),
-                &ApiProvider::default(),
-            ),
+            api_client: MinecraftApiClient::new(pcl_core::io::net::http::HttpTransport::default()),
             pcl_identifier: String::new(),
         };
         let valid = LaunchArguments {
@@ -820,10 +808,7 @@ mod java_config_tests {
             config_path: root.join("config.yml"),
             config_dir: root.clone(),
             app_state: Arc::new(Mutex::new(AppState::default())),
-            api_client: MinecraftApiClient::new(
-                pcl_core::io::net::http::HttpTransport::default(),
-                &ApiProvider::default(),
-            ),
+            api_client: MinecraftApiClient::new(pcl_core::io::net::http::HttpTransport::default()),
             pcl_identifier: String::new(),
         };
         let custom = WindowSettings {
@@ -870,10 +855,7 @@ mod java_config_tests {
             config_path: path.clone(),
             config_dir: root.clone(),
             app_state: Arc::new(Mutex::new(AppState::default())),
-            api_client: MinecraftApiClient::new(
-                pcl_core::io::net::http::HttpTransport::default(),
-                &ApiProvider::default(),
-            ),
+            api_client: MinecraftApiClient::new(pcl_core::io::net::http::HttpTransport::default()),
             pcl_identifier: String::new(),
         };
         fs::write(&path, b"broken: [").unwrap();
@@ -887,7 +869,7 @@ mod java_config_tests {
         };
         assert_eq!(backups().len(), 1);
         assert_eq!(fs::read(&backups()[0]).unwrap(), b"broken: [");
-        let different_version = b"config_version: 0\nrenderer: 99\nlog_max_lines: 100\npcl_setup_info:\n  max_memory: 4096\n";
+        let different_version = b"config_version: 0\nrenderer: 99\nlog_max_lines: 100\npcl_setup_info:\n  api_provider: bmclapi\n  max_memory: 4096\ndownload_settings:\n  file_source: 2\n  community_source: 0\n";
         fs::write(&path, different_version).unwrap();
         manager.load().unwrap();
         let state = manager.app_state.blocking_lock();
@@ -895,6 +877,14 @@ mod java_config_tests {
         assert_eq!(state.renderer, 0);
         assert_eq!(state.log_max_lines, Some(100));
         assert_eq!(state.launcher_setup.max_memory, 4096);
+        assert!(matches!(
+            state.download_settings.as_ref().unwrap().file_source,
+            pcl_core::io::net::http::resources::SourcePreference::Official
+        ));
+        assert!(matches!(
+            state.download_settings.as_ref().unwrap().community_source,
+            pcl_core::io::net::http::resources::SourcePreference::Mirror
+        ));
         drop(state);
         assert_eq!(backups().len(), 2);
         assert!(
@@ -1009,10 +999,7 @@ mod java_config_tests {
             config_path: path.clone(),
             config_dir: root.clone(),
             app_state: Arc::new(Mutex::new(AppState::default())),
-            api_client: MinecraftApiClient::new(
-                pcl_core::io::net::http::HttpTransport::default(),
-                &ApiProvider::default(),
-            ),
+            api_client: MinecraftApiClient::new(pcl_core::io::net::http::HttpTransport::default()),
             pcl_identifier: String::new(),
         });
         fs::create_dir(&path).unwrap();
@@ -1066,10 +1053,7 @@ mod java_config_tests {
             config_path: path.clone(),
             config_dir: root.clone(),
             app_state: Arc::new(Mutex::new(AppState::default())),
-            api_client: MinecraftApiClient::new(
-                pcl_core::io::net::http::HttpTransport::default(),
-                &ApiProvider::default(),
-            ),
+            api_client: MinecraftApiClient::new(pcl_core::io::net::http::HttpTransport::default()),
             pcl_identifier: String::new(),
         };
         manager.add_repository("Games", &repo).unwrap();
@@ -1109,10 +1093,7 @@ mod java_config_tests {
             config_path: path.clone(),
             config_dir: root.clone(),
             app_state: Arc::new(Mutex::new(AppState::default())),
-            api_client: MinecraftApiClient::new(
-                pcl_core::io::net::http::HttpTransport::default(),
-                &ApiProvider::default(),
-            ),
+            api_client: MinecraftApiClient::new(pcl_core::io::net::http::HttpTransport::default()),
             pcl_identifier: String::new(),
         };
         let first = DownloadSettings {
@@ -1192,10 +1173,7 @@ mod java_config_tests {
                 }),
                 ..Default::default()
             })),
-            api_client: MinecraftApiClient::new(
-                pcl_core::io::net::http::HttpTransport::default(),
-                &ApiProvider::default(),
-            ),
+            api_client: MinecraftApiClient::new(pcl_core::io::net::http::HttpTransport::default()),
             pcl_identifier: String::new(),
         };
         assert!(
@@ -1247,10 +1225,7 @@ mod java_config_tests {
             config_path: path.clone(),
             config_dir: root.clone(),
             app_state: Arc::new(Mutex::new(AppState::default())),
-            api_client: MinecraftApiClient::new(
-                pcl_core::io::net::http::HttpTransport::default(),
-                &ApiProvider::default(),
-            ),
+            api_client: MinecraftApiClient::new(pcl_core::io::net::http::HttpTransport::default()),
             pcl_identifier: String::new(),
         };
         assert_eq!(manager.update_log_max_lines(500).unwrap(), 500);

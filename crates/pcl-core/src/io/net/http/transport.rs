@@ -1,19 +1,30 @@
-//! Shared HTTP clients, signing and protocol selection for API requests and file transfers.
-use super::{
-    resources::{DownloadResources, HttpMode},
-    signer,
-};
+//! Shared HTTP clients and protocol selection for API requests and file transfers.
+use super::resources::{DownloadResources, HttpMode};
 use reqwest::header::HeaderMap;
 use std::{
     sync::{Arc, RwLock},
     time::Duration,
 };
 
+/// A resolved request destination and the headers required by that destination.
+pub struct RequestTarget {
+    pub url: String,
+    pub headers: HeaderMap,
+}
+
+impl RequestTarget {
+    pub fn new(url: impl Into<String>) -> Self {
+        Self {
+            url: url.into(),
+            headers: HeaderMap::new(),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct HttpTransport {
     resources: Arc<DownloadResources>,
     clients: Arc<RwLock<(reqwest::Client, reqwest::Client)>>,
-    signer: Option<Arc<dyn signer::RequestSigner>>,
 }
 
 impl Default for HttpTransport {
@@ -27,24 +38,7 @@ impl HttpTransport {
         Self {
             clients: Arc::new(RwLock::new((client, http1))),
             resources: Arc::new(DownloadResources::default()),
-            signer: None,
         }
-    }
-
-    /// 注册传输层签名器；同一份传输对象的克隆共享它。
-    pub fn with_request_signer(self, signer: Option<Arc<dyn signer::RequestSigner>>) -> Self {
-        Self { signer, ..self }
-    }
-
-    /// 请求某个 URL 时应附带的凭据头；未注册签名器或主机不需要签名时为空。
-    fn sign_headers(&self, url: &str) -> HeaderMap {
-        let Some(signer) = &self.signer else {
-            return HeaderMap::new();
-        };
-        reqwest::Url::parse(url)
-            .ok()
-            .and_then(|url| signer.headers(&url))
-            .unwrap_or_default()
     }
 
     /// Clones share clients, bandwidth budget and connection quota.
@@ -66,15 +60,15 @@ impl HttpTransport {
         &self,
         mode: HttpMode,
         large: bool,
-        url: &str,
+        target: &RequestTarget,
         range: Option<(u64, u64)>,
         timeout: Option<Duration>,
     ) -> Result<reqwest::Response, reqwest::Error> {
-        let headers = self.sign_headers(url);
+        let url = &target.url;
         let send = |client: &reqwest::Client| {
             let mut request = client
                 .get(url)
-                .headers(headers.clone())
+                .headers(target.headers.clone())
                 .header(reqwest::header::ACCEPT_ENCODING, "identity");
             if let Some((start, end)) = range {
                 request = request.header(reqwest::header::RANGE, format!("bytes={start}-{end}"));

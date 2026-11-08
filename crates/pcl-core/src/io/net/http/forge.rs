@@ -1,6 +1,5 @@
 //! Forge version metadata shared by the version list and installer.
 use super::api_client::{McApiError, McApiResult, MinecraftApiClient};
-use crate::io::net::http::resources::SourcePreference;
 use serde_json::Value;
 
 #[derive(Clone, Debug)]
@@ -198,23 +197,7 @@ impl MinecraftApiClient {
         if !token(game) || selected.is_some_and(|version| !token(version)) {
             return Err(McApiError::InvalidMetadata("Invalid Forge version".into()));
         }
-        let mirror_first = !matches!(
-            self.resources().settings().version_source,
-            SourcePreference::Official
-        );
-        let mirror = format!(
-            "https://bmclapi2.bangbang93.com/forge/minecraft/{}",
-            game.replace('-', "_")
-        );
-        let official = format!(
-            "https://files.minecraftforge.net/maven/net/minecraftforge/forge/index_{}.html",
-            game.replace('-', "_")
-        );
-        let sources = if mirror_first {
-            [(true, mirror), (false, official)]
-        } else {
-            [(false, official), (true, mirror)]
-        };
+        let sources = self.sources.forge(game);
         self.forge_versions_from_sources(game, selected, sources)
             .await
     }
@@ -307,7 +290,6 @@ mod tests {
 
     #[tokio::test]
     async fn version_sources_fall_back_after_failure_or_missing_selection() {
-        use super::super::api_client::ApiProvider;
         use tokio::io::{AsyncReadExt, AsyncWriteExt};
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
@@ -336,10 +318,7 @@ mod tests {
             }
             requests
         });
-        let client = MinecraftApiClient::new(
-            crate::io::net::http::HttpTransport::default(),
-            &ApiProvider::Official,
-        );
+        let client = MinecraftApiClient::new(crate::io::net::http::HttpTransport::default());
         let url = |path| format!("http://{address}/{path}");
         for first in ["bad", "absent"] {
             let versions = client
@@ -361,11 +340,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "Reads current Forge version lists from the official and BMCL sources"]
     async fn real_forge_sources_expose_the_same_installer() {
-        use super::super::api_client::ApiProvider;
-        let client = MinecraftApiClient::new(
-            crate::io::net::http::HttpTransport::default(),
-            &ApiProvider::Official,
-        );
+        let client = MinecraftApiClient::new(crate::io::net::http::HttpTransport::default());
         let mirror: Value = client
             .get(
                 "https://bmclapi2.bangbang93.com/forge/minecraft/1.20.1",

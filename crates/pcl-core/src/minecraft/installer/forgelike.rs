@@ -167,15 +167,8 @@ pub async fn download_forgelike_installer(
             let file = resolve_installer(client, &game, &loader).await?;
             let directory = tempfile::tempdir_in(parent)?;
             let archive = directory.path().join("installer");
-            download_installer(
-                &file,
-                &client.downloader().await,
-                &archive,
-                task_id,
-                0,
-                &on_event,
-            )
-            .await?;
+            download_installer(&file, &client.downloader(), &archive, task_id, 0, &on_event)
+                .await?;
             crate::io::download::tasks::commit(task_id, move || {
                 let _directory = directory;
                 fs::hard_link(&archive, &destination)
@@ -383,7 +376,7 @@ pub(super) async fn ensure_java(
     let runtime = crate::minecraft::java::install::install(
         requirements,
         java_runtime_dir.to_owned(),
-        client.downloader().await,
+        client.downloader(),
         move |progress| {
             channel(super::TaskItemReport {
                 task_id,
@@ -1107,7 +1100,6 @@ echo true
 
     async fn real_installer_smoke() {
         use super::super::{LoaderFamily, LoaderInstall, McVersion, MinecraftApiClient};
-        use crate::io::net::http::api_client::ApiProvider;
         let case = std::env::var("PCL_FORGE_SMOKE_CASE").unwrap_or_else(|_| "forge".into());
         let (game, version, family) = match case.as_str() {
             "forge" => ("1.20.1", "47.0.1", LoaderFamily::Forge),
@@ -1116,11 +1108,8 @@ echo true
             "legacy" => ("1.7.10", "10.13.0.1151", LoaderFamily::Forge),
             _ => panic!("Unknown smoke case"),
         };
-        let client = MinecraftApiClient::new(
-            crate::io::net::http::HttpTransport::default(),
-            &ApiProvider::BMCLApi,
-        );
-        let downloader = client.downloader().await;
+        let client = MinecraftApiClient::new(crate::io::net::http::HttpTransport::default());
+        let downloader = client.downloader();
         let metadata = client.get_version_metadata(game).await.unwrap();
         let vanilla: McVersion = serde_json::from_value(metadata.clone()).unwrap();
         let loader = LoaderInstall {

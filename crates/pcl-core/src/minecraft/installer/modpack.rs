@@ -650,10 +650,7 @@ mod tests {
         ));
         let temporary_path = prepared._directory.path().to_owned();
         let repo = tempfile::tempdir_in(&root).unwrap();
-        let client = MinecraftApiClient::new(
-            crate::io::net::http::HttpTransport::default(),
-            &crate::io::net::http::api_client::ApiProvider::Official,
-        );
+        let client = MinecraftApiClient::new(crate::io::net::http::HttpTransport::default());
         let PreparedPack { pack, _directory } = prepared;
         install_pack(
             pack,

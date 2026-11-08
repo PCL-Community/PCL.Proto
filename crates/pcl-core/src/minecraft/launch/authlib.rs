@@ -14,11 +14,7 @@ use sha2::Digest;
 use crate::minecraft::launch::launcher::AuthlibAgent;
 use crate::minecraft::profile::McProfile;
 
-/// CE 的下载源顺序：官方源优先，失败换 BMCLAPI 镜像。
-const METADATA_SOURCES: [&str; 2] = [
-    "https://authlib-injector.yushi.moe/artifact/latest.json",
-    "https://bmclapi2.bangbang93.com/mirrors/authlib-injector/artifact/latest.json",
-];
+use crate::minecraft::sources::{AUTHLIB_METADATA, authlib_sources};
 
 /// 第三方档案启动前的准备：确保 jar 存在，并预取认证服务器元数据。
 pub async fn prepare(
@@ -91,7 +87,7 @@ pub async fn ensure_jar(client: &reqwest::Client, path: &Path) -> Result<PathBuf
 }
 
 async fn fetch_latest(client: &reqwest::Client) -> Option<(Vec<String>, String)> {
-    for source in METADATA_SOURCES {
+    for source in authlib_sources(AUTHLIB_METADATA) {
         let Ok(response) = client.get(source).send().await else {
             continue;
         };
@@ -110,20 +106,7 @@ async fn fetch_latest(client: &reqwest::Client) -> Option<(Vec<String>, String)>
         else {
             continue;
         };
-        // CE：主源失败时换成镜像地址再试一次。
-        let mirror = download_url.replace(
-            "authlib-injector.yushi.moe",
-            "bmclapi2.bangbang93.com/mirrors/authlib-injector",
-        );
-        let official = download_url.replace(
-            "bmclapi2.bangbang93.com/mirrors/authlib-injector",
-            "authlib-injector.yushi.moe",
-        );
-        let mut urls = vec![official];
-        if mirror != urls[0] {
-            urls.push(mirror);
-        }
-        return Some((urls, sha256.to_owned()));
+        return Some((authlib_sources(download_url), sha256.to_owned()));
     }
     None
 }

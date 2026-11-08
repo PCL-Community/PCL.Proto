@@ -102,7 +102,7 @@ pub async fn ensure_mesa_loader(downloader: &Downloader, path: &Path) -> Result<
         .send_request(
             HttpMode::Auto,
             true,
-            &url,
+            &crate::io::net::http::RequestTarget::new(url),
             None,
             Some(std::time::Duration::from_secs(120)),
         )

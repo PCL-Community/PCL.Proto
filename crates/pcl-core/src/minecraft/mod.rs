@@ -10,4 +10,5 @@ pub mod mod_loader;
 pub mod profile;
 pub mod saves;
 pub mod servers;
+pub(crate) mod sources;
 pub mod version;

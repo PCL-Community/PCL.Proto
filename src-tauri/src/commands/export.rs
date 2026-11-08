@@ -16,7 +16,7 @@ pub async fn download_resource(
     on_event: tauri::ipc::Channel<TaskItemReport>,
 ) -> Result<(), String> {
     resource::download_resource(
-        &client.downloader().await,
+        &client.downloader(),
         info,
         destination,
         task_id,
@@ -71,8 +71,7 @@ pub async fn save_loader_file(
     loader::save_loader_file(
         &crate::config::manager::ConfigManager::instance()
             .api_client
-            .downloader()
-            .await,
+            .downloader(),
         loader,
         game,
         version,
@@ -99,7 +98,6 @@ mod tests {
     fn ipc_accepts_task_manager_argument_names() {
         let client: &'static MinecraftApiClient = Box::leak(Box::new(MinecraftApiClient::new(
             pcl_core::io::net::http::HttpTransport::default(),
-            &pcl_core::io::net::http::api_client::ApiProvider::Official,
         )));
         let app = tauri::test::mock_builder()
             .manage(client)

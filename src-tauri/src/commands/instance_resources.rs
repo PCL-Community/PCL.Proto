@@ -42,7 +42,7 @@ pub async fn repair_instance_files(instance_directory: std::path::PathBuf) -> Re
             .map_err(|error| error.to_string())?,
         None => pcl_core::minecraft::version::McRuleContext::current(),
     };
-    let downloader = ConfigManager::instance().api_client.downloader().await;
+    let downloader = ConfigManager::instance().api_client.downloader();
     if vanilla && details.downloads.client.validate().is_ok() {
         downloader
             .download(&details.downloads.client, &jar_path)

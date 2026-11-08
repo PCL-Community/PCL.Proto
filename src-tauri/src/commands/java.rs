@@ -239,7 +239,7 @@ pub async fn download_game_java(
     }
     let info = crate::config::java::prepare(instance_directory).await?;
     let config = ConfigManager::instance();
-    let downloader = config.api_client.downloader().await;
+    let downloader = config.api_client.downloader();
     let task = tauri::async_runtime::spawn(java::install::install(
         info.requirements,
         config.java_runtime_dir(),

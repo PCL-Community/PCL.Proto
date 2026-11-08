@@ -266,8 +266,7 @@ mod imp {
 
         let downloader = crate::config::manager::ConfigManager::instance()
             .api_client
-            .downloader()
-            .await;
+            .downloader();
         let task_id = NEXT_DOWNLOAD_TASK.fetch_sub(1, Ordering::Relaxed);
         let event = on_event.clone();
         let sink = pcl_core::events::event_sink(move |report: TaskItemReport| {

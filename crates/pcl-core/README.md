@@ -38,7 +38,7 @@ use pcl_core::io::{
     net::http::{
         HttpTransport,
         resources::DownloadOptions,
-        api_client::{ApiProvider, MinecraftApiClient},
+        api_client::MinecraftApiClient,
     },
 };
 
@@ -48,15 +48,17 @@ let build = || reqwest::Client::builder()
     .read_timeout(std::time::Duration::from_secs(15));
 let transport = HttpTransport::new(build().build()?, build().http1_only().build()?);
 transport.resources().configure(DownloadOptions::default())?;
-let api = MinecraftApiClient::new(transport.clone(), &ApiProvider::Official);
+let api = MinecraftApiClient::new(transport.clone());
 let downloader = Downloader::new(transport);
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-`HttpTransport::default()` 提供中性 UA 和默认 HTTP 客户端。传输对象的 `clone()` 共享连接配额、限速、统计、签名器和客户端；独立构造则隔离。`Downloader` 与 `MinecraftApiClient` 分别持有传输对象，不再通过文件下载器发送 API 请求。`api.downloader().await` 是便捷工厂，同时沿用 API 当前的来源地址和传输对象。
+`HttpTransport::default()` 提供中性 UA 和默认 HTTP 客户端。传输对象的 `clone()` 共享连接配额、限速、统计和客户端；独立构造则隔离。`Downloader` 与 `MinecraftApiClient` 分别持有传输对象，不再通过文件下载器发送 API 请求。`api.downloader()` 将同一套服务来源规则注入下载器，并共享传输对象。直接构造的 `Downloader` 只请求给定 URL，其他宿主可以用 `with_sources` 提供候选请求解析函数，返回包含 URL 与请求头的 `RequestTarget`。
 `transport.replace_clients(client, http1)` 让后续请求使用新客户端，已发出的请求不受影响。
 
-开启 `community` 后可用 `api.fetch_with_modrinth(endpoint)` 和 `api.fetch_with_curseforge(endpoint)`。宿主通过 `HttpTransport::with_request_signer` 注入 `signer::CurseForgeSigner`；只有匹配的官方 HTTPS 主机会收到密钥，镜像源不会收到。独立 API 客户端的缓存与凭据相互隔离。下载选项只控制网络功能，不包含安装后选中实例等界面策略。
+`minecraft/sources.rs` 按具体服务解析来源：Mojang、Fabric、Forge、NeoForge 各有自己的官方与 BMCL 映射；Modrinth、CurseForge 各有自己的官方与 MCIM 映射。文件、版本元数据和社区资源偏好决定各组候选地址的顺序，不再使用全局 `ApiProvider`。Authlib 的官方优先地址规则也归该模块管理，保留原有缓存与校验流程。
+
+开启 `community` 后可用 `api.fetch_with_modrinth(endpoint)` 和 `api.fetch_with_curseforge(endpoint)`。宿主通过 `MinecraftApiClient::with_curseforge_api_key` 提供密钥；`minecraft/sources.rs` 在解析每个候选目标后，仅为匹配的官方 HTTPS 主机附带 `x-api-key`。镜像候选不附带官方密钥。API 与 `api.downloader()` 共用该规则；直接构造的下载器只使用调用方提供的请求目标。即使共享传输对象，独立 API 客户端的缓存与凭据也相互隔离。下载选项只控制网络功能，不包含安装后选中实例等界面策略。
 
 ## 安装
 
@@ -104,7 +106,7 @@ let mut option = LaunchOption::new(LaunchRequest {
     extras: LaunchExtras::default(),
     helpers: LaunchHelpers::default(),
 })?;
-let downloader = api.downloader().await;
+let downloader = api.downloader();
 option.prepare_natives(&downloader).await?;
 option.prepare_legacy_assets(&downloader).await?;
 let child = option.launch_checked()?;

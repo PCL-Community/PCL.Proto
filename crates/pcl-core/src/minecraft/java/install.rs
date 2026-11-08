@@ -257,15 +257,17 @@ async fn fetch_index(
     downloader: &Downloader,
 ) -> anyhow::Result<BTreeMap<String, BTreeMap<String, Vec<RuntimeRelease>>>> {
     let mut last = None;
-    let settings = downloader.resources().settings();
-    for url in downloader.bases.download_urls(
+    for target in downloader.resolve_sources(
         INDEX,
         crate::io::net::http::resources::SourceKind::VersionMetadata,
-        &settings,
-        false,
     ) {
         let result = async {
-            let mut response = client.get(url).send().await?.error_for_status()?;
+            let mut response = client
+                .get(&target.url)
+                .headers(target.headers)
+                .send()
+                .await?
+                .error_for_status()?;
             let mut bytes = Vec::new();
             while let Some(chunk) = response.chunk().await? {
                 ensure!(

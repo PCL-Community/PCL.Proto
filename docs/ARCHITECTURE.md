@@ -82,14 +82,15 @@ src-tauri（PCL.Proto 应用）
 - `LaunchExtras` 是一次启动的实际行为输入，不包含“继承全局”选项。`LaunchHelpers` 提供默认资源的替代路径；缺省时 core 按启用行为与版本条件准备自带资源，错误向调用方返回。
 - 不再传入 `RuntimePaths` 或配置目录。Java 安装只接收运行时目标目录；authlib-injector 接收 JAR 文件路径；Java wrapper 接收临时目录；启动辅助文件接收专用输出目录。Forge 处理器桥接默认使用本次安装的临时目录，宿主可传路径替换。
 - `DownloadSettings` 留在应用；只有连接数、限速、来源和 HTTP 模式转换为 core 的 `DownloadOptions`。来源分三类：文件、版本元数据、社区资源（CurseForge / Modrinth，可选 mcim 镜像）。安装后自动选中实例由应用完成。
-- core 不保存代理、User-Agent 或密钥单例。宿主构建 reqwest 客户端，再传入 `HttpTransport`/认证提供者；OAuth Client ID 逐次传入，CurseForge key 由应用构造成 `RequestSigner` 注册进 `HttpTransport`。
+- 来源按服务识别：Mojang、Fabric、Forge、NeoForge、Modrinth、CurseForge 各有自己的官方地址及镜像规则；Authlib 保留独立的官方优先回退顺序。移除全局 `ApiProvider` 和应用旧 `api_provider` 字段；旧配置加载时忽略该字段，现有三类下载源偏好保持不变。
+- core 不保存代理、User-Agent 或密钥单例。宿主构建 reqwest 客户端，再传入 `HttpTransport`/认证提供者；OAuth Client ID 逐次传入，CurseForge key 由应用通过 `MinecraftApiClient::with_curseforge_api_key` 交给服务来源解析。
 
-`io/net/http/transport.rs` 管理 HTTP 客户端、请求签名和协议回退；同目录的 `resources.rs` 管理共享配额、限速与统计，`signer.rs` 定义签名接口。传输层不依赖文件下载器。
-`Downloader` 与 `MinecraftApiClient` 分别依赖 `HttpTransport`；传入同一传输对象的克隆即共享网络状态，独立构造传输对象则隔离。`downloader().await` 作为便捷工厂，组合当前 API 来源地址与共享传输对象。
-文件下载器继续负责 Range、重试、文件校验、落盘和进度；API 客户端继续负责元数据解析与缓存。Minecraft 来源规则和下载参数类型仍保留现状，后续再从通用能力中分离。
+`io/net/http/transport.rs` 管理 HTTP 客户端和协议回退，执行包含 URL 与请求头的 `RequestTarget`；同目录的 `resources.rs` 管理共享配额、限速与统计。传输层不依赖文件下载器或具体服务认证规则。
+`Downloader` 与 `MinecraftApiClient` 分别依赖 `HttpTransport`；传入同一传输对象的克隆即共享网络状态，独立构造传输对象则隔离。`downloader()` 同步创建带有来源解析函数的文件下载器。裸下载器只请求给定地址，不持有 Minecraft endpoint 或 provider。
+文件下载器继续负责 Range、重试、文件校验、落盘和进度；API 客户端继续负责元数据解析与缓存。`minecraft/sources.rs` 统一管理各服务的官方地址、镜像映射、候选顺序、CurseForge 请求头和 Mojang 自动源探测状态；API 请求与文件下载共用规则。下载参数与错误类型的领域依赖留待后续拆分。
 更换代理时应用先预建客户端并保存配置，再替换该实例的客户端；已发出的请求继续使用原客户端。
 core 的任务取消、游戏会话、在线整合包暂存及 Terracotta 桥接仍有进程级运行状态；它们不保存启动器设置，任务 ID 需在进程内唯一。
-CurseForge Key 与微软 Client ID 由应用分别按需读取。签名器只在目标主机属于 CurseForge 官方域名时附加 `x-api-key`，镜像源不会收到密钥；core 不读取环境变量或要求集中注册凭据。
+CurseForge Key 与微软 Client ID 由应用分别按需读取。服务来源解析仅为匹配的官方 HTTPS 目标附带 `x-api-key`；每个镜像、官方回退候选独立生成请求头，API 请求、下载重试及 Range 共用该请求目标。凭据归各 API 客户端所有，不绑定共享传输对象；core 不读取环境变量。
 
 ### 持久化与错误
 

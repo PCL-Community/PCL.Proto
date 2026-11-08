@@ -5,11 +5,11 @@ use std::path::PathBuf;
 
 use crate::config::manager::ConfigManager;
 
-use pcl_core::io::net::http::api_client::FabricFamily;
 use pcl_core::io::{
     download::{self, TaskItemReport, tasks},
     net::http::resources::DownloadStats,
 };
+use pcl_core::minecraft::mod_loader::FabricFamily;
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn download_fabric_installer(
@@ -20,7 +20,7 @@ pub async fn download_fabric_installer(
     on_event: tauri::ipc::Channel<TaskItemReport>,
 ) -> Result<(), String> {
     download::download_fabric_installer(
-        &ConfigManager::instance().api_client.downloader().await,
+        &ConfigManager::instance().api_client.downloader(),
         family,
         version,
         destination,
@@ -39,7 +39,7 @@ pub async fn download_custom_file(
 ) -> Result<(), String> {
     let url = crate::external::validate(&url)?;
     download::download_custom_file(
-        &ConfigManager::instance().api_client.downloader().await,
+        &ConfigManager::instance().api_client.downloader(),
         url,
         destination,
         task_id,

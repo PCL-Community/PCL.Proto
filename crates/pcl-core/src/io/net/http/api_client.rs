@@ -1,5 +1,9 @@
 use super::HttpTransport;
+use super::resources::SourceKind;
 use crate::io::net::http::api_client::plugins::McPluginReport;
+#[cfg(test)]
+use crate::minecraft::sources::ApiEndpoints;
+use crate::minecraft::{mod_loader::FabricFamily, sources::Sources};
 use dashmap::DashMap;
 use reqwest::Client;
 use serde::{
@@ -10,165 +14,6 @@ use std::{
     path::{Path, PathBuf},
     time::{Duration, Instant},
 };
-use tokio::sync::RwLock;
-
-#[derive(serde::Serialize, serde::Deserialize, Default, Clone)]
-#[serde(rename_all = "lowercase")]
-pub enum ApiProvider {
-    #[default]
-    Official,
-    BMCLApi,
-}
-
-#[derive(Clone)]
-pub struct ApiBases {
-    pub meta_base: &'static str,
-    pub resources_base: &'static str,
-    pub fabric_base: &'static str,
-    pub legacy_fabric_base: &'static str,
-    #[cfg(feature = "community")]
-    pub modrinth_base: &'static str,
-    #[cfg(feature = "community")]
-    pub curseforge_base: &'static str,
-}
-
-impl ApiBases {
-    pub fn new(provider: &ApiProvider) -> Self {
-        match provider {
-            ApiProvider::Official => ApiBases {
-                meta_base: "https://piston-meta.mojang.com",
-                resources_base: "https://resources.download.minecraft.net",
-                fabric_base: "https://meta.fabricmc.net/v2/versions/loader",
-                legacy_fabric_base: "https://meta.legacyfabric.net/v2/versions/loader",
-                #[cfg(feature = "community")]
-                modrinth_base: "https://api.modrinth.com/v2",
-                #[cfg(feature = "community")]
-                curseforge_base: "https://api.curseforge.com/v1",
-            },
-            ApiProvider::BMCLApi => ApiBases {
-                meta_base: "https://bmclapi2.bangbang93.com",
-                resources_base: "https://bmclapi2.bangbang93.com/assets",
-                fabric_base: "https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader",
-                legacy_fabric_base: "https://meta.legacyfabric.net/v2/versions/loader",
-                #[cfg(feature = "community")]
-                modrinth_base: "https://api.modrinth.com/v2",
-                #[cfg(feature = "community")]
-                curseforge_base: "https://api.curseforge.com/v1",
-            },
-        }
-    }
-    /// Mirror only Mojang-owned download hosts; third-party URLs retain their origin.
-    pub fn download_url(&self, url: &str) -> String {
-        if self.meta_base == "https://piston-meta.mojang.com" {
-            return url.into();
-        }
-        let Ok(parsed) = reqwest::Url::parse(url) else {
-            return url.into();
-        };
-        let prefix = match parsed.host_str() {
-            Some(
-                "piston-meta.mojang.com"
-                | "launchermeta.mojang.com"
-                | "piston-data.mojang.com"
-                | "launcher.mojang.com",
-            ) => self.meta_base.to_owned(),
-            Some("libraries.minecraft.net") => format!("{}/maven", self.meta_base),
-            Some("resources.download.minecraft.net") => self.resources_base.to_owned(),
-            _ => return url.into(),
-        };
-        let mut rewritten = format!("{prefix}{}", parsed.path());
-        if let Some(query) = parsed.query() {
-            rewritten.push('?');
-            rewritten.push_str(query);
-        }
-        rewritten
-    }
-    /// 一个 URL 的候选下载源，按当前设置排序。
-    ///
-    /// `kind` 决定这项请求使用哪一条源偏好；社区资源（CurseForge / Modrinth）不受它们影响，
-    /// 由 `community_source` 单独控制，见 `mod_mirror_url`。
-    pub fn download_urls(
-        &self,
-        url: &str,
-        kind: crate::io::net::http::resources::SourceKind,
-        options: &crate::io::net::http::resources::DownloadOptions,
-        official_fast: bool,
-    ) -> Vec<String> {
-        use crate::io::net::http::resources::SourcePreference;
-        let preference = options.preference(kind);
-        // Test/private API bases remain isolated from public network fallbacks.
-        if !matches!(
-            self.meta_base,
-            "https://piston-meta.mojang.com" | "https://bmclapi2.bangbang93.com"
-        ) {
-            return vec![self.download_url(url)];
-        }
-        // 社区资源走 mcim 镜像，与 Mojang 侧的下载源设置无关。
-        #[cfg(feature = "community")]
-        if let Some(mirror) = mod_mirror_url(url) {
-            return community_sources(options.community_source, url, mirror);
-        }
-        // Fabric metadata has its own source fallback and is not Mojang metadata.
-        if url.starts_with("https://bmclapi2.bangbang93.com/fabric-meta/") {
-            return vec![url.into()];
-        }
-        if url.starts_with("https://files.minecraftforge.net/maven/net/minecraftforge/forge/index_")
-            && url.ends_with(".html")
-        {
-            return vec![url.into()];
-        }
-        let forgelike_path = url
-            .strip_prefix("https://maven.minecraftforge.net/")
-            .or_else(|| url.strip_prefix("https://files.minecraftforge.net/maven/"))
-            .or_else(|| url.strip_prefix("https://maven.neoforged.net/releases/"));
-        if let Some(path) = forgelike_path {
-            let mirror = format!("https://bmclapi2.bangbang93.com/maven/{path}");
-            return if matches!(preference, SourcePreference::Official)
-                || (matches!(preference, SourcePreference::Auto) && official_fast)
-            {
-                vec![url.into(), mirror]
-            } else {
-                vec![mirror, url.into()]
-            };
-        }
-        let canonical = if let Some(path) = url.strip_prefix("https://bmclapi2.bangbang93.com/") {
-            if let Some(tail) = path.strip_prefix("assets/") {
-                format!("https://resources.download.minecraft.net/{tail}")
-            } else if let Some(tail) = path
-                .strip_prefix("maven/")
-                .or_else(|| path.strip_prefix("libraries/"))
-            {
-                format!("https://libraries.minecraft.net/{tail}")
-            } else if path.starts_with("mc/game/") || path.ends_with(".json") {
-                format!("https://piston-meta.mojang.com/{path}")
-            } else if path.starts_with("v1/objects/") {
-                format!("https://piston-data.mojang.com/{path}")
-            } else {
-                return vec![url.into()];
-            }
-        } else {
-            url.to_owned()
-        };
-        let mirror = Self::new(&ApiProvider::BMCLApi).download_url(&canonical);
-        if mirror == canonical {
-            return vec![canonical];
-        }
-        let mut mirrors = vec![mirror.clone()];
-        if let Some(tail) = mirror.strip_prefix("https://bmclapi2.bangbang93.com/maven/") {
-            mirrors.push(format!("https://bmclapi2.bangbang93.com/libraries/{tail}"));
-        }
-        if matches!(preference, SourcePreference::Official)
-            || (matches!(preference, SourcePreference::Auto) && official_fast)
-        {
-            let mut urls = vec![canonical];
-            urls.extend(mirrors);
-            urls
-        } else {
-            mirrors.push(canonical);
-            mirrors
-        }
-    }
-}
 
 #[derive(thiserror::Error, Debug)]
 pub enum McApiError {
@@ -206,13 +51,6 @@ pub enum McApiError {
 /// Result type for Minecraft API operations.
 pub type McApiResult<T> = Result<T, McApiError>;
 
-#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum FabricFamily {
-    Fabric,
-    Legacyfabric,
-}
-
 impl FabricFamily {
     pub fn installer_url(self, version: &str) -> McApiResult<String> {
         if version.is_empty()
@@ -233,25 +71,6 @@ impl FabricFamily {
         Ok(format!(
             "https://{host}/net/{group}/fabric-installer/{version}/fabric-installer-{version}.jar"
         ))
-    }
-}
-
-fn fabric_metadata_sources(
-    base: &'static str,
-    preference: crate::io::net::http::resources::SourcePreference,
-) -> Vec<&'static str> {
-    let official = "https://meta.fabricmc.net/v2/versions/loader";
-    let mirror = "https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader";
-    if base != official && base != mirror {
-        return vec![base];
-    }
-    if matches!(
-        preference,
-        crate::io::net::http::resources::SourcePreference::Official
-    ) {
-        vec![official, mirror]
-    } else {
-        vec![mirror, official]
     }
 }
 
@@ -401,7 +220,7 @@ fn parse_fabric_installers(
 
 pub struct MinecraftApiClient {
     transport: HttpTransport,
-    api_bases: RwLock<ApiBases>,
+    pub(super) sources: Sources,
     cache: DashMap<String, (Instant, serde_json::Value)>,
     ttl: Duration,
 }
@@ -411,16 +230,8 @@ impl MinecraftApiClient {
         &self,
         family: FabricFamily,
     ) -> McApiResult<Vec<McPluginReport>> {
-        let bases = self.api_bases.read().await;
-        let base = match family {
-            FabricFamily::Fabric => bases.fabric_base,
-            FabricFamily::Legacyfabric => bases.legacy_fabric_base,
-        };
-        drop(bases);
         let mut last_error = None;
-        for source in
-            fabric_metadata_sources(base, self.transport.resources().settings().version_source)
-        {
+        for source in self.sources.fabric(family, SourceKind::VersionMetadata) {
             let url = format!(
                 "{}/installer",
                 source.strip_suffix("/loader").unwrap_or(source)
@@ -439,13 +250,21 @@ impl MinecraftApiClient {
         }))
     }
     /// Create a new MinecraftApiClient
-    pub fn new(transport: HttpTransport, api_provider: &ApiProvider) -> Self {
+    pub fn new(transport: HttpTransport) -> Self {
         Self {
+            sources: Sources::new(transport.resources().clone()),
             transport,
-            api_bases: RwLock::new(ApiBases::new(api_provider)),
             cache: DashMap::new(),
             ttl: Duration::from_secs(60 * 5),
         }
+    }
+
+    /// Configure CurseForge credentials for this client's resolved official sources.
+    #[cfg(feature = "community")]
+    pub fn with_curseforge_api_key(mut self, key: Option<&str>) -> Self {
+        self.sources.set_curseforge_api_key(key);
+        self.cache.clear();
+        self
     }
 
     pub fn transport(&self) -> &HttpTransport {
@@ -464,35 +283,22 @@ impl MinecraftApiClient {
         self.transport.resources()
     }
 
-    pub async fn downloader(&self) -> crate::io::download::Downloader {
-        crate::io::download::Downloader::with_bases(
-            self.transport.clone(),
-            self.api_bases_async().await,
-        )
+    pub fn downloader(&self) -> crate::io::download::Downloader {
+        let sources = self.sources.clone();
+        crate::io::download::Downloader::new(self.transport.clone())
+            .with_sources(move |url, kind| sources.resolve(url, kind))
     }
 
     #[cfg(test)]
-    pub(crate) fn with_test_bases(bases: ApiBases) -> Self {
-        Self::with_test_transport(bases, HttpTransport::default())
+    pub(crate) fn with_test_endpoints(endpoints: ApiEndpoints) -> Self {
+        Self::with_test_transport(endpoints, HttpTransport::default())
     }
 
     #[cfg(test)]
-    pub(crate) fn with_test_transport(bases: ApiBases, transport: HttpTransport) -> Self {
-        let mut client = Self::new(transport, &ApiProvider::Official);
-        client.api_bases = RwLock::new(bases);
+    pub(crate) fn with_test_transport(endpoints: ApiEndpoints, transport: HttpTransport) -> Self {
+        let mut client = Self::new(transport);
+        client.sources.endpoints = endpoints;
         client
-    }
-
-    /// the provider should be managed in setup info, this will be called once the setup changed
-    pub fn switch_provider(&self, provider: &ApiProvider) {
-        let mut guard = self.api_bases.blocking_write();
-        *guard = ApiBases::new(provider);
-        drop(guard);
-    }
-
-    pub async fn api_bases_async(&self) -> ApiBases {
-        let guard = self.api_bases.read().await;
-        guard.clone()
     }
 
     /// Get data from a URL
@@ -506,44 +312,24 @@ impl MinecraftApiClient {
         url: &str,
         validate: impl Fn(&[u8]) -> McApiResult<T>,
     ) -> McApiResult<T> {
-        use crate::io::net::http::resources::SourcePreference;
         use futures_util::StreamExt;
-        use std::sync::atomic::Ordering;
         let settings = self.resources().settings();
-        let manifest = url.ends_with(game::VERSION_MANIFEST_ENDPOINT);
-        let preference = if manifest {
-            settings.version_source
-        } else {
-            settings.file_source
-        };
-        let kind = if manifest {
-            crate::io::net::http::resources::SourceKind::VersionMetadata
-        } else {
-            crate::io::net::http::resources::SourceKind::File
-        };
-        let urls = self.api_bases.read().await.download_urls(
-            url,
-            kind,
-            &settings,
-            manifest || self.resources().official_fast.load(Ordering::Relaxed),
-        );
+        let targets = self.sources.resolve(url, SourceKind::File);
         let mut last_error = None;
-        for actual_url in urls {
-            let official_manifest =
-                manifest && actual_url.starts_with("https://piston-meta.mojang.com/");
+        for target in targets {
+            let actual_url = &target.url;
+            let _lease = self.resources().acquire().await;
+            let started = Instant::now();
             let result = async {
-                let _lease = self.resources().acquire().await;
-                let started = Instant::now();
-                let timeout = Duration::from_secs(
-                    if official_manifest && matches!(preference, SourcePreference::Auto) {
-                        5
-                    } else {
-                        15
-                    },
-                );
                 let response = self
                     .transport
-                    .send_request(settings.http_mode, false, &actual_url, None, Some(timeout))
+                    .send_request(
+                        settings.http_mode,
+                        false,
+                        &target,
+                        None,
+                        Some(self.sources.timeout(actual_url)),
+                    )
                     .await?
                     .error_for_status()?;
                 let mut stream = response.bytes_stream();
@@ -554,21 +340,11 @@ impl MinecraftApiClient {
                     self.resources().throttle(chunk.len()).await;
                     bytes.extend_from_slice(&chunk);
                 }
-                let value = validate(&bytes)?;
-                if official_manifest {
-                    self.resources().official_fast.store(
-                        started.elapsed() < Duration::from_secs(4),
-                        Ordering::Relaxed,
-                    );
-                }
-                Ok(value)
+                validate(&bytes)
             }
             .await;
-            if official_manifest && result.is_err() {
-                self.resources()
-                    .official_fast
-                    .store(false, Ordering::Relaxed);
-            }
+            self.sources
+                .record_response(actual_url, started.elapsed(), result.is_ok());
             match result {
                 Ok(value) => return Ok(value),
                 Err(error) => {
@@ -698,18 +474,8 @@ impl MinecraftApiClient {
         } else {
             "neoforge"
         };
-        let official = format!(
-            "https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/{package}"
-        );
-        let mirror = format!(
-            "https://bmclapi2.bangbang93.com/neoforge/meta/api/maven/details/releases/net/neoforged/{package}"
-        );
-        let urls = match self.resources().settings().version_source {
-            crate::io::net::http::resources::SourcePreference::Official => [official, mirror],
-            _ => [mirror, official],
-        };
         let mut last_error = None;
-        for url in urls {
+        for url in self.sources.neoforge(package) {
             match self
                 .get::<serde_json::Value>(&url, true)
                 .await
@@ -729,17 +495,9 @@ impl MinecraftApiClient {
     ) -> McApiResult<Vec<McPluginReport>> {
         crate::io::files::validate_file_name(version_id)
             .map_err(|error| McApiError::InvalidMetadata(error.to_string()))?;
-        let bases = self.api_bases.read().await;
-        let base = match family {
-            FabricFamily::Fabric => bases.fabric_base,
-            FabricFamily::Legacyfabric => bases.legacy_fabric_base,
-        };
-        drop(bases);
         let mut last_error = None;
         let mut fabric_versions = None;
-        for source in
-            fabric_metadata_sources(base, self.transport.resources().settings().version_source)
-        {
+        for source in self.sources.fabric(family, SourceKind::VersionMetadata) {
             let mut url = reqwest::Url::parse(source)
                 .map_err(|error| McApiError::InvalidMetadata(error.to_string()))?;
             url.path_segments_mut()
@@ -789,29 +547,12 @@ impl MinecraftApiClient {
         loader: &str,
         family: FabricFamily,
     ) -> McApiResult<serde_json::Value> {
-        use crate::io::net::http::resources::SourcePreference;
         for value in [version_id, loader] {
             crate::io::files::validate_file_name(value)
                 .map_err(|error| McApiError::InvalidMetadata(error.to_string()))?;
         }
-        let bases = self.api_bases.read().await;
-        let configured = match family {
-            FabricFamily::Fabric => bases.fabric_base,
-            FabricFamily::Legacyfabric => bases.legacy_fabric_base,
-        };
-        drop(bases);
-        let official = "https://meta.fabricmc.net/v2/versions/loader";
-        let mirror = "https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader";
-        let sources = if configured == official || configured == mirror {
-            match self.resources().settings().file_source {
-                SourcePreference::Official => vec![official, mirror],
-                _ => vec![mirror, official],
-            }
-        } else {
-            vec![configured]
-        };
         let mut last_error = None;
-        for base in sources {
+        for base in self.sources.fabric(family, SourceKind::File) {
             let mut url = reqwest::Url::parse(base)
                 .map_err(|error| McApiError::InvalidMetadata(error.to_string()))?;
             url.path_segments_mut()
@@ -865,21 +606,18 @@ impl MinecraftApiClient {
         &self,
         endpoint: &str,
     ) -> McApiResult<T> {
-        let modrinth_base = self.api_bases.read().await.modrinth_base;
+        let modrinth_base = self.sources.endpoints.modrinth_base;
         let url = format!("{modrinth_base}/{endpoint}");
         self.get(&url, true).await
     }
 
-    /// CurseForge 的 `x-api-key` 由共享 HTTP 传输层的 [`RequestSigner`] 注入，
-    /// 因此这里与 Modrinth 一样只需要官方地址；镜像与回退由下载源设置决定。
-    ///
-    /// [`RequestSigner`]: crate::io::net::http::signer::RequestSigner
+    /// 源解析按实际目标附带 CurseForge 凭据；镜像与回退由下载源设置决定。
     #[cfg(feature = "community")]
     pub async fn fetch_with_curseforge<T: DeserializeOwned + Serialize>(
         &self,
         endpoint: &str,
     ) -> McApiResult<T> {
-        let curseforge_base = self.api_bases.read().await.curseforge_base;
+        let curseforge_base = self.sources.endpoints.curseforge_base;
         self.get(&format!("{curseforge_base}/{endpoint}"), true)
             .await
     }
@@ -889,55 +627,151 @@ impl MinecraftApiClient {
     }
 }
 
-/// CurseForge / Modrinth 的 mcim 镜像地址；未覆盖的主机返回 `None`。
-///
-/// mcim（<https://www.mcimirror.top>）几乎完全兼容官方 API：API 主机附加各自的路径前缀，
-/// 文件主机直接换域名。2026-11 实测它的文件缓存仍处于停用状态，会 302 回源站，
-/// 因此文件镜像只是多一跳，失败时下载器会自动回退官方源。
-/// `mediafilez.forgecdn.net` 按 mcim 的说明不做映射。
-#[cfg(feature = "community")]
-fn mod_mirror_url(url: &str) -> Option<String> {
-    const MIRROR: &str = "https://mod.mcimirror.top";
-    let parsed = reqwest::Url::parse(url).ok()?;
-    if parsed.scheme() != "https" {
-        return None;
-    }
-    let prefix = match parsed.host_str()? {
-        "api.curseforge.com" => format!("{MIRROR}/curseforge"),
-        "api.modrinth.com" | "staging-api.modrinth.com" => format!("{MIRROR}/modrinth"),
-        "edge.forgecdn.net" | "cdn.modrinth.com" => MIRROR.to_owned(),
-        _ => return None,
-    };
-    let mut mirrored = format!("{prefix}{}", parsed.path());
-    if let Some(query) = parsed.query() {
-        mirrored.push('?');
-        mirrored.push_str(query);
-    }
-    Some(mirrored)
-}
-
-/// 按偏好排列官方源与镜像源：镜像源失败时下载器会回退到官方源。
-#[cfg(feature = "community")]
-fn community_sources(
-    preference: crate::io::net::http::resources::SourcePreference,
-    official: &str,
-    mirror: String,
-) -> Vec<String> {
-    use crate::io::net::http::resources::SourcePreference;
-    match preference {
-        SourcePreference::Mirror => vec![mirror, official.to_owned()],
-        SourcePreference::Auto => vec![official.to_owned(), mirror],
-        SourcePreference::Official => vec![official.to_owned()],
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "community")]
+    #[test]
+    fn curseforge_credentials_follow_resolved_destinations() {
+        use crate::io::net::http::resources::{DownloadOptions, SourcePreference};
+        let transport = HttpTransport::default();
+        let first = MinecraftApiClient::new(transport.clone())
+            .with_curseforge_api_key(Some("  first-key  "));
+        let second =
+            MinecraftApiClient::new(transport.clone()).with_curseforge_api_key(Some("second-key"));
+        let plain = MinecraftApiClient::new(transport);
+        first
+            .resources()
+            .configure(DownloadOptions {
+                community_source: SourcePreference::Mirror,
+                ..Default::default()
+            })
+            .unwrap();
+        for official in [
+            "https://api.curseforge.com/v1/mods/1",
+            "https://edge.forgecdn.net/files/a.jar",
+            "https://mediafilez.forgecdn.net/files/a.jar",
+            "https://cursecdn.com/files/a.jar",
+            "https://media.cursecdn.com/files/a.jar",
+        ] {
+            let targets = first.sources.resolve(official, SourceKind::File);
+            let downloaded = first
+                .downloader()
+                .resolve_sources(official, SourceKind::File);
+            for (target, download) in targets.iter().zip(&downloaded) {
+                assert_eq!(target.url, download.url);
+                assert_eq!(target.headers, download.headers);
+                if target.url == official {
+                    assert_eq!(target.headers["x-api-key"], "first-key");
+                    assert!(target.headers["x-api-key"].is_sensitive());
+                } else {
+                    assert!(target.headers.is_empty());
+                }
+            }
+            let other = second.sources.resolve(official, SourceKind::File);
+            assert_eq!(other.last().unwrap().headers["x-api-key"], "second-key");
+            assert!(
+                plain
+                    .sources
+                    .resolve(official, SourceKind::File)
+                    .iter()
+                    .all(|t| t.headers.is_empty())
+            );
+        }
+        for url in [
+            "https://mod.mcimirror.top/curseforge/v1/mods/1",
+            "https://api.modrinth.com/v2/project/test",
+            "https://cdn.modrinth.com/data/a.jar",
+            "https://www.curseforge.com/minecraft/mc-mods/jei",
+            "https://api.curseforge.com.evil.test/v1/mods/1",
+            "https://evilcursecdn.com/files/a.jar",
+            "http://edge.forgecdn.net/files/a.jar",
+        ] {
+            assert!(
+                first
+                    .sources
+                    .resolve(url, SourceKind::File)
+                    .iter()
+                    .all(|t| t.headers.is_empty()),
+                "{url}"
+            );
+        }
+        for key in [None, Some("   "), Some("bad\nkey")] {
+            let api =
+                MinecraftApiClient::new(HttpTransport::default()).with_curseforge_api_key(key);
+            assert!(
+                api.sources
+                    .resolve("https://api.curseforge.com/v1/mods/1", SourceKind::File)
+                    .iter()
+                    .all(|t| t.headers.is_empty())
+            );
+        }
+    }
+
+    #[test]
+    fn source_updates_reach_existing_downloaders_without_crossing_services() {
+        use crate::io::net::http::resources::{DownloadOptions, SourceKind, SourcePreference};
+        let api = MinecraftApiClient::new(HttpTransport::default());
+        let downloader = api.downloader();
+        let library = "https://libraries.minecraft.net/org/test.jar";
+        let manifest = format!(
+            "https://piston-meta.mojang.com/{}",
+            game::VERSION_MANIFEST_ENDPOINT
+        );
+        assert_eq!(
+            downloader.resolve_sources(library, SourceKind::File)[0].url,
+            library
+        );
+        api.sources
+            .record_response(&manifest, Duration::from_secs(5), false);
+        assert!(
+            downloader.resolve_sources(library, SourceKind::File)[0]
+                .url
+                .starts_with("https://bmclapi2.bangbang93.com/")
+        );
+        api.sources
+            .record_response("https://example.org/metadata", Duration::ZERO, true);
+        assert!(
+            downloader.resolve_sources(library, SourceKind::File)[0]
+                .url
+                .starts_with("https://bmclapi2.bangbang93.com/")
+        );
+        api.sources.record_response(&manifest, Duration::ZERO, true);
+        assert_eq!(
+            downloader.resolve_sources(library, SourceKind::File)[0].url,
+            library
+        );
+        api.resources()
+            .configure(DownloadOptions {
+                file_source: SourcePreference::Mirror,
+                community_source: SourcePreference::Official,
+                ..Default::default()
+            })
+            .unwrap();
+        assert!(
+            downloader.resolve_sources(library, SourceKind::File)[0]
+                .url
+                .starts_with("https://bmclapi2.bangbang93.com/")
+        );
+        #[cfg(feature = "community")]
+        for official in [
+            "https://api.curseforge.com/v1/mods/1",
+            "https://api.modrinth.com/v2/project/test",
+        ] {
+            assert_eq!(
+                downloader.resolve_sources(official, SourceKind::File)[0].url,
+                official
+            );
+            assert_eq!(
+                api.sources.resolve(official, SourceKind::File)[0].url,
+                official
+            );
+        }
+    }
+
     #[tokio::test]
-    async fn independent_clients_isolate_transport_credentials_and_quotas() {
+    async fn clients_share_transport_resources_and_send_explicit_headers() {
         use crate::io::net::http::resources::DownloadOptions;
         use axum::{Json, Router, http::HeaderMap, routing::get};
-        use std::sync::Arc;
         let echo_handler = |headers: HeaderMap| async move {
             Json(serde_json::json!({
                 "agent": headers.get("user-agent").unwrap().to_str().unwrap(),
@@ -952,26 +786,18 @@ mod tests {
                 listener,
                 Router::new()
                     .route("/echo", get(echo_handler))
-                    // `/cf` 模拟 CurseForge 主机：只有这条路径会被测试签名器签名。
+                    .route(
+                        "/cf/echo/unavailable",
+                        get(|headers: HeaderMap| async move {
+                            assert!(!headers.contains_key("x-api-key"));
+                            reqwest::StatusCode::FORBIDDEN
+                        }),
+                    )
                     .route("/cf/echo", get(echo_handler)),
             )
             .await
             .unwrap();
         });
-        struct TestSigner(&'static str);
-        impl crate::io::net::http::signer::RequestSigner for TestSigner {
-            fn headers(&self, url: &reqwest::Url) -> Option<HeaderMap> {
-                if !url.path().starts_with("/cf/") {
-                    return None;
-                }
-                let mut value = reqwest::header::HeaderValue::from_static(self.0);
-                value.set_sensitive(true);
-                Some(HeaderMap::from_iter([(
-                    reqwest::header::HeaderName::from_static("x-api-key"),
-                    value,
-                )]))
-            }
-        }
         let clients = |agent: &str| {
             (
                 Client::builder()
@@ -987,28 +813,25 @@ mod tests {
                     .unwrap(),
             )
         };
-        let make = |agent: &str, key: Option<&'static str>| {
-            let mut bases = ApiBases::new(&ApiProvider::Official);
+        let make = |agent: &str| {
+            let mut bases = ApiEndpoints::default();
             bases.meta_base = base;
             #[cfg(feature = "community")]
             {
                 bases.modrinth_base = base;
                 bases.curseforge_base = Box::leak(format!("{base}/cf").into_boxed_str());
             }
-            let transport = HttpTransport::default().with_request_signer(key.map(|key| {
-                Arc::new(TestSigner(key)) as Arc<dyn crate::io::net::http::signer::RequestSigner>
-            }));
-            let api = MinecraftApiClient::with_test_transport(bases, transport);
+            let api = MinecraftApiClient::with_test_transport(bases, HttpTransport::default());
             let (client, http1) = clients(agent);
             api.replace_clients(client, http1);
             api
         };
-        let first = make("FirstLauncher", Some("first-key"));
-        let second = make("SecondLauncher", Some("second-key"));
+        let first = make("FirstLauncher");
         #[cfg(feature = "community")]
-        let plain = make("PlainLauncher", None);
+        let first = first.with_curseforge_api_key(Some("first-key"));
+        let second = make("SecondLauncher");
         let download = crate::io::download::Downloader::new(first.transport().clone());
-        let provider_download = first.downloader().await;
+        let provider_download = first.downloader();
         first
             .resources()
             .configure(DownloadOptions {
@@ -1039,24 +862,9 @@ mod tests {
         );
         #[cfg(feature = "community")]
         {
-            // 独立传输对象的签名器相互隔离。
+            // 自定义 HTTP 地址即使作为 CurseForge endpoint，也不能收到官方密钥。
             let reply: serde_json::Value = first.fetch_with_curseforge("echo").await.unwrap();
-            assert_eq!(
-                reply,
-                serde_json::json!({"agent": "FirstLauncher", "key": "first-key"})
-            );
-            let reply: serde_json::Value = second.fetch_with_curseforge("echo").await.unwrap();
-            assert_eq!(
-                reply,
-                serde_json::json!({"agent": "SecondLauncher", "key": "second-key"})
-            );
-            // 没有装签名器的传输对象不携带凭据。
-            let reply: serde_json::Value = plain.fetch_with_curseforge("echo").await.unwrap();
-            assert_eq!(
-                reply,
-                serde_json::json!({"agent": "PlainLauncher", "key": null})
-            );
-            // 同一签名器只对匹配的主机生效，Modrinth 请求不会被签名。
+            assert_eq!(reply["key"], serde_json::Value::Null);
             let reply: serde_json::Value = first.fetch_with_modrinth("echo").await.unwrap();
             assert_eq!(reply["key"], serde_json::Value::Null);
         }
@@ -1065,6 +873,16 @@ mod tests {
         let output = tempfile::tempdir().unwrap();
         let path = output.path().join("echo.json");
         download
+            .with_sources(|url, _| {
+                let mut target = super::super::RequestTarget::new(url);
+                target
+                    .headers
+                    .insert("x-api-key", "explicit-key".parse().unwrap());
+                vec![
+                    super::super::RequestTarget::new(format!("{url}/unavailable")),
+                    target,
+                ]
+            })
             .download(
                 &game::DownloadFile {
                     url: format!("{base}/cf/echo"),
@@ -1080,7 +898,7 @@ mod tests {
             serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
         assert_eq!(
             reply,
-            serde_json::json!({"agent": "UpdatedLauncher", "key": "first-key"})
+            serde_json::json!({"agent": "UpdatedLauncher", "key": "explicit-key"})
         );
         let reply: serde_json::Value =
             serde_json::from_slice(&second.get_bytes(&echo).await.unwrap()).unwrap();
@@ -1151,135 +969,4 @@ mod tests {
         assert!(FabricFamily::Fabric.installer_url("../1.0").is_err());
     }
     use super::*;
-
-    #[test]
-    fn source_preferences_keep_official_fallback_and_both_library_mirrors() {
-        use crate::io::net::http::resources::{DownloadOptions, SourceKind, SourcePreference};
-        let bases = ApiBases::new(&ApiProvider::Official);
-        let urls = |url: &str, preference: SourcePreference, official_fast: bool| {
-            let options = DownloadOptions {
-                file_source: preference,
-                ..Default::default()
-            };
-            bases.download_urls(url, SourceKind::File, &options, official_fast)
-        };
-        let official = "https://libraries.minecraft.net/org/test.jar";
-        let mirror = "https://bmclapi2.bangbang93.com/maven/org/test.jar";
-        let legacy = "https://bmclapi2.bangbang93.com/libraries/org/test.jar";
-        assert_eq!(
-            urls(official, SourcePreference::Mirror, true),
-            vec![mirror, legacy, official]
-        );
-        assert_eq!(
-            urls(mirror, SourcePreference::Official, false),
-            vec![official, mirror, legacy]
-        );
-        assert_eq!(
-            urls(official, SourcePreference::Auto, false),
-            vec![mirror, legacy, official]
-        );
-        assert_eq!(
-            urls(official, SourcePreference::Auto, true),
-            vec![official, mirror, legacy]
-        );
-        let assets = urls(
-            "https://bmclapi2.bangbang93.com/assets/ab/hash",
-            SourcePreference::Official,
-            true,
-        );
-        assert_eq!(
-            assets[0],
-            "https://resources.download.minecraft.net/ab/hash"
-        );
-        assert_eq!(
-            urls(
-                "https://maven.neoforged.net/releases/net/example/lib.jar",
-                SourcePreference::Mirror,
-                false
-            ),
-            [
-                "https://bmclapi2.bangbang93.com/maven/net/example/lib.jar",
-                "https://maven.neoforged.net/releases/net/example/lib.jar"
-            ]
-        );
-        for url in [
-            "https://example.org/file",
-            "https://libraries.minecraft.net.evil.test/file",
-            "https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader/1.20.1/0.16.14/profile/json",
-        ] {
-            assert_eq!(urls(url, SourcePreference::Mirror, false), vec![url]);
-        }
-    }
-
-    #[cfg(feature = "community")]
-    #[test]
-    fn community_sources_follow_their_own_preference() {
-        use crate::io::net::http::resources::{DownloadOptions, SourceKind, SourcePreference};
-        let bases = ApiBases::new(&ApiProvider::Official);
-        let options = |community_source| DownloadOptions {
-            community_source,
-            ..Default::default()
-        };
-        let urls = |url: &str, preference| {
-            bases.download_urls(url, SourceKind::File, &options(preference), false)
-        };
-        let file = "https://edge.forgecdn.net/files/9453/343/a.jar";
-        let mirrored = "https://mod.mcimirror.top/files/9453/343/a.jar";
-        assert_eq!(urls(file, SourcePreference::Mirror), vec![mirrored, file]);
-        assert_eq!(urls(file, SourcePreference::Auto), vec![file, mirrored]);
-        assert_eq!(urls(file, SourcePreference::Official), vec![file]);
-        assert_eq!(
-            urls(
-                "https://api.curseforge.com/v1/mods/search?gameId=432",
-                SourcePreference::Mirror
-            )[0],
-            "https://mod.mcimirror.top/curseforge/v1/mods/search?gameId=432"
-        );
-        assert_eq!(
-            urls(
-                "https://api.modrinth.com/v2/project/jei",
-                SourcePreference::Mirror
-            )[0],
-            "https://mod.mcimirror.top/modrinth/v2/project/jei"
-        );
-        // mcim 不镜像该 CDN，换成镜像只会多一次 302。
-        let mediafilez = "https://mediafilez.forgecdn.net/files/9453/343/a.jar";
-        assert_eq!(urls(mediafilez, SourcePreference::Mirror), vec![mediafilez]);
-        // 不相关的主机不受社区资源设置影响。
-        let other = "https://example.org/files/a.jar";
-        assert_eq!(urls(other, SourcePreference::Mirror), vec![other]);
-    }
-
-    #[test]
-    fn mirrors_known_official_hosts_without_rewriting_third_party_origins() {
-        let bases = ApiBases::new(&ApiProvider::BMCLApi);
-        for (url, expected) in [
-            (
-                "https://piston-meta.mojang.com/v1/test.json",
-                "https://bmclapi2.bangbang93.com/v1/test.json",
-            ),
-            (
-                "https://piston-data.mojang.com/v1/client.jar",
-                "https://bmclapi2.bangbang93.com/v1/client.jar",
-            ),
-            (
-                "https://libraries.minecraft.net/org/test.jar",
-                "https://bmclapi2.bangbang93.com/maven/org/test.jar",
-            ),
-            (
-                "https://resources.download.minecraft.net/ab/hash",
-                "https://bmclapi2.bangbang93.com/assets/ab/hash",
-            ),
-            (
-                "https://example.org/test.jar?file=1",
-                "https://example.org/test.jar?file=1",
-            ),
-            (
-                "https://libraries.minecraft.net.evil.test/a",
-                "https://libraries.minecraft.net.evil.test/a",
-            ),
-        ] {
-            assert_eq!(bases.download_url(url), expected);
-        }
-    }
 }

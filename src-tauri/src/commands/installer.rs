@@ -166,7 +166,7 @@ pub async fn prepare_online_modpack(
     on_event: tauri::ipc::Channel<TaskItemReport>,
 ) -> Result<OnlinePackInfo, String> {
     modpack::prepare_online_modpack(
-        &client.downloader().await,
+        &client.downloader(),
         info,
         task_id,
         super::channel_sink(on_event),
@@ -261,7 +261,6 @@ mod tests {
     fn online_prepare_ipc_accepts_task_arguments_and_validates_source() {
         let client: &'static MinecraftApiClient = Box::leak(Box::new(MinecraftApiClient::new(
             pcl_core::io::net::http::HttpTransport::default(),
-            &pcl_core::io::net::http::api_client::ApiProvider::Official,
         )));
         let app = tauri::test::mock_builder()
             .manage(client)
