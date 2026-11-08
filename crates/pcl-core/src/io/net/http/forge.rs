@@ -1,6 +1,6 @@
 //! Forge version metadata shared by the version list and installer.
 use super::api_client::{McApiError, McApiResult, MinecraftApiClient};
-use crate::io::download::resources::SourcePreference;
+use crate::io::net::http::resources::SourcePreference;
 use serde_json::Value;
 
 #[derive(Clone, Debug)]
@@ -337,7 +337,7 @@ mod tests {
             requests
         });
         let client = MinecraftApiClient::new(
-            crate::io::download::Downloader::default(),
+            crate::io::net::http::HttpTransport::default(),
             &ApiProvider::Official,
         );
         let url = |path| format!("http://{address}/{path}");
@@ -363,7 +363,7 @@ mod tests {
     async fn real_forge_sources_expose_the_same_installer() {
         use super::super::api_client::ApiProvider;
         let client = MinecraftApiClient::new(
-            crate::io::download::Downloader::default(),
+            crate::io::net::http::HttpTransport::default(),
             &ApiProvider::Official,
         );
         let mirror: Value = client

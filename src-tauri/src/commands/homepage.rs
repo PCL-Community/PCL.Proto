@@ -34,8 +34,7 @@ pub async fn load_custom_homepage(url: Option<String>) -> Result<String, String>
         let settings = ConfigManager::instance().api_client.resources().settings();
         let response = crate::config::manager::ConfigManager::instance()
             .api_client
-            .downloader()
-            .await
+            .transport()
             .send_request(
                 settings.http_mode,
                 false,

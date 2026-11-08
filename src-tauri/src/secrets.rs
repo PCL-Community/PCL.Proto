@@ -4,7 +4,7 @@
 //! 开发构建回退到运行环境变量；第三方启动器可以完全换一套读取方式。
 
 use crate::config::manager::ConfigManager;
-use pcl_core::io::download::signer::{CurseForgeSigner, RequestSigner};
+use pcl_core::io::net::http::signer::{CurseForgeSigner, RequestSigner};
 use std::sync::{Arc, LazyLock};
 
 pub static CURSEFORGE_API_KEY: LazyLock<Option<String>> = LazyLock::new(|| {
@@ -15,7 +15,7 @@ pub static CURSEFORGE_API_KEY: LazyLock<Option<String>> = LazyLock::new(|| {
 
 /// CurseForge 官方 API 与 CDN 的传输层签名器；未配置密钥时返回 `None`。
 ///
-/// 签名器挂在下载器上而不是逐次传参：一次构造，所有请求按主机自动决定是否附带
+/// 签名器注册到共享 HTTP 传输层：一次构造，所有请求按主机自动决定是否附带
 /// `x-api-key`，镜像源（mcim）不会收到官方密钥。
 pub fn curseforge_signer() -> Option<Arc<dyn RequestSigner>> {
     let signer = CurseForgeSigner::new(CURSEFORGE_API_KEY.as_deref()?)?;

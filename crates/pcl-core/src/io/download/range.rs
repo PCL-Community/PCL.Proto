@@ -66,10 +66,11 @@ impl Downloader {
         expected: Option<u64>,
     ) -> Result<Option<u64>, McApiError> {
         // A one-byte probe avoids opening several full responses on non-Range servers.
-        let _lease = self.resources.acquire().await;
+        let _lease = self.resources().acquire().await;
         let response = self
+            .transport
             .send_request(
-                self.resources.settings().http_mode,
+                self.resources().settings().http_mode,
                 true,
                 url,
                 Some((0, 0)),
@@ -104,12 +105,12 @@ impl Downloader {
         let mut count = 0;
         while let Some(chunk) = stream.next().await {
             let chunk = chunk?;
-            self.resources.record_bytes(chunk.len());
+            self.resources().record_bytes(chunk.len());
             count += chunk.len();
             if count > 1 {
                 return Ok(None);
             }
-            self.resources.throttle(chunk.len()).await;
+            self.resources().throttle(chunk.len()).await;
         }
         let Some(total) = total else {
             return Ok(None);
@@ -152,7 +153,7 @@ impl Downloader {
         let rates = Mutex::new(Rates::default());
         let mut workers = FuturesUnordered::new();
         loop {
-            let limit = self.resources.settings().file_connections;
+            let limit = self.resources().settings().file_connections;
             while workers.len() < limit {
                 let Some(segment) = pending.pop_front() else {
                     break;
@@ -228,10 +229,11 @@ impl Downloader {
             rates,
         };
         let result = async {
-            let _lease = self.resources.acquire().await;
+            let _lease = self.resources().acquire().await;
             let response = self
+                .transport
                 .send_request(
-                    self.resources.settings().http_mode,
+                    self.resources().settings().http_mode,
                     true,
                     url,
                     Some((segment.offset, segment.end)),
@@ -276,11 +278,11 @@ impl Downloader {
                 let mut stream = response.bytes_stream();
                 while let Some(chunk) = stream.next().await {
                     let chunk = chunk?;
-                    self.resources.record_bytes(chunk.len());
+                    self.resources().record_bytes(chunk.len());
                     if chunk.len() as u64 > segment.remaining() {
                         return Err(McApiError::RangeUnsupported);
                     }
-                    self.resources.throttle(chunk.len()).await;
+                    self.resources().throttle(chunk.len()).await;
                     output.write_all(&chunk).await?;
                     segment.offset += chunk.len() as u64;
                     received += chunk.len() as u64;
@@ -294,7 +296,7 @@ impl Downloader {
                         let own = received as f64 / started.elapsed().as_secs_f64().max(0.001);
                         let mut rates = rates.lock().unwrap();
                         rates.active.insert(segment.id, (own, Instant::now()));
-                        if self.resources.settings().speed_limit == 0
+                        if self.resources().settings().speed_limit == 0
                             && started.elapsed() >= Duration::from_secs(8)
                             && segment.remaining() >= 1024 * 1024
                             && rates.is_slow(segment.id, own)

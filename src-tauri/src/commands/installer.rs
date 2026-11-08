@@ -260,7 +260,7 @@ mod tests {
     #[test]
     fn online_prepare_ipc_accepts_task_arguments_and_validates_source() {
         let client: &'static MinecraftApiClient = Box::leak(Box::new(MinecraftApiClient::new(
-            pcl_core::io::download::Downloader::default(),
+            pcl_core::io::net::http::HttpTransport::default(),
             &pcl_core::io::net::http::api_client::ApiProvider::Official,
         )));
         let app = tauri::test::mock_builder()

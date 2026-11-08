@@ -82,10 +82,11 @@ src-tauri（PCL.Proto 应用）
 - `LaunchExtras` 是一次启动的实际行为输入，不包含“继承全局”选项。`LaunchHelpers` 提供默认资源的替代路径；缺省时 core 按启用行为与版本条件准备自带资源，错误向调用方返回。
 - 不再传入 `RuntimePaths` 或配置目录。Java 安装只接收运行时目标目录；authlib-injector 接收 JAR 文件路径；Java wrapper 接收临时目录；启动辅助文件接收专用输出目录。Forge 处理器桥接默认使用本次安装的临时目录，宿主可传路径替换。
 - `DownloadSettings` 留在应用；只有连接数、限速、来源和 HTTP 模式转换为 core 的 `DownloadOptions`。来源分三类：文件、版本元数据、社区资源（CurseForge / Modrinth，可选 mcim 镜像）。安装后自动选中实例由应用完成。
-- core 不保存代理、User-Agent 或密钥单例。宿主构建 reqwest 客户端，再传入 `Downloader`/认证提供者；OAuth Client ID 逐次传入，CurseForge key 由应用构造成 `RequestSigner` 注册进 `Downloader`。
+- core 不保存代理、User-Agent 或密钥单例。宿主构建 reqwest 客户端，再传入 `HttpTransport`/认证提供者；OAuth Client ID 逐次传入，CurseForge key 由应用构造成 `RequestSigner` 注册进 `HttpTransport`。
 
-`Downloader` 的克隆共享客户端、配额和统计；独立构造的下载器相互隔离。
-`MinecraftApiClient` 使用传入的下载器，`downloader().await` 返回共享该网络运行状态的文件下载器。
+`io/net/http/transport.rs` 管理 HTTP 客户端、请求签名和协议回退；同目录的 `resources.rs` 管理共享配额、限速与统计，`signer.rs` 定义签名接口。传输层不依赖文件下载器。
+`Downloader` 与 `MinecraftApiClient` 分别依赖 `HttpTransport`；传入同一传输对象的克隆即共享网络状态，独立构造传输对象则隔离。`downloader().await` 作为便捷工厂，组合当前 API 来源地址与共享传输对象。
+文件下载器继续负责 Range、重试、文件校验、落盘和进度；API 客户端继续负责元数据解析与缓存。Minecraft 来源规则和下载参数类型仍保留现状，后续再从通用能力中分离。
 更换代理时应用先预建客户端并保存配置，再替换该实例的客户端；已发出的请求继续使用原客户端。
 core 的任务取消、游戏会话、在线整合包暂存及 Terracotta 桥接仍有进程级运行状态；它们不保存启动器设置，任务 ID 需在进程内唯一。
 CurseForge Key 与微软 Client ID 由应用分别按需读取。签名器只在目标主机属于 CurseForge 官方域名时附加 `x-api-key`，镜像源不会收到密钥；core 不读取环境变量或要求集中注册凭据。

@@ -434,6 +434,7 @@ async fn maven_metadata_request(
     let mut last_error = None;
     for source in downloader.source_urls(url) {
         match downloader
+            .transport()
             .send_request(
                 downloader.resources().settings().http_mode,
                 false,

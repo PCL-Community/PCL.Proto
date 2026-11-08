@@ -34,24 +34,29 @@ Terracotta 来自同仓 Git 子模块，使用 AGPL-3.0；使用 Git CLI/镜像�
 
 ```rust,no_run
 use pcl_core::io::{
-    download::{Downloader, resources::DownloadOptions},
-    net::http::api_client::{ApiProvider, MinecraftApiClient},
+    download::Downloader,
+    net::http::{
+        HttpTransport,
+        resources::DownloadOptions,
+        api_client::{ApiProvider, MinecraftApiClient},
+    },
 };
 
 let build = || reqwest::Client::builder()
     .user_agent("MyLauncher/1.0")
     .connect_timeout(std::time::Duration::from_secs(15))
     .read_timeout(std::time::Duration::from_secs(15));
-let downloader = Downloader::new(build().build()?, build().http1_only().build()?);
-downloader.resources().configure(DownloadOptions::default())?;
-let api = MinecraftApiClient::new(downloader.clone(), &ApiProvider::Official);
+let transport = HttpTransport::new(build().build()?, build().http1_only().build()?);
+transport.resources().configure(DownloadOptions::default())?;
+let api = MinecraftApiClient::new(transport.clone(), &ApiProvider::Official);
+let downloader = Downloader::new(transport);
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-也可以用 `Downloader::default()` 的中性 UA 和默认 HTTP 客户端。`clone()` 共享连接配额、限速、统计和客户端；重新构造则隔离。`api.downloader().await` 同时沿用 API 当前的来源地址。
-`replace_clients(client, http1)` 让后续请求使用新客户端，已发出的请求不受影响。
+`HttpTransport::default()` 提供中性 UA 和默认 HTTP 客户端。传输对象的 `clone()` 共享连接配额、限速、统计、签名器和客户端；独立构造则隔离。`Downloader` 与 `MinecraftApiClient` 分别持有传输对象，不再通过文件下载器发送 API 请求。`api.downloader().await` 是便捷工厂，同时沿用 API 当前的来源地址和传输对象。
+`transport.replace_clients(client, http1)` 让后续请求使用新客户端，已发出的请求不受影响。
 
-开启 `community` 后可用 `api.fetch_with_modrinth(endpoint)` 和 `api.fetch_with_curseforge(endpoint, key)`。CurseForge key 按调用提供，缓存按凭据隔离，不会注入全局状态。下载选项只控制网络功能，不包含安装后选中实例等界面策略。
+开启 `community` 后可用 `api.fetch_with_modrinth(endpoint)` 和 `api.fetch_with_curseforge(endpoint)`。宿主通过 `HttpTransport::with_request_signer` 注入 `signer::CurseForgeSigner`；只有匹配的官方 HTTPS 主机会收到密钥，镜像源不会收到。独立 API 客户端的缓存与凭据相互隔离。下载选项只控制网络功能，不包含安装后选中实例等界面策略。
 
 ## 安装
 

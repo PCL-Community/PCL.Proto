@@ -472,7 +472,10 @@ mod download_tests {
         let runtime = install::install(
             req,
             temp.0.clone(),
-            crate::io::download::Downloader::with_bases(mirror.bases.clone()),
+            crate::io::download::Downloader::with_bases(
+                crate::io::net::http::HttpTransport::default(),
+                mirror.bases.clone(),
+            ),
             |_| {},
         )
         .await
@@ -506,7 +509,10 @@ mod download_tests {
                 install::install(
                     requirements(25, 999),
                     temp.0.clone(),
-                    crate::io::download::Downloader::with_bases(mirror.bases.clone()),
+                    crate::io::download::Downloader::with_bases(
+                        crate::io::net::http::HttpTransport::default(),
+                        mirror.bases.clone()
+                    ),
                     |_| {}
                 )
                 .await
@@ -528,7 +534,10 @@ mod download_tests {
         let task = tokio::spawn(install::install(
             requirements(25, 999),
             temp.0.clone(),
-            crate::io::download::Downloader::with_bases(mirror.bases.clone()),
+            crate::io::download::Downloader::with_bases(
+                crate::io::net::http::HttpTransport::default(),
+                mirror.bases.clone(),
+            ),
             progress,
         ));
         tokio::time::timeout(Duration::from_secs(5), started.notified())

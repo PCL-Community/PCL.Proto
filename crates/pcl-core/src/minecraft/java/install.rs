@@ -93,7 +93,7 @@ pub async fn install(
         crate::utils::platform::host_architecture(),
     )
     .context("Mojang does not provide a runtime for this OS/architecture; install Java manually")?;
-    let client = downloader.http_client();
+    let client = downloader.transport().http_client();
     let index: BTreeMap<String, BTreeMap<String, Vec<RuntimeRelease>>> =
         fetch_index(&client, &downloader).await?;
     let components = index
@@ -260,7 +260,7 @@ async fn fetch_index(
     let settings = downloader.resources().settings();
     for url in downloader.bases.download_urls(
         INDEX,
-        crate::io::download::resources::SourceKind::VersionMetadata,
+        crate::io::net::http::resources::SourceKind::VersionMetadata,
         &settings,
         false,
     ) {

@@ -246,7 +246,7 @@ impl ConfigManager {
                 {
                     let (client, http1) = crate::config::network::clients(&Default::default())
                         .map_err(|_| ConfigManagerError::ApiClientBuildError)?;
-                    pcl_core::io::download::Downloader::new(client, http1)
+                    pcl_core::io::net::http::HttpTransport::new(client, http1)
                         .with_request_signer(crate::secrets::curseforge_signer())
                 },
                 &ApiProvider::default(),
@@ -691,7 +691,7 @@ mod java_config_tests {
                 ..Default::default()
             })),
             api_client: MinecraftApiClient::new(
-                pcl_core::io::download::Downloader::default(),
+                pcl_core::io::net::http::HttpTransport::default(),
                 &ApiProvider::default(),
             ),
             pcl_identifier: String::new(),
@@ -747,7 +747,7 @@ mod java_config_tests {
                 ..Default::default()
             })),
             api_client: MinecraftApiClient::new(
-                pcl_core::io::download::Downloader::default(),
+                pcl_core::io::net::http::HttpTransport::default(),
                 &ApiProvider::default(),
             ),
             pcl_identifier: String::new(),
@@ -821,7 +821,7 @@ mod java_config_tests {
             config_dir: root.clone(),
             app_state: Arc::new(Mutex::new(AppState::default())),
             api_client: MinecraftApiClient::new(
-                pcl_core::io::download::Downloader::default(),
+                pcl_core::io::net::http::HttpTransport::default(),
                 &ApiProvider::default(),
             ),
             pcl_identifier: String::new(),
@@ -871,7 +871,7 @@ mod java_config_tests {
             config_dir: root.clone(),
             app_state: Arc::new(Mutex::new(AppState::default())),
             api_client: MinecraftApiClient::new(
-                pcl_core::io::download::Downloader::default(),
+                pcl_core::io::net::http::HttpTransport::default(),
                 &ApiProvider::default(),
             ),
             pcl_identifier: String::new(),
@@ -1010,7 +1010,7 @@ mod java_config_tests {
             config_dir: root.clone(),
             app_state: Arc::new(Mutex::new(AppState::default())),
             api_client: MinecraftApiClient::new(
-                pcl_core::io::download::Downloader::default(),
+                pcl_core::io::net::http::HttpTransport::default(),
                 &ApiProvider::default(),
             ),
             pcl_identifier: String::new(),
@@ -1067,7 +1067,7 @@ mod java_config_tests {
             config_dir: root.clone(),
             app_state: Arc::new(Mutex::new(AppState::default())),
             api_client: MinecraftApiClient::new(
-                pcl_core::io::download::Downloader::default(),
+                pcl_core::io::net::http::HttpTransport::default(),
                 &ApiProvider::default(),
             ),
             pcl_identifier: String::new(),
@@ -1110,7 +1110,7 @@ mod java_config_tests {
             config_dir: root.clone(),
             app_state: Arc::new(Mutex::new(AppState::default())),
             api_client: MinecraftApiClient::new(
-                pcl_core::io::download::Downloader::default(),
+                pcl_core::io::net::http::HttpTransport::default(),
                 &ApiProvider::default(),
             ),
             pcl_identifier: String::new(),
@@ -1193,7 +1193,7 @@ mod java_config_tests {
                 ..Default::default()
             })),
             api_client: MinecraftApiClient::new(
-                pcl_core::io::download::Downloader::default(),
+                pcl_core::io::net::http::HttpTransport::default(),
                 &ApiProvider::default(),
             ),
             pcl_identifier: String::new(),
@@ -1248,7 +1248,7 @@ mod java_config_tests {
             config_dir: root.clone(),
             app_state: Arc::new(Mutex::new(AppState::default())),
             api_client: MinecraftApiClient::new(
-                pcl_core::io::download::Downloader::default(),
+                pcl_core::io::net::http::HttpTransport::default(),
                 &ApiProvider::default(),
             ),
             pcl_identifier: String::new(),

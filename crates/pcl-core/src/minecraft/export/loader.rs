@@ -69,7 +69,7 @@ pub async fn save_loader_file(
             .context("Invalid destination")?;
         crate::io::files::validate_file_name(name)?;
         ensure!(!destination.try_exists()?, "Destination already exists");
-        let client = downloader.http_client();
+        let client = downloader.transport().http_client();
         let sha1 = client
             .get(format!("{url}.sha1"))
             .send()

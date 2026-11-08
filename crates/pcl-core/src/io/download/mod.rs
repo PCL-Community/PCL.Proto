@@ -2,7 +2,6 @@
 use crate::events::EventSink;
 use crate::io::net::http::api_client::{McApiError, game::DownloadFile};
 use futures_util::StreamExt;
-use reqwest::header::HeaderMap;
 use sha1::Digest;
 use std::{
     path::{Path, PathBuf},
@@ -50,29 +49,25 @@ impl Drop for PartialFile {
 
 #[derive(Clone)]
 pub struct Downloader {
-    resources: Arc<DownloadResources>,
-    clients: Arc<std::sync::RwLock<(reqwest::Client, reqwest::Client)>>,
-    /// 传输层凭据，见 [`signer`]；宿主注入，核心库不持有密钥。
-    signer: Option<Arc<dyn signer::RequestSigner>>,
+    transport: HttpTransport,
     pub(crate) bases: crate::io::net::http::api_client::ApiBases,
 }
 
 impl Default for Downloader {
     fn default() -> Self {
-        Self::with_bases(crate::io::net::http::api_client::ApiBases::new(
-            &crate::io::net::http::api_client::ApiProvider::Official,
-        ))
+        Self::new(HttpTransport::default())
     }
 }
 
 #[cfg(test)]
 mod http_tests;
 mod range;
-pub mod resources;
-pub mod signer;
 pub mod tasks;
 
-use resources::{DownloadResources, HttpMode, SourceKind};
+use crate::io::net::http::{
+    HttpTransport,
+    resources::{DownloadResources, SourceKind},
+};
 use std::sync::{Arc, atomic::Ordering};
 use tokio::io::BufWriter;
 
@@ -81,71 +76,37 @@ type ProgressSink<'a> = Option<(&'a DownloadConfig, &'a mpsc::Sender<ProgressUpd
 
 impl Downloader {
     pub(crate) fn source_urls(&self, url: &str) -> Vec<String> {
-        let settings = self.resources.settings();
+        let settings = self.resources().settings();
         self.bases.download_urls(
             url,
             SourceKind::File,
             &settings,
-            self.resources.official_fast.load(Ordering::Relaxed),
+            self.resources().official_fast.load(Ordering::Relaxed),
         )
     }
-    pub fn with_bases(bases: crate::io::net::http::api_client::ApiBases) -> Self {
-        Self {
-            bases,
-            resources: Arc::new(DownloadResources::default()),
-            signer: None,
-            clients: Arc::new(std::sync::RwLock::new((
-                default_client(false),
-                default_client(true),
-            ))),
-        }
-    }
-    pub fn new(client: reqwest::Client, http1: reqwest::Client) -> Self {
-        Self {
-            clients: Arc::new(std::sync::RwLock::new((client, http1))),
-            resources: Arc::new(DownloadResources::default()),
-            signer: None,
-            bases: crate::io::net::http::api_client::ApiBases::new(
+
+    pub fn new(transport: HttpTransport) -> Self {
+        Self::with_bases(
+            transport,
+            crate::io::net::http::api_client::ApiBases::new(
                 &crate::io::net::http::api_client::ApiProvider::Official,
             ),
-        }
+        )
     }
 
-    /// 注册传输层签名器；同一份下载器克隆共享它。
-    pub fn with_request_signer(self, signer: Option<Arc<dyn signer::RequestSigner>>) -> Self {
-        Self { signer, ..self }
+    pub fn with_bases(
+        transport: HttpTransport,
+        bases: crate::io::net::http::api_client::ApiBases,
+    ) -> Self {
+        Self { transport, bases }
     }
 
-    /// 请求某个 URL 时应附带的凭据头；未注册签名器或主机不需要签名时为空。
-    fn sign_headers(&self, url: &str) -> HeaderMap {
-        let Some(signer) = &self.signer else {
-            return HeaderMap::new();
-        };
-        reqwest::Url::parse(url)
-            .ok()
-            .and_then(|url| signer.headers(&url))
-            .unwrap_or_default()
+    pub fn transport(&self) -> &HttpTransport {
+        &self.transport
     }
 
-    /// Clones share transport, bandwidth budget and connection quota.
     pub fn resources(&self) -> &Arc<DownloadResources> {
-        &self.resources
-    }
-
-    pub fn http_client(&self) -> reqwest::Client {
-        self.clients.read().unwrap().0.clone()
-    }
-
-    /// In-flight requests finish on their original client.
-    pub fn replace_clients(&self, client: reqwest::Client, http1: reqwest::Client) {
-        *self.clients.write().unwrap() = (client, http1);
-    }
-
-    pub fn for_bases(&self, bases: crate::io::net::http::api_client::ApiBases) -> Self {
-        Self {
-            bases,
-            ..self.clone()
-        }
+        self.transport.resources()
     }
 
     pub async fn start_download(
@@ -293,7 +254,7 @@ impl Downloader {
         progress: ProgressSink<'_>,
         verify: bool,
     ) -> Result<u64, McApiError> {
-        if self.resources.settings().file_connections > 1
+        if self.resources().settings().file_connections > 1
             && (info.size == 0 || info.size >= SMALL_FILE_THRESHOLD)
         {
             let Some(size) = self
@@ -351,10 +312,11 @@ impl Downloader {
         progress: ProgressSink<'_>,
         verify: bool,
     ) -> Result<u64, McApiError> {
-        let _lease = self.resources.acquire().await;
+        let _lease = self.resources().acquire().await;
         let response = self
+            .transport
             .send_request(
-                self.resources.settings().http_mode,
+                self.resources().settings().http_mode,
                 info.size == 0 || info.size >= SMALL_FILE_THRESHOLD,
                 url,
                 None,
@@ -377,7 +339,7 @@ impl Downloader {
         let mut last_report = tokio::time::Instant::now();
         while let Some(chunk) = stream.next().await {
             let chunk = chunk?;
-            self.resources.record_bytes(chunk.len());
+            self.resources().record_bytes(chunk.len());
             bytes += chunk.len() as u64;
             if expected.is_some_and(|size| bytes > size) {
                 return Err(McApiError::InvalidMetadata(format!(
@@ -385,7 +347,7 @@ impl Downloader {
                     path.display()
                 )));
             }
-            self.resources.throttle(chunk.len()).await;
+            self.resources().throttle(chunk.len()).await;
             output.write_all(&chunk).await?;
             hasher.update(&chunk);
             if last_report.elapsed() >= Duration::from_millis(100) {
@@ -410,59 +372,6 @@ impl Downloader {
         Ok(bytes)
     }
 }
-impl Downloader {
-    pub async fn send_request(
-        &self,
-        mode: HttpMode,
-        large: bool,
-        url: &str,
-        range: Option<(u64, u64)>,
-        timeout: Option<Duration>,
-    ) -> Result<reqwest::Response, reqwest::Error> {
-        let headers = self.sign_headers(url);
-        let send = |client: &reqwest::Client| {
-            let mut request = client
-                .get(url)
-                .headers(headers.clone())
-                .header(reqwest::header::ACCEPT_ENCODING, "identity");
-            if let Some((start, end)) = range {
-                request = request.header(reqwest::header::RANGE, format!("bytes={start}-{end}"));
-            }
-            if let Some(timeout) = timeout {
-                request = request.timeout(timeout);
-            }
-            request.send()
-        };
-        let (multiplexed, http1) = self.clients.read().unwrap().clone();
-        let client = match mode {
-            HttpMode::Http11 => &http1,
-            HttpMode::Auto if large => &http1,
-            _ => &multiplexed,
-        };
-        let can_fallback = !std::ptr::eq(client, &http1);
-        match send(client).await {
-            Err(error) if can_fallback && !error.is_timeout() => {
-                log::debug!("HTTP negotiation failed for {url}, retrying HTTP/1.1: {error}");
-                send(&http1).await
-            }
-            result => result,
-        }
-    }
-}
-
-fn default_client(http1: bool) -> reqwest::Client {
-    let mut builder = reqwest::Client::builder()
-        .user_agent(concat!("pcl-core/", env!("CARGO_PKG_VERSION")))
-        .connect_timeout(Duration::from_secs(15))
-        .read_timeout(Duration::from_secs(15))
-        .pool_max_idle_per_host(64)
-        .pool_idle_timeout(Duration::from_secs(90));
-    if http1 {
-        builder = builder.http1_only();
-    }
-    builder.build().expect("static download HTTP configuration")
-}
-
 fn partial_file(path: &Path) -> PartialFile {
     PartialFile(path.with_file_name(format!(".pcl-download-{}.part", uuid::Uuid::new_v4())))
 }

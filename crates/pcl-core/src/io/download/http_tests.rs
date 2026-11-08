@@ -1,4 +1,5 @@
 use super::*;
+use crate::io::net::http::resources;
 use std::sync::{
     Mutex,
     atomic::{AtomicBool, AtomicUsize},
@@ -193,7 +194,7 @@ async fn custom_download_parallelizes_and_recovers_interrupted_ranges() {
             .iter()
             .any(|range| range.is_some_and(|(start, _)| start > 0 && start < 8 * 1024 * 1024))
     );
-    assert_eq!(downloader.resources.stats().active_connections, 0);
+    assert_eq!(downloader.resources().stats().active_connections, 0);
 }
 
 #[tokio::test]
@@ -307,12 +308,9 @@ fn info(server: &Server, body: &[u8]) -> DownloadFile {
     }
 }
 fn downloader(max: usize, file: usize) -> Downloader {
-    let downloader = Downloader {
-        resources: Arc::new(DownloadResources::default()),
-        ..Default::default()
-    };
+    let downloader = Downloader::default();
     downloader
-        .resources
+        .resources()
         .configure(resources::DownloadOptions {
             max_connections: max,
             file_connections: file,
@@ -413,8 +411,8 @@ async fn parallel_ranges_resume_partial_segments_and_share_the_global_quota() {
         "failed segment resumes past bytes already written"
     );
     assert_eq!(server.peak.load(Ordering::SeqCst), 2);
-    assert_eq!(downloader.resources.stats().active_connections, 0);
-    assert!(downloader.resources.stats().downloaded_bytes >= info.size * 2 + 2);
+    assert_eq!(downloader.resources().stats().active_connections, 0);
+    assert!(downloader.resources().stats().downloaded_bytes >= info.size * 2 + 2);
     first.assert_clean();
     second.assert_clean();
 }
@@ -467,7 +465,7 @@ async fn per_file_limit_bounds_workers_even_with_a_larger_global_quota() {
 async fn official_large_client_range_smoke() {
     use crate::io::net::http::api_client::{ApiProvider, MinecraftApiClient};
     let client = MinecraftApiClient::new(
-        crate::io::download::Downloader::default(),
+        crate::io::net::http::HttpTransport::default(),
         &ApiProvider::Official,
     );
     let metadata = client.get_version_metadata("1.21.1").await.unwrap();
@@ -481,7 +479,7 @@ async fn official_large_client_range_smoke() {
     eprintln!(
         "Official 1.21.1 client: size={}, network_bytes={}, elapsed={:.3}s",
         info.size,
-        downloader.resources.stats().downloaded_bytes,
+        downloader.resources().stats().downloaded_bytes,
         started.elapsed().as_secs_f64()
     );
     output.assert_clean();
@@ -510,7 +508,7 @@ async fn corruption_and_cancellation_preserve_existing_files_and_release_connect
             assert!(result.is_err());
         }
         assert_eq!(std::fs::read(output.file()).unwrap(), b"existing file");
-        assert_eq!(downloader.resources.stats().active_connections, 0);
+        assert_eq!(downloader.resources().stats().active_connections, 0);
         output.assert_clean();
     }
 }
@@ -525,7 +523,7 @@ async fn small_files_do_not_probe_and_cache_hits_do_not_add_traffic() {
     downloader.download(&info, &output.file()).await.unwrap();
     downloader.download(&info, &output.file()).await.unwrap();
     assert_eq!(*server.requests.lock().unwrap(), vec![None]);
-    assert_eq!(downloader.resources.stats().downloaded_bytes, info.size);
+    assert_eq!(downloader.resources().stats().downloaded_bytes, info.size);
 }
 
 #[tokio::test]
@@ -543,7 +541,7 @@ async fn controlled_range_benchmark() {
         eprintln!(
             "32 MiB per-request-limited server: file_connections={connections}, elapsed={:.3}s, network_bytes={}",
             started.elapsed().as_secs_f64(),
-            downloader.resources.stats().downloaded_bytes
+            downloader.resources().stats().downloaded_bytes
         );
     }
 }

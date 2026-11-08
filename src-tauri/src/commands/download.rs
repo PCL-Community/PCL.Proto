@@ -5,8 +5,11 @@ use std::path::PathBuf;
 
 use crate::config::manager::ConfigManager;
 
-use pcl_core::io::download::{self, TaskItemReport, resources::DownloadStats, tasks};
 use pcl_core::io::net::http::api_client::FabricFamily;
+use pcl_core::io::{
+    download::{self, TaskItemReport, tasks},
+    net::http::resources::DownloadStats,
+};
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn download_fabric_installer(

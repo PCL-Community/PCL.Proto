@@ -1,7 +1,7 @@
 //! Modrinth / CurseForge 元数据请求命令，以及 CurseForge 可用性查询。
 //!
 //! 两个来源都只拼接官方地址，镜像与失败回退由下载源设置决定；
-//! CurseForge 的 `x-api-key` 由下载器上的签名器在传输层注入。
+//! CurseForge 的 `x-api-key` 由共享 HTTP 传输层上的签名器注入。
 
 use pcl_core::io::net::http::api_client::MinecraftApiClient;
 

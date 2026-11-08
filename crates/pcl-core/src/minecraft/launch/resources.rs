@@ -1,6 +1,6 @@
 //! 启动兼容资源；默认按功能需要准备，也可由宿主打包后传入替代路径。
 
-use crate::io::download::{Downloader, resources::HttpMode};
+use crate::io::{download::Downloader, net::http::resources::HttpMode};
 use std::path::{Path, PathBuf};
 
 pub const JAVA_WRAPPER_NAME: &str = "java-wrapper.jar";
@@ -98,6 +98,7 @@ pub async fn ensure_mesa_loader(downloader: &Downloader, path: &Path) -> Result<
     );
     log::info!("Downloading renderer agent from {url}");
     let response = downloader
+        .transport()
         .send_request(
             HttpMode::Auto,
             true,

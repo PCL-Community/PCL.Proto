@@ -208,7 +208,7 @@ async fn official_vanilla_install_with_custom_name() {
     let root = std::env::temp_dir().join(format!("pcl-install-smoke-{}", uuid::Uuid::new_v4()));
     fs::create_dir(&root).unwrap();
     let client = MinecraftApiClient::new(
-        crate::io::download::Downloader::default(),
+        crate::io::net::http::HttpTransport::default(),
         &crate::io::net::http::api_client::ApiProvider::Official,
     );
     let result = install_version_for_test(
@@ -404,7 +404,7 @@ async fn maven_libraries_are_verified_and_published_before_launch() {
 async fn official_fabric_maven_libraries_smoke() {
     use crate::io::net::http::api_client::{ApiProvider, FabricFamily};
     let client = MinecraftApiClient::new(
-        crate::io::download::Downloader::default(),
+        crate::io::net::http::HttpTransport::default(),
         &ApiProvider::Official,
     );
     for (game, version, family) in [
@@ -491,7 +491,7 @@ async fn official_fabric_install(
     fs::create_dir(&root).unwrap();
     let result: anyhow::Result<()> = async {
         let client = MinecraftApiClient::new(
-            crate::io::download::Downloader::default(),
+            crate::io::net::http::HttpTransport::default(),
             &ApiProvider::Official,
         );
         let choice = LoaderInstall {
@@ -1299,7 +1299,7 @@ async fn tampered_version_json_fails_before_downloading_files() {
 #[ignore = "Fetches official version JSON and asset indexes; run explicitly"]
 async fn official_metadata_across_generations() {
     let client = MinecraftApiClient::new(
-        crate::io::download::Downloader::default(),
+        crate::io::net::http::HttpTransport::default(),
         &crate::io::net::http::api_client::ApiProvider::Official,
     );
     let root = std::env::temp_dir().join(format!("pcl-metadata-smoke-{}", uuid::Uuid::new_v4()));

@@ -255,7 +255,7 @@ mod tests {
     #[ignore = "Downloads official Minecraft files; run explicitly for network smoke testing"]
     async fn official_client_and_server_export() {
         let client = MinecraftApiClient::new(
-            crate::io::download::Downloader::default(),
+            crate::io::net::http::HttpTransport::default(),
             &crate::io::net::http::api_client::ApiProvider::Official,
         );
         let directory = temp_directory();

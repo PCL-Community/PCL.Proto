@@ -1,3 +1,4 @@
+use super::HttpTransport;
 use crate::io::net::http::api_client::plugins::McPluginReport;
 use dashmap::DashMap;
 use reqwest::Client;
@@ -89,11 +90,11 @@ impl ApiBases {
     pub fn download_urls(
         &self,
         url: &str,
-        kind: crate::io::download::resources::SourceKind,
-        options: &crate::io::download::resources::DownloadOptions,
+        kind: crate::io::net::http::resources::SourceKind,
+        options: &crate::io::net::http::resources::DownloadOptions,
         official_fast: bool,
     ) -> Vec<String> {
-        use crate::io::download::resources::SourcePreference;
+        use crate::io::net::http::resources::SourcePreference;
         let preference = options.preference(kind);
         // Test/private API bases remain isolated from public network fallbacks.
         if !matches!(
@@ -237,7 +238,7 @@ impl FabricFamily {
 
 fn fabric_metadata_sources(
     base: &'static str,
-    preference: crate::io::download::resources::SourcePreference,
+    preference: crate::io::net::http::resources::SourcePreference,
 ) -> Vec<&'static str> {
     let official = "https://meta.fabricmc.net/v2/versions/loader";
     let mirror = "https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader";
@@ -246,7 +247,7 @@ fn fabric_metadata_sources(
     }
     if matches!(
         preference,
-        crate::io::download::resources::SourcePreference::Official
+        crate::io::net::http::resources::SourcePreference::Official
     ) {
         vec![official, mirror]
     } else {
@@ -399,7 +400,7 @@ fn parse_fabric_installers(
 }
 
 pub struct MinecraftApiClient {
-    transport: crate::io::download::Downloader,
+    transport: HttpTransport,
     api_bases: RwLock<ApiBases>,
     cache: DashMap<String, (Instant, serde_json::Value)>,
     ttl: Duration,
@@ -438,13 +439,17 @@ impl MinecraftApiClient {
         }))
     }
     /// Create a new MinecraftApiClient
-    pub fn new(transport: crate::io::download::Downloader, api_provider: &ApiProvider) -> Self {
+    pub fn new(transport: HttpTransport, api_provider: &ApiProvider) -> Self {
         Self {
             transport,
             api_bases: RwLock::new(ApiBases::new(api_provider)),
             cache: DashMap::new(),
             ttl: Duration::from_secs(60 * 5),
         }
+    }
+
+    pub fn transport(&self) -> &HttpTransport {
+        &self.transport
     }
 
     pub fn replace_clients(&self, client: Client, http1: Client) {
@@ -455,24 +460,24 @@ impl MinecraftApiClient {
         self.transport.http_client()
     }
 
-    pub fn resources(&self) -> &std::sync::Arc<crate::io::download::resources::DownloadResources> {
+    pub fn resources(&self) -> &std::sync::Arc<crate::io::net::http::resources::DownloadResources> {
         self.transport.resources()
     }
 
     pub async fn downloader(&self) -> crate::io::download::Downloader {
-        self.transport.for_bases(self.api_bases_async().await)
+        crate::io::download::Downloader::with_bases(
+            self.transport.clone(),
+            self.api_bases_async().await,
+        )
     }
 
     #[cfg(test)]
     pub(crate) fn with_test_bases(bases: ApiBases) -> Self {
-        Self::with_test_transport(bases, crate::io::download::Downloader::default())
+        Self::with_test_transport(bases, HttpTransport::default())
     }
 
     #[cfg(test)]
-    pub(crate) fn with_test_transport(
-        bases: ApiBases,
-        transport: crate::io::download::Downloader,
-    ) -> Self {
+    pub(crate) fn with_test_transport(bases: ApiBases, transport: HttpTransport) -> Self {
         let mut client = Self::new(transport, &ApiProvider::Official);
         client.api_bases = RwLock::new(bases);
         client
@@ -501,7 +506,7 @@ impl MinecraftApiClient {
         url: &str,
         validate: impl Fn(&[u8]) -> McApiResult<T>,
     ) -> McApiResult<T> {
-        use crate::io::download::resources::SourcePreference;
+        use crate::io::net::http::resources::SourcePreference;
         use futures_util::StreamExt;
         use std::sync::atomic::Ordering;
         let settings = self.resources().settings();
@@ -512,9 +517,9 @@ impl MinecraftApiClient {
             settings.file_source
         };
         let kind = if manifest {
-            crate::io::download::resources::SourceKind::VersionMetadata
+            crate::io::net::http::resources::SourceKind::VersionMetadata
         } else {
-            crate::io::download::resources::SourceKind::File
+            crate::io::net::http::resources::SourceKind::File
         };
         let urls = self.api_bases.read().await.download_urls(
             url,
@@ -700,7 +705,7 @@ impl MinecraftApiClient {
             "https://bmclapi2.bangbang93.com/neoforge/meta/api/maven/details/releases/net/neoforged/{package}"
         );
         let urls = match self.resources().settings().version_source {
-            crate::io::download::resources::SourcePreference::Official => [official, mirror],
+            crate::io::net::http::resources::SourcePreference::Official => [official, mirror],
             _ => [mirror, official],
         };
         let mut last_error = None;
@@ -784,7 +789,7 @@ impl MinecraftApiClient {
         loader: &str,
         family: FabricFamily,
     ) -> McApiResult<serde_json::Value> {
-        use crate::io::download::resources::SourcePreference;
+        use crate::io::net::http::resources::SourcePreference;
         for value in [version_id, loader] {
             crate::io::files::validate_file_name(value)
                 .map_err(|error| McApiError::InvalidMetadata(error.to_string()))?;
@@ -865,10 +870,10 @@ impl MinecraftApiClient {
         self.get(&url, true).await
     }
 
-    /// CurseForge 的 `x-api-key` 由下载器的 [`RequestSigner`] 在传输层注入，
+    /// CurseForge 的 `x-api-key` 由共享 HTTP 传输层的 [`RequestSigner`] 注入，
     /// 因此这里与 Modrinth 一样只需要官方地址；镜像与回退由下载源设置决定。
     ///
-    /// [`RequestSigner`]: crate::io::download::signer::RequestSigner
+    /// [`RequestSigner`]: crate::io::net::http::signer::RequestSigner
     #[cfg(feature = "community")]
     pub async fn fetch_with_curseforge<T: DeserializeOwned + Serialize>(
         &self,
@@ -914,11 +919,11 @@ fn mod_mirror_url(url: &str) -> Option<String> {
 /// 按偏好排列官方源与镜像源：镜像源失败时下载器会回退到官方源。
 #[cfg(feature = "community")]
 fn community_sources(
-    preference: crate::io::download::resources::SourcePreference,
+    preference: crate::io::net::http::resources::SourcePreference,
     official: &str,
     mirror: String,
 ) -> Vec<String> {
-    use crate::io::download::resources::SourcePreference;
+    use crate::io::net::http::resources::SourcePreference;
     match preference {
         SourcePreference::Mirror => vec![mirror, official.to_owned()],
         SourcePreference::Auto => vec![official.to_owned(), mirror],
@@ -930,7 +935,7 @@ fn community_sources(
 mod tests {
     #[tokio::test]
     async fn independent_clients_isolate_transport_credentials_and_quotas() {
-        use crate::io::download::resources::DownloadOptions;
+        use crate::io::net::http::resources::DownloadOptions;
         use axum::{Json, Router, http::HeaderMap, routing::get};
         use std::sync::Arc;
         let echo_handler = |headers: HeaderMap| async move {
@@ -954,7 +959,7 @@ mod tests {
             .unwrap();
         });
         struct TestSigner(&'static str);
-        impl crate::io::download::signer::RequestSigner for TestSigner {
+        impl crate::io::net::http::signer::RequestSigner for TestSigner {
             fn headers(&self, url: &reqwest::Url) -> Option<HeaderMap> {
                 if !url.path().starts_with("/cf/") {
                     return None;
@@ -990,10 +995,9 @@ mod tests {
                 bases.modrinth_base = base;
                 bases.curseforge_base = Box::leak(format!("{base}/cf").into_boxed_str());
             }
-            let transport =
-                crate::io::download::Downloader::default().with_request_signer(key.map(|key| {
-                    Arc::new(TestSigner(key)) as Arc<dyn crate::io::download::signer::RequestSigner>
-                }));
+            let transport = HttpTransport::default().with_request_signer(key.map(|key| {
+                Arc::new(TestSigner(key)) as Arc<dyn crate::io::net::http::signer::RequestSigner>
+            }));
             let api = MinecraftApiClient::with_test_transport(bases, transport);
             let (client, http1) = clients(agent);
             api.replace_clients(client, http1);
@@ -1001,8 +1005,10 @@ mod tests {
         };
         let first = make("FirstLauncher", Some("first-key"));
         let second = make("SecondLauncher", Some("second-key"));
+        #[cfg(feature = "community")]
         let plain = make("PlainLauncher", None);
-        let download = first.downloader().await;
+        let download = crate::io::download::Downloader::new(first.transport().clone());
+        let provider_download = first.downloader().await;
         first
             .resources()
             .configure(DownloadOptions {
@@ -1010,7 +1016,12 @@ mod tests {
                 ..Default::default()
             })
             .unwrap();
-        let lease = download.resources().acquire().await;
+        let lease = provider_download.resources().acquire().await;
+        assert!(
+            tokio::time::timeout(Duration::from_millis(10), download.resources().acquire())
+                .await
+                .is_err()
+        );
         assert!(
             tokio::time::timeout(Duration::from_millis(10), first.resources().acquire())
                 .await
@@ -1028,7 +1039,7 @@ mod tests {
         );
         #[cfg(feature = "community")]
         {
-            // 签名器随下载器实例走，不会串到另一台客户端。
+            // 独立传输对象的签名器相互隔离。
             let reply: serde_json::Value = first.fetch_with_curseforge("echo").await.unwrap();
             assert_eq!(
                 reply,
@@ -1039,7 +1050,7 @@ mod tests {
                 reply,
                 serde_json::json!({"agent": "SecondLauncher", "key": "second-key"})
             );
-            // 没有装签名器的下载器不携带凭据。
+            // 没有装签名器的传输对象不携带凭据。
             let reply: serde_json::Value = plain.fetch_with_curseforge("echo").await.unwrap();
             assert_eq!(
                 reply,
@@ -1051,18 +1062,25 @@ mod tests {
         }
         let (client, http1) = clients("UpdatedLauncher");
         first.replace_clients(client, http1);
-        let reply: serde_json::Value = download
-            .http_client()
-            .get(&echo)
-            .send()
-            .await
-            .unwrap()
-            .json()
+        let output = tempfile::tempdir().unwrap();
+        let path = output.path().join("echo.json");
+        download
+            .download(
+                &game::DownloadFile {
+                    url: format!("{base}/cf/echo"),
+                    path: None,
+                    size: 0,
+                    sha1: String::new(),
+                },
+                &path,
+            )
             .await
             .unwrap();
+        let reply: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
         assert_eq!(
             reply,
-            serde_json::json!({"agent": "UpdatedLauncher", "key": null})
+            serde_json::json!({"agent": "UpdatedLauncher", "key": "first-key"})
         );
         let reply: serde_json::Value =
             serde_json::from_slice(&second.get_bytes(&echo).await.unwrap()).unwrap();
@@ -1136,7 +1154,7 @@ mod tests {
 
     #[test]
     fn source_preferences_keep_official_fallback_and_both_library_mirrors() {
-        use crate::io::download::resources::{DownloadOptions, SourceKind, SourcePreference};
+        use crate::io::net::http::resources::{DownloadOptions, SourceKind, SourcePreference};
         let bases = ApiBases::new(&ApiProvider::Official);
         let urls = |url: &str, preference: SourcePreference, official_fast: bool| {
             let options = DownloadOptions {
@@ -1196,7 +1214,7 @@ mod tests {
     #[cfg(feature = "community")]
     #[test]
     fn community_sources_follow_their_own_preference() {
-        use crate::io::download::resources::{DownloadOptions, SourceKind, SourcePreference};
+        use crate::io::net::http::resources::{DownloadOptions, SourceKind, SourcePreference};
         let bases = ApiBases::new(&ApiProvider::Official);
         let options = |community_source| DownloadOptions {
             community_source,

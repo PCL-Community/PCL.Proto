@@ -1117,7 +1117,7 @@ echo true
             _ => panic!("Unknown smoke case"),
         };
         let client = MinecraftApiClient::new(
-            crate::io::download::Downloader::default(),
+            crate::io::net::http::HttpTransport::default(),
             &ApiProvider::BMCLApi,
         );
         let downloader = client.downloader().await;

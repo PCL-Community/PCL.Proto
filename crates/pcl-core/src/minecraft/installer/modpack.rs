@@ -651,7 +651,7 @@ mod tests {
         let temporary_path = prepared._directory.path().to_owned();
         let repo = tempfile::tempdir_in(&root).unwrap();
         let client = MinecraftApiClient::new(
-            crate::io::download::Downloader::default(),
+            crate::io::net::http::HttpTransport::default(),
             &crate::io::net::http::api_client::ApiProvider::Official,
         );
         let PreparedPack { pack, _directory } = prepared;
