@@ -580,7 +580,7 @@ async function joinLobby() {
 }
 
 async function copyLobbyCode() {
-  await copyText(lobbyCode.value)
+  await copyText(lobbyCode.value, 'Common.Hint.Copied')
 }
 
 async function copyIp() {
@@ -707,7 +707,7 @@ onUnmounted(() => {
       </PHint>
 
       <template v-if="subpage === 'eula'">
-        <PCard :title="pclText('Tools.GameLink.Agreement.Title')" class="lobby-card">
+        <PCard :title="pclText('Tools.GameLink.Agreement.Title')">
           <div class="card-body eula-body">
             <p class="eula-description">
               {{ pclText('Tools.GameLink.Agreement.Description') }}
@@ -775,7 +775,7 @@ onUnmounted(() => {
           </PCard>
         </div>
 
-        <PCard :title="pclText('Tools.GameLink.Join.Title')" class="lobby-card">
+        <PCard :title="pclText('Tools.GameLink.Join.Title')">
           <div class="card-body">
             <p class="pcl-text card-description join-description">
               {{ pclText('Tools.GameLink.Join.Description') }}
@@ -809,7 +809,6 @@ onUnmounted(() => {
         <PCard
           :title="pclText('Tools.GameLink.Create.Title')"
           default-fold-status="unfold"
-          class="lobby-card"
         >
           <div class="card-body">
             <p class="pcl-text card-description">
@@ -854,27 +853,27 @@ onUnmounted(() => {
 
       <template v-else>
         <div class="finish-grid">
-          <PCard hide-title class="lobby-card finish-users">
+          <PCard hide-title class="finish-users">
             <div class="finish-user-row">
               <div class="status-line" :title="pclText('Tools.GameLink.Finish.UserName')">
                 <PPath class="status-icon" :data="USER_PATH" />
-                <span class="status-text">
+                <span>
                   {{ userName ?? pclText('Tools.GameLink.Finish.UserName') }}
                 </span>
               </div>
-              <span class="user-split">|</span>
+              <span class="user-divider" aria-hidden="true"></span>
               <div class="status-line" :title="pclText('Tools.GameLink.Finish.UserType')">
-                <PPath class="status-icon status-icon-small" :data="USER_TYPE_PATH" />
-                <span class="status-text">{{ userTypeText }}</span>
+                <PPath class="status-icon" :data="USER_TYPE_PATH" />
+                <span>{{ userTypeText }}</span>
               </div>
             </div>
           </PCard>
 
-          <PCard :title="pclText('Tools.GameLink.Finish.InfoTitle')" class="lobby-card finish-info">
+          <PCard :title="pclText('Tools.GameLink.Finish.InfoTitle')" class="finish-info">
             <div class="finish-info-body">
               <div class="status-line" :title="pclText('Tools.GameLink.Finish.ConnectionStatus')">
                 <PPath class="status-icon" :data="QUALITY_PATH" />
-                <span class="status-text">{{ qualityText }}</span>
+                <span>{{ qualityText }}</span>
               </div>
               <div
                 v-if="isGuest"
@@ -882,11 +881,14 @@ onUnmounted(() => {
                 :title="pclText('Tools.GameLink.Finish.PingToHost')"
               >
                 <PPath class="status-icon" :data="PING_PATH" />
-                <span class="status-text">{{ pingText }}</span>
+                <span>{{ pingText }}</span>
               </div>
-              <div class="status-line" :title="pclText('Tools.GameLink.Finish.LobbyId')">
+              <div
+                class="status-line selectable"
+                :title="pclText('Tools.GameLink.Finish.LobbyId')"
+              >
                 <PPath class="status-icon" :data="LOBBY_ID_PATH" />
-                <span class="status-text">{{ lobbyCode ?? '-' }}</span>
+                <span>{{ lobbyCode ?? '-' }}</span>
               </div>
               <div
                 v-if="isGuest"
@@ -894,14 +896,14 @@ onUnmounted(() => {
                 :title="pclText('Tools.GameLink.Finish.ConnectionType')"
               >
                 <PPath class="status-icon" :data="CONNECTION_TYPE_PATH" />
-                <span class="status-text">{{ pclText('Tools.GameLink.Finish.Unavailable') }}</span>
+                <span>{{ pclText('Tools.GameLink.Finish.Unavailable') }}</span>
               </div>
             </div>
           </PCard>
 
           <PCard
             :title="pclText('Tools.GameLink.Finish.Actions')"
-            class="lobby-card finish-actions"
+            class="finish-actions"
           >
             <div class="finish-actions-body">
               <PIconTextButton
@@ -925,8 +927,8 @@ onUnmounted(() => {
             </div>
           </PCard>
 
-          <PCard :title="memberTitle" class="lobby-card finish-members">
-            <div class="member-list">
+          <PCard :title="memberTitle" class="finish-members">
+            <div class="card-body">
               <PListItem
                 v-for="player in players"
                 :key="player.machineId"
@@ -940,7 +942,7 @@ onUnmounted(() => {
         </div>
       </template>
 
-      <PCard hide-title class="footer-card">
+      <PCard hide-title>
         <div class="lobby-footer">
           <div class="footer-line">
             <PButton inline @click="openExternal('https://qm.qq.com/q/zfml1KaPWS')">
@@ -986,16 +988,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.lobby-page {
-  --pcl-page-gap: 0px;
-  padding: 10px;
-}
-
-.lobby-card,
-.footer-card {
-  margin: 10px;
-}
-
 .lobby-loading {
   margin: auto;
 }
@@ -1052,7 +1044,7 @@ onUnmounted(() => {
   justify-content: flex-end;
   align-items: center;
   gap: 12px;
-  margin: 4px 10px;
+  margin: 0;
 }
 
 .status-chip {
@@ -1073,7 +1065,6 @@ onUnmounted(() => {
   align-items: center;
   height: 28px;
   padding: 0 12px;
-  background: var(--color-tint-lighter);
 }
 
 .status-chip-icon {
@@ -1114,85 +1105,78 @@ onUnmounted(() => {
 .finish-grid {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'users members'
+    'info members'
+    'actions members';
+  gap: var(--pcl-page-gap);
   align-items: start;
 }
 
 .finish-users {
-  grid-column: 1;
-  grid-row: 1;
+  grid-area: users;
+  align-self: start;
 }
 
 .finish-info {
-  grid-column: 1;
-  grid-row: 2;
+  grid-area: info;
+  align-self: start;
 }
 
 .finish-actions {
-  grid-column: 1;
-  grid-row: 3;
+  grid-area: actions;
+  align-self: start;
 }
 
 .finish-members {
-  grid-column: 2;
-  grid-row: 1 / span 4;
-  min-width: 300px;
+  grid-area: members;
+  align-self: stretch;
 }
 
 .finish-user-row {
   display: flex;
   align-items: center;
-  padding: 5px;
+  padding: 4px 10px;
   margin: 0 0 0 0;
 }
 
-.user-split {
-  margin: 0 4px;
-  opacity: 0.3;
-  transform: scaleY(2.75);
+.user-divider {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 1px;
+  height: 14px;
+  margin: 0 10px;
+  border-radius: 1px;
+  background: var(--color-text-grey);
+  opacity: 0.35;
 }
 
 .status-line {
   display: flex;
   align-items: center;
-  margin: 5px;
+  margin: 4px 5px;
+}
+
+.status-line.selectable {
+  user-select: text;
 }
 
 .status-icon {
   width: 14px;
   height: 14px;
   margin-right: 7px;
-  color: var(--color-text-grey);
-}
-
-.status-icon-small {
-  width: 13px;
-  height: 13px;
-}
-
-.status-text {
-  color: var(--color-text-grey);
 }
 
 .finish-info-body,
 .finish-actions-body {
-  margin: 0 10px 10px;
+  margin: 0 10px 8px;
   display: flex;
   flex-direction: column;
 }
 
 .finish-actions-body {
   gap: 2px;
-}
-
-.member-list {
-  margin: 0 6px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.footer-card {
-  opacity: 0.75;
+  align-items: flex-start;
 }
 
 .lobby-footer {
@@ -1206,7 +1190,7 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
-  margin: 6px 15px;
+  margin: 4px 15px;
 }
 
 .footer-sep {
