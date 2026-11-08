@@ -60,7 +60,7 @@ src-tauri（PCL.Proto 应用）
 | --- | --- |
 | `pcl-core/src/minecraft/` | 版本、实例、安装、Java 探测/扫描/约束、启动、认证与皮肤协议、存档和服务器文件、导出 |
 | `pcl-core/src/io/` | 校验下载、Range、来源回退、可共享的连接/带宽配额、文件与 HTTP 操作 |
-| `pcl-core/src/link/` | 服务器 ping；`link` feature 提供 Terracotta 桥接 |
+| `pcl-core/src/link/` | 服务器 ping、局域网世界发现；`link` feature 提供 Terracotta 桥接 |
 | `pcl-core/src/events.rs` | 普通进度回调 `EventSink` |
 | `pcl-core/resources/` | 安装桥接、启动兼容 JAR、Log4j 配置与 macOS ARM64 库映射；由所属功能按需使用 |
 | `src-tauri/src/config/` | 全部启动器设置、继承、默认值、校验、文件位置、事务持久化、设置到功能输入的折算 |
@@ -68,7 +68,7 @@ src-tauri（PCL.Proto 应用）
 | `src-tauri/src/secrets.rs` | 本应用凭据来源与皮肤站注册的 Client ID |
 | `src-tauri/src/commands/` | IPC 参数、账号展示模型、通道适配和应用流程 |
 | `src-tauri/src/assets.rs` | 本应用包内资源和可写缓存目录的路径；下载与兼容逻辑由 core 执行 |
-| `src-tauri/src/` | 窗口/可见性、设备标识、今日人品、外链、自定义协议与资源提供者 |
+| `src-tauri/src/` | 窗口/可见性、设备标识、今日人品、外链、自定义协议与资源提供者；`src-tauri/src/link/` 保存大厅公告、Natayark 登录与联机设置 |
 
 游戏启动与管理的协议、校验、下载和文件操作属于 core；PCL.Proto 的配置、交互与展示属于应用。`SafeProfile` 是应用的 WebView 投影，留在账号命令中；core 只提供完整档案与游戏能力。
 

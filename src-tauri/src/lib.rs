@@ -14,6 +14,7 @@ mod commands;
 mod config;
 mod external;
 mod identity;
+mod link;
 mod login;
 mod protocol;
 mod resources;
@@ -55,7 +56,8 @@ pub fn run() {
             if let Ok(config_manager) = crate::config::manager::CONFIG_MANAGER.as_ref() {
                 app.manage(Arc::clone(&config_manager.app_state));
                 app.manage(&config_manager.api_client);
-                pcl_core::link::init(config_manager.identifier_path());
+                // 联机机器码独立存放，避免 launcher id 文件长度变化时被 Terracotta 覆写。
+                pcl_core::link::init(crate::config::link::machine_id_path(config_manager.config_dir()));
             } else {
                 log::error!("Config manager failed: {:?}", crate::config::manager::CONFIG_MANAGER.as_ref().err());
                 app.dialog()
@@ -209,12 +211,24 @@ pub fn run() {
             commands::skin::save_profile_skin,
             commands::skin::change_microsoft_skin,
             // scaffolding
-            commands::link::get_terracotta_meta,
-            commands::link::get_terracotta_state,
-            commands::link::set_terracotta_waiting,
-            commands::link::set_terracotta_host_scanning,
-            commands::link::set_terracotta_host_starting,
-            commands::link::set_terracotta_guesting,
+            commands::link::initialize_link,
+            commands::link::get_link_settings,
+            commands::link::set_link_settings,
+            commands::link::reset_link_settings,
+            commands::link::set_link_eula,
+            commands::link::refresh_link_announcement,
+            commands::link::get_link_account,
+            commands::link::start_link_naid_login,
+            commands::link::logout_link_naid,
+            commands::link::refresh_link_naid,
+            commands::link::test_link_nat,
+            commands::link::discover_link_worlds,
+            commands::link::verify_link_port,
+            commands::link::get_link_lobby_state,
+            commands::link::lobby_create,
+            commands::link::lobby_join,
+            commands::link::lobby_leave,
+            commands::link::lobby_reset,
             commands::link_runtime::get_link_runtime_status,
             commands::link_runtime::install_link_runtime,
         ])

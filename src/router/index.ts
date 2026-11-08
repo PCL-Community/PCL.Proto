@@ -184,7 +184,7 @@ const router = createRouter({
             },
             {
               path: 'inner',
-              component: () => import('@/views/Tools/PageToolsGameLinkConnected.vue'),
+              redirect: (to) => ({ path: '/tools/lobby', query: to.query }),
             },
           ],
         },

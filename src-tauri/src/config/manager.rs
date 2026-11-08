@@ -1,5 +1,9 @@
 pub use super::states::{AppState, WindowSettings};
 
+use super::link::{LinkSettings, LinkState};
+
+#[cfg(unix)]
+use std::os::unix::fs::OpenOptionsExt;
 use tokio::sync::Mutex;
 
 use pcl_core::{
@@ -117,6 +121,67 @@ impl ConfigManager {
         self.update(|state| {
             state.log_max_lines = Some(lines);
             Ok(lines)
+        })
+    }
+}
+
+pub async fn get_link_settings() -> LinkSettings {
+    ConfigManager::instance()
+        .app_state
+        .lock()
+        .await
+        .link_settings
+        .clone()
+}
+
+pub async fn get_link_state() -> LinkState {
+    ConfigManager::instance()
+        .app_state
+        .lock()
+        .await
+        .link_state
+        .clone()
+}
+
+pub async fn set_link_settings(settings: LinkSettings) -> Result<LinkSettings, String> {
+    tokio::task::spawn_blocking(move || ConfigManager::instance().update_link_settings(settings))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
+/// CE 的「初始化」会重置整个 Link 组：设置、EULA、Natayark 令牌与公告缓存。
+pub async fn reset_link_settings() -> Result<LinkSettings, String> {
+    tokio::task::spawn_blocking(|| ConfigManager::instance().reset_link_group())
+        .await
+        .map_err(|error| error.to_string())?
+}
+
+pub async fn update_link_state<T, F>(change: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce(&mut LinkState) -> Result<T, String> + Send + 'static,
+{
+    tokio::task::spawn_blocking(move || {
+        ConfigManager::instance().update(move |state| change(&mut state.link_state))
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+impl ConfigManager {
+    fn update_link_settings(&self, settings: LinkSettings) -> Result<LinkSettings, String> {
+        settings.validate()?;
+        self.update(|state| {
+            state.link_settings = settings.clone();
+            Ok(settings)
+        })
+    }
+
+    fn reset_link_group(&self) -> Result<LinkSettings, String> {
+        self.update(|state| {
+            state.link_settings = LinkSettings::default();
+            state.link_state = LinkState::default();
+            Ok(state.link_settings.clone())
         })
     }
 }
@@ -320,7 +385,14 @@ impl ConfigManager {
             let backup = self
                 .config_path
                 .with_extension(format!("{}.bak", uuid::Uuid::new_v4()));
-            fs::write(&backup, &bytes).map_err(|_| ConfigManagerError::ConfigFileCorrupted)?;
+            let mut options = fs::OpenOptions::new();
+            options.write(true).create_new(true);
+            #[cfg(unix)]
+            options.mode(0o600);
+            options
+                .open(&backup)
+                .and_then(|mut file| file.write_all(&bytes))
+                .map_err(|_| ConfigManagerError::ConfigFileCorrupted)?;
             save_config_atomically(&self.config_path, &state_read)?;
             log::info!(
                 "Configuration backed up to {} and rewritten for {}",
@@ -452,11 +524,6 @@ impl ConfigManager {
         Ok(true)
     }
 
-    #[inline]
-    pub fn identifier_path(&self) -> PathBuf {
-        self.config_dir.join("pcl_identifier.txt")
-    }
-
     pub fn java_runtime_dir(&self) -> PathBuf {
         self.config_dir.join("runtime")
     }
@@ -554,6 +621,7 @@ fn valid_loaded_state(state: &AppState) -> bool {
             .download_settings
             .as_ref()
             .is_some_and(|settings| settings.validate().is_err())
+        || state.link_settings.validate().is_err()
         || state.renderer > 3
         || state.proxy.validate().is_err()
         || state
@@ -571,9 +639,11 @@ fn save_config_atomically(
     value["config_version"] = CONFIG_VERSION.into();
     let temporary = path.with_extension(format!("{}.tmp", uuid::Uuid::new_v4()));
     let result = (|| {
-        let file = fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
+        let mut options = fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        options.mode(0o600);
+        let file = options
             .open(&temporary)
             .map_err(|_| ConfigManagerError::ConfigFileNotFound)?;
         let mut writer = std::io::BufWriter::new(file);
@@ -912,6 +982,14 @@ mod java_config_tests {
             },
         );
         save_config_atomically(&path, &state).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+                0o600
+            );
+        }
         let restored: AppState = serde_yaml::from_slice(&fs::read(&path).unwrap()).unwrap();
         assert_eq!(
             restored.launcher_setup.selected_java,

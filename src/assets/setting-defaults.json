@@ -33,13 +33,6 @@
   "PageLogRight": {
     "SliderMaxLog": 13
   },
-  "PageSetupGameLink": {
-    "TextLinkUsername": "",
-    "CheckLatencyFirstMode": true,
-    "CheckTryPunchSym": true,
-    "CheckEnableIPv6": true,
-    "CheckEnableCliOutput": false
-  },
   "PageSetupGameManage": {
     "ComboDownloadSource": "1",
     "ComboDownloadVersion": "1",

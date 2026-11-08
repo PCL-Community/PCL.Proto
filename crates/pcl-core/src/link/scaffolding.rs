@@ -1,53 +1,26 @@
+//! Bridge to the embedded Terracotta networking stack.
+//!
+//! The launcher-facing pieces (settings, announcements, accounts) live in the
+//! application; this module only translates plain values into Terracotta calls.
+
 use terracotta::{controller, rooms::Room};
 
-pub fn get_terracotta_meta() -> serde_json::Value {
-    todo!()
+pub use terracotta::controller::{
+    get_meta as get_terracotta_meta, get_state as get_terracotta_state,
+    set_link_options as set_options, set_public_nodes, set_vendor, set_waiting, test_nat,
+};
+pub use terracotta::{LinkOptions, ProtocolPreference as LinkProtocol};
+
+pub fn set_host_starting(mc_port: u16, player: String) -> Result<String, String> {
+    controller::set_host_starting(mc_port, Some(player))
+        .ok_or_else(|| "set host starting failed".to_string())
 }
 
-pub fn get_terracotta_state() -> serde_json::Value {
-    controller::get_state()
-}
-
-pub fn set_terracotta_waiting() {
-    controller::set_waiting()
-}
-
-pub fn set_terracotta_host_scanning() {
-    controller::set_scanning_only();
-}
-
-pub fn set_terracotta_host_starting(mc_port: u16, player: String) -> Result<String, String> {
-    if let Some(room_code) = controller::set_host_starting(mc_port, Some(player)) {
-        Ok(room_code)
-    } else {
-        Err("set host starting failed".to_string())
-    }
-}
-
-pub fn set_terracotta_guesting(room_code: String, player: String) -> Result<(), String> {
-    let room = Room::from(&room_code).ok_or("invalid room code")?;
+pub fn set_guesting(room_code: String, player: String) -> Result<(), String> {
+    let room = Room::from(&room_code).ok_or("invalid_code")?;
     if controller::set_guesting(room, Some(player), vec![]) {
         Ok(())
     } else {
-        Err("set guesting failed".to_string())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use terracotta::rooms::Room;
-
-    #[test]
-    fn test_parse_code() {
-        let codes = [
-            "U/LX2M-2A87-YXMZ-2HJJ",
-            "U/YS3D-LTH4-6AUC-MBFB",
-            "U/BC4D-A51Z-ZE3P-LAP9",
-            "U/UCAW-UY61-QD93-UL9X",
-        ];
-        for code in codes {
-            let room = Room::from(code);
-            assert!(room.is_some());
-        }
+        Err("join_failed".to_string())
     }
 }

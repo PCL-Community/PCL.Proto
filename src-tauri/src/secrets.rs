@@ -56,6 +56,33 @@ pub fn connect_client_id(explicit: Option<&str>, server: &str) -> Option<String>
         })
 }
 
+/// 联机公告服务器根地址（可配置多条，用于多服务器回退）；未配置时联机离线可用。
+pub fn link_server_roots() -> Vec<String> {
+    compile_time(option_env!("LINK_SERVER_ROOT"))
+        .or_else(|| from_env("LINK_SERVER_ROOT"))
+        .or_else(|| from_env("PCL_LINK_SERVER_ROOT"))
+        .map(|roots| {
+            roots
+                .split('|')
+                .map(str::trim)
+                .filter(|root| !root.is_empty())
+                .map(|root| root.trim_end_matches('/').to_owned())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Natayark ID 的 OAuth 客户端凭据；未配置时联机页隐藏账户入口。
+pub fn naid_credentials() -> Option<(String, String)> {
+    let client_id = compile_time(option_env!("NAID_CLIENT_ID"))
+        .or_else(|| from_env("NAID_CLIENT_ID"))
+        .or_else(|| from_env("PCL_NAID_CLIENT_ID"))?;
+    let client_secret = compile_time(option_env!("NAID_CLIENT_SECRET"))
+        .or_else(|| from_env("NAID_CLIENT_SECRET"))
+        .or_else(|| from_env("PCL_NAID_CLIENT_SECRET"))?;
+    Some((client_id, client_secret))
+}
+
 pub fn built_in_client_id(host: &str) -> Option<&'static str> {
     host.trim()
         .trim_end_matches('.')

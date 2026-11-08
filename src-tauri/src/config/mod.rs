@@ -9,6 +9,7 @@ pub mod java;
 pub mod java_preference;
 pub mod launch;
 pub mod launch_settings;
+pub mod link;
 pub mod manager;
 pub mod memory;
 pub mod metadata;

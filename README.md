@@ -72,6 +72,8 @@ bun run dev
 
 > [!NOTE]
 > Microsoft login requires a Microsoft OAuth client ID and has no built-in default: the old public client ID is rejected by the Microsoft device-code endpoint, so login fails with `configuration_error` when unset. Set `MS_CLIENT_ID` in the build environment or the git-ignored root `.env`, or set `MS_CLIENT_ID` / `PCL_MS_CLIENT_ID` at runtime. The Azure app registration must support the device-code flow and the `XboxLive.signin offline_access` scope, and must be approved at <https://aka.ms/mce-reviewappid>; otherwise `login_with_xbox` returns 403.
+>
+> The lobby announcement service and Natayark ID login have no built-in endpoints either. Set `LINK_SERVER_ROOT` (one or more roots separated by `|`) and `NAID_CLIENT_ID` / `NAID_CLIENT_SECRET` in the build environment, the root `.env`, or the runtime environment. Both are optional: without them the multiplayer page works offline (no announcements, no account card) and Terracotta remains fully usable.
 
 ### Build Tauri App
 

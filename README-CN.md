@@ -66,6 +66,8 @@ bun run dev
 
 > [!NOTE]
 > 正版登录需要微软 OAuth 的 Client ID，没有内置默认值：旧的公开客户端已被微软设备码端点拒绝，未配置时登录会直接报 `configuration_error`。请在构建前通过环境变量或项目根目录下被 Git 忽略的 `.env` 设置 `MS_CLIENT_ID`，也可通过运行时环境变量 `MS_CLIENT_ID` / `PCL_MS_CLIENT_ID` 覆盖。自定义应用注册须支持设备码流程和 `XboxLive.signin offline_access` 权限范围，并在 <https://aka.ms/mce-reviewappid> 通过 Mojang 审核，否则 `login_with_xbox` 会返回 403。
+>
+> 联机大厅公告与 Natayark ID 登录同样没有内置服务：可在构建环境、根目录 `.env` 或运行时环境设置 `LINK_SERVER_ROOT`（多个根地址用 `|` 分隔）与 `NAID_CLIENT_ID` / `NAID_CLIENT_SECRET`。二者均可省略：未配置时联机页以离线模式工作（无公告、隐藏账户卡），Terracotta 联机本身不受影响。
 
 ### 构建 Tauri 应用
 

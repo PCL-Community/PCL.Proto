@@ -5,17 +5,34 @@ import useSideNavState from '@/stores/windowState'
 import SideNavItem from '@/components/widget/SideNavItem.vue'
 import { type INavItemGroup } from '@/types/naviOptions'
 import { useModal } from '@/composables/useModal'
+import { NAV_ACTION_REGISTRY } from '@/composables/navAction'
 
 defineProps<{ sideNavGroups: INavItemGroup[] }>()
 
 const revision = ref(0)
+const navHandlers = new Map<string, () => unknown>()
+provide(NAV_ACTION_REGISTRY, {
+  register: (kind, handler) => {
+    navHandlers.set(kind, handler)
+    return () => {
+      if (navHandlers.get(kind) === handler) navHandlers.delete(kind)
+    }
+  },
+})
 provide('navAction', (kind: string) => {
-  if (kind === 'refresh') revision.value++
-  else
-    void useModal().open({
-      title: pclText('Common.Dialog.Title'),
-      content: pclText('Proto.NotImplemented.Initialize'),
-    })
+  const handler = navHandlers.get(kind)
+  if (handler) {
+    void handler()
+    return
+  }
+  if (kind === 'refresh') {
+    revision.value++
+    return
+  }
+  void useModal().open({
+    title: pclText('Common.Dialog.Title'),
+    content: pclText('Proto.NotImplemented.Initialize'),
+  })
 })
 let observer: ResizeObserver | null = null
 const asideRef = useTemplateRef<HTMLElement>('asideRef')

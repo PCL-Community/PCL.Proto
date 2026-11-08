@@ -1,0 +1,8 @@
+{
+  "Tools.GameLink.Agreement.Title": "Multiplayer instructions and terms",
+  "Tools.GameLink.Agreement.Description": "PCL.Proto uses the same multiplayer service as PCL-CE and follows the PCL-CE usage policies. Please read the information, privacy policy and terms below before using it.",
+  "Tools.GameLink.Link.Privacy": "PCL-CE Lobby Privacy Policy",
+  "Tools.GameLink.Agreement.Body": "By using the lobby feature, you agree to the following terms:\n\nI agree to comply with applicable laws and regulations and will not use the lobby feature for illegal or prohibited purposes.\nI agree to bear all risks associated with using the lobby feature.\nI acknowledge and agree that PCL-CE collects processed device identifiers, Natayark ID, and other information, and may provide them to law enforcement when necessary.\nTo protect minors' personal information, I confirm that I am at least 14 years old before using the lobby.\n\nAdditionally, you must also agree to the PCL-CE lobby privacy policy and the Natayark OpenID terms of service.",
+  "Tools.GameLink.Agreement.PrivacyPolicy": "PCL-CE Lobby Privacy Policy",
+  "Tools.GameLink.Agreement.PrivacyPolicyInfo": "Learn how PCL-CE handles your personal information."
+}

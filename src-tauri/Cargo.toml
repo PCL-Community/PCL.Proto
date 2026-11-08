@@ -31,7 +31,7 @@ tauri-plugin-os = "2.4.0"
 tauri-plugin-dialog = "2.8.4"
 tokio = { workspace = true, features = ["rt", "macros", "sync"] }
 chrono = { workspace = true }
-reqwest = { workspace = true, features = ["json"] }
+reqwest = { workspace = true, features = ["json", "form"] }
 futures-util = "0.3.34"
 zip = { version = "9.1.3", default-features = false, features = ["deflate"] }
 open = { version = "5.4.5", features = ["shellexecute-on-windows"] }

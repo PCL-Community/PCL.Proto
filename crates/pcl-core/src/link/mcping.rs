@@ -247,7 +247,15 @@ async fn read_varint<R: AsyncRead + Unpin>(stream: &mut R) -> anyhow::Result<usi
 }
 
 pub async fn server_query(addr_str: &str) -> Result<(McPingResult, u128), String> {
-    let deadline = tokio::time::Instant::now() + TIMEOUT;
+    server_query_with_timeout(addr_str, TIMEOUT).await
+}
+
+/// Status query with a caller-provided overall deadline.
+pub async fn server_query_with_timeout(
+    addr_str: &str,
+    timeout: Duration,
+) -> Result<(McPingResult, u128), String> {
+    let deadline = tokio::time::Instant::now() + timeout;
     let operation = async {
         let (host, port) = parse_address(addr_str)?;
         if let Ok(ip) = host.parse::<IpAddr>() {
