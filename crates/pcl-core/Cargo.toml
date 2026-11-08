@@ -65,7 +65,7 @@ fastnbt = "2.6.3"
 flate2 = "1.1.10"
 tempfile = "3.27.0"
 dunce = "1"
-terracotta = { path = "../terracotta", version = "2.5.0-pcl.proto", optional = true }
+terracotta = { path = "../terracotta", version = "2.6.0-pcl.proto", optional = true }
 local-ip-address = { version = "0.6.13", optional = true }
 socket2 = { version = "0.6.5", optional = true }
 

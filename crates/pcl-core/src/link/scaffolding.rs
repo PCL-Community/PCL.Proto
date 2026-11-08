@@ -9,7 +9,7 @@ pub use terracotta::controller::{
     get_meta as get_terracotta_meta, get_state as get_terracotta_state,
     set_link_options as set_options, set_public_nodes, set_vendor, set_waiting, test_nat,
 };
-pub use terracotta::{LinkOptions, ProtocolPreference as LinkProtocol};
+pub use terracotta::{ConnectionType, LinkOptions, ProtocolPreference as LinkProtocol};
 
 pub fn set_host_starting(mc_port: u16, player: String) -> Result<String, String> {
     controller::set_host_starting(mc_port, Some(player))

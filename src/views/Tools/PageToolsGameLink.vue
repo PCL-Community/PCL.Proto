@@ -145,6 +145,16 @@ const pingText = computed(() => {
   const latency = link.lobby?.latencyMs
   return latency == null ? '-ms' : pclText('Tools.GameLink.Finish.PingMs', [latency])
 })
+const connectionTypeText = computed(() => {
+  switch (link.lobby?.connectionType) {
+    case 'p2p':
+      return pclText('Link.Connection.P2P')
+    case 'relay':
+      return pclText('Link.Connection.Relay')
+    default:
+      return pclText('Link.Connection.Unknown')
+  }
+})
 const exitLabel = computed(() =>
   isHost.value
     ? pclText('Tools.GameLink.Finish.CloseLobby')
@@ -896,7 +906,7 @@ onUnmounted(() => {
                 :title="pclText('Tools.GameLink.Finish.ConnectionType')"
               >
                 <PPath class="status-icon" :data="CONNECTION_TYPE_PATH" />
-                <span>{{ pclText('Tools.GameLink.Finish.Unavailable') }}</span>
+                <span>{{ connectionTypeText }}</span>
               </div>
             </div>
           </PCard>

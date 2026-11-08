@@ -46,6 +46,8 @@ pub struct LinkLobbyState {
     pub url: Option<String>,
     #[serde(alias = "latency")]
     pub latency_ms: Option<u64>,
+    #[serde(alias = "connection_type")]
+    pub connection_type: Option<scaffolding::ConnectionType>,
     #[serde(default, alias = "profiles")]
     pub players: Vec<LinkPlayer>,
     #[serde(alias = "type")]

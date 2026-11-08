@@ -98,6 +98,7 @@ export interface LinkLobbyState {
   room?: string | null
   url?: string | null
   latencyMs?: number | null
+  connectionType?: 'p2p' | 'relay' | null
   players: LinkPlayer[]
   exception?: number | null
 }
