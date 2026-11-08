@@ -2,6 +2,19 @@ param([switch]$CheckOnly)
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+
+# Windows PowerShell 5.1 picks up the first matching module on PSModulePath. When the script is
+# launched from a PowerShell 7 session (or from Bun, which inherits that session's environment),
+# PSModulePath points at PowerShell 7's own modules, so 5.1 tries to load e.g.
+# Microsoft.PowerShell.Utility 7 and silently fails autoloading: Get-FileHash / Invoke-WebRequest
+# become "not recognized". Pin PSModulePath to the 5.1 locations before using those cmdlets.
+$windowsPowerShellModulePath = @(
+    (Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'WindowsPowerShell\Modules'),
+    (Join-Path $env:ProgramFiles 'WindowsPowerShell\Modules'),
+    (Join-Path $PSHOME 'Modules')
+) -join ';'
+if ($env:PSModulePath -ne $windowsPowerShellModulePath) { $env:PSModulePath = $windowsPowerShellModulePath }
+
 $root = (Resolve-Path "$PSScriptRoot/../..").Path
 $toolsDir = Join-Path $root 'target/build-tools'
 $protocDir = Join-Path $toolsDir 'protoc-33.0'
