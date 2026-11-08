@@ -2,6 +2,7 @@
 use crate::events::EventSink;
 use crate::io::net::http::api_client::{McApiError, game::DownloadFile};
 use futures_util::StreamExt;
+use reqwest::header::HeaderMap;
 use sha1::Digest;
 use std::{
     path::{Path, PathBuf},
@@ -51,6 +52,8 @@ impl Drop for PartialFile {
 pub struct Downloader {
     resources: Arc<DownloadResources>,
     clients: Arc<std::sync::RwLock<(reqwest::Client, reqwest::Client)>>,
+    /// 传输层凭据，见 [`signer`]；宿主注入，核心库不持有密钥。
+    signer: Option<Arc<dyn signer::RequestSigner>>,
     pub(crate) bases: crate::io::net::http::api_client::ApiBases,
 }
 
@@ -66,9 +69,10 @@ impl Default for Downloader {
 mod http_tests;
 mod range;
 pub mod resources;
+pub mod signer;
 pub mod tasks;
 
-use resources::{DownloadResources, HttpMode};
+use resources::{DownloadResources, HttpMode, SourceKind};
 use std::sync::{Arc, atomic::Ordering};
 use tokio::io::BufWriter;
 
@@ -77,9 +81,11 @@ type ProgressSink<'a> = Option<(&'a DownloadConfig, &'a mpsc::Sender<ProgressUpd
 
 impl Downloader {
     pub(crate) fn source_urls(&self, url: &str) -> Vec<String> {
+        let settings = self.resources.settings();
         self.bases.download_urls(
             url,
-            self.resources.settings().file_source,
+            SourceKind::File,
+            &settings,
             self.resources.official_fast.load(Ordering::Relaxed),
         )
     }
@@ -87,6 +93,7 @@ impl Downloader {
         Self {
             bases,
             resources: Arc::new(DownloadResources::default()),
+            signer: None,
             clients: Arc::new(std::sync::RwLock::new((
                 default_client(false),
                 default_client(true),
@@ -97,10 +104,27 @@ impl Downloader {
         Self {
             clients: Arc::new(std::sync::RwLock::new((client, http1))),
             resources: Arc::new(DownloadResources::default()),
+            signer: None,
             bases: crate::io::net::http::api_client::ApiBases::new(
                 &crate::io::net::http::api_client::ApiProvider::Official,
             ),
         }
+    }
+
+    /// 注册传输层签名器；同一份下载器克隆共享它。
+    pub fn with_request_signer(self, signer: Option<Arc<dyn signer::RequestSigner>>) -> Self {
+        Self { signer, ..self }
+    }
+
+    /// 请求某个 URL 时应附带的凭据头；未注册签名器或主机不需要签名时为空。
+    fn sign_headers(&self, url: &str) -> HeaderMap {
+        let Some(signer) = &self.signer else {
+            return HeaderMap::new();
+        };
+        reqwest::Url::parse(url)
+            .ok()
+            .and_then(|url| signer.headers(&url))
+            .unwrap_or_default()
     }
 
     /// Clones share transport, bandwidth budget and connection quota.
@@ -395,9 +419,11 @@ impl Downloader {
         range: Option<(u64, u64)>,
         timeout: Option<Duration>,
     ) -> Result<reqwest::Response, reqwest::Error> {
+        let headers = self.sign_headers(url);
         let send = |client: &reqwest::Client| {
             let mut request = client
                 .get(url)
+                .headers(headers.clone())
                 .header(reqwest::header::ACCEPT_ENCODING, "identity");
             if let Some((start, end)) = range {
                 request = request.header(reqwest::header::RANGE, format!("bytes={start}-{end}"));

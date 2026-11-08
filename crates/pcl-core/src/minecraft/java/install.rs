@@ -257,9 +257,11 @@ async fn fetch_index(
     downloader: &Downloader,
 ) -> anyhow::Result<BTreeMap<String, BTreeMap<String, Vec<RuntimeRelease>>>> {
     let mut last = None;
+    let settings = downloader.resources().settings();
     for url in downloader.bases.download_urls(
         INDEX,
-        downloader.resources().settings().version_source,
+        crate::io::download::resources::SourceKind::VersionMetadata,
+        &settings,
         false,
     ) {
         let result = async {

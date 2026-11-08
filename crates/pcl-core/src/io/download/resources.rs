@@ -17,6 +17,15 @@ pub enum SourcePreference {
     Official = 2,
 }
 
+/// 请求类型：不同类型的下载各自在设置里有独立的源偏好。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceKind {
+    /// 资源文件：游戏文件、Mod 文件、整合包等。
+    File,
+    /// 版本元数据：版本清单及其引用到的 JSON。
+    VersionMetadata,
+}
+
 #[derive(Debug, Clone, Copy, Default, serde_repr::Serialize_repr, serde_repr::Deserialize_repr)]
 #[repr(u8)]
 pub enum HttpMode {
@@ -35,6 +44,8 @@ pub struct DownloadOptions {
     pub http_mode: HttpMode,
     pub file_source: SourcePreference,
     pub version_source: SourcePreference,
+    /// 社区资源（CurseForge / Modrinth）的 API 与文件；`Mirror` 表示优先 MCIM。
+    pub community_source: SourcePreference,
 }
 impl Default for DownloadOptions {
     fn default() -> Self {
@@ -45,10 +56,18 @@ impl Default for DownloadOptions {
             http_mode: HttpMode::Auto,
             file_source: SourcePreference::Auto,
             version_source: SourcePreference::Auto,
+            community_source: SourcePreference::Auto,
         }
     }
 }
 impl DownloadOptions {
+    /// 某类请求实际生效的源偏好。
+    pub fn preference(&self, kind: SourceKind) -> SourcePreference {
+        match kind {
+            SourceKind::File => self.file_source,
+            SourceKind::VersionMetadata => self.version_source,
+        }
+    }
     pub fn validate(&self) -> Result<(), String> {
         if !(1..=256).contains(&self.max_connections) || !(1..=8).contains(&self.file_connections) {
             return Err("Invalid download connection count or speed limit".into());

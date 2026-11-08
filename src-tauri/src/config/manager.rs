@@ -247,6 +247,7 @@ impl ConfigManager {
                     let (client, http1) = crate::config::network::clients(&Default::default())
                         .map_err(|_| ConfigManagerError::ApiClientBuildError)?;
                     pcl_core::io::download::Downloader::new(client, http1)
+                        .with_request_signer(crate::secrets::curseforge_signer())
                 },
                 &ApiProvider::default(),
             ),

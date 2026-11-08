@@ -82,19 +82,30 @@ impl ApiBases {
         }
         rewritten
     }
+    /// 一个 URL 的候选下载源，按当前设置排序。
+    ///
+    /// `kind` 决定这项请求使用哪一条源偏好；社区资源（CurseForge / Modrinth）不受它们影响，
+    /// 由 `community_source` 单独控制，见 `mod_mirror_url`。
     pub fn download_urls(
         &self,
         url: &str,
-        preference: crate::io::download::resources::SourcePreference,
+        kind: crate::io::download::resources::SourceKind,
+        options: &crate::io::download::resources::DownloadOptions,
         official_fast: bool,
     ) -> Vec<String> {
         use crate::io::download::resources::SourcePreference;
+        let preference = options.preference(kind);
         // Test/private API bases remain isolated from public network fallbacks.
         if !matches!(
             self.meta_base,
             "https://piston-meta.mojang.com" | "https://bmclapi2.bangbang93.com"
         ) {
             return vec![self.download_url(url)];
+        }
+        // 社区资源走 mcim 镜像，与 Mojang 侧的下载源设置无关。
+        #[cfg(feature = "community")]
+        if let Some(mirror) = mod_mirror_url(url) {
+            return community_sources(options.community_source, url, mirror);
         }
         // Fabric metadata has its own source fallback and is not Mojang metadata.
         if url.starts_with("https://bmclapi2.bangbang93.com/fabric-meta/") {
@@ -454,10 +465,15 @@ impl MinecraftApiClient {
 
     #[cfg(test)]
     pub(crate) fn with_test_bases(bases: ApiBases) -> Self {
-        let mut client = Self::new(
-            crate::io::download::Downloader::default(),
-            &ApiProvider::Official,
-        );
+        Self::with_test_transport(bases, crate::io::download::Downloader::default())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_test_transport(
+        bases: ApiBases,
+        transport: crate::io::download::Downloader,
+    ) -> Self {
+        let mut client = Self::new(transport, &ApiProvider::Official);
         client.api_bases = RwLock::new(bases);
         client
     }
@@ -495,9 +511,15 @@ impl MinecraftApiClient {
         } else {
             settings.file_source
         };
+        let kind = if manifest {
+            crate::io::download::resources::SourceKind::VersionMetadata
+        } else {
+            crate::io::download::resources::SourceKind::File
+        };
         let urls = self.api_bases.read().await.download_urls(
             url,
-            preference,
+            kind,
+            &settings,
             manifest || self.resources().official_fast.load(Ordering::Relaxed),
         );
         let mut last_error = None;
@@ -843,44 +865,64 @@ impl MinecraftApiClient {
         self.get(&url, true).await
     }
 
-    /// CurseForge 要求 `x-api-key` 请求头，而 `send_request` 不携带自定义头，
-    /// 因此走代理策略一致的专用客户端；缓存与 Modrinth 保持一致。
+    /// CurseForge 的 `x-api-key` 由下载器的 [`RequestSigner`] 在传输层注入，
+    /// 因此这里与 Modrinth 一样只需要官方地址；镜像与回退由下载源设置决定。
+    ///
+    /// [`RequestSigner`]: crate::io::download::signer::RequestSigner
     #[cfg(feature = "community")]
     pub async fn fetch_with_curseforge<T: DeserializeOwned + Serialize>(
         &self,
         endpoint: &str,
-        api_key: &str,
     ) -> McApiResult<T> {
-        if api_key.trim().is_empty() {
-            return Err(McApiError::MissingApiKey("CurseForge"));
-        }
         let curseforge_base = self.api_bases.read().await.curseforge_base;
-        let url = format!("{curseforge_base}/{endpoint}");
-        use sha2::Digest;
-        let cache_key = format!(
-            "curseforge:{:x}:{url}",
-            sha2::Sha256::digest(api_key.as_bytes())
-        );
-        let now = Instant::now();
-        if let Some(data) = self.cache_hit(&cache_key) {
-            return Ok(data);
-        }
-        let client = self.http_client();
-        let data: T = client
-            .get(&url)
-            .header("x-api-key", api_key)
-            .timeout(Duration::from_secs(15))
-            .send()
-            .await?
-            .error_for_status()?
-            .json()
-            .await?;
-        self.cache_store(&cache_key, now, &data);
-        Ok(data)
+        self.get(&format!("{curseforge_base}/{endpoint}"), true)
+            .await
     }
 
     pub async fn get_bytes(&self, url: &str) -> McApiResult<Vec<u8>> {
         self.fetch_checked(url, |bytes| Ok(bytes.to_vec())).await
+    }
+}
+
+/// CurseForge / Modrinth 的 mcim 镜像地址；未覆盖的主机返回 `None`。
+///
+/// mcim（<https://www.mcimirror.top>）几乎完全兼容官方 API：API 主机附加各自的路径前缀，
+/// 文件主机直接换域名。2026-11 实测它的文件缓存仍处于停用状态，会 302 回源站，
+/// 因此文件镜像只是多一跳，失败时下载器会自动回退官方源。
+/// `mediafilez.forgecdn.net` 按 mcim 的说明不做映射。
+#[cfg(feature = "community")]
+fn mod_mirror_url(url: &str) -> Option<String> {
+    const MIRROR: &str = "https://mod.mcimirror.top";
+    let parsed = reqwest::Url::parse(url).ok()?;
+    if parsed.scheme() != "https" {
+        return None;
+    }
+    let prefix = match parsed.host_str()? {
+        "api.curseforge.com" => format!("{MIRROR}/curseforge"),
+        "api.modrinth.com" | "staging-api.modrinth.com" => format!("{MIRROR}/modrinth"),
+        "edge.forgecdn.net" | "cdn.modrinth.com" => MIRROR.to_owned(),
+        _ => return None,
+    };
+    let mut mirrored = format!("{prefix}{}", parsed.path());
+    if let Some(query) = parsed.query() {
+        mirrored.push('?');
+        mirrored.push_str(query);
+    }
+    Some(mirrored)
+}
+
+/// 按偏好排列官方源与镜像源：镜像源失败时下载器会回退到官方源。
+#[cfg(feature = "community")]
+fn community_sources(
+    preference: crate::io::download::resources::SourcePreference,
+    official: &str,
+    mirror: String,
+) -> Vec<String> {
+    use crate::io::download::resources::SourcePreference;
+    match preference {
+        SourcePreference::Mirror => vec![mirror, official.to_owned()],
+        SourcePreference::Auto => vec![official.to_owned(), mirror],
+        SourcePreference::Official => vec![official.to_owned()],
     }
 }
 
@@ -890,25 +932,41 @@ mod tests {
     async fn independent_clients_isolate_transport_credentials_and_quotas() {
         use crate::io::download::resources::DownloadOptions;
         use axum::{Json, Router, http::HeaderMap, routing::get};
+        use std::sync::Arc;
+        let echo_handler = |headers: HeaderMap| async move {
+            Json(serde_json::json!({
+                "agent": headers.get("user-agent").unwrap().to_str().unwrap(),
+                "key": headers.get("x-api-key").map(|v| v.to_str().unwrap()),
+            }))
+        };
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let base: &'static str =
             Box::leak(format!("http://{}", listener.local_addr().unwrap()).into_boxed_str());
         let server = tokio::spawn(async move {
             axum::serve(
                 listener,
-                Router::new().route(
-                    "/echo",
-                    get(|headers: HeaderMap| async move {
-                        Json(serde_json::json!({
-                            "agent": headers.get("user-agent").unwrap().to_str().unwrap(),
-                            "key": headers.get("x-api-key").map(|v| v.to_str().unwrap()),
-                        }))
-                    }),
-                ),
+                Router::new()
+                    .route("/echo", get(echo_handler))
+                    // `/cf` 模拟 CurseForge 主机：只有这条路径会被测试签名器签名。
+                    .route("/cf/echo", get(echo_handler)),
             )
             .await
             .unwrap();
         });
+        struct TestSigner(&'static str);
+        impl crate::io::download::signer::RequestSigner for TestSigner {
+            fn headers(&self, url: &reqwest::Url) -> Option<HeaderMap> {
+                if !url.path().starts_with("/cf/") {
+                    return None;
+                }
+                let mut value = reqwest::header::HeaderValue::from_static(self.0);
+                value.set_sensitive(true);
+                Some(HeaderMap::from_iter([(
+                    reqwest::header::HeaderName::from_static("x-api-key"),
+                    value,
+                )]))
+            }
+        }
         let clients = |agent: &str| {
             (
                 Client::builder()
@@ -924,21 +982,26 @@ mod tests {
                     .unwrap(),
             )
         };
-        let make = |agent: &str| {
+        let make = |agent: &str, key: Option<&'static str>| {
             let mut bases = ApiBases::new(&ApiProvider::Official);
             bases.meta_base = base;
             #[cfg(feature = "community")]
             {
                 bases.modrinth_base = base;
-                bases.curseforge_base = base;
+                bases.curseforge_base = Box::leak(format!("{base}/cf").into_boxed_str());
             }
-            let api = MinecraftApiClient::with_test_bases(bases);
+            let transport =
+                crate::io::download::Downloader::default().with_request_signer(key.map(|key| {
+                    Arc::new(TestSigner(key)) as Arc<dyn crate::io::download::signer::RequestSigner>
+                }));
+            let api = MinecraftApiClient::with_test_transport(bases, transport);
             let (client, http1) = clients(agent);
             api.replace_clients(client, http1);
             api
         };
-        let first = make("FirstLauncher");
-        let second = make("SecondLauncher");
+        let first = make("FirstLauncher", Some("first-key"));
+        let second = make("SecondLauncher", Some("second-key"));
+        let plain = make("PlainLauncher", None);
         let download = first.downloader().await;
         first
             .resources()
@@ -965,37 +1028,26 @@ mod tests {
         );
         #[cfg(feature = "community")]
         {
-            assert!(matches!(
-                first
-                    .fetch_with_curseforge::<serde_json::Value>("echo", "")
-                    .await,
-                Err(McApiError::MissingApiKey("CurseForge"))
-            ));
-            let reply: serde_json::Value = first.fetch_with_modrinth("echo").await.unwrap();
-            assert_eq!(reply["key"], serde_json::Value::Null);
-            let reply: serde_json::Value = first
-                .fetch_with_curseforge("echo", "first-key")
-                .await
-                .unwrap();
+            // 签名器随下载器实例走，不会串到另一台客户端。
+            let reply: serde_json::Value = first.fetch_with_curseforge("echo").await.unwrap();
             assert_eq!(
                 reply,
                 serde_json::json!({"agent": "FirstLauncher", "key": "first-key"})
             );
-            let reply: serde_json::Value = first
-                .fetch_with_curseforge("echo", "another-key")
-                .await
-                .unwrap();
-            assert_eq!(reply["key"], "another-key");
-            let reply: serde_json::Value = first.get(&echo, true).await.unwrap();
-            assert_eq!(reply["key"], serde_json::Value::Null);
-            let reply: serde_json::Value = second
-                .fetch_with_curseforge("echo", "second-key")
-                .await
-                .unwrap();
+            let reply: serde_json::Value = second.fetch_with_curseforge("echo").await.unwrap();
             assert_eq!(
                 reply,
                 serde_json::json!({"agent": "SecondLauncher", "key": "second-key"})
             );
+            // 没有装签名器的下载器不携带凭据。
+            let reply: serde_json::Value = plain.fetch_with_curseforge("echo").await.unwrap();
+            assert_eq!(
+                reply,
+                serde_json::json!({"agent": "PlainLauncher", "key": null})
+            );
+            // 同一签名器只对匹配的主机生效，Modrinth 请求不会被签名。
+            let reply: serde_json::Value = first.fetch_with_modrinth("echo").await.unwrap();
+            assert_eq!(reply["key"], serde_json::Value::Null);
         }
         let (client, http1) = clients("UpdatedLauncher");
         first.replace_clients(client, http1);
@@ -1084,28 +1136,35 @@ mod tests {
 
     #[test]
     fn source_preferences_keep_official_fallback_and_both_library_mirrors() {
-        use crate::io::download::resources::SourcePreference;
+        use crate::io::download::resources::{DownloadOptions, SourceKind, SourcePreference};
         let bases = ApiBases::new(&ApiProvider::Official);
+        let urls = |url: &str, preference: SourcePreference, official_fast: bool| {
+            let options = DownloadOptions {
+                file_source: preference,
+                ..Default::default()
+            };
+            bases.download_urls(url, SourceKind::File, &options, official_fast)
+        };
         let official = "https://libraries.minecraft.net/org/test.jar";
         let mirror = "https://bmclapi2.bangbang93.com/maven/org/test.jar";
         let legacy = "https://bmclapi2.bangbang93.com/libraries/org/test.jar";
         assert_eq!(
-            bases.download_urls(official, SourcePreference::Mirror, true),
+            urls(official, SourcePreference::Mirror, true),
             vec![mirror, legacy, official]
         );
         assert_eq!(
-            bases.download_urls(mirror, SourcePreference::Official, false),
+            urls(mirror, SourcePreference::Official, false),
             vec![official, mirror, legacy]
         );
         assert_eq!(
-            bases.download_urls(official, SourcePreference::Auto, false),
+            urls(official, SourcePreference::Auto, false),
             vec![mirror, legacy, official]
         );
         assert_eq!(
-            bases.download_urls(official, SourcePreference::Auto, true),
+            urls(official, SourcePreference::Auto, true),
             vec![official, mirror, legacy]
         );
-        let assets = bases.download_urls(
+        let assets = urls(
             "https://bmclapi2.bangbang93.com/assets/ab/hash",
             SourcePreference::Official,
             true,
@@ -1115,7 +1174,7 @@ mod tests {
             "https://resources.download.minecraft.net/ab/hash"
         );
         assert_eq!(
-            bases.download_urls(
+            urls(
                 "https://maven.neoforged.net/releases/net/example/lib.jar",
                 SourcePreference::Mirror,
                 false
@@ -1130,11 +1189,47 @@ mod tests {
             "https://libraries.minecraft.net.evil.test/file",
             "https://bmclapi2.bangbang93.com/fabric-meta/v2/versions/loader/1.20.1/0.16.14/profile/json",
         ] {
-            assert_eq!(
-                bases.download_urls(url, SourcePreference::Mirror, false),
-                vec![url]
-            );
+            assert_eq!(urls(url, SourcePreference::Mirror, false), vec![url]);
         }
+    }
+
+    #[cfg(feature = "community")]
+    #[test]
+    fn community_sources_follow_their_own_preference() {
+        use crate::io::download::resources::{DownloadOptions, SourceKind, SourcePreference};
+        let bases = ApiBases::new(&ApiProvider::Official);
+        let options = |community_source| DownloadOptions {
+            community_source,
+            ..Default::default()
+        };
+        let urls = |url: &str, preference| {
+            bases.download_urls(url, SourceKind::File, &options(preference), false)
+        };
+        let file = "https://edge.forgecdn.net/files/9453/343/a.jar";
+        let mirrored = "https://mod.mcimirror.top/files/9453/343/a.jar";
+        assert_eq!(urls(file, SourcePreference::Mirror), vec![mirrored, file]);
+        assert_eq!(urls(file, SourcePreference::Auto), vec![file, mirrored]);
+        assert_eq!(urls(file, SourcePreference::Official), vec![file]);
+        assert_eq!(
+            urls(
+                "https://api.curseforge.com/v1/mods/search?gameId=432",
+                SourcePreference::Mirror
+            )[0],
+            "https://mod.mcimirror.top/curseforge/v1/mods/search?gameId=432"
+        );
+        assert_eq!(
+            urls(
+                "https://api.modrinth.com/v2/project/jei",
+                SourcePreference::Mirror
+            )[0],
+            "https://mod.mcimirror.top/modrinth/v2/project/jei"
+        );
+        // mcim 不镜像该 CDN，换成镜像只会多一次 302。
+        let mediafilez = "https://mediafilez.forgecdn.net/files/9453/343/a.jar";
+        assert_eq!(urls(mediafilez, SourcePreference::Mirror), vec![mediafilez]);
+        // 不相关的主机不受社区资源设置影响。
+        let other = "https://example.org/files/a.jar";
+        assert_eq!(urls(other, SourcePreference::Mirror), vec![other]);
     }
 
     #[test]

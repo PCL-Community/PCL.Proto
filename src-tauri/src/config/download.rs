@@ -9,6 +9,8 @@ pub struct DownloadSettings {
     pub http_mode: HttpMode,
     pub file_source: SourcePreference,
     pub version_source: SourcePreference,
+    /// 社区资源（CurseForge / Modrinth）的 API 与文件来源。
+    pub community_source: SourcePreference,
     pub auto_select_instance: Option<bool>,
 }
 impl Default for DownloadSettings {
@@ -20,6 +22,7 @@ impl Default for DownloadSettings {
             http_mode: HttpMode::Auto,
             file_source: SourcePreference::Auto,
             version_source: SourcePreference::Auto,
+            community_source: SourcePreference::Auto,
             auto_select_instance: None,
         }
     }
@@ -33,6 +36,7 @@ impl DownloadSettings {
             http_mode: self.http_mode,
             file_source: self.file_source,
             version_source: self.version_source,
+            community_source: self.community_source,
         }
     }
     pub fn validate(&self) -> Result<(), String> {

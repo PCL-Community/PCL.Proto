@@ -8,12 +8,14 @@ export interface DownloadSettings {
   http_mode: number
   file_source: number
   version_source: number
+  community_source: number
   auto_select_instance: boolean | null
 }
 
 export const downloadSettingKeys = [
   'ComboDownloadSource',
   'ComboDownloadVersion',
+  'ComboDownloadMod',
   'ComboDownloadHttpMode',
   'SliderDownloadThread',
   'SliderDownloadFileConnection',
@@ -49,6 +51,7 @@ export function downloadSettingValues(settings: DownloadSettings) {
   return {
     ComboDownloadSource: String(settings.file_source),
     ComboDownloadVersion: String(settings.version_source),
+    ComboDownloadMod: String(settings.community_source),
     ComboDownloadHttpMode: String(settings.http_mode),
     SliderDownloadThread: settings.max_connections - 1,
     SliderDownloadFileConnection: settings.file_connections - 1,
@@ -88,6 +91,7 @@ export function downloadSettings(values: Record<string, unknown> = {}): Download
     http_mode: integer('ComboDownloadHttpMode', 0, 2),
     file_source: integer('ComboDownloadSource', 1, 2),
     version_source: integer('ComboDownloadVersion', 1, 2),
+    community_source: integer('ComboDownloadMod', 1, 2),
     auto_select_instance:
       typeof settings.CheckDownloadAutoSelectVersion === 'boolean'
         ? settings.CheckDownloadAutoSelectVersion

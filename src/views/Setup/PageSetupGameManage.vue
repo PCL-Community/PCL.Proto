@@ -291,7 +291,7 @@ onScopeDispose(() => {
             >{{ pclText('Setup.GameManage.Community.Source') }}</span
           >
           <PComboBox
-            disabled
+            :disabled="!ready"
             style="grid-row: 1 / span 1; grid-column: 2 / span 2"
             :options="[
               { key: '0', text: pclText('Setup.GameManage.Source.UseMirror') },
