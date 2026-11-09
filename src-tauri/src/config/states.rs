@@ -106,10 +106,12 @@ pub struct AppState {
     pub disable_lwjgl_unsafe_agent: bool,
     pub proxy: crate::config::network::ProxySettings,
     pub instance_descriptions: HashMap<PathBuf, String>,
+    pub instance_launch_counts: HashMap<PathBuf, u64>,
     pub link_settings: crate::config::link::LinkSettings,
     pub link_state: crate::config::link::LinkState,
 }
 
+#[inline]
 fn default_true() -> bool {
     true
 }

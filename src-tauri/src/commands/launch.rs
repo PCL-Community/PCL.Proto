@@ -336,6 +336,7 @@ async fn launch_game_inner(
             current_instance(&state, &launch_instance).map_err(|e| e.to_string())?;
             let visibility = state.launcher_visibility;
             let mut child = option.launch_checked().map_err(|e| e.to_string())?;
+            drop(state);
             if cancelled.load(Ordering::Acquire) {
                 let _ = child.kill();
                 let _ = child.wait();
@@ -356,6 +357,16 @@ async fn launch_game_inner(
                             ));
                         }
                         pcl_core::minecraft::launch::session::SessionEvent::Ready => {
+                            if let Err(error) = ConfigManager::instance().update(|state| {
+                                let count = state
+                                    .instance_launch_counts
+                                    .entry(launch_instance.clone())
+                                    .or_default();
+                                *count = count.saturating_add(1);
+                                Ok(())
+                            }) {
+                                log::warn!("Cannot save instance launch count: {error}");
+                            }
                             let _ = session_progress.send(LaunchProgress::new(
                                 "Minecraft.Launch.Stage.End",
                                 1.0,
@@ -481,6 +492,7 @@ pub async fn export_launch_script(
     if !target_path.is_absolute() || target_path.file_name().is_none() {
         return Err("Invalid launch script path".into());
     }
+    crate::commands::instance_resources::repair_instance_files(instance_directory.clone()).await?;
     let (mut option, launcher_size) = prepare_launch_option(instance_directory).await?;
     if launcher_size {
         let size = window.inner_size().map_err(|error| error.to_string())?;

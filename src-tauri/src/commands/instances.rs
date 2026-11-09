@@ -122,6 +122,14 @@ pub async fn instance_folder_action(
         }
         trash::delete(&path).map_err(|e| e.to_string())?;
         manager.update(|state| {
+            state.instance_launch_counts.remove(&instance.directory);
+            state.instance_descriptions.remove(&instance.directory);
+            state.instance_isolation.remove(&instance.directory);
+            state.instance_memory_custom.remove(&instance.directory);
+            state.instance_memory_settings.remove(&instance.directory);
+            state.instance_launch_arguments.remove(&instance.directory);
+            state.instance_launch_settings.remove(&instance.directory);
+            state.java_preferences.remove(&instance.directory);
             if state
                 .active_game_instance
                 .as_ref()
@@ -146,6 +154,19 @@ pub async fn get_instance_description(
         .get(&instance_directory)
         .cloned()
         .unwrap_or_default())
+}
+
+#[tauri::command]
+pub async fn get_instance_launch_count(
+    instance_directory: std::path::PathBuf,
+) -> Result<u64, String> {
+    let state = ConfigManager::instance().app_state.lock().await;
+    current_instance(&state, &instance_directory).map_err(|error| error.to_string())?;
+    Ok(state
+        .instance_launch_counts
+        .get(&instance_directory)
+        .copied()
+        .unwrap_or(0))
 }
 
 #[tauri::command]
@@ -227,7 +248,12 @@ fn rename_instance_inner(
     }
     let new_directory = repo.path.join("versions").join(&new_name);
     if new_directory.exists() {
-        return Err("An instance with that name already exists".into());
+        let target = new_directory
+            .canonicalize()
+            .map_err(|error| error.to_string())?;
+        if old_name.to_lowercase() != new_name.to_lowercase() || target != old_directory {
+            return Err("An instance with that name already exists".into());
+        }
     }
     pcl_core::minecraft::instance::rename_instance_files(
         &instance.directory,
@@ -235,8 +261,23 @@ fn rename_instance_inner(
         &old_name,
         &new_name,
     )?;
-    let refreshed = McInstance::from_version_folder(&new_directory, &repo)
-        .map_err(|_| "The renamed instance is no longer valid".to_string())?;
+    let refreshed = match McInstance::from_version_folder(&new_directory, &repo) {
+        Ok(instance) => instance,
+        Err(_) => {
+            let rollback = pcl_core::minecraft::instance::rename_instance_files(
+                &new_directory,
+                &instance.directory,
+                &new_name,
+                &old_name,
+            );
+            return Err(match rollback {
+                Ok(()) => "The renamed instance is no longer valid".into(),
+                Err(error) => {
+                    format!("The renamed instance is no longer valid; rollback failed: {error}")
+                }
+            });
+        }
+    };
     let saved = manager.update(|state| {
         if let Some(value) = state.instance_memory_custom.remove(&instance.directory) {
             state
@@ -271,6 +312,11 @@ fn rename_instance_inner(
                 .instance_descriptions
                 .insert(new_directory.clone(), description);
         }
+        if let Some(count) = state.instance_launch_counts.remove(&instance.directory) {
+            state
+                .instance_launch_counts
+                .insert(new_directory.clone(), count);
+        }
         if state
             .active_game_instance
             .as_ref()
@@ -282,8 +328,15 @@ fn rename_instance_inner(
     });
     if let Err(error) = saved {
         // Keep the folder and the stored instance keys consistent.
-        if let Err(rollback) = std::fs::rename(&new_directory, &instance.directory) {
-            log::warn!("Cannot roll back instance rename: {rollback}");
+        if let Err(rollback) = pcl_core::minecraft::instance::rename_instance_files(
+            &new_directory,
+            &instance.directory,
+            &new_name,
+            &old_name,
+        ) {
+            return Err(format!(
+                "{error}; cannot roll back instance rename: {rollback}"
+            ));
         }
         return Err(error);
     }

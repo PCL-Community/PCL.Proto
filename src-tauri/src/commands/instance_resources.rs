@@ -9,50 +9,33 @@ pub async fn repair_instance_files(instance_directory: std::path::PathBuf) -> Re
         .runtime
         .as_ref()
         .map(|runtime| runtime.architecture.clone());
-    let (details, global_dir, directory, game_directory, jar_path, vanilla) =
-        tauri::async_runtime::spawn_blocking(move || {
-            ConfigManager::instance().ensure_instance_isolation(&instance_directory)?;
-            let state = ConfigManager::instance().app_state.blocking_lock();
-            let instance =
-                current_instance(&state, &instance_directory).map_err(|e| e.to_string())?;
-            let details = instance
-                .read_version_json()
-                .map_err(|error| error.to_string())?;
-            let game_directory =
-                crate::config::isolation::directory(&state.instance_isolation, instance)
-                    .to_path_buf();
-            // Loader instances share the parent's client JAR; only vanilla owns `jar_path`.
-            let vanilla = instance
-                .plugins_version
-                .keys()
-                .all(|plugin| plugin == "vanilla");
-            Ok::<_, String>((
-                details,
-                instance.global_dir.clone(),
-                instance.directory.clone(),
-                game_directory,
-                instance.jar_path.clone(),
-                vanilla,
-            ))
-        })
-        .await
-        .map_err(|error| error.to_string())??;
+    let (instance, details, game_directory) = tauri::async_runtime::spawn_blocking(move || {
+        ConfigManager::instance().ensure_instance_isolation(&instance_directory)?;
+        let state = ConfigManager::instance().app_state.blocking_lock();
+        let instance = current_instance(&state, &instance_directory).map_err(|e| e.to_string())?;
+        let details = instance
+            .read_version_json()
+            .map_err(|error| error.to_string())?;
+        let game_directory =
+            crate::config::isolation::directory(&state.instance_isolation, instance).to_path_buf();
+        Ok::<_, String>((instance.clone(), details, game_directory))
+    })
+    .await
+    .map_err(|error| error.to_string())??;
     let context = match arch {
         Some(arch) => pcl_core::minecraft::version::McRuleContext::for_java(&arch)
             .map_err(|error| error.to_string())?,
         None => pcl_core::minecraft::version::McRuleContext::current(),
     };
     let downloader = ConfigManager::instance().api_client.downloader();
-    if vanilla && details.downloads.client.validate().is_ok() {
-        downloader
-            .download(&details.downloads.client, &jar_path)
-            .await
-            .map_err(|error| format!("Cannot repair client JAR: {error}"))?;
-    }
+    instance
+        .repair_client_jar(&downloader)
+        .await
+        .map_err(|error| format!("Cannot repair client JAR: {error:#}"))?;
     pcl_core::minecraft::installer::prepare_launch_libraries(
         &details,
-        &global_dir,
-        &directory,
+        &instance.global_dir,
+        &instance.directory,
         &context,
         &downloader,
         true,
@@ -61,7 +44,7 @@ pub async fn repair_instance_files(instance_directory: std::path::PathBuf) -> Re
     .map_err(|error| format!("{error:#}"))?;
     pcl_core::minecraft::installer::prepare_legacy_assets(
         &details,
-        &global_dir,
+        &instance.global_dir,
         &game_directory,
         &downloader,
         true,

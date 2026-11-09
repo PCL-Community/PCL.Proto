@@ -586,6 +586,7 @@ fn normalize_loaded_paths(state: &mut AppState) {
     keys(&mut state.instance_launch_arguments);
     keys(&mut state.instance_launch_settings);
     keys(&mut state.instance_descriptions);
+    keys(&mut state.instance_launch_counts);
 }
 
 fn valid_loaded_state(state: &AppState) -> bool {

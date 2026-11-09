@@ -232,10 +232,7 @@ impl LaunchOption {
                 self.brand.name, self.game_instance.name
             ));
             script.push_str("chcp 65001>nul\r\n");
-            script.push_str(&format!(
-                "cd /D \"{}\"\r\n",
-                self.game_instance.global_dir.display()
-            ));
+            script.push_str(&format!("cd /D \"{}\"\r\n", self.game_directory.display()));
             if !self.extras.prelaunch_command.trim().is_empty() {
                 script.push_str(self.extras.prelaunch_command.trim());
                 script.push_str("\r\n");
@@ -253,7 +250,7 @@ impl LaunchOption {
             script.push_str("#!/bin/sh\n");
             script.push_str(&format!(
                 "cd {} || exit 1\n",
-                quote_unix(&self.game_instance.global_dir.to_string_lossy())
+                quote_unix(&self.game_directory.to_string_lossy())
             ));
             if !self.extras.prelaunch_command.trim().is_empty() {
                 script.push_str(self.extras.prelaunch_command.trim());

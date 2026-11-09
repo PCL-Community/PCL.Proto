@@ -128,6 +128,7 @@ pub fn run() {
             commands::launch::export_launch_script,
             commands::instance_resources::repair_instance_files,
             commands::instances::get_instance_description,
+            commands::instances::get_instance_launch_count,
             commands::instance_resources::instance_resource_destination,
             commands::export::download_resource,
             commands::instances::set_instance_description,

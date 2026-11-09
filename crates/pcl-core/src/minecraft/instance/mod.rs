@@ -60,44 +60,92 @@ pub fn rename_instance_files(
     old_name: &str,
     new_name: &str,
 ) -> Result<(), String> {
-    // Only case changes need an intermediate hop on case-insensitive file systems.
+    if new_directory.exists()
+        && (old_name.to_lowercase() != new_name.to_lowercase()
+            || old_directory
+                .canonicalize()
+                .map_err(|error| error.to_string())?
+                != new_directory
+                    .canonicalize()
+                    .map_err(|error| error.to_string())?)
+    {
+        return Err("An instance with that name already exists".into());
+    }
+    let old_json = old_directory.join(format!("{old_name}.json"));
+    let mut value: serde_json::Value =
+        serde_json::from_slice(&fs::read(&old_json).map_err(|error| error.to_string())?)
+            .map_err(|error| error.to_string())?;
+    value["id"] = new_name.into();
+    let json = serde_json::to_vec(&value).map_err(|error| error.to_string())?;
     let case_only = old_name.to_lowercase() == new_name.to_lowercase();
-    let temp_directory = new_directory
-        .parent()
-        .ok_or("Invalid instance parent")?
-        .join(format!("{new_name}_pcl_rename"));
-    let target = if case_only {
-        &temp_directory
-    } else {
-        new_directory
-    };
-    std::fs::rename(old_directory, target).map_err(|error| error.to_string())?;
-    if case_only && let Err(error) = std::fs::rename(target, new_directory) {
-        let _ = std::fs::rename(target, old_directory);
+    if !case_only
+        && (old_directory.join(format!("{new_name}.json")).exists()
+            || old_directory.join(format!("{new_name}.jar")).exists())
+    {
+        return Err("An instance file with that name already exists".into());
+    }
+    let nonce = uuid::Uuid::new_v4();
+    let temporary_directory = old_directory.with_file_name(format!(".pcl-rename-{nonce}"));
+    let temporary_json = format!(".pcl-rename-{nonce}.json");
+    let backup_json = format!(".pcl-rename-{nonce}.bak");
+    let temporary_jar = format!(".pcl-rename-{nonce}.jar");
+    fs::write(old_directory.join(&temporary_json), json).map_err(|error| error.to_string())?;
+    if let Err(error) = fs::rename(old_directory, &temporary_directory) {
+        let _ = fs::remove_file(old_directory.join(&temporary_json));
+        return Err(error.to_string());
+    }
+    if let Err(error) = fs::rename(&temporary_directory, new_directory) {
+        let _ = fs::rename(&temporary_directory, old_directory);
+        let _ = fs::remove_file(old_directory.join(&temporary_json));
         return Err(error.to_string());
     }
     let old_json = new_directory.join(format!("{old_name}.json"));
     let new_json = new_directory.join(format!("{new_name}.json"));
-    if old_json.is_file() {
-        let mut value: serde_json::Value =
-            serde_json::from_slice(&std::fs::read(&old_json).map_err(|error| error.to_string())?)
-                .map_err(|error| error.to_string())?;
-        value["id"] = new_name.into();
-        std::fs::write(
-            &new_json,
-            serde_json::to_vec(&value).map_err(|error| error.to_string())?,
-        )
-        .map_err(|error| error.to_string())?;
-        if !case_only {
-            std::fs::remove_file(&old_json).map_err(|error| error.to_string())?;
-        }
-    }
-    if !case_only {
-        let old_jar = new_directory.join(format!("{old_name}.jar"));
+    let old_jar = new_directory.join(format!("{old_name}.jar"));
+    let new_jar = new_directory.join(format!("{new_name}.jar"));
+    let temp_jar = new_directory.join(&temporary_jar);
+    let backup = new_directory.join(&backup_json);
+    let staged = new_directory.join(&temporary_json);
+    let mut jar_moved = false;
+    let mut json_backed_up = false;
+    let mut json_installed = false;
+    let result = (|| -> std::io::Result<()> {
         if old_jar.is_file() {
-            std::fs::rename(&old_jar, new_directory.join(format!("{new_name}.jar")))
-                .map_err(|error| error.to_string())?;
+            fs::rename(&old_jar, &temp_jar)?;
+            jar_moved = true;
         }
+        fs::rename(&old_json, &backup)?;
+        json_backed_up = true;
+        fs::rename(&staged, &new_json)?;
+        json_installed = true;
+        if jar_moved {
+            fs::rename(&temp_jar, &new_jar)?;
+        }
+        fs::remove_file(&backup)?;
+        Ok(())
+    })();
+    if let Err(error) = result {
+        if json_installed {
+            let _ = fs::remove_file(&new_json);
+        }
+        if json_backed_up {
+            let _ = fs::rename(&backup, &old_json);
+        }
+        if jar_moved {
+            let source = if temp_jar.exists() {
+                &temp_jar
+            } else {
+                &new_jar
+            };
+            let _ = fs::rename(source, &old_jar);
+        }
+        let _ = fs::remove_file(&staged);
+        if let Err(rollback) = fs::rename(new_directory, old_directory) {
+            return Err(format!(
+                "{error}; cannot restore instance folder: {rollback}"
+            ));
+        }
+        return Err(error.to_string());
     }
     Ok(())
 }
@@ -182,16 +230,8 @@ impl McInstance {
             } else if uses_forge_instance_jar(&chain, &version) {
                 json_path.with_extension("jar")
             } else {
-                chain
-                    .iter()
-                    .rev()
-                    .map(|(path, _)| path.with_extension("jar"))
-                    .find(|path| path.is_file())
-                    .ok_or(McInstanceError::InvalidVersionJar)?
+                chain.last().unwrap().0.with_extension("jar")
             };
-            if !jar_path.is_file() {
-                return Err(McInstanceError::InvalidVersionJar);
-            }
             let (plugin_type, plugins_version) = detect_loaders(&chain, &version);
             Ok(McInstance {
                 id: id.to_string(),
@@ -249,6 +289,37 @@ impl McInstance {
     pub fn resolved_metadata(&self) -> anyhow::Result<Value> {
         let chain = read_version_chain(&self.json_path, &self.global_dir)?;
         merge_metadata(chain.iter().map(|(_, value)| value))
+    }
+
+    /// Download the client JAR when metadata provides a verifiable source.
+    pub async fn repair_client_jar(
+        &self,
+        downloader: &crate::io::download::Downloader,
+    ) -> anyhow::Result<()> {
+        let chain = read_version_chain(&self.json_path, &self.global_dir)?;
+        if uses_forge_instance_jar(&chain, &self.version)
+            && self.jar_path == self.json_path.with_extension("jar")
+        {
+            ensure!(
+                self.jar_path.is_file(),
+                "The loader-generated JAR is missing; reinstall the loader"
+            );
+            return Ok(());
+        }
+        let metadata = merge_metadata(chain.iter().map(|(_, value)| value))?;
+        let download = serde_json::from_value::<crate::minecraft::version::DownloadFile>(
+            metadata["downloads"]["client"].clone(),
+        );
+        match download {
+            Ok(download) if download.validate().is_ok() => {
+                downloader.download(&download, &self.jar_path).await?
+            }
+            _ if !self.jar_path.is_file() => anyhow::bail!(
+                "Client JAR is missing and its download information is unavailable or invalid"
+            ),
+            _ => {}
+        }
+        Ok(())
     }
 }
 
@@ -693,10 +764,12 @@ mod inheritance_tests {
             "libraries":[{"name":"net.minecraftforge:forge:1.20.1-47.0.0"}]});
         let repo = McFolder::new("test", root.clone());
         fs::write(&child_path, serde_json::to_vec(&metadata).unwrap()).unwrap();
-        assert!(matches!(
-            McInstance::from_version_folder(&child, &repo),
-            Err(McInstanceError::InvalidVersionJar)
-        ));
+        assert_eq!(
+            McInstance::from_version_folder(&child, &repo)
+                .unwrap()
+                .jar_path,
+            child.join("Forge.jar")
+        );
         fs::write(child.join("Forge.jar"), b"patched").unwrap();
         assert_eq!(
             McInstance::from_version_folder(&child, &repo)
@@ -835,5 +908,24 @@ mod rename_tests {
         );
         assert!(!root.join("versions/New").exists());
         std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn case_only_rename_preserves_jar_and_rejects_conflicting_files() {
+        let root = std::env::temp_dir().join(format!("pcl-rename-{}", uuid::Uuid::new_v4()));
+        let old = root.join("Example");
+        fs::create_dir_all(&old).unwrap();
+        fs::write(old.join("Example.json"), br#"{"id":"Example"}"#).unwrap();
+        fs::write(old.join("Example.jar"), b"client").unwrap();
+        fs::write(old.join("Other.jar"), b"keep").unwrap();
+        assert!(rename_instance_files(&old, &root.join("Other"), "Example", "Other").is_err());
+        assert_eq!(fs::read(old.join("Other.jar")).unwrap(), b"keep");
+        let new = root.join("example");
+        rename_instance_files(&old, &new, "Example", "example").unwrap();
+        assert_eq!(fs::read(new.join("example.jar")).unwrap(), b"client");
+        let json: serde_json::Value =
+            serde_json::from_slice(&fs::read(new.join("example.json")).unwrap()).unwrap();
+        assert_eq!(json["id"], "example");
+        fs::remove_dir_all(root).unwrap();
     }
 }

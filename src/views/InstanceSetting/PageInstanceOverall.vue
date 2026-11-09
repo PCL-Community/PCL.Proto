@@ -5,7 +5,7 @@ import { useSelectedInstance } from '@/stores/gameLaunch'
 import PListItem from '@/components/widget/PListItem.vue'
 import { pluginShowText, instanceIcon } from '@/types/gameInfo'
 const instance = useSelectedInstance()
-import { usePageSettings } from '@/composables/usePageSettings'
+import { moveInstancePageSettings, usePageSettings } from '@/composables/usePageSettings'
 import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PComboBox from '@/components/widget/PComboBox.vue'
@@ -29,17 +29,26 @@ const modal = useModal()
 const repos = useRepositoriesStore()
 const { isFavorite, toggleFavorite } = useInstanceFavorites()
 const busy = ref<string | null>(null)
-const description = ref('')
+const description = ref<string | null>(null)
+const launchCount = ref<number | null>(null)
 
 watch(
   () => instance.instance_info?.directory,
-  async (directory) => {
-    description.value = ''
+  async (directory, _, onCleanup) => {
+    let current = true
+    onCleanup(() => { current = false })
+    description.value = null
+    launchCount.value = null
     if (!directory || !isTauri()) return
     try {
-      description.value = await invoke<string>('get_instance_description', {
-        instanceDirectory: directory,
-      })
+      const [savedDescription, count] = await Promise.all([
+        invoke<string>('get_instance_description', { instanceDirectory: directory }),
+        invoke<number>('get_instance_launch_count', { instanceDirectory: directory }),
+      ])
+      if (current) {
+        description.value = savedDescription || null
+        launchCount.value = count
+      }
     } catch (error) {
       console.error(error)
     }
@@ -109,6 +118,12 @@ async function renameInstance() {
       instanceDirectory: info.directory,
       newName,
     })
+    if (isFavorite(info.directory)) {
+      toggleFavorite(info.directory)
+      if (!isFavorite(renamed.directory)) toggleFavorite(renamed.directory)
+    }
+    moveInstancePageSettings(info.directory, renamed.directory)
+    delete repos.instancesByPath[info.global_dir]
     instance.setInstance(renamed)
     sideTip.show(pclText('Instance.Overall.Name.RenameSuccess'), 'success')
   } catch (error) {
@@ -125,7 +140,7 @@ async function editDescription() {
     title: pclText('Instance.Overall.Description.EditTitle'),
     content: pclText('Instance.Overall.Description.EditMessage'),
     showInput: true,
-    defaultInputText: description.value,
+    defaultInputText: description.value ?? undefined,
     buttons: [
       { content: pclText('Common.Action.Confirm'), operation: () => modal.close(true) },
       { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
@@ -134,10 +149,10 @@ async function editDescription() {
   if (!result.confirmed) return
   busy.value = 'description'
   try {
-    description.value = await invoke<string>('set_instance_description', {
+    description.value = (await invoke<string>('set_instance_description', {
       instanceDirectory: info.directory,
       description: result.input || '',
-    })
+    })) || null
   } catch (error) {
     sideTip.show(`${pclText('Instance.Overall.Error.OperationFailed')} ${error}`, 'warn')
   } finally {
@@ -162,7 +177,13 @@ async function deleteInstance() {
     sideTip.show(pclText('Instance.Overall.Error.OperationFailed'), 'warn')
     return
   }
-  const isolated = await getInstanceIsolation(info.directory).catch(() => false)
+  let isolated: boolean
+  try {
+    isolated = await getInstanceIsolation(info.directory)
+  } catch (error) {
+    sideTip.show(`${pclText('Instance.Overall.Error.OperationFailed')} ${error}`, 'warn')
+    return
+  }
   const message = isolated
     ? 'Instance.Overall.Delete.ConfirmMessageIsolated'
     : 'Instance.Overall.Delete.ConfirmMessage'
@@ -188,6 +209,7 @@ async function deleteInstance() {
       delete: true,
     })
     if (isFavorite(info.directory)) toggleFavorite(info.directory)
+    delete repos.instancesByPath[info.global_dir]
     instance.setInstance(null)
     sideTip.show(pclText('Instance.Overall.Delete.RecycleBinSuccess', [info.name]), 'success')
     await router.push('/instance_select')
@@ -214,7 +236,7 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
         <PListItem
           v-if="instance.instance_info"
           :title="instance.instance_info.name"
-          :subtitle="instance.instance_info.version"
+          :subtitle="description || instance.instance_info.version"
           :icon="
             instanceIcon(
               instance.instance_info.version,
@@ -226,14 +248,16 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
       </div>
     </PCard>
     <PCard :title="pclText('Instance.Overall.Info.Title')">
-      <div style="margin: 0px 25px 5px 15px; display: flex; flex-direction: column">
-        <p v-if="instance.instance_info">Minecraft {{ instance.instance_info.version }}</p>
-        <p v-for="(version, loader) in instance.instance_info?.pluginsVersion" :key="loader">
-          {{ pluginShowText[loader] || loader }} {{ version }}
-        </p>
-        <p>{{ instance.instance_info?.directory }}</p>
-        <p v-if="description">{{ description }}</p>
-      </div>
+      <dl v-if="instance.instance_info" class="instance-info">
+        <dt>{{ pclText('Instance.Overall.Info.LaunchCount.Title') }}</dt>
+        <dd>{{ launchCount === null ? pclText('Instance.Overall.Info.Loading') : launchCount === 0 ? pclText('Instance.Overall.Info.LaunchCount.Never') : pclText('Instance.Overall.Info.LaunchCount.Count', [launchCount]) }}</dd>
+        <dt>Minecraft</dt><dd>{{ instance.instance_info.version }}</dd>
+        <template v-for="(version, loader) in instance.instance_info.pluginsVersion" :key="loader">
+          <dt>{{ pluginShowText[loader] || loader }}</dt><dd>{{ version }}</dd>
+        </template>
+        <dt>{{ pclText('Instance.Overall.Shortcuts.InstanceFolder') }}</dt>
+        <dd class="instance-path">{{ instance.instance_info.directory }}</dd>
+      </dl>
     </PCard>
     <PCard :title="pclText('Instance.Overall.Personalization.Title')">
       <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
@@ -321,7 +345,7 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
               grid-row: 1 / span 1;
               grid-column: 1 / span 1;
             "
-            :disabled="!instance.instance_info || busy !== ''"
+            :disabled="!instance.instance_info || !!busy"
             @click="renameInstance"
             >{{ pclText('Instance.Overall.Rename') }}</PButton
           >
@@ -333,7 +357,7 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
               grid-row: 1 / span 1;
               grid-column: 2 / span 1;
             "
-            :disabled="!instance.instance_info || busy !== ''"
+            :disabled="!instance.instance_info || !!busy"
             @click="editDescription"
             >{{ pclText('Instance.Overall.EditDescription') }}</PButton
           >
@@ -418,7 +442,7 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
         >
           <PButton
             style="height: 35px; min-width: 140px; margin: 7px 20px 0px 0px; padding: 0px 13px"
-            :disabled="!instance.instance_info || busy !== ''"
+            :disabled="!instance.instance_info || !!busy"
             @click="exportScript"
             >{{ pclText('Instance.Overall.Manage.ExportLaunchScript') }}</PButton
           >
@@ -430,7 +454,7 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
           <PButton
             style="height: 35px; min-width: 140px; margin: 7px 20px 0px 0px; padding: 0px 13px"
             :title="pclText('Instance.Overall.Manage.RepairFiles.ToolTip')"
-            :disabled="!instance.instance_info || busy !== ''"
+            :disabled="!instance.instance_info || !!busy"
             @click="repairFiles"
             >{{ pclText('Instance.Overall.Manage.RepairFiles') }}</PButton
           >
@@ -442,7 +466,7 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
           >
           <PButton
             style="height: 35px; min-width: 140px; margin: 7px 20px 0px 0px; padding: 0px 13px"
-            :disabled="!instance.instance_info || busy !== ''"
+            :disabled="!instance.instance_info || !!busy"
             @click="deleteInstance"
             type="warn"
             >{{ pclText('Instance.Overall.Manage.Delete') }}</PButton
@@ -457,3 +481,15 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
     </PCard>
   </div>
 </template>
+
+<style scoped>
+.instance-info {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 24px;
+  margin: 0 25px 15px;
+}
+.instance-info dt { color: var(--color-text-grey); }
+.instance-info dd { margin: 0; }
+.instance-path { overflow-wrap: anywhere; }
+</style>

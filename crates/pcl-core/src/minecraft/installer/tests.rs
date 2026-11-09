@@ -328,6 +328,63 @@ impl Drop for MockMirror {
 }
 
 #[tokio::test]
+async fn missing_client_jars_are_discovered_and_repaired_without_overwriting_loader_jars() {
+    let body = b"vanilla client";
+    let hash = crate::io::files::sha1_hex(sha1::Sha1::digest(body));
+    let mirror = MockMirror::new(
+        HashMap::from([("/client.jar".into(), body.to_vec())]),
+        false,
+    );
+    let root = tempfile::tempdir().unwrap();
+    let base = root.path().join("versions/1.20.1");
+    let fabric = root.path().join("versions/Fabric");
+    let forge = root.path().join("versions/Forge");
+    for dir in [&base, &fabric, &forge] {
+        fs::create_dir_all(dir).unwrap();
+    }
+    fs::write(base.join("1.20.1.json"), serde_json::to_vec(&json!({
+        "id":"1.20.1", "downloads":{"client":{"url":"https://piston-data.mojang.com/client.jar", "sha1":hash, "size":body.len()}}
+    })).unwrap()).unwrap();
+    fs::write(
+        fabric.join("Fabric.json"),
+        br#"{"id":"Fabric","inheritsFrom":"1.20.1"}"#,
+    )
+    .unwrap();
+    fs::write(fabric.join("Fabric.jar"), b"local loader data").unwrap();
+    fs::write(forge.join("Forge.json"), br#"{"id":"Forge","inheritsFrom":"1.20.1","libraries":[{"name":"net.minecraftforge:forge:1.20.1-47.0.0"}]}"#).unwrap();
+    let repo = crate::minecraft::instance::folder::McFolder::new("test", root.path().to_owned());
+    let instances = repo.game_instances();
+    assert_eq!(instances.len(), 3);
+    let fabric = repo.game_instance_named("Fabric").unwrap();
+    assert_eq!(fabric.jar_path, base.join("1.20.1.jar"));
+    fabric
+        .repair_client_jar(&mirror.client().downloader())
+        .await
+        .unwrap();
+    assert_eq!(fs::read(&fabric.jar_path).unwrap(), body);
+    assert_eq!(
+        fs::read(fabric.directory.join("Fabric.jar")).unwrap(),
+        b"local loader data"
+    );
+    let forge = repo.game_instance_named("Forge").unwrap();
+    assert!(
+        forge
+            .repair_client_jar(&mirror.client().downloader())
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("reinstall")
+    );
+    assert!(!forge.jar_path.exists());
+    fs::write(&forge.jar_path, b"generated loader jar").unwrap();
+    forge
+        .repair_client_jar(&mirror.client().downloader())
+        .await
+        .unwrap();
+    assert_eq!(fs::read(&forge.jar_path).unwrap(), b"generated loader jar");
+}
+
+#[tokio::test]
 async fn maven_libraries_are_verified_and_published_before_launch() {
     let body = b"verified fabric library";
     let hash = crate::io::files::sha1_hex(sha1::Sha1::digest(body));

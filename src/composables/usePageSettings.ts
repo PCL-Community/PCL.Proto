@@ -5,6 +5,24 @@ import { useSelectedInstance } from '@/stores/gameLaunch'
 import sideTip from '@/composables/sideTip'
 
 type SettingValue = string | boolean | number
+
+export function moveInstancePageSettings(oldDirectory: string, newDirectory: string) {
+  const oldSuffix = `:${encodeURIComponent(oldDirectory)}`
+  const newSuffix = `:${encodeURIComponent(newDirectory)}`
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (!key.startsWith('pcl-instance-ui:') || !key.endsWith(oldSuffix)) continue
+      const target = key.slice(0, -oldSuffix.length) + newSuffix
+      const value = localStorage.getItem(key)
+      if (value !== null && localStorage.getItem(target) === null) {
+        localStorage.setItem(target, value)
+        localStorage.removeItem(key)
+      }
+    }
+  } catch {
+    sideTip.show(pclText('Proto.Storage.SettingsFailed'), 'warn')
+  }
+}
 type PageDefaults<Page extends string> = Page extends keyof typeof sourceDefaults
   ? (typeof sourceDefaults)[Page]
   : Record<never, never>
