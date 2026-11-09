@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import SetupItem from '@/components/widget/SetupItem.vue'
 import { useRouter } from 'vue-router'
-import { showUnavailable } from '@/util/showUnavailable'
 import { pclText } from '@/api/pclLocale'
 import { computed, watch, ref } from 'vue'
 import { selectRelativeJava, type JavaPreference, type InstanceJavaSettings } from '@/api/javaReq'
@@ -26,6 +25,7 @@ import { getInstanceIsolation, setInstanceIsolation } from '@/api/isolationSetti
 import { launchArgumentKeys } from '@/api/launchArguments'
 import { useLaunchArguments } from '@/composables/useLaunchArguments'
 import { useInstanceLaunchSettings } from '@/composables/useInstanceLaunchSettings'
+import { useLaunchState } from '@/stores/launchState'
 import currentPlatform, { currentArch } from '@/util/platform'
 const props = defineProps<{
   loginLocked?: boolean
@@ -162,11 +162,12 @@ const java32Bit = computed(
     java.runtimes.length > 0 &&
     java.instanceIs64Bit[directory.value] === false,
 )
-const authVisible = computed(() => ['2', '3'].includes(String(values.ComboServerLoginRequire)))
+const authVisible = computed(() => launchSettings.server_login === 2 || launchSettings.server_login === 3)
+const loginLocked = computed(() => !!props.loginLocked || launchSettings.server_login_locked)
 const authFields = [
-  { row: 2, id: 'auth-Server', key: 'TextServerAuthServer', label: 'AuthServer' },
-  { row: 3, id: 'auth-Register', key: 'TextServerAuthRegister', label: 'Register' },
-  { row: 4, id: 'auth-Name', key: 'TextServerAuthName', label: 'Name' },
+  { row: 2, id: 'auth-Server', key: 'auth_server', label: 'AuthServer' },
+  { row: 3, id: 'auth-Register', key: 'auth_register', label: 'Register' },
+  { row: 4, id: 'auth-Name', key: 'auth_name', label: 'Name' },
 ] as const
 const modal = useModal()
 // CE remembers these confirmations for the whole run; the page only warns once.
@@ -269,9 +270,9 @@ async function changeIsolation(value: string | undefined) {
   }
 }
 async function setLittleSkin() {
-  if (props.loginLocked) return
+  if (loginLocked.value) return
   const server = 'https://littleskin.cn/api/yggdrasil'
-  if (values.TextServerAuthServer && values.TextServerAuthServer !== server) {
+  if (launchSettings.auth_server && launchSettings.auth_server !== server) {
     const result = await modal.open({
       title: pclText('Instance.Setup.Server.LittleSkin.Override.Title'),
       content: pclText('Instance.Setup.Server.LittleSkin.Override.Message'),
@@ -285,9 +286,44 @@ async function setLittleSkin() {
     })
     if (!result.confirmed) return
   }
-  values.TextServerAuthServer = server
-  values.TextServerAuthRegister = 'https://littleskin.cn/auth/register'
-  values.TextServerAuthName = pclText('Instance.Setup.Server.LittleSkin.Name')
+  launchSettings.auth_server = server
+  launchSettings.auth_register = 'https://littleskin.cn/auth/register'
+  launchSettings.auth_name = pclText('Instance.Setup.Server.LittleSkin.Name')
+  saveLaunchSettings()
+}
+
+async function lockLogin() {
+  const path = directory.value
+  try {
+    const url = new URL(launchSettings.auth_server.trim())
+    if (!['http:', 'https:'].includes(url.protocol)) throw new Error()
+  } catch {
+    sideTip.show(pclText('Launch.Account.Auth.InvalidServer'), 'warn')
+    return
+  }
+  const result = await modal.open({
+    title: pclText('Instance.Setup.Server.LockLoginMethod.Title'),
+    content: pclText('Instance.Setup.Server.LockLoginMethod.Message'),
+    buttons: [
+      { content: pclText('Common.Action.Confirm'), operation: () => modal.close(true) },
+      { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
+    ],
+  })
+  if (result.confirmed && path === directory.value) {
+    launchSettings.server_login_locked = true
+    if (!(await saveLaunchSettings()) && path === directory.value) {
+      launchSettings.server_login_locked = false
+    }
+  }
+}
+
+async function createAuthProfile() {
+  const server = launchSettings.auth_server.trim()
+  const register = launchSettings.auth_register.trim()
+  const name = launchSettings.auth_name.trim()
+  if (!server) return
+  if (await router.push('/home')) return
+  useLaunchState().pendingAuth = { server, register, name }
 }
 
 const router = useRouter()
@@ -389,13 +425,13 @@ const router = useRouter()
           pclText('Instance.Setup.Server.LoginLockHint')
         }}</PHint>
         <PHint
-          v-if="authVisible && /^https:\/\//i.test(String(values.TextServerAuthServer))"
+          v-if="authVisible && /^https:\/\//i.test(String(launchSettings.auth_server))"
           severity="info"
           style="margin-bottom: 13px"
           >{{ pclText('Instance.Setup.Server.SslWarning') }}</PHint
         >
         <PHint
-          v-if="authVisible && /^http:\/\//i.test(String(values.TextServerAuthServer))"
+          v-if="authVisible && /^http:\/\//i.test(String(launchSettings.auth_server))"
           severity="warning"
           style="margin-bottom: 13px"
           >{{ pclText('Instance.Setup.Server.HttpWarning') }}</PHint
@@ -419,7 +455,8 @@ const router = useRouter()
             >{{ pclText('Instance.Setup.Server.RestrictLogin') }}</span
           >
           <PComboBox
-            disabled
+            :disabled="loginLocked || !launchSettingsReady"
+            :aria-label="pclText('Instance.Setup.Server.RestrictLogin')"
             style="grid-row: 1 / span 1; grid-column: 2 / span 2"
             :options="[
               { key: '0', text: pclText('Instance.Setup.Server.LoginMethod.Unlimited') },
@@ -427,7 +464,8 @@ const router = useRouter()
               { key: '2', text: pclText('Instance.Setup.Server.LoginMethod.AuthOnly') },
               { key: '3', text: pclText('Instance.Setup.Server.LoginMethod.MicrosoftOrAuth') },
             ]"
-            v-model="values.ComboServerLoginRequire"
+            :model-value="String(launchSettings.server_login)"
+            @update:model-value="value => { if (value !== undefined) { launchSettings.server_login = Number(value); saveLaunchSettings() } }"
           />
           <template v-if="authVisible">
             <template v-for="field in authFields" :key="field.id">
@@ -435,11 +473,12 @@ const router = useRouter()
                 {{ pclText(`Instance.Setup.Server.${field.label}`) }}
               </label>
               <PTextBox
-                disabled
+                :disabled="loginLocked || !launchSettingsReady"
                 :input-id="field.id"
                 :style="{ gridRow: field.row, gridColumn: '2 / span 2' }"
                 :placeholder="pclText(`Instance.Setup.Server.${field.label}.Hint`)"
-                :model-value="String(values[field.key])"
+                v-model="launchSettings[field.key]"
+                @blur="saveLaunchSettings()"
               />
             </template>
           </template>
@@ -455,31 +494,32 @@ const router = useRouter()
             >{{ pclText('Instance.Setup.Server.AutoJoin') }}</span
           >
           <PTextBox
-            disabled
+            :disabled="!launchSettingsReady"
             style="grid-row: 6 / span 1; grid-column: 2 / span 2"
             :title="pclText('Instance.Setup.Server.AutoJoin.ToolTip')"
-            :placeholder="pclText('')"
-            v-model="values.TextServerEnter"
+            v-model="launchSettings.server_address"
+            @update:model-value="value => { launchSettings.server_address = (value ?? '').replaceAll('：', ':') }"
+            @blur="saveLaunchSettings()"
           />
         </div>
         <div v-if="authVisible" style="display: flex; gap: 30px; flex-wrap: wrap; margin-top: 12px">
           <PButton
             style="height: 35px; min-width: 150px; margin: 0"
             @click="setLittleSkin"
-            disabled
+            :disabled="loginLocked || !launchSettingsReady"
             type="tint"
             >{{ pclText('Instance.Setup.Server.SetLittleSkin') }}</PButton
           >
           <PButton
             style="height: 35px; min-width: 150px; margin: 0"
-            @click="showUnavailable"
-            disabled
+            @click="lockLogin"
+            :disabled="loginLocked || !launchSettingsReady || !launchSettings.auth_server.trim()"
             >{{ pclText('Instance.Setup.Server.LockLoginMethod') }}</PButton
           >
           <PButton
-            v-if="canCreateProfile"
             style="height: 35px; min-width: 150px; margin: 0"
-            @click="showUnavailable"
+            :disabled="!launchSettingsReady || !launchSettings.auth_server.trim()"
+            @click="createAuthProfile"
             >{{ pclText('Instance.Setup.Server.CreateProfile') }}</PButton
           >
         </div>

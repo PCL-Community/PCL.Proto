@@ -213,6 +213,7 @@ pub async fn launch_game(
     instance_directory: std::path::PathBuf,
     progress: tauri::ipc::Channel<LaunchProgress>,
     server_address: Option<String>,
+    world: Option<String>,
 ) -> Result<(), String> {
     let ticket = claim_launch_ticket()?;
     let result = launch_game_inner(
@@ -220,6 +221,7 @@ pub async fn launch_game(
         instance_directory,
         progress,
         server_address,
+        world,
         ticket.clone(),
     )
     .await;
@@ -234,6 +236,7 @@ async fn launch_game_inner(
     instance_directory: std::path::PathBuf,
     progress: tauri::ipc::Channel<LaunchProgress>,
     server_address: Option<String>,
+    world: Option<String>,
     mut ticket: LaunchTicket,
 ) -> Result<(), String> {
     let report = |stage, value, downloading| {
@@ -253,8 +256,9 @@ async fn launch_game_inner(
     })?;
     let expected = instance_directory.clone();
     report("Minecraft.Launch.Stage.GetArguments", 0.2, false);
+    wait_for_launch(&mut ticket.receiver, check_instance_login(&expected)).await??;
     wait_for_launch(&mut ticket.receiver, refresh_active_account()).await??;
-    let (mut option, launcher_size) = wait_for_launch(
+    let (mut option, launcher_size, configured_server) = wait_for_launch(
         &mut ticket.receiver,
         tauri::async_runtime::spawn_blocking(move || {
             build_launch_option(instance_directory, runtime)
@@ -262,9 +266,21 @@ async fn launch_game_inner(
     )
     .await?
     .map_err(|error| error.to_string())??;
-    if let Some(address) = server_address {
+    if let Some(address) = select_server(world.is_some(), server_address, configured_server) {
         option = option
             .with_server(&address)
+            .map_err(|error| error.to_string())?;
+    }
+    if let Some(world) = world {
+        let directory = expected.clone();
+        let name = world.clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            super::instance_resources::save_directory(&directory, &name)
+        })
+        .await
+        .map_err(|error| error.to_string())??;
+        option = option
+            .with_world(&world)
             .map_err(|error| error.to_string())?;
     }
     if launcher_size {
@@ -411,18 +427,50 @@ async fn prepare_launch_option(
         )
     })?;
     // CE 在启动前先跑一遍登录加载器：令牌过期时静默刷新，失败就要求重新登录。
+    check_instance_login(&instance_directory).await?;
     refresh_active_account().await?;
-    let (option, launcher_size) = tauri::async_runtime::spawn_blocking(move || {
-        build_launch_option(instance_directory, runtime)
-    })
-    .await
-    .map_err(|error| error.to_string())??;
+    let (mut option, launcher_size, configured_server) =
+        tauri::async_runtime::spawn_blocking(move || {
+            build_launch_option(instance_directory, runtime)
+        })
+        .await
+        .map_err(|error| error.to_string())??;
+    if let Some(address) = configured_server {
+        option = option
+            .with_server(&address)
+            .map_err(|error| error.to_string())?;
+    }
     if option.account().profile_type == pcl_core::minecraft::profile::ProfileType::Offline
         && option.account().offline_skin.is_some()
     {
         return Err("Exporting a launch script with an offline skin is not supported because the skin service requires the launcher to run.".into());
     }
     Ok((prepare_authlib(option).await?, launcher_size))
+}
+
+fn select_server(
+    world: bool,
+    explicit: Option<String>,
+    configured: Option<String>,
+) -> Option<String> {
+    if world {
+        return None;
+    }
+    explicit
+        .filter(|address| !address.trim().is_empty())
+        .or(configured)
+}
+
+async fn check_instance_login(instance_directory: &std::path::Path) -> Result<(), String> {
+    let state = ConfigManager::instance().app_state.lock().await;
+    current_instance(&state, instance_directory).map_err(|error| error.to_string())?;
+    if let (Some(settings), Some(profile)) = (
+        state.instance_launch_settings.get(instance_directory),
+        state.profile.current(),
+    ) {
+        settings.validate_profile(profile)?;
+    }
+    Ok(())
 }
 
 /// 刷新当前档案的访问令牌，对照 CE 的 `ModLaunch.mcLoginLoader`。
@@ -469,7 +517,7 @@ async fn prepare_authlib(option: LaunchOption) -> Result<LaunchOption, String> {
 fn build_launch_option(
     instance_directory: std::path::PathBuf,
     runtime: JavaEntry,
-) -> Result<(LaunchOption, bool), String> {
+) -> Result<(LaunchOption, bool, Option<String>), String> {
     let config = ConfigManager::instance();
     config.ensure_instance_isolation(&instance_directory)?;
     let state = config.app_state.blocking_lock();
@@ -480,7 +528,13 @@ fn build_launch_option(
         .window_settings
         .as_ref()
         .is_some_and(|settings| settings.mode == crate::config::states::WindowMode::Launcher);
-    Ok((option, launcher_size))
+    let configured_server = state
+        .instance_launch_settings
+        .get(&instance_directory)
+        .map(|settings| settings.server_address.trim())
+        .filter(|address| !address.is_empty())
+        .map(str::to_owned);
+    Ok((option, launcher_size, configured_server))
 }
 
 #[tauri::command]
@@ -518,6 +572,21 @@ pub async fn export_launch_script(
 #[cfg(test)]
 mod tests {
     use super::LaunchController;
+
+    #[test]
+    fn launch_target_prefers_world_then_explicit_server() {
+        let configured = Some("configured.example".to_owned());
+        let explicit = Some("chosen.example".to_owned());
+        assert_eq!(
+            super::select_server(false, explicit.clone(), configured.clone()),
+            explicit
+        );
+        assert_eq!(
+            super::select_server(false, None, configured.clone()),
+            configured
+        );
+        assert_eq!(super::select_server(true, explicit, configured), None);
+    }
 
     #[test]
     fn cancelling_a_pending_launch_releases_the_controller() {

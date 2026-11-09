@@ -135,6 +135,7 @@ pub fn run() {
             commands::instances::rename_instance,
             commands::instance_resources::list_instance_resources,
             commands::instance_resources::get_save_info,
+            commands::instance_resources::copy_save_folder,
             commands::instance_resources::update_save_info,
             commands::servers::list_servers,
             commands::servers::change_server,

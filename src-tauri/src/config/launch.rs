@@ -19,6 +19,11 @@ pub fn request(state: &AppState, java: Arc<JavaEntry>) -> Result<LaunchOption, G
     let Some(account) = state.profile.current() else {
         return Err(GameLaunchError::MissingAccount);
     };
+    if let Some(settings) = state.instance_launch_settings.get(&game_instance.directory) {
+        settings
+            .validate_profile(account)
+            .map_err(GameLaunchError::InvalidProfile)?;
+    }
     let game_directory =
         crate::config::isolation::directory(&state.instance_isolation, game_instance).to_owned();
     let (max_memory, initial_memory) = match state

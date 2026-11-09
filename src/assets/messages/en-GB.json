@@ -1,4 +1,6 @@
 {
+  "Proto.Saves.Created": "Created: {0}",
+  "Proto.Saves.Modified": "Last modified: {0}",
   "Tools.GameLink.Agreement.Title": "Multiplayer instructions and terms",
   "Tools.GameLink.Agreement.Description": "PCL.Proto uses the same multiplayer service as PCL-CE and follows the PCL-CE usage policies. Please read the information, privacy policy and terms below before using it.",
   "Tools.GameLink.Link.Privacy": "PCL-CE Lobby Privacy Policy",

@@ -1,4 +1,6 @@
 {
+  "Proto.Saves.Created": "建立時間：{0}",
+  "Proto.Saves.Modified": "最後修改時間：{0}",
   "Tools.GameLink.Agreement.Title": "連線使用說明與條款",
   "Tools.GameLink.Agreement.Description": "PCL.Proto 使用與 PCL-CE 相同的連線服務，遵循 PCL-CE 的使用政策。使用前，請閱讀以下說明、隱私政策與服務條款。",
   "Tools.GameLink.Link.Privacy": "PCL-CE 大廳隱私政策",

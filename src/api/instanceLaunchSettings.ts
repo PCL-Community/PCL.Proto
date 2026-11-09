@@ -3,6 +3,12 @@ import { createSettingsPersistence } from '@/util/settingsPersistence'
 
 export interface InstanceLaunchSettings {
   info: string
+  server_login: number
+  server_login_locked: boolean
+  auth_server: string
+  auth_register: string
+  auth_name: string
+  server_address: string
   renderer: number
   prelaunch_command: string
   prelaunch_wait: boolean
@@ -16,6 +22,12 @@ export interface InstanceLaunchSettings {
 
 export const emptyInstanceLaunchSettings = (): InstanceLaunchSettings => ({
   info: '',
+  server_login: 0,
+  server_login_locked: false,
+  auth_server: '',
+  auth_register: '',
+  auth_name: '',
+  server_address: '',
   renderer: 0,
   prelaunch_command: '',
   prelaunch_wait: false,

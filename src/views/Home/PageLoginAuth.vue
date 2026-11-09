@@ -13,7 +13,7 @@ import { loginProgress } from '@/composables/useLoginSession'
 import { authServerPreset } from './authServerPreset'
 
 const loginShape = paths.a734eac303dcf223.data
-const props = defineProps<{ registerUrl?: string }>()
+const props = defineProps<{ registerUrl?: string; serverName?: string }>()
 const emit = defineEmits<{ view: [view: ProfileView] }>()
 const account = useAccountInfo()
 // 登录会话由启动页统一驱动，避免登录途中切页丢掉弹窗与结果提示。
@@ -140,7 +140,7 @@ function openWebsite() {
 <template>
   <form class="account-form auth-form" @submit.prevent="login">
     <label class="server-row">
-      <span>{{ pclText('Launch.Account.Auth.SelectServer') }}</span>
+      <span>{{ serverName || pclText('Launch.Account.Auth.SelectServer') }}</span>
       <PTextBox v-model="server" placeholder="https://" :disabled="loggingIn" />
     </label>
     <template v-if="!oauthMode">

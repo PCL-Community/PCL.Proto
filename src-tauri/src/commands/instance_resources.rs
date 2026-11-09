@@ -112,7 +112,7 @@ fn ensure_inside_instance(root: &std::path::Path, path: &std::path::Path) -> Res
     Ok(())
 }
 
-fn save_directory(
+pub(crate) fn save_directory(
     instance_directory: &std::path::Path,
     save: &str,
 ) -> Result<std::path::PathBuf, String> {
@@ -149,6 +149,71 @@ fn datapack_destination(game: &std::path::Path, save: &str) -> Result<std::path:
         return Err("Datapack folder must be a directory inside the save".into());
     }
     Ok(folder)
+}
+
+#[tauri::command]
+pub async fn copy_save_folder(
+    instance_directory: std::path::PathBuf,
+    save: String,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let folder = save_directory(&instance_directory, &save)?;
+        #[cfg(target_os = "macos")]
+        let status = std::process::Command::new("osascript")
+            .args([
+                "-e",
+                "on run argv\nset the clipboard to POSIX file (item 1 of argv)\nend run",
+                "--",
+            ])
+            .arg(&folder)
+            .status();
+        #[cfg(windows)]
+        let status = std::process::Command::new("powershell.exe")
+            .args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-Sta",
+                "-Command",
+                "Add-Type -AssemblyName System.Windows.Forms; $files = New-Object System.Collections.Specialized.StringCollection; [void]$files.Add($env:PCL_SAVE_FOLDER); [System.Windows.Forms.Clipboard]::SetFileDropList($files)",
+            ])
+            .env("PCL_SAVE_FOLDER", &folder)
+            .status();
+        #[cfg(all(unix, not(target_os = "macos")))]
+        let status = {
+            use std::io::Write;
+            use std::process::Stdio;
+            let uri = tauri::Url::from_file_path(&folder).map_err(|_| "Invalid save path")?;
+            let wayland = std::env::var_os("WAYLAND_DISPLAY").is_some();
+            let mut command = if wayland {
+                std::process::Command::new("wl-copy")
+            } else {
+                std::process::Command::new("xclip")
+            };
+            if wayland {
+                command.args(["--type", "text/uri-list"]);
+            } else {
+                command.args(["-selection", "clipboard", "-t", "text/uri-list", "-i"]);
+            }
+            let mut child = command
+                .stdin(Stdio::piped())
+                .spawn()
+                .map_err(|e| e.to_string())?;
+            write!(
+                child.stdin.take().ok_or("Clipboard unavailable")?,
+                "{}\r\n",
+                uri
+            )
+            .map_err(|e| e.to_string())?;
+            child.wait()
+        };
+        let status = status.map_err(|e| e.to_string())?;
+        if !status.success() {
+            return Err(format!("Clipboard command failed: {status}"));
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]

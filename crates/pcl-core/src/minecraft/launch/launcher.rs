@@ -72,6 +72,7 @@ pub struct LaunchOption {
     arguments: crate::minecraft::launch::arguments::LaunchArguments,
     extras: crate::minecraft::launch::settings::LaunchExtras,
     server: Option<(String, Option<u16>)>,
+    world: Option<String>,
     authlib: Option<AuthlibAgent>,
 }
 
@@ -136,6 +137,31 @@ impl LaunchOption {
         let (host, port) = crate::link::mcping::parse_address(address)
             .map_err(|error| GameLaunchError::CustomArguments(error.to_string()))?;
         self.server = Some((host, port));
+        Ok(self)
+    }
+
+    pub fn with_world(mut self, world: &str) -> Result<Self, GameLaunchError> {
+        let supported = self.version_details.arguments.as_ref().is_some_and(|args| {
+            args.game.iter().any(|arg| match arg {
+                McArgument::Plain(value) => value == "--quickPlaySingleplayer",
+                McArgument::Conditional {
+                    value: McArgumentValue::One(value),
+                    ..
+                } => value == "--quickPlaySingleplayer",
+                McArgument::Conditional {
+                    value: McArgumentValue::Many(values),
+                    ..
+                } => values
+                    .iter()
+                    .any(|value| value == "--quickPlaySingleplayer"),
+            })
+        });
+        if !supported {
+            return Err(GameLaunchError::InvalidMetadata(
+                "This Minecraft version does not support singleplayer quick play".into(),
+            ));
+        }
+        self.world = Some(world.to_owned());
         Ok(self)
     }
 
@@ -478,7 +504,7 @@ impl LaunchOption {
             }
             _ => "0",
         };
-        let vars = std::collections::HashMap::from([
+        let mut vars = std::collections::HashMap::from([
             ("classpath", classpath.to_owned()),
             (
                 "classpath_separator",
@@ -547,6 +573,12 @@ impl LaunchOption {
         context
             .features
             .insert("has_custom_resolution".into(), true);
+        if let Some(world) = &self.world {
+            vars.insert("quickPlaySingleplayer", world.clone());
+            context
+                .features
+                .insert("is_quick_play_singleplayer".into(), true);
+        }
         let expand = |input: &str| -> Result<String, GameLaunchError> {
             let pattern = regex::Regex::new(r"\$\{([^}]+)\}").unwrap();
             let mut missing = None;
@@ -717,6 +749,7 @@ impl LaunchOption {
             arguments: request.arguments,
             extras: request.extras,
             server: None,
+            world: None,
             authlib: None,
         })
     }
@@ -1200,6 +1233,7 @@ mod tests {
             arguments: crate::minecraft::launch::arguments::LaunchArguments::default(),
             extras: Default::default(),
             server: None,
+            world: None,
             authlib: None,
         };
         option.extras.proxy = Some(("127.0.0.1".into(), 7891));
@@ -1317,6 +1351,19 @@ mod tests {
         );
         option.server = None;
         option.version_details.release_time = None;
+        option.version_details.arguments = Some(serde_json::from_value(json!({
+            "game": ["--username", "${auth_player_name}", {
+                "rules": [{"action": "allow", "features": {"is_quick_play_singleplayer": true}}],
+                "value": ["--quickPlaySingleplayer", "${quickPlaySingleplayer}"]
+            }]
+        })).unwrap());
+        option = option.with_world("A world").unwrap();
+        let (_, _, game) = option.metadata_arguments("a path").unwrap();
+        assert!(
+            game.windows(2)
+                .any(|args| args == ["--quickPlaySingleplayer", "A world"])
+        );
+        option.world = None;
         option.version_details.arguments = original_arguments;
         assert!(option.launch_checked().unwrap().wait().unwrap().success());
         let output = fs::read_to_string(root.join("captured")).unwrap();

@@ -35,6 +35,8 @@ export const useLaunchState = defineStore('launch-state', () => {
   const cancelRequested = ref(false)
   const attempt = ref(0)
   const pendingServer = ref<{ directory: string; address: string } | null>(null)
+  const pendingAuth = ref<{ server: string; register: string; name: string } | null>(null)
+  const pendingWorld = ref<{ directory: string; world: string } | null>(null)
   let speedTimer: ReturnType<typeof setTimeout> | undefined
   let launchLeaveTimer: ReturnType<typeof setTimeout> | undefined
   let speedRefreshingFor: number | undefined
@@ -134,6 +136,8 @@ export const useLaunchState = defineStore('launch-state', () => {
 
   return {
     pendingServer,
+    pendingWorld,
+    pendingAuth,
     preparing,
     launching,
     downloadSpeed,

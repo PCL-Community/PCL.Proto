@@ -13,6 +13,17 @@ pub fn update(
     settings: InstanceLaunchSettings,
 ) -> Result<InstanceLaunchSettings, String> {
     settings.validate()?;
+    if let Some(old) = state.instance_launch_settings.get(instance_directory) {
+        if old.server_login_locked
+            && (old.server_login != settings.server_login
+                || old.auth_server != settings.auth_server
+                || old.auth_register != settings.auth_register
+                || old.auth_name != settings.auth_name
+                || !settings.server_login_locked)
+        {
+            return Err("Instance login settings are locked".into());
+        }
+    }
     current_instance(state.active_game_instance.as_deref(), instance_directory)
         .map_err(|error| error.to_string())?;
     if settings == InstanceLaunchSettings::default() {
@@ -40,6 +51,12 @@ pub const RENDERER_MAX: u8 = 4;
 pub struct InstanceLaunchSettings {
     /// Custom version info shown in the game; empty follows the global value.
     pub info: String,
+    pub server_login: u8,
+    pub server_login_locked: bool,
+    pub auth_server: String,
+    pub auth_register: String,
+    pub auth_name: String,
+    pub server_address: String,
     pub renderer: u8,
     pub prelaunch_command: String,
     pub prelaunch_wait: bool,
@@ -52,7 +69,59 @@ pub struct InstanceLaunchSettings {
 }
 
 impl InstanceLaunchSettings {
+    pub fn validate_profile(
+        &self,
+        profile: &pcl_core::minecraft::profile::McProfile,
+    ) -> Result<(), String> {
+        use pcl_core::minecraft::profile::{ProfileType, auth::authlib::normalize_server};
+        let third_party = matches!(
+            profile.profile_type,
+            ProfileType::Authlib | ProfileType::YggdrasilConnect
+        );
+        match self.server_login {
+            1 if profile.profile_type != ProfileType::Microsoft => {
+                return Err("Minecraft.Launch.Precheck.RequireMicrosoft".into());
+            }
+            2 if !third_party => return Err("Minecraft.Launch.Precheck.RequireThirdParty".into()),
+            3 if profile.profile_type == ProfileType::Offline => {
+                return Err("Minecraft.Launch.Precheck.RequireMicrosoftOrThirdParty".into());
+            }
+            _ => {}
+        }
+        if self.server_login >= 2 && third_party {
+            let expected = normalize_server(&self.auth_server).ok();
+            let actual = profile
+                .server
+                .as_deref()
+                .and_then(|server| normalize_server(server).ok());
+            if expected.is_none() || expected != actual {
+                return Err("Minecraft.Launch.Precheck.AuthServerMismatch".into());
+            }
+        }
+        Ok(())
+    }
+
     pub fn validate(&self) -> Result<(), String> {
+        if self.server_login > 3
+            || [
+                &self.auth_server,
+                &self.auth_register,
+                &self.auth_name,
+                &self.server_address,
+            ]
+            .iter()
+            .any(|value| value.len() > 4096 || value.contains('\0'))
+        {
+            return Err("Invalid server settings".into());
+        }
+        if self.server_login_locked
+            && (!(2..=3).contains(&self.server_login)
+                || !reqwest::Url::parse(self.auth_server.trim()).is_ok_and(|url| {
+                    matches!(url.scheme(), "http" | "https") && url.host_str().is_some()
+                }))
+        {
+            return Err("A valid authentication server is required to lock login settings".into());
+        }
         if self.renderer > RENDERER_MAX {
             return Err("Invalid renderer choice".into());
         }
@@ -151,6 +220,38 @@ mod tests {
         assert_eq!(resolve(&global, None).info, "PCL.Proto");
         global.version_info = String::new();
         assert!(resolve(&global, None).info.is_empty());
+    }
+
+    #[test]
+    fn server_login_restrictions_check_profile_and_provider() {
+        use pcl_core::minecraft::profile::McProfile;
+        let offline = McProfile::offline("player", "uuid");
+        let microsoft = McProfile::microsoft("player", "uuid", "token", "refresh", "xuid");
+        let auth = McProfile::authlib(
+            "https://example.com/api/yggdrasil/authserver",
+            "server",
+            "token",
+            "uuid",
+            "player",
+        );
+        let mut settings = InstanceLaunchSettings {
+            server_login: 1,
+            ..Default::default()
+        };
+        assert!(settings.validate_profile(&offline).is_err());
+        assert!(settings.validate_profile(&microsoft).is_ok());
+        settings.server_login = 2;
+        settings.auth_server = "https://example.com/api/yggdrasil/".into();
+        assert!(settings.validate_profile(&microsoft).is_err());
+        assert!(settings.validate_profile(&auth).is_ok());
+        settings.auth_server = "https://other.example/api/yggdrasil".into();
+        assert!(settings.validate_profile(&auth).is_err());
+        settings.server_login = 3;
+        assert!(settings.validate_profile(&microsoft).is_ok());
+        assert!(settings.validate_profile(&offline).is_err());
+        settings.server_login_locked = true;
+        settings.auth_server = "invalid".into();
+        assert!(settings.validate().is_err());
     }
 
     #[test]

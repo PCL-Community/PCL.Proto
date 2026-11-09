@@ -21,6 +21,8 @@ import sideTip from '@/composables/sideTip'
 import { ModalWidthVariant } from '@/types/modal'
 import { useLaunchState, type LaunchFailure, type LaunchProgress } from '@/stores/launchState'
 import { storeToRefs } from 'pinia'
+import { authServerPreset } from './authServerPreset'
+import { instanceLaunchSettingsStorage } from '@/api/instanceLaunchSettings'
 
 defineProps<{ loadingInstances?: boolean }>()
 
@@ -55,6 +57,8 @@ useLoginSession(
 )
 const modal = useModal()
 const launchState = useLaunchState()
+const authRegister = ref<string | undefined>()
+const authName = ref<string | undefined>()
 const { preparing, launching, downloadSpeed, leavingLaunch } = storeToRefs(launchState)
 
 /** 启动页显示的验证方式，对照 CE 的 `LabLaunchingMethod`。 */
@@ -109,10 +113,20 @@ function showLaunchFailure(attempt: number, failure: LaunchFailure) {
     title: pclText('Crash.Dialog.Title.Auto'),
     content: formatLaunchFailure(failure),
     width: ModalWidthVariant.Fat,
-    buttons: [{ content: pclText('Common.Action.Confirm'), operation: () => modal.close() }],
+    buttons: [
+      {
+        content: pclText('Common.Action.Confirm'),
+        operation: () => modal.close(),
+      },
+    ],
   })
 }
-async function launch(serverAddress?: string) {
+function launchError(error: unknown) {
+  const message = String(error)
+  const key = message.match(/Minecraft\.Launch\.Precheck\.(?:RequireMicrosoftOrThirdParty|RequireMicrosoft|RequireThirdParty|AuthServerMismatch)/)?.[0]
+  return key ? pclText(key) : message
+}
+async function launch(serverAddress?: string, world?: string) {
   if (preparing.value || account.loggingIn) return
   // CE：没有选中档案时不允许启动。
   if (!account.profile) {
@@ -127,6 +141,8 @@ async function launch(serverAddress?: string) {
   const instanceDirectory = instance.instance_info.directory
   let attempt: number | undefined
   try {
+    const savedSettings = await instanceLaunchSettingsStorage.read(instanceDirectory)
+    if (savedSettings.error) throw new Error(savedSettings.error)
     await invoke('begin_launch')
     attempt = startLaunching()
     launchState.setPreparing(attempt, true)
@@ -145,7 +161,12 @@ async function launch(serverAddress?: string) {
             info.requirements.min[0],
             info.requirements.max[0],
           ]),
-          buttons: [{ content: pclText('Common.Action.Close'), operation: () => modal.close() }],
+          buttons: [
+            {
+              content: pclText('Common.Action.Close'),
+              operation: () => modal.close(),
+            },
+          ],
         })
         await abandonLaunch(attempt)
         returnToHome(attempt)
@@ -161,7 +182,10 @@ async function launch(serverAddress?: string) {
             content: pclText('Minecraft.Launch.Java.AutoDownload.Action'),
             operation: () => modal.close(true),
           },
-          { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
+          {
+            content: pclText('Common.Action.Cancel'),
+            operation: () => modal.close(false),
+          },
         ],
       })
       if (
@@ -201,15 +225,16 @@ async function launch(serverAddress?: string) {
       instanceDirectory,
       progress,
       serverAddress: serverAddress ?? null,
+      world: world ?? null,
     })
   } catch (err) {
     if (attempt !== undefined && launchState.isCurrent(attempt)) {
       await abandonLaunch(attempt)
       if (!launchState.isCancelled(attempt))
-        sideTip.show(pclText('Proto.Error.Launch', [String(err)]), 'warn')
+        sideTip.show(pclText('Proto.Error.Launch', [launchError(err)]), 'warn')
       returnToHome(attempt)
     } else if (attempt === undefined)
-      sideTip.show(pclText('Proto.Error.Launch', [String(err)]), 'warn')
+      sideTip.show(pclText('Proto.Error.Launch', [launchError(err)]), 'warn')
   } finally {
     if (attempt !== undefined) launchState.setPreparing(attempt, false)
   }
@@ -227,6 +252,31 @@ watch(
   },
   { immediate: true },
 )
+watch(
+  () => launchState.pendingWorld,
+  (pending) => {
+    if (!pending) return
+    launchState.pendingWorld = null
+    if (pending.directory === instance.instance_info?.directory && !preparing.value) {
+      void launch(undefined, pending.world)
+    } else {
+      sideTip.show(pclText('Instance.Saves.Error.OperationFailed'), 'warn')
+    }
+  },
+  { immediate: true },
+)
+watch(
+  () => launchState.pendingAuth,
+  (pending) => {
+    if (!pending) return
+    launchState.pendingAuth = null
+    authServerPreset.value = pending.server
+    authRegister.value = pending.register || undefined
+    authName.value = pending.name || undefined
+    profileView.value = 'auth'
+  },
+  { immediate: true },
+)
 function settings() {
   if (instance.instance_info) void router.push('/instance_setting')
   else sideTip.show(pclText('Proto.Instance.SelectFirstHint'))
@@ -236,12 +286,15 @@ function settings() {
 <template>
   <aside
     class="launch-left"
-    :class="{ 'is-launching': launching && !leavingLaunch, 'is-returning': leavingLaunch }"
+    :class="{
+      'is-launching': launching && !leavingLaunch,
+      'is-returning': leavingLaunch,
+    }"
   >
     <div class="launch-input">
       <div class="login-panel">
         <Transition name="login-page" mode="out-in">
-          <component :is="accountView" @view="profileView = $event" />
+          <component :is="accountView" :register-url="profileView === 'auth' ? authRegister : undefined" :server-name="profileView === 'auth' ? authName : undefined" @view="profileView = $event" />
         </Transition>
       </div>
       <div class="launch-actions">
@@ -290,9 +343,15 @@ function settings() {
         <dd>{{ pclText(launching.stage) }}</dd>
         <dt>{{ pclText('Launch.Status.LoginMethod') }}</dt>
         <dd>{{ launching.method }}</dd>
-        <dt v-if="launching.progress < 1">{{ pclText('Launch.Status.LaunchProgress') }}</dt>
-        <dd v-if="launching.progress < 1">{{ `${(launching.progress * 100).toFixed(2)}%` }}</dd>
-        <dt v-if="launching.downloading">{{ pclText('Launch.Status.DownloadSpeed') }}</dt>
+        <dt v-if="launching.progress < 1">
+          {{ pclText('Launch.Status.LaunchProgress') }}
+        </dt>
+        <dd v-if="launching.progress < 1">
+          {{ `${(launching.progress * 100).toFixed(2)}%` }}
+        </dd>
+        <dt v-if="launching.downloading">
+          {{ pclText('Launch.Status.DownloadSpeed') }}
+        </dt>
         <dd v-if="launching.downloading">{{ downloadSpeed || '0 B/s' }}</dd>
       </dl>
       <div v-if="launching.progress === 1" class="launch-trivia">

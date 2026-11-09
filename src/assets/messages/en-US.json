@@ -1,4 +1,6 @@
 {
+  "Proto.Saves.Created": "Created: {0}",
+  "Proto.Saves.Modified": "Last modified: {0}",
   "Proto.Account.ResetOfflineSkin": "Reset to default skin",
   "Proto.Title.Accounts": "Accounts",
   "Proto.Title.Saves": "Saves",

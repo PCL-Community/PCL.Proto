@@ -34,12 +34,13 @@ export function useInstanceLaunchSettings(directory?: Ref<string | undefined>) {
 
   function save() {
     const path = currentPath()
-    if (!ready.value || !path) return
+    if (!ready.value || !path) return Promise.resolve(false)
     const revision = generation
     const edit = ++saveRevision
     error.value = null
-    void instanceLaunchSettingsStorage.write({ ...settings }, path).catch((failure) => {
+    return instanceLaunchSettingsStorage.write({ ...settings }, path).then(() => true).catch((failure) => {
       if (revision === generation && edit === saveRevision) error.value = String(failure)
+      return false
     })
   }
 

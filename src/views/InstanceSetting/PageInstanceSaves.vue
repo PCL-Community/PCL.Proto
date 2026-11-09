@@ -14,18 +14,26 @@ import { popupNativeMenu } from '@/util/nativeMenu'
 import { resourceUrl, useInstanceResources } from '@/composables/useInstanceResources'
 import { openInstancePath } from '@/api/instanceResources'
 import { useSelectedInstance } from '@/stores/gameLaunch'
-import { isTauri } from '@tauri-apps/api/core'
+import { invoke, isTauri } from '@tauri-apps/api/core'
+import { useLaunchState } from '@/stores/launchState'
 import sideTip from '@/composables/sideTip'
 
 const router = useRouter()
 const instance = useSelectedInstance()
+const launchState = useLaunchState()
 const sort = ref('name')
 const query = ref('')
 
 function chooseSort(event: MouseEvent) {
   void popupNativeMenu(event.currentTarget as Element, [
-    { text: pclText('Instance.Saves.SortFileName'), action: () => (sort.value = 'name') },
-    { text: pclText('Instance.Saves.SortModifyTime'), action: () => (sort.value = 'modified') },
+    {
+      text: pclText('Instance.Saves.SortFileName'),
+      action: () => (sort.value = 'name'),
+    },
+    {
+      text: pclText('Instance.Saves.SortModifyTime'),
+      action: () => (sort.value = 'modified'),
+    },
   ])
 }
 
@@ -39,14 +47,20 @@ const resources = useInstanceResources({
 })
 
 function formatDate(seconds: number) {
-  return seconds ? new Date(seconds * 1000).toLocaleString(pclFormatLocale.value) : ''
+  return new Date(seconds * 1000).toLocaleDateString(pclFormatLocale.value)
 }
 
 const saves = computed(() =>
   resources.items.value.map((entry) => ({
     id: entry.path,
     name: entry.name,
-    description: formatDate(entry.modified),
+    description: entry.created && entry.modified
+      ? pclText('Instance.Saves.CreationTime', [formatDate(entry.created), formatDate(entry.modified)])
+      : entry.created
+        ? pclText('Proto.Saves.Created', [formatDate(entry.created)])
+        : entry.modified
+          ? pclText('Proto.Saves.Modified', [formatDate(entry.modified)])
+          : undefined,
     modified: entry.modified,
     icon: resourceUrl(entry.token),
   })),
@@ -76,6 +90,31 @@ async function openSave(id: string) {
     sideTip.show(`${pclText('Instance.Saves.Error.OperationFailed')} ${failure}`, 'warn')
   }
 }
+async function copySave(name: string) {
+  const directory = instance.instance_info?.directory
+  if (!directory || !isTauri()) return
+  try {
+    await invoke('copy_save_folder', {
+      instanceDirectory: directory,
+      save: name,
+    })
+    sideTip.show(pclText('Instance.Saves.CopiedToClipboard'), 'success')
+    sideTip.show(pclText('Instance.Saves.CopyPasteWarning'), 'warn')
+  } catch (failure) {
+    sideTip.show(`${pclText('Instance.Saves.CopyFailed')} ${failure}`, 'warn')
+  }
+}
+
+function showDetails(name: string) {
+  void router.push({ path: '/instance_save/info', query: { id: name } })
+}
+
+async function quickPlay(name: string) {
+  const directory = instance.instance_info?.directory
+  if (!directory || !isTauri() || launchState.preparing || launchState.launching) return
+  if (await router.push('/home')) return
+  launchState.pendingWorld = { directory, world: name }
+}
 </script>
 <template>
   <div class="pcl-page">
@@ -92,7 +131,13 @@ async function openSave(id: string) {
             pclText('Instance.Saves.OpenFolder')
           }}</PButton
           ><PButton
-            @click="() => router.push({ path: '/download/world', query: { instance: 'selected' } })"
+            @click="
+              () =>
+                router.push({
+                  path: '/download/world',
+                  query: { instance: 'selected' },
+                })
+            "
             >{{ pclText('Instance.Resource.DownloadNew') }}</PButton
           ><PButton @click="resources.importFiles()">{{
             pclText('Instance.Resource.InstallFromFiles')
@@ -125,7 +170,7 @@ async function openSave(id: string) {
             :subtitle="save.description"
             :icon="save.icon"
             clickable
-            @click="() => router.push({ path: '/instance_save/info', query: { id: save.name } })"
+            @click="showDetails(save.name)"
           >
             <template #icon-actions>
               <button
@@ -146,6 +191,33 @@ async function openSave(id: string) {
               >
                 <PSvgIcon name="lucide/trash-2" :size="15" />
               </button>
+              <button
+                class="pcl-icon-button"
+                type="button"
+                :title="pclText('Common.Action.Copy')"
+                :aria-label="pclText('Common.Action.Copy')"
+                @click="copySave(save.name)"
+              >
+                <PSvgIcon name="lucide/copy" :size="15" />
+              </button>
+              <button
+                class="pcl-icon-button"
+                type="button"
+                :title="pclText('Instance.Saves.Details')"
+                :aria-label="pclText('Instance.Saves.Details')"
+                @click="showDetails(save.name)"
+              >
+                <PSvgIcon name="lucide/info" :size="15" />
+              </button>
+              <button
+                class="pcl-icon-button"
+                type="button"
+                :title="pclText('Instance.Saves.QuickPlay')"
+                :aria-label="pclText('Instance.Saves.QuickPlay')"
+                @click="quickPlay(save.name)"
+              >
+                <PSvgIcon name="lucide/play" :size="15" />
+              </button>
             </template>
           </PListItem></div
       ></PCard>
@@ -164,7 +236,13 @@ async function openSave(id: string) {
             pclText('Instance.Saves.OpenFolder')
           }}</PButton>
           <PButton
-            @click="() => router.push({ path: '/download/world', query: { instance: 'selected' } })"
+            @click="
+              () =>
+                router.push({
+                  path: '/download/world',
+                  query: { instance: 'selected' },
+                })
+            "
             >{{ pclText('Instance.Resource.DownloadNew') }}</PButton
           >
           <PButton @click="resources.importFiles()">{{
