@@ -208,7 +208,6 @@
   "Proto.Title.ResourceDownload": "资源下载",
   "Proto.LaunchArguments.Parsing": "参数按引号和反斜杠解析，不经过命令行。含反斜杠或空格的路径请用单引号包围。",
   "Proto.LaunchArguments.Hint": "最大堆内存由内存设置决定；自定义 -Xms 优先于初始内存设置。",
-  "Proto.Settings.RendererWindowsOnly": "渲染器切换仅在 Windows 上可用。",
   "Proto.Settings.ModUpdateUnavailable": "PCL.Proto 尚未提供模组更新检查，此项暂时不可用。",
   "Proto.Settings.ProxyCredentialsHint": "PCL.Proto 暂不支持单独填写代理凭据，请在代理地址中包含用户名与密码，如 http://user:pass@127.0.0.1:7890。",
   "Proto.Settings.ProxySaved": "代理设置已保存",

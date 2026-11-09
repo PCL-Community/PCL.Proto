@@ -26,7 +26,7 @@ import { launchArgumentKeys } from '@/api/launchArguments'
 import { useLaunchArguments } from '@/composables/useLaunchArguments'
 import { useInstanceLaunchSettings } from '@/composables/useInstanceLaunchSettings'
 import { useLaunchState } from '@/stores/launchState'
-import currentPlatform, { currentArch } from '@/util/platform'
+import { availableOnPlatform, currentArch } from '@/util/platform'
 const props = defineProps<{
   loginLocked?: boolean
   memoryOverLimit?: boolean
@@ -58,7 +58,7 @@ const {
   error: launchSettingsError,
   save: saveLaunchSettings,
 } = useInstanceLaunchSettings(directory)
-const rendererWindowsOnly = currentPlatform !== 'windows'
+const rendererVisible = availableOnPlatform('windows')
 const jlwForced = computed(() => currentArch === 'aarch64')
 
 const javaSettings = computed<InstanceJavaSettings>(
@@ -543,11 +543,13 @@ const router = useRouter()
     </PCard>
     <PCard :title="pclText('Setup.Launch.Advanced.Title')" default-fold-status="fold">
       <div class="pcl-card-body settings-grid">
-        <SetupItem :label="pclText('Setup.Launch.Advanced.Renderer.Label')" v-slot="{ id }"
+        <SetupItem
+          v-if="rendererVisible"
+          :label="pclText('Setup.Launch.Advanced.Renderer.Label')"
+          v-slot="{ id }"
           ><PComboBox
-            :disabled="!launchSettingsReady || rendererWindowsOnly"
+            :disabled="!launchSettingsReady"
             :input-id="id"
-            :title="rendererWindowsOnly ? pclText('Proto.Settings.RendererWindowsOnly') : undefined"
             :options="[
               { key: '0', text: pclText('Instance.Setup.FollowGlobal') },
               { key: '1', text: pclText('Setup.Launch.Advanced.Renderer.GameDefault') },

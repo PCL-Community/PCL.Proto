@@ -3,6 +3,8 @@ import SetupItem from '@/components/widget/SetupItem.vue'
 import { useSetup } from '@/stores/setup'
 import { watch, computed, onMounted, onUnmounted, ref } from 'vue'
 import { isTauri } from '@tauri-apps/api/core'
+import type { Platform } from '@tauri-apps/plugin-os'
+import { availableOnPlatform } from '@/util/platform'
 import { useJavaStore } from '@/stores/java'
 import { useRouter } from 'vue-router'
 import { pclText } from '@/api/pclLocale'
@@ -243,15 +245,24 @@ watch(
   { immediate: true },
 )
 const router = useRouter()
-const unavailableAdvancedOptions = [
-  ['CheckAdvanceDisableJLW', 'DisableJlw'],
+// 某项仅在特定平台生效时在第三项标注，未标注表示所有平台通用
+const rendererVisible = availableOnPlatform('windows')
+const unavailableAdvancedOptions: readonly (readonly [
+  key: string,
+  label: string,
+  platform?: Platform,
+])[] = [
+  ['CheckAdvanceDisableJLW', 'DisableJlw', 'windows'],
   ['CheckAdvanceDisableLF', 'DisableLF'],
-  ['CheckAdvanceGraphicCard', 'GpuPreference'],
-  ['CheckAdvanceNoJavaw', 'UseJavaExe'],
+  ['CheckAdvanceGraphicCard', 'GpuPreference', 'windows'],
+  ['CheckAdvanceNoJavaw', 'UseJavaExe', 'windows'],
   ['CheckAdvanceDisableLwjglUnsafeAgent', 'DisableLwjglUnsafeAgent'],
   ['CheckAdvanceDisableCrashAnalysis', 'DisableCrashAnalysis'],
   ['CheckAdvanceLockMemory', 'LockMemory'],
-] as const
+]
+const visibleAdvancedOptions = computed(() =>
+  unavailableAdvancedOptions.filter(([, , platform]) => availableOnPlatform(platform)),
+)
 </script>
 <template>
   <div class="pcl-page">
@@ -470,7 +481,10 @@ const unavailableAdvancedOptions = [
     </PCard>
     <PCard :title="pclText('Setup.Launch.Advanced.Title')" default-fold-status="fold">
       <div class="pcl-card-body settings-grid">
-        <SetupItem :label="pclText('Setup.Launch.Advanced.Renderer.Label')" v-slot="{ id }"
+        <SetupItem
+          v-if="rendererVisible"
+          :label="pclText('Setup.Launch.Advanced.Renderer.Label')"
+          v-slot="{ id }"
           ><PComboBox
             disabled
             :input-id="id"
@@ -554,7 +568,7 @@ const unavailableAdvancedOptions = [
           "
         >
           <PCheckBox
-            v-for="[key, label] in unavailableAdvancedOptions"
+            v-for="[key, label] in visibleAdvancedOptions"
             :key
             disabled
             :title="pclText(`Setup.Launch.Advanced.${label}.ToolTip`)"

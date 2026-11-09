@@ -208,7 +208,6 @@
   "Proto.Title.ResourceDownload": "Resource download",
   "Proto.LaunchArguments.Parsing": "Arguments use quote and backslash parsing without a shell. Enclose paths containing spaces or backslashes in single quotes.",
   "Proto.LaunchArguments.Hint": "Maximum heap comes from memory settings; a custom -Xms takes precedence over initial memory.",
-  "Proto.Settings.RendererWindowsOnly": "Renderer switching is only available on Windows.",
   "Proto.Settings.ModUpdateUnavailable": "PCL.Proto does not implement mod update checks yet.",
   "Proto.Settings.ProxyCredentialsHint": "PCL.Proto does not store proxy credentials separately; include them in the address, e.g. http://user:pass@127.0.0.1:7890.",
   "Proto.Settings.ProxySaved": "Proxy settings saved",
