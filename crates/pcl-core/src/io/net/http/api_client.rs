@@ -348,7 +348,7 @@ impl MinecraftApiClient {
             match result {
                 Ok(value) => return Ok(value),
                 Err(error) => {
-                    log::warn!("Metadata source failed for {actual_url}: {error}");
+                    log::warn!("Metadata source failed for {actual_url}: {error:?}");
                     last_error = Some(error);
                 }
             }

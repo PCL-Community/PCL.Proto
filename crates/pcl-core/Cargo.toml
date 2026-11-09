@@ -40,7 +40,7 @@ tokio = { workspace = true, features = [
 log = "0.4.35"
 shlex = "2.0"
 goblin = "0.10.7"
-reqwest = { workspace = true, features = ["json", "stream", "form", "multipart"] }
+reqwest = { workspace = true, features = ["json", "stream", "form", "multipart", "gzip"] }
 thiserror = "2.0.21"
 futures-util = "0.3.34"
 serde_repr = "0.1.21"
