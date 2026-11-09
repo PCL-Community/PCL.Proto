@@ -201,39 +201,6 @@ onScopeDispose(() => {
               v-model="values.ComboDownloadMod"
             />
           </SetupItem>
-          <SetupItem :label="pclText('Setup.GameManage.Community.FilenameFormat')" v-slot="{ id }">
-            <PComboBox
-              :input-id="id"
-              disabled
-              :title="pclText('Setup.GameManage.Community.FilenameFormat.ToolTip')"
-              :options="[
-                { key: '0', text: pclText('Setup.GameManage.Community.FilenameFormat.Style0') },
-                { key: '1', text: pclText('Setup.GameManage.Community.FilenameFormat.Style1') },
-                { key: '2', text: pclText('Setup.GameManage.Community.FilenameFormat.Style2') },
-                { key: '3', text: pclText('Setup.GameManage.Community.FilenameFormat.Style3') },
-                { key: '4', text: pclText('Setup.GameManage.Community.FilenameFormat.Style4') },
-              ]"
-              v-model="values.ComboDownloadTranslateV2"
-            />
-          </SetupItem>
-          <SetupItem :label="pclText('Setup.GameManage.Community.ModManageStyle')" v-slot="{ id }">
-            <PComboBox
-              :input-id="id"
-              disabled
-              :title="pclText('Setup.GameManage.Community.ModManageStyle.ToolTip')"
-              :options="[
-                {
-                  key: '0',
-                  text: pclText('Setup.GameManage.Community.ModManageStyle.TitleTranslation'),
-                },
-                {
-                  key: '1',
-                  text: pclText('Setup.GameManage.Community.ModManageStyle.TitleFilename'),
-                },
-              ]"
-              v-model="values.ComboModLocalNameStyle"
-            />
-          </SetupItem>
           <SetupItem :label="pclText('Setup.GameManage.Community.QuickDownload')" v-slot="{ id }">
             <PComboBox
               :input-id="id"
