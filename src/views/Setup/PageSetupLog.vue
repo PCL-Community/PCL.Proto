@@ -110,25 +110,14 @@ async function clearHistory() {
 <template>
   <div class="pcl-page">
     <PCard :title="pclText('Setup.Log.Operations')">
-      <div
-        style="
-          margin: 0px 20px 20px 25px;
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          flex-wrap: wrap;
-        "
-      >
-        <PButton
-          style="min-width: 100px; margin: 0px 15px 0px 0px"
-          @click="exportCurrent"
-          type="tint"
-          >{{ pclText('Setup.Log.Export') }}</PButton
-        >
-        <PButton style="min-width: 120px; margin: 0px 15px 0px 0px" @click="exportAll">{{
+      <div class="pcl-card-body pcl-button-row">
+        <PButton style="min-width: 100px" @click="exportCurrent" type="tint">{{
+          pclText('Setup.Log.Export')
+        }}</PButton>
+        <PButton style="min-width: 120px" @click="exportAll">{{
           pclText('Setup.Log.ExportAll')
         }}</PButton>
-        <PButton style="min-width: 120px; margin: 0px 15px 0px 0px" @click="openDirectory">{{
+        <PButton style="min-width: 120px" @click="openDirectory">{{
           pclText('Setup.Log.OpenDirectory')
         }}</PButton>
         <PButton style="min-width: 120px" @click="clearHistory" type="warn">{{
@@ -137,7 +126,7 @@ async function clearHistory() {
       </div>
     </PCard>
     <PCard :title="pclText('Setup.Log.AllLogs')">
-      <div style="margin: 0px 18px 18px 20px; display: flex; flex-direction: column">
+      <div class="pcl-card-body">
         <PLoading v-if="loading" :card="false" :loading-text="pclText('Proto.Download.Loading')" />
         <PHint v-else-if="loadError" severity="error">{{ loadError }}</PHint>
         <template v-else-if="logs.length">

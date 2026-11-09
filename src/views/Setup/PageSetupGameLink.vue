@@ -201,7 +201,5 @@ onUnmounted(() => editVersion++)
 .setup-checks {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 4px;
 }
 </style>

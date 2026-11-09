@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SetupItem from '@/components/widget/SetupItem.vue'
 import { computed } from 'vue'
 import PIconTextButton from '@/components/widget/PIconTextButton.vue'
 import PCard from '@/components/widget/PCard.vue'
@@ -44,54 +45,28 @@ async function setLanguage(value?: string) {
 <template>
   <div class="pcl-page">
     <PCard :title="pclText('Setup.Language.CardTitle')">
-      <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
-        <div
-          style="
-            display: grid;
-            grid-template-columns: auto minmax(0, 1fr) 60px;
-            grid-template-rows: 28px 9px 28px;
-          "
-        >
-          <span
-            style="
-              margin: 0px 25px 0px 0px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-              justify-self: start;
-              align-self: center;
-            "
-            class="pcl-text"
-            >{{ pclText('Setup.Language.UiLanguage') }}</span
-          >
-          <PComboBox
-            style="grid-row: 1 / span 1; grid-column: 2 / span 2"
-            :options="languageOptions"
-            :model-value="pclLanguagePreference"
-            :aria-label="pclText('Setup.Language.UiLanguage')"
-            @update:model-value="setLanguage"
-          />
-          <span
-            style="
-              margin: 0px 25px 0px 0px;
-              grid-row: 3 / span 1;
-              grid-column: 1 / span 1;
-              justify-self: start;
-              align-self: center;
-            "
-            class="pcl-text"
-            >{{ pclText('Setup.Language.FormatCulture') }}</span
-          >
-          <PComboBox
-            style="grid-row: 3 / span 1; grid-column: 2 / span 2"
-            :options="formatOptions"
-            :model-value="pclFormatPreference"
-            :aria-label="pclText('Setup.Language.FormatCulture')"
-            @update:model-value="(value) => value && setPclFormatLocale(value)"
-          />
+      <div class="pcl-card-body">
+        <div class="settings-grid">
+          <SetupItem :label="pclText('Setup.Language.UiLanguage')" v-slot="{ id }">
+            <PComboBox
+              :input-id="id"
+              :options="languageOptions"
+              :model-value="pclLanguagePreference"
+              @update:model-value="setLanguage"
+            />
+          </SetupItem>
+          <SetupItem :label="pclText('Setup.Language.FormatCulture')" v-slot="{ id }">
+            <PComboBox
+              :input-id="id"
+              :options="formatOptions"
+              :model-value="pclFormatPreference"
+              @update:model-value="(value) => value && setPclFormatLocale(value)"
+            />
+          </SetupItem>
         </div>
         <div
           class="internationalization-banner"
-          style="min-height: 230px; margin: 10px 0px 0px 0px; padding: 25px; border-radius: 5px"
+          style="min-height: 230px; padding: 25px; border-radius: 5px"
         >
           <div style="display: grid">
             <PSvgIcon class="internationalization-icon" name="lucide/earth" />
@@ -117,11 +92,9 @@ async function setLanguage(value?: string) {
                 <span style="font-size: 22px; font-weight: 700" class="pcl-text">{{
                   pclText('Setup.Language.Banner.TitlePrefix')
                 }}</span>
-                <span
-                  style="margin: 2px 0px 2px 0px; font-size: 42px; font-weight: 700"
-                  class="pcl-text"
-                  >{{ 'PCL.Proto' }}</span
-                >
+                <span style="font-size: 42px; font-weight: 700" class="pcl-text">{{
+                  'PCL.Proto'
+                }}</span>
                 <span style="font-size: 22px; font-weight: 700" class="pcl-text">{{
                   pclText('Setup.Language.Banner.TitleSuffix')
                 }}</span>
@@ -129,7 +102,6 @@ async function setLanguage(value?: string) {
               <div
                 class="internationalization-description"
                 style="
-                  margin: 20px 0px 0px 0px;
                   grid-row: 2 / span 1;
                   grid-column: 1 / span 1;
                   display: flex;
@@ -139,10 +111,10 @@ async function setLanguage(value?: string) {
                 <span style="font-size: 14px" class="pcl-text">{{
                   pclText('Proto.Language.Banner.DescriptionLine1', ['PCL CE'])
                 }}</span>
-                <span style="margin: 5px 0px 0px 0px; font-size: 14px" class="pcl-text">{{
+                <span style="font-size: 14px" class="pcl-text">{{
                   pclText('Proto.Language.Banner.DescriptionLine2', ['PCL CE'])
                 }}</span>
-                <span style="margin: 5px 0px 0px 0px; font-size: 14px" class="pcl-text">{{
+                <span style="font-size: 14px" class="pcl-text">{{
                   pclText('Proto.Language.Banner.DescriptionLine3', ['PCL CE'])
                 }}</span>
               </div>
@@ -183,6 +155,7 @@ async function setLanguage(value?: string) {
 }
 .internationalization-banner {
   position: relative;
+  margin-top: 10px;
   overflow: hidden;
   background: var(--color-tint-lighter);
 }
@@ -201,6 +174,8 @@ async function setLanguage(value?: string) {
   position: relative;
 }
 .internationalization-description {
+  margin-top: 20px;
+  gap: 5px;
   line-height: 23px;
 }
 </style>

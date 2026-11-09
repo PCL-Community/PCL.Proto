@@ -162,7 +162,9 @@ const java32Bit = computed(
     java.runtimes.length > 0 &&
     java.instanceIs64Bit[directory.value] === false,
 )
-const authVisible = computed(() => launchSettings.server_login === 2 || launchSettings.server_login === 3)
+const authVisible = computed(
+  () => launchSettings.server_login === 2 || launchSettings.server_login === 3,
+)
 const loginLocked = computed(() => !!props.loginLocked || launchSettings.server_login_locked)
 const authFields = [
   { row: 2, id: 'auth-Server', key: 'auth_server', label: 'AuthServer' },
@@ -339,7 +341,7 @@ const router = useRouter()
 
     <PHint severity="info" closable>{{ pclText('Instance.Setup.Hint') }}</PHint>
     <PCard :title="pclText('Setup.Launch.Options.Title')">
-      <div style="margin: 0px 25px 21px 25px; display: flex; flex-direction: column">
+      <div class="pcl-card-body">
         <div class="settings-grid">
           <SetupItem :label="pclText('Instance.Setup.Options.InstanceIsolation')" v-slot="{ id }"
             ><PComboBox
@@ -372,7 +374,7 @@ const router = useRouter()
           /></SetupItem>
           <PCheckBox
             disabled
-            style="margin: 0px 0px 9px 0px; grid-column: 1 / -1"
+            style="grid-column: 1 / -1"
             :title="pclText('Instance.Setup.Options.WindowTitle.Default.ToolTip')"
             id="PageInstanceSetup-CheckArgumentTitleEmpty"
             :label="pclText('Instance.Setup.Options.WindowTitle.Default')"
@@ -420,7 +422,7 @@ const router = useRouter()
       <PMemorySettings instance :directory="directory" :java64="memoryJava64" />
     </PCard>
     <PCard :title="pclText('Instance.Setup.Server.Title')">
-      <div style="margin: 2px 25px 18px 25px; display: flex; flex-direction: column">
+      <div class="pcl-card-body">
         <PHint v-if="loginLocked" severity="warning" style="margin-bottom: 13px">{{
           pclText('Instance.Setup.Server.LoginLockHint')
         }}</PHint>
@@ -445,13 +447,12 @@ const router = useRouter()
         >
           <span
             style="
-              margin: 0px 25px 0px 0px;
               grid-row: 1 / span 1;
               grid-column: 1 / span 1;
               justify-self: start;
               align-self: center;
             "
-            class="pcl-text"
+            class="pcl-text pcl-grid-label"
             >{{ pclText('Instance.Setup.Server.RestrictLogin') }}</span
           >
           <PComboBox
@@ -465,17 +466,29 @@ const router = useRouter()
               { key: '3', text: pclText('Instance.Setup.Server.LoginMethod.MicrosoftOrAuth') },
             ]"
             :model-value="String(launchSettings.server_login)"
-            @update:model-value="value => { if (value !== undefined) { launchSettings.server_login = Number(value); saveLaunchSettings() } }"
+            @update:model-value="
+              (value) => {
+                if (value !== undefined) {
+                  launchSettings.server_login = Number(value)
+                  saveLaunchSettings()
+                }
+              }
+            "
           />
           <template v-if="authVisible">
             <template v-for="field in authFields" :key="field.id">
-              <label :for="field.id" :style="{ gridRow: field.row, alignSelf: 'center' }">
+              <label
+                :for="field.id"
+                :style="{ gridRow: field.row }"
+                class="pcl-text pcl-grid-label auth-field"
+              >
                 {{ pclText(`Instance.Setup.Server.${field.label}`) }}
               </label>
               <PTextBox
                 :disabled="loginLocked || !launchSettingsReady"
                 :input-id="field.id"
                 :style="{ gridRow: field.row, gridColumn: '2 / span 2' }"
+                class="auth-field"
                 :placeholder="pclText(`Instance.Setup.Server.${field.label}.Hint`)"
                 v-model="launchSettings[field.key]"
                 @blur="saveLaunchSettings()"
@@ -484,13 +497,12 @@ const router = useRouter()
           </template>
           <span
             style="
-              margin: 0px 25px 0px 0px;
               grid-row: 6 / span 1;
               grid-column: 1 / span 1;
               justify-self: start;
               align-self: center;
             "
-            class="pcl-text"
+            class="pcl-text pcl-grid-label"
             >{{ pclText('Instance.Setup.Server.AutoJoin') }}</span
           >
           <PTextBox
@@ -498,7 +510,11 @@ const router = useRouter()
             style="grid-row: 6 / span 1; grid-column: 2 / span 2"
             :title="pclText('Instance.Setup.Server.AutoJoin.ToolTip')"
             v-model="launchSettings.server_address"
-            @update:model-value="value => { launchSettings.server_address = (value ?? '').replaceAll('：', ':') }"
+            @update:model-value="
+              (value) => {
+                launchSettings.server_address = (value ?? '').replaceAll('：', ':')
+              }
+            "
             @blur="saveLaunchSettings()"
           />
         </div>
@@ -526,7 +542,7 @@ const router = useRouter()
       </div>
     </PCard>
     <PCard :title="pclText('Setup.Launch.Advanced.Title')" default-fold-status="fold">
-      <div class="settings-grid" style="margin: 0px 25px 15px 25px">
+      <div class="pcl-card-body settings-grid">
         <SetupItem :label="pclText('Setup.Launch.Advanced.Renderer.Label')" v-slot="{ id }"
           ><PComboBox
             :disabled="!launchSettingsReady || rendererWindowsOnly"
@@ -601,7 +617,6 @@ const router = useRouter()
         >
           <PCheckBox
             v-if="launchSettings.prelaunch_command.trim()"
-            style="margin: 0 0 8px"
             id="PageInstanceSetup-CheckAdvanceRunWait"
             :disabled="!launchSettingsReady"
             :label="pclText('Setup.Launch.Advanced.PreLaunchCommand.Wait')"
@@ -717,3 +732,12 @@ const router = useRouter()
     >
   </div>
 </template>
+
+<style scoped>
+.auth-field {
+  margin-top: 8px;
+}
+label.auth-field {
+  align-self: center;
+}
+</style>

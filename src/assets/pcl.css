@@ -12,6 +12,30 @@
   font-size: 13px;
   line-height: 1.5;
 }
+.pcl-card-body {
+  display: flex;
+  flex-direction: column;
+  padding: 0 25px 15px;
+}
+.pcl-grid-label {
+  margin-right: 25px;
+}
+.pcl-button-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 15px;
+}
+.pcl-button-row-fill > .mybutton {
+  flex: 1 1 140px;
+}
+.pcl-button-row-spaced {
+  padding-top: 15px;
+}
+.pcl-button-row-centered {
+  justify-content: center;
+}
 .pcl-empty-state-card {
   align-self: center;
   margin-block: auto;
@@ -204,12 +228,21 @@
 }
 #app label:active input[type='radio']:not(:checked):not(:disabled)::before {
   transform: scale(0.917);
-  transition: transform 1000ms cubic-bezier(0.19, 1, 0.22, 1), background-color 100ms linear;
+  transition:
+    transform 1000ms cubic-bezier(0.19, 1, 0.22, 1),
+    background-color 100ms linear;
 }
 @keyframes pcl-radio-check {
-  0% { transform: scale(1); }
-  38.5% { transform: scale(0.556); animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  38.5% {
+    transform: scale(0.556);
+    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   #app input[type='radio']::before,

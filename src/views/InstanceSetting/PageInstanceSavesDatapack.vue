@@ -167,39 +167,29 @@ const visibleDatapacks = computed(() =>
           @search="(query: string) => (values.SearchBox = query || '')"
         />
         <PCard hide-title>
-          <div
-            style="
-              margin: 8px 0px 15px 15px;
-              display: flex;
-              flex-direction: row;
-              align-items: center;
-              flex-wrap: wrap;
-            "
-          >
+          <div class="datapack-actions pcl-button-row">
             <PButton
-              style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
+              style="min-width: 110px; padding: 7px 13px"
               @click="resources.openFolder()"
               type="tint"
               >{{ pclText('Common.Action.OpenFolder') }}</PButton
             >
+            <PButton style="min-width: 110px; padding: 7px 13px" @click="resources.importFiles()">{{
+              pclText('Instance.Resource.InstallFromFiles')
+            }}</PButton>
             <PButton
-              style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
-              @click="resources.importFiles()"
-              >{{ pclText('Instance.Resource.InstallFromFiles') }}</PButton
-            >
-            <PButton
-              style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
+              style="min-width: 110px; padding: 7px 13px"
               @click="downloadDatapacks"
               :disabled="!selectedSave"
               >{{ pclText('Instance.Resource.Datapack.DownloadNew') }}</PButton
             >
             <PButton
-              style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
+              style="min-width: 110px; padding: 7px 13px"
               @click="() => visibleDatapacks.forEach((pack) => selected.add(pack.id))"
               >{{ pclText('Instance.Resource.SelectAll') }}</PButton
             >
             <PButton
-              style="min-width: 110px; margin: 7px 15px 0px 0px; padding: 7px 13px"
+              style="min-width: 110px; padding: 7px 13px"
               :title="pclText('Instance.Resource.Datapack.ExportInfo.ToolTip')"
               @click="showUnavailable"
               >{{ pclText('Instance.Resource.ExportInfo') }}</PButton
@@ -291,6 +281,10 @@ const visibleDatapacks = computed(() =>
 </template>
 
 <style scoped>
+.datapack-actions {
+  padding: 15px;
+}
+
 .datapack-filter {
   display: flex;
   align-items: center;

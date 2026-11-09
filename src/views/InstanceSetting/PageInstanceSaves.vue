@@ -54,13 +54,17 @@ const saves = computed(() =>
   resources.items.value.map((entry) => ({
     id: entry.path,
     name: entry.name,
-    description: entry.created && entry.modified
-      ? pclText('Instance.Saves.CreationTime', [formatDate(entry.created), formatDate(entry.modified)])
-      : entry.created
-        ? pclText('Proto.Saves.Created', [formatDate(entry.created)])
-        : entry.modified
-          ? pclText('Proto.Saves.Modified', [formatDate(entry.modified)])
-          : undefined,
+    description:
+      entry.created && entry.modified
+        ? pclText('Instance.Saves.CreationTime', [
+            formatDate(entry.created),
+            formatDate(entry.modified),
+          ])
+        : entry.created
+          ? pclText('Proto.Saves.Created', [formatDate(entry.created)])
+          : entry.modified
+            ? pclText('Proto.Saves.Modified', [formatDate(entry.modified)])
+            : undefined,
     modified: entry.modified,
     icon: resourceUrl(entry.token),
   })),

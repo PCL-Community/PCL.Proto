@@ -271,7 +271,7 @@ const unavailableAdvancedOptions = [
     />
 
     <PCard :title="pclText('Setup.Launch.Options.Title')">
-      <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
+      <div class="pcl-card-body">
         <div class="settings-grid">
           <SetupItem
             :label="pclText('Setup.Launch.Options.InstanceIsolation.Label')"
@@ -469,7 +469,7 @@ const unavailableAdvancedOptions = [
       <PMemorySettings :java64="memoryJava64" />
     </PCard>
     <PCard :title="pclText('Setup.Launch.Advanced.Title')" default-fold-status="fold">
-      <div class="settings-grid" style="margin: 0px 25px 15px 25px">
+      <div class="pcl-card-body settings-grid">
         <SetupItem :label="pclText('Setup.Launch.Advanced.Renderer.Label')" v-slot="{ id }"
           ><PComboBox
             disabled
@@ -540,7 +540,7 @@ const unavailableAdvancedOptions = [
         <PCheckBox
           disabled
           v-if="String(values.TextAdvanceRun || '').trim()"
-          style="margin: 8px 0 7px; grid-column: 2"
+          style="grid-column: 2"
           id="PageSetupLaunch-CheckAdvanceRunWait"
           :label="pclText('Setup.Launch.Advanced.PreLaunchCommand.Wait')"
           v-model="values.CheckAdvanceRunWait"

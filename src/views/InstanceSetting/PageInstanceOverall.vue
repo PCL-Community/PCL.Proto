@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SetupItem from '@/components/widget/SetupItem.vue'
 import { showUnavailable } from '@/util/showUnavailable'
 import { pclText } from '@/api/pclLocale'
 import { useSelectedInstance } from '@/stores/gameLaunch'
@@ -36,7 +37,9 @@ watch(
   () => instance.instance_info?.directory,
   async (directory, _, onCleanup) => {
     let current = true
-    onCleanup(() => { current = false })
+    onCleanup(() => {
+      current = false
+    })
     description.value = null
     launchCount.value = null
     if (!directory || !isTauri()) return
@@ -149,10 +152,11 @@ async function editDescription() {
   if (!result.confirmed) return
   busy.value = 'description'
   try {
-    description.value = (await invoke<string>('set_instance_description', {
-      instanceDirectory: info.directory,
-      description: result.input || '',
-    })) || null
+    description.value =
+      (await invoke<string>('set_instance_description', {
+        instanceDirectory: info.directory,
+        description: result.input || '',
+      })) || null
   } catch (error) {
     sideTip.show(`${pclText('Instance.Overall.Error.OperationFailed')} ${error}`, 'warn')
   } finally {
@@ -250,125 +254,86 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
     <PCard :title="pclText('Instance.Overall.Info.Title')">
       <dl v-if="instance.instance_info" class="instance-info">
         <dt>{{ pclText('Instance.Overall.Info.LaunchCount.Title') }}</dt>
-        <dd>{{ launchCount === null ? pclText('Instance.Overall.Info.Loading') : launchCount === 0 ? pclText('Instance.Overall.Info.LaunchCount.Never') : pclText('Instance.Overall.Info.LaunchCount.Count', [launchCount]) }}</dd>
-        <dt>Minecraft</dt><dd>{{ instance.instance_info.version }}</dd>
+        <dd>
+          {{
+            launchCount === null
+              ? pclText('Instance.Overall.Info.Loading')
+              : launchCount === 0
+                ? pclText('Instance.Overall.Info.LaunchCount.Never')
+                : pclText('Instance.Overall.Info.LaunchCount.Count', [launchCount])
+          }}
+        </dd>
+        <dt>Minecraft</dt>
+        <dd>{{ instance.instance_info.version }}</dd>
         <template v-for="(version, loader) in instance.instance_info.pluginsVersion" :key="loader">
-          <dt>{{ pluginShowText[loader] || loader }}</dt><dd>{{ version }}</dd>
+          <dt>{{ pluginShowText[loader] || loader }}</dt>
+          <dd>{{ version }}</dd>
         </template>
         <dt>{{ pclText('Instance.Overall.Shortcuts.InstanceFolder') }}</dt>
         <dd class="instance-path">{{ instance.instance_info.directory }}</dd>
       </dl>
     </PCard>
     <PCard :title="pclText('Instance.Overall.Personalization.Title')">
-      <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
-        <div
-          style="
-            display: grid;
-            grid-template-columns: auto minmax(0, 1fr);
-            grid-template-rows: 28px 9px 28px;
-          "
-        >
-          <span
-            style="
-              margin: 0px 25px 0px 0px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-              justify-self: start;
-              align-self: center;
-            "
-            class="pcl-text"
-            >{{ pclText('Instance.Overall.Icon.Title') }}</span
-          >
-          <PComboBox
-            style="grid-row: 1 / span 1; grid-column: 2 / span 1"
-            :options="[
-              { key: '0', text: pclText('Common.Option.Auto') },
-              { key: '1', text: pclText('Common.Option.Customize') },
-              { key: '2', text: pclText('Instance.Overall.Icon.Cobblestone') },
-              { key: '3', text: pclText('Instance.Overall.Icon.CommandBlock') },
-              { key: '4', text: pclText('Instance.Overall.Icon.GoldBlock') },
-              { key: '5', text: pclText('Instance.Overall.Icon.GrassBlock') },
-              { key: '6', text: pclText('Instance.Overall.Icon.DirtPath') },
-              { key: '7', text: pclText('Instance.Overall.Icon.Anvil') },
-              { key: '8', text: pclText('Instance.Overall.Icon.RedstoneBlock') },
-              { key: '9', text: pclText('Instance.Overall.Icon.RedstoneLampOn') },
-              { key: '10', text: pclText('Instance.Overall.Icon.RedstoneLampOff') },
-              { key: '11', text: pclText('Instance.Overall.Icon.Egg') },
-              { key: '12', text: pclText('Instance.Overall.Icon.Fabric') },
-              { key: '13', text: pclText('Instance.Overall.Icon.Quilt') },
-              { key: '14', text: pclText('Instance.Overall.Icon.NeoForgeFox') },
-              { key: '15', text: pclText('Instance.Overall.Icon.Cleanroom') },
-            ]"
-            v-model="values.ComboDisplayLogo"
-          />
-          <span
-            style="
-              margin: 0px 25px 0px 0px;
-              grid-row: 3 / span 1;
-              grid-column: 1 / span 1;
-              justify-self: start;
-              align-self: center;
-            "
-            class="pcl-text"
-            >{{ pclText('Instance.Overall.Category.Title') }}</span
-          >
-          <PComboBox
-            style="grid-row: 3 / span 1; grid-column: 2 / span 1"
-            :options="[
-              { key: '0', text: pclText('Common.Option.Auto') },
-              {
-                key: '1',
-                text: pclText('Instance.Overall.Category.Hidden'),
-                title: pclText('Instance.Overall.Category.Hidden.ToolTip'),
-              },
-              { key: '2', text: pclText('Instance.Overall.Category.Modable') },
-              { key: '3', text: pclText('Instance.Overall.Category.Regular') },
-              { key: '4', text: pclText('Instance.Overall.Category.LessUsed') },
-              { key: '5', text: pclText('Instance.Overall.Category.AprilFools') },
-            ]"
-            v-model="values.ComboDisplayType"
-          />
+      <div class="pcl-card-body">
+        <div class="settings-grid">
+          <SetupItem :label="pclText('Instance.Overall.Icon.Title')" v-slot="{ id }">
+            <PComboBox
+              :input-id="id"
+              :options="[
+                { key: '0', text: pclText('Common.Option.Auto') },
+                { key: '1', text: pclText('Common.Option.Customize') },
+                { key: '2', text: pclText('Instance.Overall.Icon.Cobblestone') },
+                { key: '3', text: pclText('Instance.Overall.Icon.CommandBlock') },
+                { key: '4', text: pclText('Instance.Overall.Icon.GoldBlock') },
+                { key: '5', text: pclText('Instance.Overall.Icon.GrassBlock') },
+                { key: '6', text: pclText('Instance.Overall.Icon.DirtPath') },
+                { key: '7', text: pclText('Instance.Overall.Icon.Anvil') },
+                { key: '8', text: pclText('Instance.Overall.Icon.RedstoneBlock') },
+                { key: '9', text: pclText('Instance.Overall.Icon.RedstoneLampOn') },
+                { key: '10', text: pclText('Instance.Overall.Icon.RedstoneLampOff') },
+                { key: '11', text: pclText('Instance.Overall.Icon.Egg') },
+                { key: '12', text: pclText('Instance.Overall.Icon.Fabric') },
+                { key: '13', text: pclText('Instance.Overall.Icon.Quilt') },
+                { key: '14', text: pclText('Instance.Overall.Icon.NeoForgeFox') },
+                { key: '15', text: pclText('Instance.Overall.Icon.Cleanroom') },
+              ]"
+              v-model="values.ComboDisplayLogo"
+            />
+          </SetupItem>
+          <SetupItem :label="pclText('Instance.Overall.Category.Title')" v-slot="{ id }">
+            <PComboBox
+              :input-id="id"
+              :options="[
+                { key: '0', text: pclText('Common.Option.Auto') },
+                {
+                  key: '1',
+                  text: pclText('Instance.Overall.Category.Hidden'),
+                  title: pclText('Instance.Overall.Category.Hidden.ToolTip'),
+                },
+                { key: '2', text: pclText('Instance.Overall.Category.Modable') },
+                { key: '3', text: pclText('Instance.Overall.Category.Regular') },
+                { key: '4', text: pclText('Instance.Overall.Category.LessUsed') },
+                { key: '5', text: pclText('Instance.Overall.Category.AprilFools') },
+              ]"
+              v-model="values.ComboDisplayType"
+            />
+          </SetupItem>
         </div>
-        <div
-          style="
-            height: 35px;
-            margin: 15px 0px 7px 0px;
-            display: grid;
-            grid-template-columns: auto auto auto;
-          "
-        >
+        <div class="pcl-button-row pcl-button-row-fill pcl-button-row-spaced">
           <PButton
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-            "
+            style="min-width: 140px; padding: 0px 13px"
             :disabled="!instance.instance_info || !!busy"
             @click="renameInstance"
             >{{ pclText('Instance.Overall.Rename') }}</PButton
           >
           <PButton
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 2 / span 1;
-            "
+            style="min-width: 140px; padding: 0px 13px"
             :disabled="!instance.instance_info || !!busy"
             @click="editDescription"
             >{{ pclText('Instance.Overall.EditDescription') }}</PButton
           >
           <PButton
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 3 / span 1;
-            "
+            style="min-width: 140px; padding: 0px 13px"
             :disabled="!instance.instance_info"
             @click="toggleStar"
             >{{
@@ -381,48 +346,23 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
       </div>
     </PCard>
     <PCard :title="pclText('Instance.Overall.Shortcuts.Title')">
-      <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
-        <div
-          style="
-            height: 35px;
-            margin: 2px 0px 7px 0px;
-            display: grid;
-            grid-template-columns: auto auto auto;
-          "
-        >
+      <div class="pcl-card-body">
+        <div class="pcl-button-row pcl-button-row-fill">
           <PButton
             :disabled="!instance.instance_info || !isTauri()"
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-            "
+            style="min-width: 140px; padding: 0px 13px"
             @click="openFolder('instance')"
             >{{ pclText('Instance.Overall.Shortcuts.InstanceFolder') }}</PButton
           >
           <PButton
             :disabled="!instance.instance_info || !isTauri()"
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 2 / span 1;
-            "
+            style="min-width: 140px; padding: 0px 13px"
             @click="openFolder('saves')"
             >{{ pclText('Instance.Overall.Shortcuts.SavesFolder') }}</PButton
           >
           <PButton
             :disabled="!instance.instance_info || !isTauri()"
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 3 / span 1;
-            "
+            style="min-width: 140px; padding: 0px 13px"
             @click="openFolder('mods')"
             >{{ pclText('Instance.Overall.Shortcuts.ModsFolder') }}</PButton
           >
@@ -430,49 +370,41 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
       </div>
     </PCard>
     <PCard :title="pclText('Instance.Overall.Manage.Title')">
-      <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
-        <div
-          style="
-            margin: -5px -20px 7px 0px;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            flex-wrap: wrap;
-          "
-        >
+      <div class="pcl-card-body">
+        <div class="pcl-button-row">
           <PButton
-            style="height: 35px; min-width: 140px; margin: 7px 20px 0px 0px; padding: 0px 13px"
+            style="height: 35px; min-width: 140px; padding: 0px 13px"
             :disabled="!instance.instance_info || !!busy"
             @click="exportScript"
             >{{ pclText('Instance.Overall.Manage.ExportLaunchScript') }}</PButton
           >
           <PButton
-            style="height: 35px; min-width: 140px; margin: 7px 20px 0px 0px; padding: 0px 13px"
+            style="height: 35px; min-width: 140px; padding: 0px 13px"
             @click="showUnavailable"
             >{{ pclText('Instance.Overall.Manage.TestGame') }}</PButton
           >
           <PButton
-            style="height: 35px; min-width: 140px; margin: 7px 20px 0px 0px; padding: 0px 13px"
+            style="height: 35px; min-width: 140px; padding: 0px 13px"
             :title="pclText('Instance.Overall.Manage.RepairFiles.ToolTip')"
             :disabled="!instance.instance_info || !!busy"
             @click="repairFiles"
             >{{ pclText('Instance.Overall.Manage.RepairFiles') }}</PButton
           >
           <PButton
-            style="height: 35px; min-width: 140px; margin: 7px 20px 0px 0px; padding: 0px 13px"
+            style="height: 35px; min-width: 140px; padding: 0px 13px"
             :title="pclText('Instance.Overall.Manage.Reinstall.ToolTip')"
             @click="showUnavailable"
             >{{ pclText('Common.Action.Reset') }}</PButton
           >
           <PButton
-            style="height: 35px; min-width: 140px; margin: 7px 20px 0px 0px; padding: 0px 13px"
+            style="height: 35px; min-width: 140px; padding: 0px 13px"
             :disabled="!instance.instance_info || !!busy"
             @click="deleteInstance"
             type="warn"
             >{{ pclText('Instance.Overall.Manage.Delete') }}</PButton
           >
           <PButton
-            style="height: 35px; min-width: 140px; margin: 7px 20px 0px 0px; padding: 0px 13px"
+            style="height: 35px; min-width: 140px; padding: 0px 13px"
             @click="showUnavailable"
             >{{ pclText('Instance.Overall.Manage.PatchCore') }}</PButton
           >
@@ -489,7 +421,13 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
   gap: 8px 24px;
   margin: 0 25px 15px;
 }
-.instance-info dt { color: var(--color-text-grey); }
-.instance-info dd { margin: 0; }
-.instance-path { overflow-wrap: anywhere; }
+.instance-info dt {
+  color: var(--color-text-grey);
+}
+.instance-info dd {
+  margin: 0;
+}
+.instance-path {
+  overflow-wrap: anywhere;
+}
 </style>

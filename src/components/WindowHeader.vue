@@ -30,7 +30,9 @@ const logoLeft = computed(() => logoType.value === '0' && appearance.values.Chec
 
 if (isTauri()) {
   void invoke<string | null>('get_title_logo')
-    .then((image) => { logoImage.value = image ?? undefined })
+    .then((image) => {
+      logoImage.value = image ?? undefined
+    })
     .catch((error) => console.error('Failed to load title logo:', error))
   window.addEventListener('title-logo-updated', (event) => {
     logoImage.value = (event as CustomEvent<string | null>).detail ?? undefined
@@ -175,10 +177,18 @@ header .left {
   align-items: center;
 }
 
-header .center.logo-left { justify-content: flex-start; }
+header .center.logo-left {
+  justify-content: flex-start;
+}
 
-.custom-title { color: white; }
-.custom-logo { max-width: 180px; max-height: 32px; object-fit: contain; }
+.custom-title {
+  color: white;
+}
+.custom-logo {
+  max-width: 180px;
+  max-height: 32px;
+  object-fit: contain;
+}
 
 header .center {
   flex: 1;

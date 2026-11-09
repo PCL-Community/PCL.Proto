@@ -169,42 +169,32 @@ async function openDownloadFolder() {
 <template>
   <section class="pcl-page">
     <PCard :title="pclText('Tools.Test.Title')">
-      <div
-        style="
-          margin: 0px 21px 5px 25px;
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          flex-wrap: wrap;
-        "
-      >
+      <div class="pcl-card-body pcl-button-row">
+        <PButton style="min-width: 120px" @click="() => router.push('/homepageeditor')">{{
+          pclText('Proto.Title.HomepageEditor')
+        }}</PButton>
         <PButton
-          style="min-width: 120px; margin: 0px 15px 15px 0px"
-          @click="() => router.push('/homepageeditor')"
-          >{{ pclText('Proto.Title.HomepageEditor') }}</PButton
-        >
-        <PButton
-          style="min-width: 120px; margin: 0px 15px 15px 0px"
+          style="min-width: 120px"
           :title="pclText('Tools.Test.Clean.ToolTip')"
           @click="showUnavailable"
           >{{ pclText('Tools.Test.Clean.Title') }}</PButton
         >
-        <PButton style="min-width: 100px; margin: 0px 15px 15px 0px" @click="showLuck">{{
+        <PButton style="min-width: 100px" @click="showLuck">{{
           pclText('Tools.Test.Luck.Title')
         }}</PButton>
         <PButton
-          style="min-width: 120px; margin: 0px 15px 15px 0px"
+          style="min-width: 120px"
           :title="pclText('Tools.Test.Shortcut.ToolTip')"
           @click="showUnavailable"
           >{{ pclText('Tools.Test.Shortcut.Title') }}</PButton
         >
-        <PButton style="min-width: 120px; margin: 0px 15px 15px 0px" @click="showUnavailable">{{
+        <PButton style="min-width: 120px" @click="showUnavailable">{{
           pclText('Tools.Test.LaunchCount.Title')
         }}</PButton>
       </div>
     </PCard>
     <PCard :title="pclText('Tools.Test.CustomDownload.Title')">
-      <div style="margin: 0px 25px 20px 25px; display: flex; flex-direction: column">
+      <div class="pcl-card-body">
         <span class="pcl-text">{{ pclText('Proto.Tools.CustomDownloadDescription') }}</span>
         <div
           style="
@@ -215,13 +205,8 @@ async function openDownloadFolder() {
           "
         >
           <span
-            style="
-              margin: 0px 25px 0px 0px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-              align-self: center;
-            "
-            class="pcl-text"
+            style="grid-row: 1 / span 1; grid-column: 1 / span 1; align-self: center"
+            class="pcl-text pcl-grid-label"
             >{{ pclText('Tools.Test.CustomDownload.Url') }}</span
           >
           <PTextBox
@@ -231,13 +216,8 @@ async function openDownloadFolder() {
             v-model="values.TextDownloadUrl"
           />
           <span
-            style="
-              margin: 0px 25px 0px 0px;
-              grid-row: 3 / span 1;
-              grid-column: 1 / span 1;
-              align-self: center;
-            "
-            class="pcl-text"
+            style="grid-row: 3 / span 1; grid-column: 1 / span 1; align-self: center"
+            class="pcl-text pcl-grid-label"
             >{{ pclText('Tools.Test.CustomDownload.SaveTo') }}</span
           >
           <PTextBox
@@ -258,13 +238,8 @@ async function openDownloadFolder() {
             >{{ pclText('Tools.Test.CustomDownload.Select') }}</PButton
           >
           <span
-            style="
-              margin: 0px 25px 0px 0px;
-              grid-row: 4 / span 1;
-              grid-column: 1 / span 1;
-              align-self: center;
-            "
-            class="pcl-text"
+            style="grid-row: 4 / span 1; grid-column: 1 / span 1; align-self: center"
+            class="pcl-text pcl-grid-label"
             >{{ pclText('Tools.Test.CustomDownload.FileName') }}</span
           >
           <PTextBox
@@ -274,37 +249,13 @@ async function openDownloadFolder() {
             v-model="values.TextDownloadName"
           />
         </div>
-        <div
-          style="
-            margin: 15px 0px 0px 0px;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            grid-template-rows: 35px;
-          "
-        >
-          <PButton
-            style="
-              width: 140px;
-              margin: 0px 15px 0px 0px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-              justify-self: end;
-            "
-            @click="startCustomDownload"
-            type="tint"
-            >{{ pclText('Tools.Test.CustomDownload.Start') }}</PButton
-          >
-          <PButton
-            style="
-              width: 140px;
-              margin: 0px 15px 0px 0px;
-              grid-row: 1 / span 1;
-              grid-column: 2 / span 1;
-              justify-self: start;
-            "
-            @click="openDownloadFolder"
-            >{{ pclText('Common.Action.OpenFolder') }}</PButton
-          >
+        <div class="pcl-button-row pcl-button-row-spaced pcl-button-row-centered">
+          <PButton style="width: 140px" @click="startCustomDownload" type="tint">{{
+            pclText('Tools.Test.CustomDownload.Start')
+          }}</PButton>
+          <PButton style="width: 140px" @click="openDownloadFolder">{{
+            pclText('Common.Action.OpenFolder')
+          }}</PButton>
         </div>
       </div>
     </PCard>
@@ -368,7 +319,7 @@ async function openDownloadFolder() {
       <div style="margin: 0px 15px 15px 15px"><MinecraftServerCard embedded /></div>
     </PCard>
     <PCard :title="pclText('Tools.Test.Achievement.Title')" default-fold-status="fold">
-      <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
+      <div class="pcl-card-body">
         <div
           style="
             margin: 4px 0px 2px 0px;
@@ -379,13 +330,12 @@ async function openDownloadFolder() {
         >
           <span
             style="
-              margin: 0px 25px 0px 0px;
               grid-row: 1 / span 1;
               grid-column: 1 / span 1;
               justify-self: start;
               align-self: center;
             "
-            class="pcl-text"
+            class="pcl-text pcl-grid-label"
             >{{ pclText('Tools.Test.Achievement.ItemId') }}</span
           >
           <PTextBox
@@ -395,13 +345,12 @@ async function openDownloadFolder() {
           />
           <span
             style="
-              margin: 0px 25px 0px 0px;
               grid-row: 2 / span 1;
               grid-column: 1 / span 1;
               justify-self: start;
               align-self: center;
             "
-            class="pcl-text"
+            class="pcl-text pcl-grid-label"
             >{{ pclText('Tools.Test.Achievement.Name') }}</span
           >
           <PTextBox
@@ -411,13 +360,12 @@ async function openDownloadFolder() {
           />
           <span
             style="
-              margin: 0px 25px 0px 0px;
               grid-row: 3 / span 1;
               grid-column: 1 / span 1;
               justify-self: start;
               align-self: center;
             "
-            class="pcl-text"
+            class="pcl-text pcl-grid-label"
             >{{ pclText('Tools.Test.Achievement.Line1') }}</span
           >
           <PTextBox
@@ -427,13 +375,12 @@ async function openDownloadFolder() {
           />
           <span
             style="
-              margin: 0px 25px 0px 0px;
               grid-row: 4 / span 1;
               grid-column: 1 / span 1;
               justify-self: start;
               align-self: center;
             "
-            class="pcl-text"
+            class="pcl-text pcl-grid-label"
             >{{ pclText('Tools.Test.Achievement.Line2') }}</span
           >
           <PTextBox
@@ -442,42 +389,18 @@ async function openDownloadFolder() {
             v-model="values.AchievementString2TextBox"
           />
         </div>
-        <div
-          style="
-            margin: 15px 0px 10px 0px;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            grid-template-rows: 35px;
-          "
-        >
-          <PButton
-            style="
-              width: 140px;
-              margin: 0px 15px 0px 0px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-              justify-self: end;
-            "
-            @click="showUnavailable"
-            type="tint"
-            >{{ pclText('Tools.Test.Achievement.Preview') }}</PButton
-          >
-          <PButton
-            style="
-              width: 140px;
-              margin: 0px 15px 0px 0px;
-              grid-row: 1 / span 1;
-              grid-column: 2 / span 1;
-              justify-self: start;
-            "
-            @click="showUnavailable"
-            >{{ pclText('Tools.Test.Achievement.Save') }}</PButton
-          >
+        <div class="pcl-button-row pcl-button-row-spaced pcl-button-row-centered">
+          <PButton style="width: 140px" @click="showUnavailable" type="tint">{{
+            pclText('Tools.Test.Achievement.Preview')
+          }}</PButton>
+          <PButton style="width: 140px" @click="showUnavailable">{{
+            pclText('Tools.Test.Achievement.Save')
+          }}</PButton>
         </div>
       </div>
     </PCard>
     <PCard :title="pclText('Tools.Test.Avatar.Title')" default-fold-status="fold">
-      <div style="margin: 0px 25px 20px 25px; display: flex; flex-direction: column">
+      <div class="pcl-card-body">
         <div
           style="
             margin: 0px 0px 10px 0px;

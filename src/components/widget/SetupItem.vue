@@ -24,7 +24,12 @@ const controlId = useId()
   overflow-wrap: anywhere;
 }
 .setup-control {
+  display: grid;
+  align-content: center;
   min-width: 0;
   min-height: 28px;
+}
+.setup-control:has(> input[type='range']) {
+  min-height: 19px;
 }
 </style>

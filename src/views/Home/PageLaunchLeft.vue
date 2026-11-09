@@ -123,7 +123,9 @@ function showLaunchFailure(attempt: number, failure: LaunchFailure) {
 }
 function launchError(error: unknown) {
   const message = String(error)
-  const key = message.match(/Minecraft\.Launch\.Precheck\.(?:RequireMicrosoftOrThirdParty|RequireMicrosoft|RequireThirdParty|AuthServerMismatch)/)?.[0]
+  const key = message.match(
+    /Minecraft\.Launch\.Precheck\.(?:RequireMicrosoftOrThirdParty|RequireMicrosoft|RequireThirdParty|AuthServerMismatch)/,
+  )?.[0]
   return key ? pclText(key) : message
 }
 async function launch(serverAddress?: string, world?: string) {
@@ -294,7 +296,12 @@ function settings() {
     <div class="launch-input">
       <div class="login-panel">
         <Transition name="login-page" mode="out-in">
-          <component :is="accountView" :register-url="profileView === 'auth' ? authRegister : undefined" :server-name="profileView === 'auth' ? authName : undefined" @view="profileView = $event" />
+          <component
+            :is="accountView"
+            :register-url="profileView === 'auth' ? authRegister : undefined"
+            :server-name="profileView === 'auth' ? authName : undefined"
+            @view="profileView = $event"
+          />
         </Transition>
       </div>
       <div class="launch-actions">

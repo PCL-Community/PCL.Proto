@@ -14,7 +14,7 @@ const { mode, maximum, initial, ready, error, preview, segments, load, save } = 
 
 <template>
   <div class="memory-settings">
-    <div class="memory-options">
+    <div class="memory-options settings-grid">
       <label v-if="instance" class="pcl-radio inherit">
         <input v-model="mode" :disabled="!ready" type="radio" value="inherit" @change="save" />{{
           pclText('Instance.Setup.FollowGlobal')
@@ -91,13 +91,6 @@ const { mode, maximum, initial, ready, error, preview, segments, load, save } = 
   margin: 0 25px 15px;
   display: flex;
   flex-direction: column;
-}
-.memory-options {
-  margin-bottom: 3px;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  row-gap: 9px;
-  align-items: center;
 }
 .memory-options label {
   grid-column: 1 / -1;

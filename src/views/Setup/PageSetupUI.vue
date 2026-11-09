@@ -81,7 +81,10 @@ if (isTauri())
 const router = useRouter()
 async function changeTitleLogo() {
   if (!isTauri()) return
-  const path = await open({ multiple: false, filters: [{ name: 'Image', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }] })
+  const path = await open({
+    multiple: false,
+    filters: [{ name: 'Image', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }],
+  })
   if (typeof path !== 'string') return
   try {
     const dataUrl = await invoke<string>('set_title_logo', { path })
@@ -106,7 +109,7 @@ async function clearTitleLogo() {
 <template>
   <div class="pcl-page">
     <PCard :title="pclText('Setup.Ui.Basic.Title')">
-      <div style="margin: 0px 25px 10px 25px; display: grid">
+      <div class="pcl-card-body" style="display: grid">
         <div
           style="
             grid-row: 1 / span 1;
@@ -188,14 +191,12 @@ async function clearTitleLogo() {
           </div>
           <PCheckBox
             :disabled="!isTauri()"
-            style="height: 22px; margin: 0px 0px 7px -1px"
             id="PageSetupUI-CheckLockWindowSize"
             :label="pclText('Setup.Ui.Basic.LockWindow')"
             v-model="values.CheckLockWindowSize"
           />
           <PCheckBox
             disabled
-            style="height: 22px; margin: 0px 0px 7px -1px"
             id="PageSetupUI-CheckShowLaunchingHint"
             :label="pclText('Setup.Ui.Basic.ShowTriviaHint')"
             v-model="values.CheckShowLaunchingHint"
@@ -203,7 +204,6 @@ async function clearTitleLogo() {
           <div style="margin: 0px 0px 10px 0px; display: flex; flex-direction: column">
             <PCheckBox
               disabled
-              style="height: 22px"
               :title="pclText('Setup.Ui.Basic.AdvancedMaterial.ToolTip')"
               id="PageSetupUI-CheckBlur"
               :label="pclText('Setup.Ui.Basic.AdvancedMaterial')"
@@ -296,8 +296,8 @@ async function clearTitleLogo() {
     </PCard>
     <PCard :title="pclText('Setup.Ui.Font.Title')">
       <div
+        class="pcl-card-body"
         style="
-          margin: 0px 25px 15px 25px;
           display: grid;
           grid-template-columns: auto 25px minmax(0, 1fr);
           grid-template-rows: 30px 10px minmax(0, 1fr);
@@ -328,7 +328,7 @@ async function clearTitleLogo() {
       </div>
     </PCard>
     <PCard :title="pclText('Setup.Ui.Background.TitleDefault')">
-      <div style="margin: 0px 25px 20px 25px; display: flex; flex-direction: column">
+      <div class="pcl-card-body">
         <template v-if="hasBackground">
           <div class="pcl-form-row">
             <label>{{ pclText('Setup.Ui.Background.ContentAdapt') }}</label
@@ -379,46 +379,25 @@ async function clearTitleLogo() {
         </template>
         <PCheckBox
           disabled
-          style="height: 22px; margin: 0px 0px 8px -1px"
           :title="pclText('Setup.Ui.Background.PauseVideo.ToolTip')"
           id="PageSetupUI-CheckAutoPauseVideo"
           :label="pclText('Setup.Ui.Background.PauseVideo')"
           v-model="values.CheckAutoPauseVideo"
         />
         <PCheckBox
-          style="height: 22px; margin: 0px 0px 8px -1px"
           id="PageSetupUI-CheckBackgroundColorful"
           :label="pclText('Setup.Ui.Background.ColorOverlay')"
           v-model="values.CheckBackgroundColorful"
         />
-        <div
-          style="
-            height: 35px;
-            margin: 2px 0px 0px 0px;
-            display: grid;
-            grid-template-columns: auto auto auto;
-          "
-        >
+        <div class="pcl-button-row pcl-button-row-fill">
           <PButton
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-            "
+            style="min-width: 140px; padding: 0px 13px"
             :title="pclText('Setup.Ui.Background.OpenFolder.ToolTip')"
             @click="showUnavailable"
             >{{ pclText('Common.Action.OpenFolder') }}</PButton
           >
           <PButton
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 2 / span 1;
-            "
+            style="min-width: 140px; padding: 0px 13px"
             :title="pclText('Setup.Ui.Background.Refresh.ToolTip')"
             @click="showUnavailable"
             >{{ pclText('Setup.Ui.Background.Refresh') }}</PButton
@@ -429,7 +408,7 @@ async function clearTitleLogo() {
       </div>
     </PCard>
     <PCard :title="pclText('Setup.Ui.Music.Title')">
-      <div style="margin: 2px 25px 20px 25px; display: flex; flex-direction: column">
+      <div class="pcl-card-body">
         <template v-if="hasMusic">
           <div class="pcl-form-row">
             <label for="music-volume">{{ pclText('Setup.Ui.Music.Volume') }}</label
@@ -442,7 +421,7 @@ async function clearTitleLogo() {
               v-model.number="values.SliderMusicVolume"
             />
           </div>
-          <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px">
+          <div style="display: flex; flex-direction: column; margin-bottom: 8px">
             <PCheckBox
               disabled
               v-for="setting in [
@@ -460,27 +439,15 @@ async function clearTitleLogo() {
             />
           </div>
         </template>
-        <div style="height: 35px; display: grid; grid-template-columns: auto auto auto">
+        <div class="pcl-button-row pcl-button-row-fill">
           <PButton
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-            "
+            style="min-width: 140px; padding: 0px 13px"
             :title="pclText('Setup.Ui.Music.OpenFolder.ToolTip')"
             @click="showUnavailable"
             >{{ pclText('Common.Action.OpenFolder') }}</PButton
           >
           <PButton
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 2 / span 1;
-            "
+            style="min-width: 140px; padding: 0px 13px"
             :title="pclText('Setup.Ui.Music.Refresh.ToolTip')"
             @click="showUnavailable"
             >{{ pclText('Setup.Ui.Music.Refresh') }}</PButton
@@ -491,27 +458,43 @@ async function clearTitleLogo() {
       </div>
     </PCard>
     <PCard :title="pclText('Setup.Ui.Logo.Title')">
-      <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
+      <div class="pcl-card-body">
         <div class="setup-radio-options">
           <label class="pcl-radio"
-            ><input type="radio" name="title-logo-type" :checked="values.UiLogoType === '0'" value="0" @change="values.UiLogoType = '0'" />{{
-              pclText('Setup.Ui.Logo.None')
-            }}</label
+            ><input
+              type="radio"
+              name="title-logo-type"
+              :checked="values.UiLogoType === '0'"
+              value="0"
+              @change="values.UiLogoType = '0'"
+            />{{ pclText('Setup.Ui.Logo.None') }}</label
           >
           <label class="pcl-radio"
-            ><input type="radio" name="title-logo-type" :checked="values.UiLogoType === '1'" value="1" @change="values.UiLogoType = '1'" />{{
-              pclText('Common.Option.Default')
-            }}</label
+            ><input
+              type="radio"
+              name="title-logo-type"
+              :checked="values.UiLogoType === '1'"
+              value="1"
+              @change="values.UiLogoType = '1'"
+            />{{ pclText('Common.Option.Default') }}</label
           >
           <label class="pcl-radio"
-            ><input type="radio" name="title-logo-type" :checked="values.UiLogoType === '2'" value="2" @change="values.UiLogoType = '2'" />{{
-              pclText('Setup.Ui.Logo.Text')
-            }}</label
+            ><input
+              type="radio"
+              name="title-logo-type"
+              :checked="values.UiLogoType === '2'"
+              value="2"
+              @change="values.UiLogoType = '2'"
+            />{{ pclText('Setup.Ui.Logo.Text') }}</label
           >
           <label class="pcl-radio"
-            ><input type="radio" name="title-logo-type" :checked="values.UiLogoType === '3'" value="3" @change="values.UiLogoType = '3'" />{{
-              pclText('Setup.Ui.Logo.Image')
-            }}</label
+            ><input
+              type="radio"
+              name="title-logo-type"
+              :checked="values.UiLogoType === '3'"
+              value="3"
+              @change="values.UiLogoType = '3'"
+            />{{ pclText('Setup.Ui.Logo.Image') }}</label
           >
         </div>
         <PCheckBox
@@ -531,13 +514,12 @@ async function clearTitleLogo() {
         >
           <span
             style="
-              margin: 0px 25px 0px 0px;
               grid-row: 1 / span 1;
               grid-column: 1 / span 1;
               justify-self: start;
               align-self: center;
             "
-            class="pcl-text"
+            class="pcl-text pcl-grid-label"
             >{{ pclText('Setup.Ui.Logo.TextLabel') }}</span
           >
           <PTextBox
@@ -547,34 +529,14 @@ async function clearTitleLogo() {
           />
         </div>
         <div
-          class="logo-image-actions"
-          style="
-            height: 35px;
-            margin: 14px 0px 5px 0px;
-            display: grid;
-            grid-template-columns: auto auto;
-          "
+          class="pcl-button-row pcl-button-row-fill pcl-button-row-spaced logo-image-actions"
           v-if="values.UiLogoType === '3'"
         >
+          <PButton style="min-width: 140px; padding: 0px 13px" @click="changeTitleLogo">{{
+            pclText('Setup.Ui.Logo.ChangeImage')
+          }}</PButton>
           <PButton
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-            "
-            @click="changeTitleLogo"
-            >{{ pclText('Setup.Ui.Logo.ChangeImage') }}</PButton
-          >
-          <PButton
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 2 / span 1;
-            "
+            style="min-width: 140px; padding: 0px 13px"
             @click="clearTitleLogo"
             type="warn"
             >{{ pclText('Setup.Ui.Logo.ClearImage') }}</PButton
@@ -671,21 +633,21 @@ async function clearTitleLogo() {
           >
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 2 / span 1; grid-column: 3 / span 1; align-self: center"
+            style="grid-row: 2 / span 1; grid-column: 3 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenPageDownload"
             :label="pclText('Setup.Ui.FeatureHide.Item.Download')"
             v-model="values.CheckHiddenPageDownload"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 2 / span 1; grid-column: 4 / span 1; align-self: center"
+            style="grid-row: 2 / span 1; grid-column: 4 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenPageSetup"
             :label="pclText('Setup.Ui.FeatureHide.Item.Settings')"
             v-model="values.CheckHiddenPageSetup"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 2 / span 1; grid-column: 5 / span 1; align-self: center"
+            style="grid-row: 2 / span 1; grid-column: 5 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenPageTools"
             :label="pclText('Setup.Ui.FeatureHide.Item.Tools')"
             v-model="values.CheckHiddenPageTools"
@@ -702,77 +664,77 @@ async function clearTitleLogo() {
           >
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 3 / span 1; grid-column: 3 / span 1; align-self: center"
+            style="grid-row: 3 / span 1; grid-column: 3 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupLaunch"
             :label="pclText('Setup.Ui.FeatureHide.Item.Launch')"
             v-model="values.CheckHiddenSetupLaunch"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 3 / span 1; grid-column: 4 / span 1; align-self: center"
+            style="grid-row: 3 / span 1; grid-column: 4 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupJava"
             :label="pclText('Java')"
             v-model="values.CheckHiddenSetupJava"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 3 / span 1; grid-column: 5 / span 1; align-self: center"
+            style="grid-row: 3 / span 1; grid-column: 5 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupGameManage"
             :label="pclText('Setup.Ui.FeatureHide.Item.GameManage')"
             v-model="values.CheckHiddenSetupGameManage"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 3 / span 1; grid-column: 6 / span 1; align-self: center"
+            style="grid-row: 3 / span 1; grid-column: 6 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupGameLink"
             :label="pclText('Setup.Ui.FeatureHide.Item.GameLink')"
             v-model="values.CheckHiddenSetupGameLink"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 3 / span 1; grid-column: 7 / span 1; align-self: center"
+            style="grid-row: 3 / span 1; grid-column: 7 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupUI"
             :label="pclText('Setup.Ui.FeatureHide.Item.Ui')"
             v-model="values.CheckHiddenSetupUI"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 4 / span 1; grid-column: 3 / span 1; align-self: center"
+            style="grid-row: 4 / span 1; grid-column: 3 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupLauncherLanguage"
             :label="pclText('Setup.Ui.FeatureHide.Item.Language')"
             v-model="values.CheckHiddenSetupLauncherLanguage"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 4 / span 1; grid-column: 4 / span 1; align-self: center"
+            style="grid-row: 4 / span 1; grid-column: 4 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenLauncherMisc"
             :label="pclText('Setup.Ui.FeatureHide.Item.Misc')"
             v-model="values.CheckHiddenLauncherMisc"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 4 / span 1; grid-column: 5 / span 1; align-self: center"
+            style="grid-row: 4 / span 1; grid-column: 5 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupUpdate"
             :label="pclText('Setup.Ui.FeatureHide.Item.Update')"
             v-model="values.CheckHiddenSetupUpdate"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 4 / span 1; grid-column: 6 / span 1; align-self: center"
+            style="grid-row: 4 / span 1; grid-column: 6 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupAbout"
             :label="pclText('Setup.Ui.FeatureHide.Item.About')"
             v-model="values.CheckHiddenSetupAbout"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 4 / span 1; grid-column: 7 / span 1; align-self: center"
+            style="grid-row: 4 / span 1; grid-column: 7 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupFeedback"
             :label="pclText('Setup.Ui.FeatureHide.Item.Feedback')"
             v-model="values.CheckHiddenSetupFeedback"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 4 / span 1; grid-column: 8 / span 1; align-self: center"
+            style="grid-row: 4 / span 1; grid-column: 8 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenSetupLog"
             :label="pclText('Setup.Ui.FeatureHide.Item.Log')"
             v-model="values.CheckHiddenSetupLog"
@@ -789,14 +751,14 @@ async function clearTitleLogo() {
           >
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 5 / span 1; grid-column: 3 / span 1; align-self: center"
+            style="grid-row: 5 / span 1; grid-column: 3 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenToolsGameLink"
             :label="pclText('Setup.Ui.FeatureHide.Item.Lobby')"
             v-model="values.CheckHiddenToolsGameLink"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 5 / span 1; grid-column: 4 / span 1; align-self: center"
+            style="grid-row: 5 / span 1; grid-column: 4 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenToolsTest"
             :label="pclText('Setup.Ui.FeatureHide.Item.Toolbox')"
             v-model="values.CheckHiddenToolsTest"
@@ -813,63 +775,63 @@ async function clearTitleLogo() {
           >
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 6 / span 1; grid-column: 3 / span 1; align-self: center"
+            style="grid-row: 6 / span 1; grid-column: 3 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenVersionEdit"
             :label="pclText('Setup.Ui.FeatureHide.Item.Edit')"
             v-model="values.CheckHiddenVersionEdit"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 6 / span 1; grid-column: 4 / span 1; align-self: center"
+            style="grid-row: 6 / span 1; grid-column: 4 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenVersionExport"
             :label="pclText('Setup.Ui.FeatureHide.Item.Export')"
             v-model="values.CheckHiddenVersionExport"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 6 / span 1; grid-column: 5 / span 1; align-self: center"
+            style="grid-row: 6 / span 1; grid-column: 5 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenVersionSave"
             :label="pclText('Setup.Ui.FeatureHide.Item.Save')"
             v-model="values.CheckHiddenVersionSave"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 6 / span 1; grid-column: 6 / span 1; align-self: center"
+            style="grid-row: 6 / span 1; grid-column: 6 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenVersionScreenshot"
             :label="pclText('Setup.Ui.FeatureHide.Item.Screenshot')"
             v-model="values.CheckHiddenVersionScreenshot"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 6 / span 1; grid-column: 7 / span 1; align-self: center"
+            style="grid-row: 6 / span 1; grid-column: 7 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenVersionMod"
             :label="pclText('Mod')"
             v-model="values.CheckHiddenVersionMod"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 7 / span 1; grid-column: 3 / span 1; align-self: center"
+            style="grid-row: 7 / span 1; grid-column: 3 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenVersionResourcePack"
             :label="pclText('Setup.Ui.FeatureHide.Item.ResourcePack')"
             v-model="values.CheckHiddenVersionResourcePack"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 7 / span 1; grid-column: 4 / span 1; align-self: center"
+            style="grid-row: 7 / span 1; grid-column: 4 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenVersionShader"
             :label="pclText('Setup.Ui.FeatureHide.Item.Shader')"
             v-model="values.CheckHiddenVersionShader"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 7 / span 1; grid-column: 5 / span 2; align-self: center"
+            style="grid-row: 7 / span 1; grid-column: 5 / span 2; align-self: center"
             id="PageSetupUI-CheckHiddenVersionSchematic"
             :label="pclText('Setup.Ui.FeatureHide.Item.Schematic')"
             v-model="values.CheckHiddenVersionSchematic"
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 7 / span 1; grid-column: 7 / span 1; align-self: center"
+            style="grid-row: 7 / span 1; grid-column: 7 / span 1; align-self: center"
             id="PageSetupUI-CheckHiddenVersionServer"
             :label="pclText('Setup.Ui.FeatureHide.Item.Server')"
             v-model="values.CheckHiddenVersionServer"
@@ -886,7 +848,7 @@ async function clearTitleLogo() {
           >
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 8 / span 1; grid-column: 3 / span 1; align-self: center"
+            style="grid-row: 8 / span 1; grid-column: 3 / span 1; align-self: center"
             :title="pclText('Setup.Ui.FeatureHide.Item.InstanceSelect.ToolTip')"
             id="PageSetupUI-CheckHiddenFunctionSelect"
             :label="pclText('Setup.Ui.FeatureHide.Item.InstanceSelect')"
@@ -894,7 +856,7 @@ async function clearTitleLogo() {
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 8 / span 1; grid-column: 4 / span 1; align-self: center"
+            style="grid-row: 8 / span 1; grid-column: 4 / span 1; align-self: center"
             :title="pclText('Setup.Ui.FeatureHide.Item.ModUpdate.ToolTip')"
             id="PageSetupUI-CheckHiddenFunctionModUpdate"
             :label="pclText('Setup.Ui.FeatureHide.Item.ModUpdate')"
@@ -902,7 +864,7 @@ async function clearTitleLogo() {
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 8 / span 1; grid-column: 5 / span 1; align-self: center"
+            style="grid-row: 8 / span 1; grid-column: 5 / span 1; align-self: center"
             :title="pclText('Setup.Ui.FeatureHide.Item.FeatureHide.ToolTip')"
             id="PageSetupUI-CheckHiddenFunctionHidden"
             :label="pclText('Setup.Ui.FeatureHide.Item.FeatureHide')"

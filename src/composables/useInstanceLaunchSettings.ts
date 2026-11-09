@@ -38,10 +38,13 @@ export function useInstanceLaunchSettings(directory?: Ref<string | undefined>) {
     const revision = generation
     const edit = ++saveRevision
     error.value = null
-    return instanceLaunchSettingsStorage.write({ ...settings }, path).then(() => true).catch((failure) => {
-      if (revision === generation && edit === saveRevision) error.value = String(failure)
-      return false
-    })
+    return instanceLaunchSettingsStorage
+      .write({ ...settings }, path)
+      .then(() => true)
+      .catch((failure) => {
+        if (revision === generation && edit === saveRevision) error.value = String(failure)
+        return false
+      })
   }
 
   if (directory) watch(directory, () => void load(), { immediate: true })

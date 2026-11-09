@@ -67,10 +67,12 @@ if (isTauri()) {
   watch(
     () => appearance.values.CheckLockWindowSize,
     (locked) => {
-      pending = pending.then(() => window.setResizable(!locked)).catch((error) => {
-        console.error('Failed to update window resizability:', error)
-        sideTip.show(pclText('Setup.Ui.Error.OperationFailed'), 'warn')
-      })
+      pending = pending
+        .then(() => window.setResizable(!locked))
+        .catch((error) => {
+          console.error('Failed to update window resizability:', error)
+          sideTip.show(pclText('Setup.Ui.Error.OperationFailed'), 'warn')
+        })
     },
     { immediate: true },
   )

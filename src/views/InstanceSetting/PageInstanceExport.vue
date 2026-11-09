@@ -70,18 +70,16 @@ const visibleOptions = computed(() =>
           margin: 15px 25px 15px 22px;
           display: grid;
           grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 0.3fr);
-          grid-template-rows: 28px;
         "
       >
         <span
           style="
-            margin: 0px 20px 0px 0px;
             grid-row: 1 / span 1;
             grid-column: 1 / span 1;
             justify-self: start;
             align-self: center;
           "
-          class="pcl-text"
+          class="pcl-text pcl-grid-label"
           >{{ pclText('Instance.Export.PackName') }}</span
         >
         <PTextBox
@@ -113,12 +111,12 @@ const visibleOptions = computed(() =>
           pclText('Common.Action.Reset')
         }}</PIconTextButton>
       </template>
-      <div style="padding: 0 25px 15px; display: flex; flex-direction: column">
+      <div class="pcl-card-body">
         <PCheckBox
           v-for="option in visibleOptions"
           :key="option.id"
           :id="`PageInstanceExport-${option.id}`"
-          :style="{ marginLeft: option.indent ? '30px' : '0', minHeight: '26px' }"
+          :style="{ marginLeft: option.indent ? '30px' : '0' }"
           :title="pclText(option.description)"
           :disabled="option.disabled"
           :label="pclText(option.title)"
@@ -128,19 +126,17 @@ const visibleOptions = computed(() =>
       </div>
     </PCard>
     <PCard :title="pclText('Instance.Export.Advanced.Title')" default-fold-status="fold">
-      <div style="margin: 0px 23px 20px 25px; display: flex; flex-direction: column">
+      <div class="pcl-card-body">
         <PHint style="margin: 2px 0px 8px 0px" severity="warning">{{
           pclText('Instance.Export.Advanced.BundleHint')
         }}</PHint>
         <PCheckBox
-          style="height: 26px"
           :title="pclText('Instance.Export.Advanced.BundleFiles.ToolTip')"
           id="PageInstanceExport-CheckAdvancedInclude"
           :label="pclText('Instance.Export.Advanced.BundleFiles')"
           v-model="values.CheckAdvancedInclude"
         />
         <PCheckBox
-          style="height: 26px"
           :title="pclText('Instance.Export.Advanced.Modrinth.ToolTip')"
           id="PageInstanceExport-CheckAdvancedModrinth"
           :label="pclText('Instance.Export.Advanced.Modrinth')"
@@ -149,37 +145,16 @@ const visibleOptions = computed(() =>
         <PHint style="margin: 20px 0px 2px 0px" severity="info" closable>{{
           pclText('Instance.Export.Advanced.ConfigHint')
         }}</PHint>
-        <div
-          style="
-            height: 35px;
-            margin: 12px 0px 0px 0px;
-            display: grid;
-            grid-template-columns: auto auto auto;
-          "
-        >
+        <div class="pcl-button-row pcl-button-row-fill pcl-button-row-spaced">
           <PButton
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-            "
+            style="min-width: 140px; padding: 0px 13px"
             @click="showUnavailable"
             type="tint"
             >{{ pclText('Instance.Export.Advanced.ImportConfig') }}</PButton
           >
-          <PButton
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 2 / span 1;
-            "
-            @click="showUnavailable"
-            >{{ pclText('Instance.Export.Advanced.ExportConfig') }}</PButton
-          >
+          <PButton style="min-width: 140px; padding: 0px 13px" @click="showUnavailable">{{
+            pclText('Instance.Export.Advanced.ExportConfig')
+          }}</PButton>
         </div>
       </div>
     </PCard>

@@ -5,7 +5,9 @@ defineProps<{ label: string; id?: string; disabled?: boolean }>()
 const controlId = useId()
 const model = defineModel<boolean>({ default: false })
 const changed = ref(false)
-watch(model, () => { changed.value = true })
+watch(model, () => {
+  changed.value = true
+})
 </script>
 <template>
   <div class="option" :class="{ disabled }">
@@ -25,7 +27,6 @@ watch(model, () => { changed.value = true })
 </template>
 <style scoped>
 .option {
-  margin-block: 4px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -50,7 +51,10 @@ watch(model, () => { changed.value = true })
   display: grid;
   place-items: center;
   pointer-events: none;
-  transition: color 200ms linear, background-color 100ms linear, transform 150ms ease-out;
+  transition:
+    color 200ms linear,
+    background-color 100ms linear,
+    transform 150ms ease-out;
 }
 .checkbox-shape svg {
   width: 12px;
@@ -83,17 +87,33 @@ input:not(:checked) + .checkbox-shape.changed {
 .option:not(.disabled):active .checkbox-shape {
   background: var(--ce-color-7, var(--color-background));
   transform: scale(0.917);
-  transition: transform 1000ms cubic-bezier(0.19, 1, 0.22, 1), background-color 100ms linear;
+  transition:
+    transform 1000ms cubic-bezier(0.19, 1, 0.22, 1),
+    background-color 100ms linear;
 }
 @keyframes checkbox-check {
-  0% { transform: scale(1); }
-  37% { transform: scale(0.667); animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  37% {
+    transform: scale(0.667);
+    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 @keyframes checkbox-uncheck {
-  0% { transform: scale(1); }
-  37% { transform: scale(0.667); animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  37% {
+    transform: scale(0.667);
+    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .checkbox-shape,

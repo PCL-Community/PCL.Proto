@@ -3,6 +3,7 @@ import { pclText } from '@/api/pclLocale'
 import { useModal } from '@/composables/useModal'
 import PButton from './widget/PButton.vue'
 import PListItem from './widget/PListItem.vue'
+import PTextBox from './widget/PTextBox.vue'
 import PSvgIcon from './widget/PSvgIcon.vue'
 import type { ModalButtonOption } from '@/types/modal'
 
@@ -25,9 +26,10 @@ const handleButtonClick = async (btn: ModalButtonOption) => {
         .modal-body
           p(v-if="options.content" style="white-space: pre-wrap") {{ options.content }}
 
-          input.modal-input(
+          PTextBox(
             v-if="options.showInput"
             v-model="inputValue"
+            :aria-label="options.title ?? pclText('Proto.Label.UntitledDialog')"
           )
 
           .modal-select(v-if="options.selectOptions")
@@ -111,11 +113,6 @@ const handleButtonClick = async (btn: ModalButtonOption) => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-}
-
-.modal-input {
-  width: 100%;
-  font-size: 13px;
 }
 
 .modal-select {

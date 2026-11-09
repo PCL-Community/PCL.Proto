@@ -47,7 +47,10 @@ const emit = defineEmits<{ click: [event: MouseEvent] }>()
   /* 背景过渡由 CSS 处理，Motion 只负责缩放。 */
   background-color: var(--color-tint-rest);
   color: var(--color-text-black);
-  transition: background-color 0.2s linear, border-color 0.2s linear, color 0.2s linear;
+  transition:
+    background-color 0.2s linear,
+    border-color 0.2s linear,
+    color 0.2s linear;
   border-radius: 4px;
   border: 1px solid var(--color-text-black);
   outline: none;
@@ -86,7 +89,7 @@ const emit = defineEmits<{ click: [event: MouseEvent] }>()
 }
 
 .pcl-page .mybutton {
-  min-height: 28px;
+  min-height: 35px;
   display: inline-flex;
   align-items: center;
   justify-content: center;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SetupItem from '@/components/widget/SetupItem.vue'
 import PErrorRetry from '@/components/widget/PErrorRetry.vue'
 import { showUnavailable } from '@/util/showUnavailable'
 import { pclText } from '@/api/pclLocale'
@@ -38,88 +39,46 @@ async function applyProxy() {
     <PErrorRetry :error="proxyError" @retry="saveProxy()" />
 
     <PCard :title="pclText('Setup.Misc.System.Title')">
-      <div
-        style="
-          margin: 0px 25px 16px 25px;
-          display: grid;
-          grid-template-columns: auto minmax(0, 1fr);
-          grid-template-rows: 28px 9px 28px 5px 28px 5px 20px 8px auto;
-        "
-      >
-        <span
-          style="
-            margin: 0px 25px 0px 0px;
-            grid-row: 1 / span 1;
-            grid-column: 1 / span 1;
-            justify-self: start;
-            align-self: center;
-          "
-          class="pcl-text"
-          >{{ pclText('Setup.Misc.System.Announcement') }}</span
-        >
-        <PComboBox
-          disabled
-          style="grid-row: 1 / span 1; grid-column: 2 / span 1"
-          :options="[
-            {
-              key: '0',
-              text: pclText('Setup.Misc.System.Announcement.All'),
-              title: pclText('Setup.Misc.System.Announcement.All.ToolTip'),
-            },
-            { key: '1', text: pclText('Setup.Misc.System.Announcement.ImportantOnly') },
-            { key: '2', text: pclText('Setup.Misc.System.Announcement.Disabled') },
-          ]"
-          v-model="values.ComboSystemActivity"
-        />
-        <span
-          style="
-            margin: 0px 25px 0px 0px;
-            grid-row: 3 / span 1;
-            grid-column: 1 / span 1;
-            justify-self: start;
-            align-self: center;
-          "
-          class="pcl-text"
-          >{{ pclText('Setup.Misc.System.MaxFps') }}</span
-        >
-        <input
-          disabled
-          style="grid-row: 3 / span 1; grid-column: 2 / span 1"
-          :title="pclText('Setup.Misc.System.MaxFps.ToolTip')"
-          type="range"
-          min="0"
-          max="59"
-          v-model.number="values['SliderAniFPS']"
-        />
-        <span
-          style="
-            margin: 0px 25px 0px 0px;
-            grid-row: 5 / span 1;
-            grid-column: 1 / span 1;
-            justify-self: start;
-            align-self: center;
-          "
-          class="pcl-text"
-          >{{ pclText('Setup.Misc.System.MaxLogLines') }}</span
-        >
-        <input
-          style="grid-row: 5 / span 1; grid-column: 2 / span 1"
-          :title="pclText('Setup.Misc.System.MaxLogLines.ToolTip')"
-          type="range"
-          min="0"
-          max="29"
-          :value="logSlider"
-          @input="updateLogSlider(Number(($event.target as HTMLInputElement).value))"
-        />
-        <div
-          style="
-            grid-row: 7 / span 1;
-            grid-column: 1 / span 5;
-            display: grid;
-            grid-template-columns: auto auto auto auto;
-            grid-template-rows: 20px;
-          "
-        >
+      <div class="pcl-card-body settings-grid">
+        <SetupItem :label="pclText('Setup.Misc.System.Announcement')" v-slot="{ id }">
+          <PComboBox
+            :input-id="id"
+            disabled
+            :options="[
+              {
+                key: '0',
+                text: pclText('Setup.Misc.System.Announcement.All'),
+                title: pclText('Setup.Misc.System.Announcement.All.ToolTip'),
+              },
+              { key: '1', text: pclText('Setup.Misc.System.Announcement.ImportantOnly') },
+              { key: '2', text: pclText('Setup.Misc.System.Announcement.Disabled') },
+            ]"
+            v-model="values.ComboSystemActivity"
+          />
+        </SetupItem>
+        <SetupItem :label="pclText('Setup.Misc.System.MaxFps')" v-slot="{ id }">
+          <input
+            :id="id"
+            disabled
+            :title="pclText('Setup.Misc.System.MaxFps.ToolTip')"
+            type="range"
+            min="0"
+            max="59"
+            v-model.number="values['SliderAniFPS']"
+          />
+        </SetupItem>
+        <SetupItem :label="pclText('Setup.Misc.System.MaxLogLines')" v-slot="{ id }">
+          <input
+            :id="id"
+            :title="pclText('Setup.Misc.System.MaxLogLines.ToolTip')"
+            type="range"
+            min="0"
+            max="29"
+            :value="logSlider"
+            @input="updateLogSlider(Number(($event.target as HTMLInputElement).value))"
+          />
+        </SetupItem>
+        <div style="grid-column: 1 / -1; display: grid; grid-template-columns: auto auto auto auto">
           <PCheckBox
             disabled
             style="grid-row: 1 / span 1; grid-column: 1 / span 1"
@@ -136,45 +95,15 @@ async function applyProxy() {
             v-model="values.CheckSystemTelemetry"
           />
         </div>
-        <div
-          style="
-            grid-row: 9 / span 1;
-            grid-column: 1 / span 5;
-            display: grid;
-            grid-template-columns: auto auto auto auto;
-            grid-template-rows: 35px;
-          "
-        >
+        <div class="pcl-button-row pcl-button-row-fill" style="grid-column: 1 / -1">
+          <PButton style="min-width: 140px; padding: 0px 13px" @click="showUnavailable">{{
+            pclText('Setup.Misc.System.ExportSettings')
+          }}</PButton>
+          <PButton style="min-width: 140px; padding: 0px 13px" @click="showUnavailable">{{
+            pclText('Setup.Misc.System.ImportSettings')
+          }}</PButton>
           <PButton
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 1 / span 1;
-            "
-            @click="showUnavailable"
-            >{{ pclText('Setup.Misc.System.ExportSettings') }}</PButton
-          >
-          <PButton
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 2 / span 1;
-            "
-            @click="showUnavailable"
-            >{{ pclText('Setup.Misc.System.ImportSettings') }}</PButton
-          >
-          <PButton
-            style="
-              min-width: 140px;
-              margin: 0px 20px 0px 0px;
-              padding: 0px 13px;
-              grid-row: 1 / span 1;
-              grid-column: 3 / span 1;
-            "
+            style="min-width: 140px; padding: 0px 13px"
             @click="() => showUnavailable()"
             type="warn"
             >{{ pclText('Setup.Misc.System.StopUsingPclCe') }}</PButton
@@ -184,8 +113,8 @@ async function applyProxy() {
     </PCard>
     <PCard :title="pclText('Setup.Misc.Network.Title')">
       <div
+        class="pcl-card-body"
         style="
-          margin: 0px 25px 15px 25px;
           display: grid;
           grid-template-columns: auto minmax(0, 1fr);
           grid-template-rows: 28px 4px 28px 4px auto;
@@ -201,13 +130,12 @@ async function applyProxy() {
         />
         <span
           style="
-            margin: 0px 25px 0px 0px;
             grid-row: 3 / span 1;
             grid-column: 1 / span 1;
             justify-self: start;
             align-self: center;
           "
-          class="pcl-text"
+          class="pcl-text pcl-grid-label"
           >{{ pclText('Setup.Misc.Network.HttpProxy') }}</span
         >
         <div
@@ -218,29 +146,35 @@ async function applyProxy() {
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.2fr);
           "
         >
-          <label
-            style="height: 22px; grid-row: 1 / span 1; grid-column: 1 / span 1"
-            class="pcl-radio"
-            ><input :disabled="!proxyReady" type="radio" v-model="proxyMode" value="off" />{{
-              pclText('Setup.Misc.Network.Proxy.None')
-            }}</label
+          <label style="grid-row: 1 / span 1; grid-column: 1 / span 1" class="pcl-radio"
+            ><input
+              :disabled="!proxyReady || proxyBusy"
+              type="radio"
+              v-model="proxyMode"
+              value="off"
+              @change="saveProxy()"
+            />{{ pclText('Setup.Misc.Network.Proxy.None') }}</label
           >
-          <label
-            style="height: 22px; grid-row: 1 / span 1; grid-column: 2 / span 1"
-            class="pcl-radio"
-            ><input :disabled="!proxyReady" type="radio" v-model="proxyMode" value="system" />{{
-              pclText('Setup.Misc.Network.Proxy.System')
-            }}</label
+          <label style="grid-row: 1 / span 1; grid-column: 2 / span 1" class="pcl-radio"
+            ><input
+              :disabled="!proxyReady || proxyBusy"
+              type="radio"
+              v-model="proxyMode"
+              value="system"
+              @change="saveProxy()"
+            />{{ pclText('Setup.Misc.Network.Proxy.System') }}</label
           >
-          <label
-            style="height: 22px; grid-row: 1 / span 1; grid-column: 3 / span 1"
-            class="pcl-radio"
-            ><input :disabled="!proxyReady" type="radio" v-model="proxyMode" value="custom" />{{
-              pclText('Setup.Misc.Network.Proxy.Custom')
-            }}</label
+          <label style="grid-row: 1 / span 1; grid-column: 3 / span 1" class="pcl-radio"
+            ><input
+              :disabled="!proxyReady || proxyBusy"
+              type="radio"
+              v-model="proxyMode"
+              value="custom"
+            />{{ pclText('Setup.Misc.Network.Proxy.Custom') }}</label
           >
         </div>
         <div
+          v-if="proxyMode === 'custom'"
           style="
             grid-row: 5 / span 1;
             grid-column: 2 / span 1;
@@ -254,7 +188,7 @@ async function applyProxy() {
           }}</PHint>
           <PTextBox
             style="grid-row: 3 / span 1; grid-column: 1 / span 5"
-            :disabled="!proxyReady || proxyMode !== 'custom'"
+            :disabled="!proxyReady || proxyBusy"
             :title="pclText('Setup.Misc.Network.Proxy.InvalidWarning')"
             :placeholder="pclText('Proto.Settings.ProxyExample')"
             v-model="proxyAddress"
@@ -297,6 +231,7 @@ async function applyProxy() {
             v-model="values.TextSystemHttpProxyCustomPassword"
           />
           <PButton
+            compact
             style="grid-row: 5 / span 1; grid-column: 5 / span 1"
             :disabled="!proxyReady || proxyBusy"
             @click="applyProxy"
@@ -306,7 +241,7 @@ async function applyProxy() {
       </div>
     </PCard>
     <PCard :title="pclText('Setup.Misc.Debug.Title')" default-fold-status="fold">
-      <div style="margin: 0px 25px 15px 25px; display: flex; flex-direction: column">
+      <div class="pcl-card-body">
         <div
           style="
             height: 22px;
@@ -317,13 +252,12 @@ async function applyProxy() {
         >
           <span
             style="
-              margin: 0px 25px 0px 0px;
               grid-row: 1 / span 1;
               grid-column: 1 / span 1;
               justify-self: start;
               align-self: center;
             "
-            class="pcl-text"
+            class="pcl-text pcl-grid-label"
             >{{ pclText('Setup.Misc.Debug.AnimationSpeed') }}</span
           >
           <input
@@ -343,7 +277,7 @@ async function applyProxy() {
         >
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 1 / span 1; grid-column: 1 / span 1"
+            style="grid-row: 1 / span 1; grid-column: 1 / span 1"
             :title="pclText('Setup.Misc.Debug.SkipCopy.ToolTip')"
             id="PageSetupLauncherMisc-CheckDebugSkipCopy"
             :label="pclText('Setup.Misc.Debug.SkipCopy')"
@@ -351,7 +285,7 @@ async function applyProxy() {
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 1 / span 1; grid-column: 2 / span 1"
+            style="grid-row: 1 / span 1; grid-column: 2 / span 1"
             :title="pclText('Setup.Misc.Debug.Mode.ToolTip')"
             id="PageSetupLauncherMisc-CheckDebugMode"
             :label="pclText('Setup.Misc.Debug.Mode')"
@@ -359,7 +293,7 @@ async function applyProxy() {
           />
           <PCheckBox
             disabled
-            style="height: 22px; grid-row: 1 / span 1; grid-column: 3 / span 1"
+            style="grid-row: 1 / span 1; grid-column: 3 / span 1"
             :title="pclText('Setup.Misc.Debug.Delay.ToolTip')"
             id="PageSetupLauncherMisc-CheckDebugDelay"
             :label="pclText('Setup.Misc.Debug.Delay')"

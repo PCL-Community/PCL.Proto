@@ -816,10 +816,7 @@ onUnmounted(() => {
           </div>
         </PCard>
 
-        <PCard
-          :title="pclText('Tools.GameLink.Create.Title')"
-          default-fold-status="unfold"
-        >
+        <PCard :title="pclText('Tools.GameLink.Create.Title')" default-fold-status="unfold">
           <div class="card-body">
             <p class="pcl-text card-description">
               {{ pclText('Tools.GameLink.Create.Description') }}
@@ -893,10 +890,7 @@ onUnmounted(() => {
                 <PPath class="status-icon" :data="PING_PATH" />
                 <span>{{ pingText }}</span>
               </div>
-              <div
-                class="status-line selectable"
-                :title="pclText('Tools.GameLink.Finish.LobbyId')"
-              >
+              <div class="status-line selectable" :title="pclText('Tools.GameLink.Finish.LobbyId')">
                 <PPath class="status-icon" :data="LOBBY_ID_PATH" />
                 <span>{{ lobbyCode ?? '-' }}</span>
               </div>
@@ -911,10 +905,7 @@ onUnmounted(() => {
             </div>
           </PCard>
 
-          <PCard
-            :title="pclText('Tools.GameLink.Finish.Actions')"
-            class="finish-actions"
-          >
+          <PCard :title="pclText('Tools.GameLink.Finish.Actions')" class="finish-actions">
             <div class="finish-actions-body">
               <PIconTextButton
                 v-if="isGuest"
@@ -1193,6 +1184,10 @@ onUnmounted(() => {
   margin: 8px;
   display: flex;
   flex-direction: column;
+}
+
+.lobby-footer :deep(.mybutton.inline:not(:hover):not(:active)) {
+  color: var(--color-text-grey);
 }
 
 .footer-line {

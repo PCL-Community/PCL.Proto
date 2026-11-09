@@ -41,13 +41,6 @@ a,
   -ms-user-select: none;
 }
 
-.option {
-  margin-bottom: 6px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .checkable {
   transition: transform 0.2s ease;
 }
