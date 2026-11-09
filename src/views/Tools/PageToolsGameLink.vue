@@ -337,7 +337,7 @@ async function initialize() {
   try {
     await link.initialize()
     if (!joinCode.value && routeCode.value) joinCode.value = routeCode.value
-    if (link.eula === true) void refreshWorlds()
+    if (subpage.value === 'select') void refreshWorlds()
     if (link.lobby?.state === 'exception') void handleException()
   } catch (error) {
     initError.value = linkErrorMessage(error)

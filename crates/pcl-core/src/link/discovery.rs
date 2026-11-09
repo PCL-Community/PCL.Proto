@@ -93,11 +93,14 @@ fn listen_ports(window: Duration) -> Result<Vec<u16>, String> {
 fn build_v4(local: &[IpAddr]) -> Option<UdpSocket> {
     let socket = Socket::new(Domain::IPV4, Type::DGRAM, None).ok()?;
     socket.set_reuse_address(true).ok()?;
+    // macOS can share the multicast group with Minecraft's wildcard listener.
+    #[cfg(target_os = "macos")]
+    let bind_address = MULTICAST_V4;
+    #[cfg(not(target_os = "macos"))]
+    let bind_address = Ipv4Addr::UNSPECIFIED;
     socket
-        .bind(&SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, DISCOVERY_PORT).into())
+        .bind(&SocketAddrV4::new(bind_address, DISCOVERY_PORT).into())
         .ok()?;
-    // 组播加入失败时仍保留套接字：部分平台只允许指定接口加入组播，
-    // 而单播的局域网公告依然会到达。
     for address in local {
         if let IpAddr::V4(address) = address {
             let _ = socket.join_multicast_v4(&MULTICAST_V4, address);
@@ -114,8 +117,12 @@ fn build_v6() -> Option<UdpSocket> {
     let socket = Socket::new(Domain::IPV6, Type::DGRAM, None).ok()?;
     socket.set_only_v6(true).ok()?;
     socket.set_reuse_address(true).ok()?;
+    #[cfg(target_os = "macos")]
+    let bind_address = MULTICAST_V6;
+    #[cfg(not(target_os = "macos"))]
+    let bind_address = Ipv6Addr::UNSPECIFIED;
     socket
-        .bind(&SocketAddrV6::new(Ipv6Addr::UNSPECIFIED, DISCOVERY_PORT, 0, 0).into())
+        .bind(&SocketAddrV6::new(bind_address, DISCOVERY_PORT, 0, 0).into())
         .ok()?;
     let _ = socket.join_multicast_v6(&MULTICAST_V6, 0);
     socket
