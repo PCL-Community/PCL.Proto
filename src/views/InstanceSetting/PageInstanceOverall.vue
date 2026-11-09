@@ -425,7 +425,7 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
   color: var(--color-text-grey);
 }
 .instance-info dd {
-  margin: 0;
+  user-select: text;
 }
 .instance-path {
   overflow-wrap: anywhere;

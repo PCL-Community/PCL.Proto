@@ -4,9 +4,10 @@ import { pclText } from '@/api/pclLocale'
 import { computed, onMounted, onUnmounted } from 'vue'
 import exportOptions from '@/assets/export-options.json'
 import { useSelectedInstance } from '@/stores/gameLaunch'
+import { pluginShowText, type pluginType } from '@/types/gameInfo'
 import { usePageSettings } from '@/composables/usePageSettings'
+import { useNavAction } from '@/composables/navAction'
 import PButton from '@/components/widget/PButton.vue'
-import PIconTextButton from '@/components/widget/PIconTextButton.vue'
 import { FloatButtonType, useFloatButton } from '@/composables/useFloatButton'
 import { useTaskManager } from '@/stores/task'
 import PCard from '@/components/widget/PCard.vue'
@@ -35,6 +36,23 @@ const defaults = {
   ...Object.fromEntries(exportOptions.map((option) => [option.id, option.checked])),
 }
 const { values, reset } = usePageSettings('PageInstanceExport', defaults)
+// 左侧导航的“刷新”在本页视为重置。
+useNavAction('refresh', reset)
+const instanceSummary = computed(() => {
+  const info = instance.instance_info
+  if (!info) return undefined
+  const loaders = Object.entries(info.pluginsVersion ?? {})
+    .filter(([loader, version]) => loader !== 'vanilla' && version)
+    .map(([loader, version]) => `${pluginShowText[loader as pluginType] || loader} ${version}`)
+  return [info.version, ...loaders].join(', ')
+})
+function optionDescription(option: (typeof exportOptions)[number]) {
+  return option.id === 'CheckOptionsBasic' ? instanceSummary.value : pclText(option.description)
+}
+function fillExportName() {
+  if (!values.TextExportName && instance.instance_info?.name)
+    values.TextExportName = instance.instance_info.name
+}
 const visibleOptions = computed(() =>
   exportOptions.filter(
     (option) =>
@@ -84,7 +102,9 @@ const visibleOptions = computed(() =>
         >
         <PTextBox
           style="grid-row: 1 / span 1; grid-column: 2 / span 1"
-          :placeholder="pclText('')"
+          :placeholder="instance.instance_info?.name"
+          maxlength="100"
+          @focus="fillExportName"
           v-model="values.TextExportName"
         />
         <span
@@ -100,24 +120,20 @@ const visibleOptions = computed(() =>
         >
         <PTextBox
           style="grid-row: 1 / span 1; grid-column: 4 / span 1"
-          :placeholder="pclText('')"
+          placeholder="1.0.0"
+          maxlength="100"
           v-model="values.TextExportVersion"
         />
       </div>
     </PCard>
     <PCard :title="pclText('Instance.Export.OptionListTitle')">
-      <template #header-actions>
-        <PIconTextButton icon="lucide/rotate-ccw" @click="() => reset()">{{
-          pclText('Common.Action.Reset')
-        }}</PIconTextButton>
-      </template>
       <div class="pcl-card-body">
         <PCheckBox
           v-for="option in visibleOptions"
           :key="option.id"
           :id="`PageInstanceExport-${option.id}`"
           :style="{ marginLeft: option.indent ? '30px' : '0' }"
-          :title="pclText(option.description)"
+          :description="optionDescription(option)"
           :disabled="option.disabled"
           :label="pclText(option.title)"
           :model-value="option.disabled || Boolean(values[option.id])"

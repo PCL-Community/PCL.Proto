@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { ref, useId, watch } from 'vue'
 import shapes from '@/assets/control-geometry.json'
-defineProps<{ label: string; id?: string; disabled?: boolean }>()
+defineProps<{ label: string; id?: string; disabled?: boolean; description?: string }>()
 const controlId = useId()
 const model = defineModel<boolean>({ default: false })
 const changed = ref(false)
@@ -23,6 +23,7 @@ watch(model, () => {
         <path :d="shapes['MyCheckBox.ShapeCheck']" fill="currentColor" /></svg
     ></span>
     <label :for="id || controlId">{{ label }}</label>
+    <span v-if="description" class="description">{{ description }}</span>
   </div>
 </template>
 <style scoped>
@@ -128,6 +129,10 @@ input:focus-visible + .checkbox-shape {
 }
 label {
   cursor: pointer;
+}
+.description {
+  color: var(--ce-gray-5);
+  overflow-wrap: anywhere;
 }
 .disabled {
   opacity: 0.5;
