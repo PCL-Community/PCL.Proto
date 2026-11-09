@@ -253,6 +253,7 @@ watch(
               }}</PHint>
               <PLoading
                 v-else-if="description === null"
+                :card="false"
                 :loading-text="pclText('Download.Version.LoadingList')"
               />
               <PMarkdown v-else :content="description || project.description" />
