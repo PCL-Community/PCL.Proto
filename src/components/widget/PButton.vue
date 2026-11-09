@@ -12,12 +12,6 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{ click: [event: MouseEvent] }>()
-
-const baseColor = {
-  default: 'var(--color-text-black)',
-  tint: 'var(--ce-color-2)',
-  warn: 'var(--color-warn)',
-}
 </script>
 
 <template>
@@ -27,11 +21,6 @@ const baseColor = {
     :title="tooltip"
     :disabled="disabled"
     :style="{
-      color: inline
-        ? undefined
-        : disabled
-          ? 'var(--color-text-grey)'
-          : baseColor[type ?? 'default'],
       cursor: disabled ? 'not-allowed' : 'pointer',
     }"
     @click="!disabled && emit('click', $event)"
@@ -57,18 +46,21 @@ const baseColor = {
   padding: 0.5rem;
   /* 背景过渡由 CSS 处理，Motion 只负责缩放。 */
   background-color: var(--color-tint-rest);
-  transition: background-color 0.2s linear, border-color 0.2s linear;
+  color: var(--color-text-black);
+  transition: background-color 0.2s linear, border-color 0.2s linear, color 0.2s linear;
   border-radius: 4px;
   border: 1px solid var(--color-text-black);
   outline: none;
 }
 
 .mybutton.tint {
+  color: var(--ce-color-2);
   border-color: var(--ce-color-2);
 }
 
 /* 警告按钮静止态也用警告色、仅 alpha 0，保证过渡只改 alpha。 */
 .mybutton.warn {
+  color: var(--color-warn);
   border-color: var(--color-warn);
   background-color: rgb(from var(--color-warn) r g b / 0);
 }
@@ -79,6 +71,7 @@ const baseColor = {
 }
 
 .mybutton.default:not(:disabled):is(:hover, :active) {
+  color: var(--ce-color-2);
   border-color: var(--ce-color-2);
 }
 
