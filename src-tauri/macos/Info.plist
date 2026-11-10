@@ -4,5 +4,7 @@
 <dict>
   <key>CFBundleIconName</key>
   <string>app</string>
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>PCL.Proto 需要访问本地网络，以发现 Minecraft 局域网世界并提供联机功能。</string>
 </dict>
 </plist>

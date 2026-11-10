@@ -57,6 +57,20 @@ pub struct LinkLobbyState {
 /// 发现/校验到的本地 MC 世界，直接使用 pcl-core 的形态。
 pub use pcl_core::link::discovery::DiscoveredWorld as LinkWorld;
 
+#[cfg(target_os = "macos")]
+fn probe_multicast() {
+    use std::net::{Ipv4Addr, UdpSocket};
+    let result = (|| {
+        let socket = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0))?;
+        socket.set_multicast_ttl_v4(0)?;
+        socket.send_to(b"PCL.Proto LAN probe", (Ipv4Addr::new(224, 0, 2, 60), 4445))?;
+        Ok::<_, std::io::Error>(())
+    })();
+    if let Err(error) = result {
+        log::warn!("LAN multicast probe failed: {error}");
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkNatStatus {
@@ -234,6 +248,8 @@ fn nat_name(code: i32) -> String {
 }
 
 pub async fn discover_worlds() -> Result<Vec<LinkWorld>, LinkError> {
+    #[cfg(target_os = "macos")]
+    probe_multicast();
     discovery::discover_worlds(DISCOVERY_WINDOW)
         .await
         .map_err(|error| {
