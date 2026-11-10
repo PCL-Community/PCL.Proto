@@ -142,14 +142,11 @@ fn is_local(address: IpAddr, local: &[IpAddr]) -> bool {
 }
 
 fn advertised_port(text: &str) -> Option<u16> {
-    let (_, motd) = text.split_once("[MOTD]")?;
-    let (motd, _) = motd.split_once("[/MOTD]")?;
+    let (motd, port) = terracotta::parse_advertisement(text)?;
     if terracotta::is_lobby_motd(motd) {
         return None;
     }
-    let (_, rest) = text.split_once("[AD]")?;
-    let (port, _) = rest.split_once("[/AD]")?;
-    port.trim().parse::<u16>().ok().filter(|port| *port >= 1024)
+    Some(port).filter(|port| *port >= 1024)
 }
 
 /// Flatten a Minecraft chat component (or plain string) to its text.
