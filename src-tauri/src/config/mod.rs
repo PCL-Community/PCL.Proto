@@ -4,6 +4,7 @@
 
 pub mod arguments;
 pub mod download;
+pub mod instance;
 pub mod isolation;
 pub mod java;
 pub mod java_preference;

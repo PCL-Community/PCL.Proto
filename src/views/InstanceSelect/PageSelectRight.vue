@@ -11,9 +11,14 @@ import sideTip from '@/composables/sideTip'
 import { useSelectedInstance } from '@/stores/gameLaunch'
 import { useRepositoriesStore } from '@/stores/repositories'
 import type GameInstance from '@/types/gameInstance'
-import { pluginShowText, instanceIcon, instanceLoader, type pluginType } from '@/types/gameInfo'
+import { pluginShowText, instanceLoader, type pluginType } from '@/types/gameInfo'
 import { invoke, isTauri } from '@tauri-apps/api/core'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
+import {
+  configuredInstanceIcon,
+  instanceMetadata,
+  loadInstanceMetadata,
+} from '@/api/instanceMetadata'
 import { useRoute, useRouter } from 'vue-router'
 import { pclText } from '@/api/pclLocale'
 import { useInstanceFavorites } from '@/composables/useInstanceFavorites'
@@ -28,9 +33,12 @@ const error = ref<string | null>(null)
 const selecting = ref(false)
 const query = ref('')
 const { favorites, toggleFavorite: toggleFavoritePath } = useInstanceFavorites()
-function toggleFavorite(item: GameInstance) {
-  const error = toggleFavoritePath(item.directory)
-  if (error) sideTip.show(error, 'warn')
+async function toggleFavorite(item: GameInstance) {
+  try {
+    await toggleFavoritePath(item.directory)
+  } catch (error) {
+    sideTip.show(String(error), 'warn')
+  }
 }
 const filtered = computed(() =>
   instances.value.filter((item) =>
@@ -52,9 +60,34 @@ function tags(item: GameInstance) {
       .map(([key, version]) => `${pluginShowText[key as pluginType] || key} ${version}`),
   ]
 }
+const showHidden = ref(false)
+function toggleHidden(event: KeyboardEvent) {
+  if (event.key === 'F11') {
+    event.preventDefault()
+    showHidden.value = !showHidden.value
+  }
+}
+onMounted(() => window.addEventListener('keydown', toggleHidden))
+onUnmounted(() => window.removeEventListener('keydown', toggleHidden))
 const groups = computed(() => {
-  const modded = filtered.value.filter((item) => loader(item))
-  const regular = filtered.value.filter((item) => !loader(item))
+  if (showHidden.value)
+    return [
+      {
+        key: 'hidden',
+        title: pclText('Select.Instance.Card.Hidden'),
+        items: filtered.value.filter(
+          (item) => instanceMetadata[item.directory]?.display_type === 1,
+        ),
+        favorite: false,
+      },
+    ]
+  const visible = filtered.value.filter(
+    (item) => instanceMetadata[item.directory]?.display_type !== 1,
+  )
+  const category = (item: GameInstance) =>
+    instanceMetadata[item.directory]?.display_type || (loader(item) ? 2 : 3)
+  const modded = visible.filter((item) => category(item) === 2)
+  const regular = visible.filter((item) => category(item) === 3)
   const kinds = [...new Set(instances.value.map(loader).filter(Boolean))]
   const labels: Partial<Record<pluginType, string>> = {
     forge: 'Forge',
@@ -71,7 +104,7 @@ const groups = computed(() => {
     {
       key: 'favorites',
       title: pclText('Select.Instance.Card.Favorites'),
-      items: filtered.value.filter((item) => favorites.value.includes(item.directory)),
+      items: visible.filter((item) => favorites.value.includes(item.directory)),
       favorite: true,
     },
     {
@@ -84,6 +117,18 @@ const groups = computed(() => {
       key: 'regular',
       title: pclText('Select.Instance.Card.Regular'),
       items: regular,
+      favorite: false,
+    },
+    {
+      key: 'lessUsed',
+      title: pclText('Select.Instance.Card.LessUsed'),
+      items: visible.filter((item) => category(item) === 4),
+      favorite: false,
+    },
+    {
+      key: 'aprilFools',
+      title: pclText('Select.Instance.Card.AprilFools'),
+      items: visible.filter((item) => category(item) === 5),
       favorite: false,
     },
   ].filter((group) => group.items.length)
@@ -106,6 +151,7 @@ async function load() {
     await repos.selectRepository(index)
     if (current !== request) return
     const items = await repos.getInstancesInRepository(index)
+    await loadInstanceMetadata(items.map((item) => item.directory))
     if (current === request) {
       instances.value = items
       repos.instancesByPath[repository.path] = items
@@ -179,7 +225,7 @@ async function folderAction(item: GameInstance, remove: boolean) {
     })
     if (remove) {
       if (selected.instance_info?.directory === item.directory) selected.setInstance(null)
-      if (favorites.value.includes(item.directory)) toggleFavorite(item)
+      delete instanceMetadata[item.directory]
       sideTip.show(pclText('Select.Instance.Delete.RecycleBinSuccess', [item.name]), 'success')
       await load()
     }
@@ -241,7 +287,7 @@ watch(
             :key="item.directory"
             :title="item.name"
             :tags="tags(item)"
-            :icon="instanceIcon(item.version, item.pluginsVersion || {})"
+            :icon="configuredInstanceIcon(item)"
             clickable
             @click="() => select(item)"
             @contextmenu.prevent="settings(item)"

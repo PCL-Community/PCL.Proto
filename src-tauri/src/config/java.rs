@@ -84,24 +84,19 @@ pub async fn refresh(force: bool) -> Result<Vec<JavaEntry>, String> {
 pub async fn prepare(expected: PathBuf) -> Result<JavaLaunchInfo, String> {
     async fn evaluate(expected: PathBuf) -> Result<JavaLaunchInfo, String> {
         let config = ConfigManager::instance();
-        let (instance, runtimes, global, settings) = {
+        let (instance, runtimes, global) = {
             let state = config.app_state.lock().await;
             let instance = active_instance(&state, &expected)
                 .map_err(|e| e.to_string())?
                 .clone();
-            let settings = state
-                .java_preferences
-                .get(&instance.directory)
-                .cloned()
-                .unwrap_or_default();
             (
                 instance,
                 state.java_runtimes.clone(),
                 state.launcher_setup.selected_java.clone(),
-                settings,
             )
         };
         let result = tokio::task::spawn_blocking(move || {
+            let settings = super::instance::InstanceConfig::load(&instance.directory)?.java()?;
             let instance = instance
                 .refresh()
                 .map_err(|e| format!("Cannot refresh Minecraft instance: {e:?}"))?;

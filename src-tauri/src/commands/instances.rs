@@ -45,10 +45,8 @@ pub async fn set_instance_isolation(
     value: bool,
 ) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
-        ConfigManager::instance().update(|state| {
-            current_instance(state, &instance_directory).map_err(|error| error.to_string())?;
-            state.instance_isolation.insert(instance_directory, value);
-            Ok(())
+        ConfigManager::instance().update_instance(&instance_directory, |config| {
+            config.set("VersionArgumentIndieV2", value)
         })
     })
     .await
@@ -64,11 +62,10 @@ pub async fn open_instance_folder(
         let state = ConfigManager::instance().app_state.blocking_lock();
         let instance =
             current_instance(&state, &instance_directory).map_err(|error| error.to_string())?;
-        let game_directory =
-            crate::config::isolation::directory(&state.instance_isolation, instance);
+        let game_directory = crate::config::isolation::directory(instance)?;
         let directory = pcl_core::minecraft::instance::prepare_shortcut_directory(
             instance,
-            game_directory,
+            &game_directory,
             kind,
         )
         .map_err(|error| error.to_string())?;
@@ -122,14 +119,6 @@ pub async fn instance_folder_action(
         }
         trash::delete(&path).map_err(|e| e.to_string())?;
         manager.update(|state| {
-            state.instance_launch_counts.remove(&instance.directory);
-            state.instance_descriptions.remove(&instance.directory);
-            state.instance_isolation.remove(&instance.directory);
-            state.instance_memory_custom.remove(&instance.directory);
-            state.instance_memory_settings.remove(&instance.directory);
-            state.instance_launch_arguments.remove(&instance.directory);
-            state.instance_launch_settings.remove(&instance.directory);
-            state.java_preferences.remove(&instance.directory);
             if state
                 .active_game_instance
                 .as_ref()
@@ -147,26 +136,26 @@ pub async fn instance_folder_action(
 pub async fn get_instance_description(
     instance_directory: std::path::PathBuf,
 ) -> Result<String, String> {
-    let state = ConfigManager::instance().app_state.lock().await;
-    current_instance(&state, &instance_directory).map_err(|error| error.to_string())?;
-    Ok(state
-        .instance_descriptions
-        .get(&instance_directory)
-        .cloned()
-        .unwrap_or_default())
+    tauri::async_runtime::spawn_blocking(move || {
+        ConfigManager::instance().read_instance(&instance_directory, |config| {
+            config.get("CustomInfo", String::new())
+        })
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 #[tauri::command]
 pub async fn get_instance_launch_count(
     instance_directory: std::path::PathBuf,
 ) -> Result<u64, String> {
-    let state = ConfigManager::instance().app_state.lock().await;
-    current_instance(&state, &instance_directory).map_err(|error| error.to_string())?;
-    Ok(state
-        .instance_launch_counts
-        .get(&instance_directory)
-        .copied()
-        .unwrap_or(0))
+    tauri::async_runtime::spawn_blocking(move || {
+        ConfigManager::instance().read_instance(&instance_directory, |config| {
+            config.get("VersionLaunchCount", 0)
+        })
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 #[tauri::command]
@@ -178,15 +167,8 @@ pub async fn set_instance_description(
         return Err("Invalid instance description".into());
     }
     tauri::async_runtime::spawn_blocking(move || {
-        ConfigManager::instance().update(|state| {
-            current_instance(state, &instance_directory).map_err(|e| e.to_string())?;
-            if description.trim().is_empty() {
-                state.instance_descriptions.remove(&instance_directory);
-            } else {
-                state
-                    .instance_descriptions
-                    .insert(instance_directory.clone(), description.clone());
-            }
+        ConfigManager::instance().update_instance(&instance_directory, |config| {
+            config.set("CustomInfo", &description)?;
             Ok(description)
         })
     })
@@ -279,44 +261,6 @@ fn rename_instance_inner(
         }
     };
     let saved = manager.update(|state| {
-        if let Some(value) = state.instance_memory_custom.remove(&instance.directory) {
-            state
-                .instance_memory_custom
-                .insert(new_directory.clone(), value);
-        }
-        if let Some(value) = state.instance_memory_settings.remove(&instance.directory) {
-            state
-                .instance_memory_settings
-                .insert(new_directory.clone(), value);
-        }
-        if let Some(value) = state.instance_launch_arguments.remove(&instance.directory) {
-            state
-                .instance_launch_arguments
-                .insert(new_directory.clone(), value);
-        }
-        if let Some(value) = state.instance_launch_settings.remove(&instance.directory) {
-            state
-                .instance_launch_settings
-                .insert(new_directory.clone(), value);
-        }
-        if let Some(value) = state.java_preferences.remove(&instance.directory) {
-            state.java_preferences.insert(new_directory.clone(), value);
-        }
-        if let Some(value) = state.instance_isolation.remove(&instance.directory) {
-            state
-                .instance_isolation
-                .insert(new_directory.clone(), value);
-        }
-        if let Some(description) = state.instance_descriptions.remove(&instance.directory) {
-            state
-                .instance_descriptions
-                .insert(new_directory.clone(), description);
-        }
-        if let Some(count) = state.instance_launch_counts.remove(&instance.directory) {
-            state
-                .instance_launch_counts
-                .insert(new_directory.clone(), count);
-        }
         if state
             .active_game_instance
             .as_ref()
@@ -327,7 +271,7 @@ fn rename_instance_inner(
         Ok(())
     });
     if let Err(error) = saved {
-        // Keep the folder and the stored instance keys consistent.
+        // Restore the folder when saving the selected instance fails.
         if let Err(rollback) = pcl_core::minecraft::instance::rename_instance_files(
             &new_directory,
             &instance.directory,

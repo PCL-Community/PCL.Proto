@@ -100,35 +100,34 @@ pub fn initial(instance: &McInstance, default: IsolationDefault) -> anyhow::Resu
     Ok(non_release || (default == IsolationDefault::ModdedOrNonRelease && modded))
 }
 
-/// 实例是否隔离；没有记录的实例默认隔离。
-pub fn directory<'a>(
-    overrides: &std::collections::HashMap<PathBuf, bool>,
-    instance: &'a McInstance,
-) -> &'a Path {
-    if overrides.get(&instance.directory).copied().unwrap_or(true) {
-        &instance.directory
+/// 文件缺少隔离键时才初始化；显式 false 必须保留。
+pub fn directory(instance: &McInstance) -> Result<PathBuf, String> {
+    let config = super::instance::InstanceConfig::load(&instance.directory)?;
+    if config.get("VersionArgumentIndieV2", true)? {
+        Ok(instance.directory.clone())
     } else {
-        &instance.global_dir
+        Ok(instance.global_dir.clone())
     }
 }
 
-use crate::config::java_preference::current_instance;
-
 use crate::config::states::AppState;
+pub fn ensure(state: &AppState, path: &Path) -> Result<bool, String> {
+    let instance = super::java::active_instance(state, path)?;
+    ensure_for(instance, state.isolation_default)
+}
 
-pub fn ensure(state: &mut AppState, path: &Path) -> Result<bool, String> {
-    let instance = current_instance(state.active_game_instance.as_deref(), path)
-        .map_err(|error| error.to_string())?;
-    if let Some(value) = state.instance_isolation.get(path) {
-        return Ok(*value);
-    }
-    let instance = instance
-        .refresh()
-        .map_err(|error| format!("Cannot refresh Minecraft instance: {error:?}"))?;
-    let value =
-        initial(&instance, state.isolation_default).map_err(|error| format!("{error:#}"))?;
-    state.instance_isolation.insert(PathBuf::from(path), value);
-    Ok(value)
+pub fn ensure_for(instance: &McInstance, default: IsolationDefault) -> Result<bool, String> {
+    super::instance::InstanceConfig::update(&instance.directory, |config| {
+        if config.contains("VersionArgumentIndieV2") {
+            return config.get("VersionArgumentIndieV2", false);
+        }
+        let refreshed = instance
+            .refresh()
+            .map_err(|error| format!("Cannot refresh Minecraft instance: {error:?}"))?;
+        let decision = initial(&refreshed, default).map_err(|error| format!("{error:#}"))?;
+        config.set("VersionArgumentIndieV2", decision)?;
+        Ok(decision)
+    })
 }
 
 pub fn set_default(state: &mut AppState, value: IsolationDefault) -> Result<(), String> {
@@ -158,14 +157,8 @@ pub fn set_default(state: &mut AppState, value: IsolationDefault) -> Result<(), 
                 continue;
             }
             let path = entry.path();
-            if state.instance_isolation.contains_key(&path) {
-                continue;
-            }
             if let Ok(instance) = McInstance::from_version_folder(&path, repo) {
-                let decision = initial(&instance, state.isolation_default).map_err(|error| {
-                    format!("Cannot decide isolation for {}: {error:#}", path.display())
-                })?;
-                state.instance_isolation.insert(path, decision);
+                ensure_for(&instance, state.isolation_default)?;
             }
         }
     }
@@ -222,10 +215,12 @@ mod tests {
         fs::create_dir_all(path.join("saves/world")).unwrap();
         assert!(initial(&instance, IsolationDefault::Off).unwrap());
         fs::remove_dir_all(path.join("saves")).unwrap();
-        let mut overrides = std::collections::HashMap::new();
-        assert_eq!(directory(&overrides, &instance), path);
-        overrides.insert(path.clone(), false);
-        assert_eq!(directory(&overrides, &instance), root);
+        assert_eq!(directory(&instance).unwrap(), path);
+        super::super::instance::InstanceConfig::update(&path, |config| {
+            config.set("VersionArgumentIndieV2", false)
+        })
+        .unwrap();
+        assert_eq!(directory(&instance).unwrap(), root);
         fs::remove_dir_all(root).unwrap();
     }
 }

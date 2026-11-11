@@ -53,9 +53,8 @@ pub async fn download_minecraft_version(
     if outcome.isolated {
         let directory = outcome.directory.clone();
         tokio::task::spawn_blocking(move || {
-            ConfigManager::instance().update(move |state| {
-                state.instance_isolation.insert(directory, true);
-                Ok(())
+            crate::config::instance::InstanceConfig::update(&directory, |config| {
+                config.set("VersionArgumentIndieV2", true)
             })
         })
         .await

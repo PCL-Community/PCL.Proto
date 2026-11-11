@@ -1,29 +1,5 @@
 //! 启动参数设置、默认值与全局/实例继承。
 
-use std::path::Path;
-
-use crate::config::java_preference::current_instance;
-
-use crate::config::states::AppState;
-
-pub fn update(
-    state: &mut AppState,
-    instance_directory: Option<&Path>,
-    settings: LaunchArguments,
-) -> Result<LaunchArguments, String> {
-    settings.validate(instance_directory.is_some())?;
-    if let Some(path) = instance_directory {
-        current_instance(state.active_game_instance.as_deref(), path)
-            .map_err(|error| error.to_string())?;
-        state
-            .instance_launch_arguments
-            .insert(path.to_owned(), settings.clone());
-    } else {
-        state.launch_arguments = Some(settings.clone());
-    }
-    Ok(settings)
-}
-
 pub const DEFAULT_JVM: &str = "-XX:+UseG1GC -XX:-UseAdaptiveSizePolicy -XX:-OmitStackTraceInFastThrow -Djdk.lang.Process.allowAmbiguousCommands=true -Dfml.ignoreInvalidMinecraftCertificates=True -Dfml.ignorePatchDiscrepancies=True -Dlog4j2.formatMsgNoLookups=true";
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

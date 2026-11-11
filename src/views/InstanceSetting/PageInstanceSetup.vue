@@ -8,8 +8,6 @@ import { useJavaStore } from '@/stores/java'
 import { useSelectedInstance } from '@/stores/gameLaunch'
 import { isTauri } from '@tauri-apps/api/core'
 import sideTip from '@/composables/sideTip'
-import { usePageSettings } from '@/composables/usePageSettings'
-import { memorySettingKeys } from '@/api/memorySettings'
 import PMemorySettings from '@/components/widget/PMemorySettings.vue'
 import PErrorRetry from '@/components/widget/PErrorRetry.vue'
 import PButton from '@/components/widget/PButton.vue'
@@ -22,7 +20,6 @@ import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import PTextBox from '@/components/widget/PTextBox.vue'
 import { useModal } from '@/composables/useModal'
 import { getInstanceIsolation, setInstanceIsolation } from '@/api/isolationSettings'
-import { launchArgumentKeys } from '@/api/launchArguments'
 import { useLaunchArguments } from '@/composables/useLaunchArguments'
 import { useInstanceLaunchSettings } from '@/composables/useInstanceLaunchSettings'
 import { useLaunchState } from '@/stores/launchState'
@@ -32,11 +29,6 @@ const props = defineProps<{
   memoryOverLimit?: boolean
   canCreateProfile?: boolean
 }>()
-const { values } = usePageSettings(
-  'PageInstanceSetup',
-  {},
-  isTauri() ? [...memorySettingKeys, ...launchArgumentKeys, 'ComboArgumentIndieV2'] : [],
-)
 const java = useJavaStore()
 const selected = useSelectedInstance()
 const directory = computed(() => selected.instance_info?.directory)
@@ -370,7 +362,7 @@ const router = useRouter()
               :suggestions="[pclText('Setup.Launch.Options.WindowTitle.SampleFormat')]"
               :title="pclText('Instance.Setup.Options.WindowTitle.ToolTip')"
               :placeholder="pclText('')"
-              v-model="values.TextArgumentTitle"
+              v-model="launchSettings.title"
           /></SetupItem>
           <PCheckBox
             disabled
@@ -378,7 +370,7 @@ const router = useRouter()
             :title="pclText('Instance.Setup.Options.WindowTitle.Default.ToolTip')"
             id="PageInstanceSetup-CheckArgumentTitleEmpty"
             :label="pclText('Instance.Setup.Options.WindowTitle.Default')"
-            v-model="values.CheckArgumentTitleEmpty"
+            v-model="launchSettings.use_global_title"
           />
           <SetupItem :label="pclText('Setup.Launch.Options.CustomInfo.Label')" v-slot="{ id }"
             ><PTextBox
@@ -636,7 +628,7 @@ const router = useRouter()
             :title="pclText('Proto.Settings.ModUpdateUnavailable')"
             id="PageInstanceSetup-CheckAdvanceDisableModUpdate"
             :label="pclText('Instance.Setup.Advanced.DisableModUpdate')"
-            v-model="values.CheckAdvanceDisableModUpdate"
+            v-model="launchSettings.disable_mod_update"
           />
           <PCheckBox
             :title="pclText('Instance.Setup.Advanced.IgnoreJavaCompatibility.ToolTip')"

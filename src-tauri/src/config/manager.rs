@@ -78,16 +78,30 @@ pub async fn set_window_settings(settings: WindowSettings) -> Result<WindowSetti
 }
 
 impl ConfigManager {
+    pub fn read_instance<T>(
+        &self,
+        path: &Path,
+        read: impl FnOnce(&super::instance::InstanceConfig) -> Result<T, String>,
+    ) -> Result<T, String> {
+        let state = self.app_state.blocking_lock();
+        super::java::active_instance(&state, path)?;
+        read(&super::instance::InstanceConfig::load(path)?)
+    }
+
+    pub fn update_instance<T>(
+        &self,
+        path: &Path,
+        change: impl FnOnce(&mut super::instance::InstanceConfig) -> Result<T, String>,
+    ) -> Result<T, String> {
+        let state = self.app_state.blocking_lock();
+        super::java::active_instance(&state, path)?;
+        super::instance::InstanceConfig::update(path, change)
+    }
+
     pub fn ensure_instance_isolation(&self, path: &std::path::Path) -> Result<bool, String> {
-        {
-            let state = self.app_state.blocking_lock();
-            crate::config::java::active_instance(&state, path)
-                .map_err(|error| error.to_string())?;
-            if let Some(value) = state.instance_isolation.get(path) {
-                return Ok(*value);
-            }
-        }
-        self.update(|state| crate::config::isolation::ensure(state, path))
+        let state = self.app_state.blocking_lock();
+        crate::config::java::active_instance(&state, path)?;
+        crate::config::isolation::ensure(&state, path)
     }
 
     fn update_window_settings(&self, settings: WindowSettings) -> Result<WindowSettings, String> {
@@ -527,25 +541,9 @@ impl ConfigManager {
 #[cfg(windows)]
 fn normalize_loaded_paths(state: &mut AppState) {
     use pcl_core::minecraft::instance::InstanceJava;
-    use std::collections::HashMap;
 
     fn path(value: &mut PathBuf) {
         *value = pcl_core::utils::simplify(value).to_owned();
-    }
-    fn keys<T>(map: &mut HashMap<PathBuf, T>) {
-        let mut original = std::mem::take(map);
-        for (key, value) in original.extract_if(|key, _| pcl_core::utils::simplify(key) == key) {
-            map.insert(key, value);
-        }
-        for (key, value) in original {
-            let simplified = pcl_core::utils::simplify(&key).to_owned();
-            let key = if map.contains_key(&simplified) {
-                key
-            } else {
-                simplified
-            };
-            map.insert(key, value);
-        }
     }
     fn java(entry: &mut pcl_core::minecraft::java::JavaEntry) {
         path(&mut entry.installation.java_exe);
@@ -572,21 +570,6 @@ fn normalize_loaded_paths(state: &mut AppState) {
     if let Some(selected) = &mut state.launcher_setup.selected_java {
         path(selected);
     }
-    keys(&mut state.java_preferences);
-    for settings in state.java_preferences.values_mut() {
-        if let crate::config::java_preference::JavaPreference::Existing { java_exe } =
-            &mut settings.preference
-        {
-            path(java_exe);
-        }
-    }
-    keys(&mut state.instance_memory_settings);
-    keys(&mut state.instance_memory_custom);
-    keys(&mut state.instance_isolation);
-    keys(&mut state.instance_launch_arguments);
-    keys(&mut state.instance_launch_settings);
-    keys(&mut state.instance_descriptions);
-    keys(&mut state.instance_launch_counts);
 }
 
 fn valid_loaded_state(state: &AppState) -> bool {
@@ -602,28 +585,16 @@ fn valid_loaded_state(state: &AppState) -> bool {
             .as_ref()
             .is_some_and(|settings| settings.validate().is_err())
         || state
-            .instance_memory_settings
-            .values()
-            .any(|settings| settings.validate().is_err())
-        || state
             .memory_custom
             .as_ref()
             .is_some_and(|custom| custom.validate().is_err())
-        || state
-            .instance_memory_custom
-            .values()
-            .any(|custom| custom.validate().is_err())
         || state
             .download_settings
             .as_ref()
             .is_some_and(|settings| settings.validate().is_err())
         || state.link_settings.validate().is_err()
         || state.renderer > 3
-        || state.proxy.validate().is_err()
-        || state
-            .instance_launch_settings
-            .values()
-            .any(|settings| settings.validate().is_err()))
+        || state.proxy.validate().is_err())
 }
 
 fn save_config_atomically(
@@ -666,140 +637,6 @@ mod java_config_tests {
     use super::*;
     use crate::config::states::WindowMode;
     use serde::ser::Error;
-    #[test]
-    fn isolation_initialization_is_transactional_and_persists_per_directory() {
-        let root =
-            std::env::temp_dir().join(format!("pcl-isolation-config-{}", uuid::Uuid::new_v4()));
-        let path = root.join("versions/first");
-        fs::create_dir_all(&path).unwrap();
-        fs::write(path.join("first.json"), r#"{"id":"same","type":"release"}"#).unwrap();
-        fs::write(path.join("first.jar"), b"jar").unwrap();
-        let instance =
-            McInstance::from_version_folder(&path, &McFolder::new("test", root.clone())).unwrap();
-        let config_path = root.join("config.yml");
-        let manager = ConfigManager {
-            config_path: config_path.clone(),
-            config_dir: root.clone(),
-            app_state: Arc::new(Mutex::new(AppState {
-                active_game_instance: Some(Arc::new(instance)),
-                isolation_default: crate::config::isolation::IsolationDefault::Off,
-                ..Default::default()
-            })),
-            api_client: MinecraftApiClient::new(pcl_core::io::net::http::HttpTransport::default()),
-            pcl_identifier: String::new(),
-        };
-        fs::create_dir(&config_path).unwrap();
-        assert!(manager.ensure_instance_isolation(&path).is_err());
-        assert!(
-            manager
-                .app_state
-                .blocking_lock()
-                .instance_isolation
-                .is_empty()
-        );
-        fs::remove_dir(&config_path).unwrap();
-        assert!(!manager.ensure_instance_isolation(&path).unwrap());
-        let saved: AppState = serde_yaml::from_slice(&fs::read(&config_path).unwrap()).unwrap();
-        assert_eq!(saved.instance_isolation.get(&path), Some(&false));
-        manager
-            .update(|state| {
-                state.isolation_default = crate::config::isolation::IsolationDefault::All;
-                Ok(())
-            })
-            .unwrap();
-        assert!(!manager.ensure_instance_isolation(&path).unwrap());
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn launch_arguments_validate_and_commit_per_instance_transactionally() {
-        use crate::config::arguments::LaunchArguments;
-        use crate::config::arguments::update;
-        let root =
-            std::env::temp_dir().join(format!("pcl-argument-config-{}", uuid::Uuid::new_v4()));
-        let repo = McFolder::new("test", root.clone());
-        let mut instances = Vec::new();
-        for name in ["one", "two"] {
-            let path = root.join("versions").join(name);
-            fs::create_dir_all(&path).unwrap();
-            fs::write(
-                path.join(format!("{name}.json")),
-                r#"{"id":"same","type":"release"}"#,
-            )
-            .unwrap();
-            fs::write(path.join(format!("{name}.jar")), b"jar").unwrap();
-            instances.push(McInstance::from_version_folder(&path, &repo).unwrap());
-        }
-        let config_path = root.join("config.yml");
-        let manager = ConfigManager {
-            config_path: config_path.clone(),
-            config_dir: root.clone(),
-            app_state: Arc::new(Mutex::new(AppState {
-                active_game_instance: Some(Arc::new(instances[0].clone())),
-                ..Default::default()
-            })),
-            api_client: MinecraftApiClient::new(pcl_core::io::net::http::HttpTransport::default()),
-            pcl_identifier: String::new(),
-        };
-        let valid = LaunchArguments {
-            jvm: "-Dfirst=true".into(),
-            ..Default::default()
-        };
-        let first = instances[0].directory.clone();
-        let second = instances[1].directory.clone();
-        assert!(
-            manager
-                .update(|state| update(state, Some(&second), valid.clone()))
-                .is_err()
-        );
-        assert!(
-            manager
-                .update(|state| update(
-                    state,
-                    None,
-                    LaunchArguments {
-                        game: "'invalid".into(),
-                        ..Default::default()
-                    }
-                ))
-                .is_err()
-        );
-        fs::create_dir(&config_path).unwrap();
-        assert!(
-            manager
-                .update(|state| update(state, Some(&first), valid.clone()))
-                .is_err()
-        );
-        assert!(
-            manager
-                .app_state
-                .blocking_lock()
-                .instance_launch_arguments
-                .is_empty()
-        );
-        fs::remove_dir(&config_path).unwrap();
-        manager
-            .update(|state| update(state, Some(&first), valid.clone()))
-            .unwrap();
-        manager
-            .update(|state| {
-                state.active_game_instance = Some(Arc::new(instances[1].clone()));
-                Ok(())
-            })
-            .unwrap();
-        let other = LaunchArguments {
-            game: "--demo".into(),
-            ..Default::default()
-        };
-        manager
-            .update(|state| update(state, Some(&second), other.clone()))
-            .unwrap();
-        let saved: AppState = serde_yaml::from_slice(&fs::read(&config_path).unwrap()).unwrap();
-        assert_eq!(saved.instance_launch_arguments.get(&first), Some(&valid));
-        assert_eq!(saved.instance_launch_arguments.get(&second), Some(&other));
-        fs::remove_dir_all(root).unwrap();
-    }
-
     #[test]
     fn window_settings_validate_and_preserve_failed_save() {
         let root =
@@ -966,13 +803,6 @@ mod java_config_tests {
         assert_eq!(fs::read(&path).unwrap(), b"previous config");
         let mut state = AppState::default();
         state.launcher_setup.selected_java = Some(PathBuf::from("/test/jdk/bin/java"));
-        state.java_preferences.insert(
-            PathBuf::from("/test/game"),
-            crate::config::java_preference::InstanceJavaSettings {
-                preference: crate::config::java_preference::JavaPreference::Auto,
-                ignore_compatibility: true,
-            },
-        );
         save_config_atomically(&path, &state).unwrap();
         #[cfg(unix)]
         {
@@ -987,7 +817,6 @@ mod java_config_tests {
             restored.launcher_setup.selected_java,
             state.launcher_setup.selected_java
         );
-        assert!(restored.java_preferences[&PathBuf::from("/test/game")].ignore_compatibility);
         assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
         fs::remove_dir_all(root).unwrap();
     }
@@ -1018,14 +847,12 @@ mod java_config_tests {
         );
         fs::remove_dir(&path).unwrap();
         let threads: Vec<_> = (0..8)
-            .map(|i| {
+            .map(|_| {
                 let manager = manager.clone();
                 std::thread::spawn(move || {
                     manager
                         .update(|state| {
-                            state
-                                .java_preferences
-                                .insert(PathBuf::from(format!("/game/{i}")), Default::default());
+                            state.log_max_lines = Some(state.log_max_lines.unwrap_or(100) + 1);
                             Ok(())
                         })
                         .unwrap()
@@ -1036,8 +863,8 @@ mod java_config_tests {
             thread.join().unwrap();
         }
         let saved: AppState = serde_yaml::from_slice(&fs::read(&path).unwrap()).unwrap();
-        assert_eq!(saved.java_preferences.len(), 8);
-        assert_eq!(manager.app_state.blocking_lock().java_preferences.len(), 8);
+        assert_eq!(saved.log_max_lines, Some(108));
+        assert_eq!(manager.app_state.blocking_lock().log_max_lines, Some(108));
         fs::remove_dir_all(root).unwrap();
     }
     #[test]

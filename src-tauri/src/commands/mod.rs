@@ -8,6 +8,7 @@ pub mod download;
 pub mod export;
 pub mod homepage;
 pub mod installer;
+pub mod instance_metadata;
 pub mod instance_resources;
 pub mod instances;
 pub mod java;

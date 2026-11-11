@@ -5,36 +5,31 @@ pub async fn get_memory_settings(
     instance_directory: Option<std::path::PathBuf>,
 ) -> Result<crate::config::memory::MemorySnapshot, String> {
     use crate::config::memory::{MemoryCustom, MemorySettings, MemorySnapshot};
-    let state = ConfigManager::instance().app_state.lock().await;
-    match instance_directory {
-        Some(directory) => {
-            current_instance(&state, &directory).map_err(|error| error.to_string())?;
-            let settings = state.instance_memory_settings.get(&directory).cloned();
-            let custom = state
-                .instance_memory_custom
-                .get(&directory)
-                .cloned()
-                .unwrap_or_else(|| MemoryCustom::from_settings(settings.as_ref()));
-            Ok(MemorySnapshot { settings, custom })
+    tauri::async_runtime::spawn_blocking(move || {
+        let config = ConfigManager::instance();
+        if let Some(directory) = instance_directory {
+            return config
+                .read_instance(&directory, crate::config::instance::InstanceConfig::memory);
         }
-        None => {
-            let settings = Some(
-                state
-                    .memory_settings
-                    .clone()
-                    .unwrap_or(MemorySettings::Custom {
-                        maximum_mib: u32::try_from(state.launcher_setup.max_memory)
-                            .map_err(|error| error.to_string())?,
-                        initial_mib: None,
-                    }),
-            );
-            let custom = state
-                .memory_custom
+        let state = config.app_state.blocking_lock();
+        let settings = Some(
+            state
+                .memory_settings
                 .clone()
-                .unwrap_or_else(|| MemoryCustom::from_settings(settings.as_ref()));
-            Ok(MemorySnapshot { settings, custom })
-        }
-    }
+                .unwrap_or(MemorySettings::Custom {
+                    maximum_mib: u32::try_from(state.launcher_setup.max_memory)
+                        .map_err(|error| error.to_string())?,
+                    initial_mib: None,
+                }),
+        );
+        let custom = state
+            .memory_custom
+            .clone()
+            .unwrap_or_else(|| MemoryCustom::from_settings(settings.as_ref()));
+        Ok(MemorySnapshot { settings, custom })
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 #[tauri::command]
@@ -68,23 +63,14 @@ pub async fn set_memory_settings(
         }
     }
     tauri::async_runtime::spawn_blocking(move || {
-        ConfigManager::instance().update(|state| {
-            if let Some(directory) = instance_directory {
-                current_instance(state, &directory).map_err(|error| error.to_string())?;
-                if let Some(settings) = settings.clone() {
-                    state
-                        .instance_memory_settings
-                        .insert(directory.clone(), settings);
-                } else {
-                    state.instance_memory_settings.remove(&directory);
-                }
-                let custom =
-                    custom.unwrap_or_else(|| MemoryCustom::from_settings(settings.as_ref()));
-                state
-                    .instance_memory_custom
-                    .insert(directory.clone(), custom.clone());
-                Ok(MemorySnapshot { settings, custom })
-            } else {
+        let config = ConfigManager::instance();
+        if let Some(directory) = instance_directory {
+            let custom = custom.unwrap_or_else(|| MemoryCustom::from_settings(settings.as_ref()));
+            config.update_instance(&directory, |file| {
+                file.set_memory(settings.as_ref(), &custom)
+            })
+        } else {
+            config.update(|state| {
                 let value = settings
                     .clone()
                     .ok_or("Global memory settings cannot inherit")?;
@@ -95,8 +81,8 @@ pub async fn set_memory_settings(
                     settings: Some(value),
                     custom,
                 })
-            }
-        })
+            })
+        }
     })
     .await
     .map_err(|error| error.to_string())?
@@ -148,10 +134,10 @@ pub async fn preview_memory_settings(
                         .map_err(|error| error.to_string())?,
                     initial_mib: None,
                 });
-            let game_directory = instance.as_ref().map(|instance| {
-                crate::config::isolation::directory(&state.instance_isolation, instance)
-                    .to_path_buf()
-            });
+            let game_directory = instance
+                .as_ref()
+                .map(|instance| crate::config::isolation::directory(instance))
+                .transpose()?;
             (
                 instance.map(|instance| (instance, game_directory.unwrap())),
                 effective,

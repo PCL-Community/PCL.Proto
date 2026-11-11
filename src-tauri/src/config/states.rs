@@ -5,7 +5,7 @@ use pcl_core::minecraft::{
     instance::{McInstance, folder::McFolder},
     profile::McProfile,
 };
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
 /// PCL global setup info, which user can modify
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -82,21 +82,14 @@ pub struct AppState {
     pub repositories: Vec<McFolder>,
     pub active_game_instance: Option<Arc<McInstance>>,
     pub active_repo_path: PathBuf,
-    pub java_preferences: HashMap<PathBuf, crate::config::java_preference::InstanceJavaSettings>,
     pub download_settings: Option<crate::config::download::DownloadSettings>,
     pub log_max_lines: Option<u32>,
     pub window_settings: Option<WindowSettings>,
     pub memory_settings: Option<crate::config::memory::MemorySettings>,
-    pub instance_memory_settings: HashMap<PathBuf, crate::config::memory::MemorySettings>,
     pub memory_custom: Option<crate::config::memory::MemoryCustom>,
-    pub instance_memory_custom: HashMap<PathBuf, crate::config::memory::MemoryCustom>,
     pub isolation_default: crate::config::isolation::IsolationDefault,
-    pub instance_isolation: HashMap<PathBuf, bool>,
     pub launch_arguments: Option<crate::config::arguments::LaunchArguments>,
-    pub instance_launch_arguments: HashMap<PathBuf, crate::config::arguments::LaunchArguments>,
     pub launcher_visibility: crate::window::LauncherVisibility,
-    pub instance_launch_settings:
-        HashMap<PathBuf, crate::config::launch_settings::InstanceLaunchSettings>,
     pub renderer: u8,
     #[serde(default = "crate::config::metadata::default_version_info")]
     pub version_info: String,
@@ -105,8 +98,6 @@ pub struct AppState {
     pub disable_legacy_fix: bool,
     pub disable_lwjgl_unsafe_agent: bool,
     pub proxy: crate::config::network::ProxySettings,
-    pub instance_descriptions: HashMap<PathBuf, String>,
-    pub instance_launch_counts: HashMap<PathBuf, u64>,
     pub link_settings: crate::config::link::LinkSettings,
     pub link_state: crate::config::link::LinkState,
 }

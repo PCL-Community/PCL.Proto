@@ -70,23 +70,24 @@ pub async fn get_java_settings(
     instance_directory: Option<std::path::PathBuf>,
 ) -> Result<JavaSettingsInfo, String> {
     let state = ConfigManager::instance().app_state.lock().await;
-    let has_instance_settings = instance_directory
-        .as_ref()
-        .is_some_and(|d| state.java_preferences.contains_key(d));
-    let instance = if let Some(directory) = instance_directory {
-        current_instance(&state, &directory).map_err(|e| e.to_string())?;
-        state
-            .java_preferences
-            .get(&directory)
-            .cloned()
-            .unwrap_or_default()
-    } else {
-        InstanceJavaSettings::default()
-    };
+    if let Some(directory) = &instance_directory {
+        current_instance(&state, directory).map_err(|e| e.to_string())?;
+    }
     let runtimes = state.java_runtimes.clone();
     let global_java = state.launcher_setup.selected_java.clone();
     drop(state);
     tauri::async_runtime::spawn_blocking(move || {
+        let (instance, has_instance_settings) = if let Some(directory) = instance_directory {
+            ConfigManager::instance().read_instance(&directory, |config| {
+                Ok((
+                    config.java()?,
+                    config.contains("VersionArgumentJavaSelect")
+                        || config.contains("VersionAdvanceJava"),
+                ))
+            })?
+        } else {
+            (InstanceJavaSettings::default(), false)
+        };
         let global_is_64_bit = crate::config::java_preference::is_game_set_64_bit(
             &runtimes,
             global_java.as_deref(),
@@ -97,16 +98,16 @@ pub async fn get_java_settings(
             global_java.as_deref(),
             &instance.preference,
         );
-        JavaSettingsInfo {
+        Ok(JavaSettingsInfo {
             global_java,
             instance,
             has_instance_settings,
             global_is_64_bit,
             instance_is_64_bit,
-        }
+        })
     })
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string())?
 }
 #[tauri::command]
 pub async fn set_global_java(java_exe: Option<std::path::PathBuf>) -> Result<(), String> {
@@ -170,11 +171,8 @@ pub async fn set_instance_java_settings(
     .map_err(|e| e.to_string())?
     .map_err(|e| e.to_string())?;
     tauri::async_runtime::spawn_blocking(move || {
-        ConfigManager::instance().update(|state| {
-            current_instance(state, &instance_directory).map_err(|e| e.to_string())?;
-            state.java_preferences.insert(instance_directory, settings);
-            Ok(())
-        })
+        ConfigManager::instance()
+            .update_instance(&instance_directory, |config| config.set_java(&settings))
     })
     .await
     .map_err(|e| e.to_string())?

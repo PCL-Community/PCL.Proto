@@ -373,14 +373,13 @@ async fn launch_game_inner(
                             ));
                         }
                         pcl_core::minecraft::launch::session::SessionEvent::Ready => {
-                            if let Err(error) = ConfigManager::instance().update(|state| {
-                                let count = state
-                                    .instance_launch_counts
-                                    .entry(launch_instance.clone())
-                                    .or_default();
-                                *count = count.saturating_add(1);
-                                Ok(())
-                            }) {
+                            if let Err(error) = crate::config::instance::InstanceConfig::update(
+                                &launch_instance,
+                                |config| {
+                                    let count: u64 = config.get("VersionLaunchCount", 0)?;
+                                    config.set("VersionLaunchCount", count.saturating_add(1))
+                                },
+                            ) {
                                 log::warn!("Cannot save instance launch count: {error}");
                             }
                             let _ = session_progress.send(LaunchProgress::new(
@@ -462,15 +461,19 @@ fn select_server(
 }
 
 async fn check_instance_login(instance_directory: &std::path::Path) -> Result<(), String> {
-    let state = ConfigManager::instance().app_state.lock().await;
-    current_instance(&state, instance_directory).map_err(|error| error.to_string())?;
-    if let (Some(settings), Some(profile)) = (
-        state.instance_launch_settings.get(instance_directory),
-        state.profile.current(),
-    ) {
-        settings.validate_profile(profile)?;
-    }
-    Ok(())
+    let path = instance_directory.to_owned();
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = ConfigManager::instance().app_state.blocking_lock();
+        current_instance(&state, &path).map_err(|error| error.to_string())?;
+        let settings = crate::config::instance::InstanceConfig::load(&path)?.launch_settings()?;
+        settings.validate()?;
+        if let Some(profile) = state.profile.current() {
+            settings.validate_profile(profile)?;
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 /// 刷新当前档案的访问令牌，对照 CE 的 `ModLaunch.mcLoginLoader`。
@@ -528,12 +531,10 @@ fn build_launch_option(
         .window_settings
         .as_ref()
         .is_some_and(|settings| settings.mode == crate::config::states::WindowMode::Launcher);
-    let configured_server = state
-        .instance_launch_settings
-        .get(&instance_directory)
-        .map(|settings| settings.server_address.trim())
-        .filter(|address| !address.is_empty())
-        .map(str::to_owned);
+    let settings =
+        crate::config::instance::InstanceConfig::load(&instance_directory)?.launch_settings()?;
+    let configured_server = (!settings.server_address.trim().is_empty())
+        .then(|| settings.server_address.trim().to_owned());
     Ok((option, launcher_size, configured_server))
 }
 

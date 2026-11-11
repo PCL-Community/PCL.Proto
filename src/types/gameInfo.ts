@@ -1,15 +1,4 @@
-import picCommand from '@/assets/icons/instance/Impulse_Command_Block.gif?url'
-import picGrass from '@/assets/icons/instance/Grass_Block_JE7_BE6.png?url'
-import picCubblestone from '@/assets/icons/instance/Cobblestone_JE5_BE3.png?url'
-import picGold from '@/assets/icons/instance/Block_of_Gold_JE6_BE3.png?url'
-import picFabric from '@/assets/icons/instance/Fabric.png?url'
-import picForge from '@/assets/icons/instance/Anvil.png?url'
-import picNeoForge from '@/assets/icons/instance/NeoForge.png?url'
-import picCleanroom from '@/assets/icons/instance/Cleanroom.png?url'
-import picQuilt from '@/assets/icons/instance/Quilt.png?url'
-import picLiteLoader from '@/assets/icons/instance/Egg.png?url'
-import picLabyMod from '@/assets/icons/instance/LabyMod.png?url'
-import picOptiFine from '@/assets/icons/instance/GrassPath.png?url'
+import { instancePictures } from '@/api/instanceLogo'
 import type { gameVersionType } from '@/api/gameVersions'
 
 export type showIconType = 'command' | 'grass' | 'stone' | 'gold' | pluginType
@@ -39,21 +28,21 @@ export const gameInfoIcon: Record<showGameType, showIconType> = {
 }
 
 export const showIconPath: Record<showIconType, string> = {
-  command: picCommand,
-  grass: picGrass,
-  stone: picCubblestone,
-  gold: picGold,
-  neoforge: picNeoForge,
-  fabric: picFabric,
-  legacyfabric: picFabric,
-  liteloader: picLiteLoader,
-  cleanroom: picCleanroom,
-  'fabric-api': picFabric,
-  quilt: picQuilt,
-  'laby-mod': picLabyMod,
-  optifine: picOptiFine,
-  vanilla: picGrass,
-  forge: picForge,
+  command: instancePictures.commandBlock,
+  grass: instancePictures.grassBlock,
+  stone: instancePictures.cobbleStone,
+  gold: instancePictures.goldBlock,
+  neoforge: instancePictures.neoForge,
+  fabric: instancePictures.fabric,
+  legacyfabric: instancePictures.fabric,
+  liteloader: instancePictures.egg,
+  cleanroom: instancePictures.cleanroom,
+  'fabric-api': instancePictures.fabric,
+  quilt: instancePictures.quilt,
+  'laby-mod': instancePictures.labyMod,
+  optifine: instancePictures.grassPath,
+  vanilla: instancePictures.grassBlock,
+  forge: instancePictures.anvil,
 }
 
 export const instanceLoaderOrder: pluginType[] = [

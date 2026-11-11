@@ -16,8 +16,7 @@ pub async fn repair_instance_files(instance_directory: std::path::PathBuf) -> Re
         let details = instance
             .read_version_json()
             .map_err(|error| error.to_string())?;
-        let game_directory =
-            crate::config::isolation::directory(&state.instance_isolation, instance).to_path_buf();
+        let game_directory = crate::config::isolation::directory(instance)?;
         Ok::<_, String>((instance.clone(), details, game_directory))
     })
     .await
@@ -61,7 +60,7 @@ pub(crate) fn instance_game_directory(
     let state = ConfigManager::instance().app_state.blocking_lock();
     let instance =
         current_instance(&state, instance_directory).map_err(|error| error.to_string())?;
-    Ok(crate::config::isolation::directory(&state.instance_isolation, instance).to_path_buf())
+    Ok(crate::config::isolation::directory(instance)?)
 }
 
 #[tauri::command]

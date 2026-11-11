@@ -19,50 +19,59 @@ pub fn request(state: &AppState, java: Arc<JavaEntry>) -> Result<LaunchOption, G
     let Some(account) = state.profile.current() else {
         return Err(GameLaunchError::MissingAccount);
     };
-    if let Some(settings) = state.instance_launch_settings.get(&game_instance.directory) {
-        settings
-            .validate_profile(account)
-            .map_err(GameLaunchError::InvalidProfile)?;
-    }
-    let game_directory =
-        crate::config::isolation::directory(&state.instance_isolation, game_instance).to_owned();
-    let (max_memory, initial_memory) = match state
-        .instance_memory_settings
-        .get(&game_instance.directory)
-        .or(state.memory_settings.as_ref())
+    let file = super::instance::InstanceConfig::load(&game_instance.directory)
+        .map_err(GameLaunchError::InvalidProfile)?;
+    let settings = file
+        .launch_settings()
+        .map_err(GameLaunchError::InvalidProfile)?;
+    settings
+        .validate()
+        .map_err(GameLaunchError::InvalidProfile)?;
+    settings
+        .validate_profile(account)
+        .map_err(GameLaunchError::InvalidProfile)?;
+    let game_directory = if file
+        .get("VersionArgumentIndieV2", true)
+        .map_err(GameLaunchError::InvalidProfile)?
     {
-        Some(settings) => {
-            let available = if matches!(settings, crate::config::memory::MemorySettings::Auto) {
-                match sysinfo::System::new() {
-                    Ok(mut system) => {
-                        system.refresh_memory();
-                        system.available_memory()
-                    }
-                    Err(_) => 0,
-                }
-            } else {
-                0
-            };
-            crate::config::memory::resolve(
-                settings,
-                available,
-                game_instance,
-                &game_directory,
-                java.is_64_bit,
-            )
-            .map_err(GameLaunchError::Memory)?
-        }
-        None => (state.launcher_setup.max_memory, None),
+        game_instance.directory.clone()
+    } else {
+        game_instance.global_dir.clone()
     };
+    let memory = file.memory().map_err(GameLaunchError::Memory)?;
+    let (max_memory, initial_memory) =
+        match memory.settings.as_ref().or(state.memory_settings.as_ref()) {
+            Some(settings) => {
+                let available = if matches!(settings, crate::config::memory::MemorySettings::Auto) {
+                    match sysinfo::System::new() {
+                        Ok(mut system) => {
+                            system.refresh_memory();
+                            system.available_memory()
+                        }
+                        Err(_) => 0,
+                    }
+                } else {
+                    0
+                };
+                crate::config::memory::resolve(
+                    settings,
+                    available,
+                    game_instance,
+                    &game_directory,
+                    java.is_64_bit,
+                )
+                .map_err(GameLaunchError::Memory)?
+            }
+            None => (state.launcher_setup.max_memory, None),
+        };
     let global = state
         .launch_arguments
         .clone()
         .unwrap_or_else(LaunchArguments::global_default);
-    let arguments = state
-        .instance_launch_arguments
-        .get(&game_instance.directory)
-        .map(|instance| instance.effective(&global))
-        .unwrap_or_else(|| global.effective(&global));
+    let arguments = file
+        .arguments()
+        .map_err(GameLaunchError::InvalidProfile)?
+        .effective(&global);
     let window = state.window_settings.as_ref();
     let custom = window.filter(|settings| settings.mode == WindowMode::Custom);
     let config = ConfigManager::instance();
@@ -83,6 +92,6 @@ pub fn request(state: &AppState, java: Arc<JavaEntry>) -> Result<LaunchOption, G
         width: custom.map(|settings| settings.width as usize),
         height: custom.map(|settings| settings.height as usize),
         arguments,
-        extras: crate::config::launch_settings::resolve_for(state, Some(&game_instance.directory)),
+        extras: crate::config::launch_settings::resolve(state, Some(&settings)),
     })
 }

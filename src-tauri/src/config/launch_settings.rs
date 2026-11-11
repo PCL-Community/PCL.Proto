@@ -1,56 +1,21 @@
 //! 实例启动附加设置：读写配置并折算成 `pcl-core` 的启动参数。
 
-use std::path::Path;
-
-use crate::config::java_preference::current_instance;
 use pcl_core::minecraft::launch::settings::LaunchExtras;
 
 use crate::config::states::AppState;
-
-pub fn update(
-    state: &mut AppState,
-    instance_directory: &Path,
-    settings: InstanceLaunchSettings,
-) -> Result<InstanceLaunchSettings, String> {
-    settings.validate()?;
-    if let Some(old) = state.instance_launch_settings.get(instance_directory) {
-        if old.server_login_locked
-            && (old.server_login != settings.server_login
-                || old.auth_server != settings.auth_server
-                || old.auth_register != settings.auth_register
-                || old.auth_name != settings.auth_name
-                || !settings.server_login_locked)
-        {
-            return Err("Instance login settings are locked".into());
-        }
-    }
-    current_instance(state.active_game_instance.as_deref(), instance_directory)
-        .map_err(|error| error.to_string())?;
-    if settings == InstanceLaunchSettings::default() {
-        state.instance_launch_settings.remove(instance_directory);
-    } else {
-        state
-            .instance_launch_settings
-            .insert(instance_directory.to_owned(), settings.clone());
-    }
-    Ok(settings)
-}
-
-/// 把全局开关和实例覆盖折算成实际生效的启动选项。
-pub fn resolve_for(state: &AppState, instance: Option<&Path>) -> LaunchExtras {
-    let instance_settings = instance.and_then(|path| state.instance_launch_settings.get(path));
-    resolve(state, instance_settings)
-}
 
 /// 0 follows the global renderer, 1..=4 map to the global numbering 0..=3.
 pub const RENDERER_FOLLOW_GLOBAL: u8 = 0;
 pub const RENDERER_MAX: u8 = 4;
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(default)]
 pub struct InstanceLaunchSettings {
     /// Custom version info shown in the game; empty follows the global value.
     pub info: String,
+    pub title: String,
+    pub use_global_title: bool,
+    pub disable_mod_update: bool,
     pub server_login: u8,
     pub server_login_locked: bool,
     pub auth_server: String,
@@ -66,6 +31,32 @@ pub struct InstanceLaunchSettings {
     pub debug_log4j2: bool,
     pub disable_lwjgl_unsafe_agent: bool,
     pub use_proxy: bool,
+}
+
+impl Default for InstanceLaunchSettings {
+    fn default() -> Self {
+        Self {
+            info: String::new(),
+            title: String::new(),
+            use_global_title: false,
+            disable_mod_update: false,
+            server_login: 0,
+            server_login_locked: false,
+            auth_server: String::new(),
+            auth_register: String::new(),
+            auth_name: String::new(),
+            server_address: String::new(),
+            renderer: 0,
+            prelaunch_command: String::new(),
+            prelaunch_wait: true,
+            disable_asset_verify: false,
+            disable_jlw: false,
+            disable_legacy_fix: false,
+            debug_log4j2: false,
+            disable_lwjgl_unsafe_agent: false,
+            use_proxy: false,
+        }
+    }
 }
 
 impl InstanceLaunchSettings {
@@ -126,6 +117,9 @@ impl InstanceLaunchSettings {
             return Err("Invalid renderer choice".into());
         }
         validate_info(&self.info)?;
+        if self.title.len() > 16384 || self.title.contains('\0') {
+            return Err("Invalid window title".into());
+        }
         if self.prelaunch_command.len() > 16384 || self.prelaunch_command.contains('\0') {
             return Err("Invalid instance launch setting".into());
         }

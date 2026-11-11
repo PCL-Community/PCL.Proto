@@ -4,9 +4,23 @@ import { showUnavailable } from '@/util/showUnavailable'
 import { pclText } from '@/api/pclLocale'
 import { useSelectedInstance } from '@/stores/gameLaunch'
 import PListItem from '@/components/widget/PListItem.vue'
-import { pluginShowText, instanceIcon } from '@/types/gameInfo'
+import { pluginShowText } from '@/types/gameInfo'
 const instance = useSelectedInstance()
-import { moveInstancePageSettings, usePageSettings } from '@/composables/usePageSettings'
+import { moveInstancePageSettings } from '@/composables/usePageSettings'
+import {
+  configuredInstanceIcon,
+  instanceMetadata,
+  loadInstanceMetadata,
+  updateInstanceMetadata,
+  selectInstanceCustomIcon,
+} from '@/api/instanceMetadata'
+import {
+  autoLogo,
+  builtinLogos,
+  customLogo,
+  logoFromSelection,
+  selectionFromLogo,
+} from '@/api/instanceLogo'
 import PButton from '@/components/widget/PButton.vue'
 import PCard from '@/components/widget/PCard.vue'
 import PComboBox from '@/components/widget/PComboBox.vue'
@@ -20,11 +34,44 @@ import { useInstanceFavorites } from '@/composables/useInstanceFavorites'
 import { getInstanceIsolation } from '@/api/isolationSettings'
 import currentPlatform from '@/util/platform'
 import type GameInstance from '@/types/gameInstance'
-import { ref, watch } from 'vue'
-const { values } = usePageSettings('PageInstanceOverall', {
-  ComboDisplayLogo: '0',
-  ComboDisplayType: '0',
-})
+import { computed, ref, watch } from 'vue'
+const metadataReady = ref(false)
+const metadata = computed(() =>
+  instance.instance_info ? instanceMetadata[instance.instance_info.directory] : undefined,
+)
+const logoOptions = computed(() => [
+  { key: autoLogo, text: pclText('Common.Option.Auto') },
+  { key: customLogo, text: pclText('Common.Option.Customize') },
+  ...builtinLogos.map((logo, index) => ({
+    key: String(index + 2),
+    text: pclText(logo.text),
+  })),
+])
+const displayLogo = computed(() => selectionFromLogo(metadata.value))
+const displayType = computed(() => String(metadata.value?.display_type ?? 0))
+async function changeDisplayLogo(value: string | undefined) {
+  const directory = instance.instance_info?.directory
+  if (!directory || !value || !metadataReady.value) return
+  try {
+    if (value === customLogo) await selectInstanceCustomIcon(directory)
+    else
+      await updateInstanceMetadata(directory, {
+        logo: logoFromSelection(value),
+        logo_custom: value !== autoLogo,
+      })
+  } catch (error) {
+    sideTip.show(String(error), 'warn')
+  }
+}
+async function changeDisplayType(value: string | undefined) {
+  const directory = instance.instance_info?.directory
+  if (!directory || value === undefined || !metadataReady.value) return
+  try {
+    await updateInstanceMetadata(directory, { display_type: Number(value) })
+  } catch (error) {
+    sideTip.show(String(error), 'warn')
+  }
+}
 const router = useRouter()
 const modal = useModal()
 const repos = useRepositoriesStore()
@@ -40,6 +87,7 @@ watch(
     onCleanup(() => {
       current = false
     })
+    metadataReady.value = false
     description.value = null
     launchCount.value = null
     if (!directory || !isTauri()) return
@@ -47,8 +95,10 @@ watch(
       const [savedDescription, count] = await Promise.all([
         invoke<string>('get_instance_description', { instanceDirectory: directory }),
         invoke<number>('get_instance_launch_count', { instanceDirectory: directory }),
+        loadInstanceMetadata([directory]),
       ])
       if (current) {
+        metadataReady.value = true
         description.value = savedDescription || null
         launchCount.value = count
       }
@@ -121,10 +171,6 @@ async function renameInstance() {
       instanceDirectory: info.directory,
       newName,
     })
-    if (isFavorite(info.directory)) {
-      toggleFavorite(info.directory)
-      if (!isFavorite(renamed.directory)) toggleFavorite(renamed.directory)
-    }
     moveInstancePageSettings(info.directory, renamed.directory)
     delete repos.instancesByPath[info.global_dir]
     instance.setInstance(renamed)
@@ -164,11 +210,14 @@ async function editDescription() {
   }
 }
 
-function toggleStar() {
+async function toggleStar() {
   const info = instance.instance_info
   if (!info) return
-  const error = toggleFavorite(info.directory)
-  if (error) sideTip.show(error, 'warn')
+  try {
+    await toggleFavorite(info.directory)
+  } catch (error) {
+    sideTip.show(String(error), 'warn')
+  }
 }
 
 async function deleteInstance() {
@@ -212,7 +261,7 @@ async function deleteInstance() {
       instance_directory: info.directory,
       delete: true,
     })
-    if (isFavorite(info.directory)) toggleFavorite(info.directory)
+    delete instanceMetadata[info.directory]
     delete repos.instancesByPath[info.global_dir]
     instance.setInstance(null)
     sideTip.show(pclText('Instance.Overall.Delete.RecycleBinSuccess', [info.name]), 'success')
@@ -241,12 +290,7 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
           v-if="instance.instance_info"
           :title="instance.instance_info.name"
           :subtitle="description || instance.instance_info.version"
-          :icon="
-            instanceIcon(
-              instance.instance_info.version,
-              instance.instance_info.pluginsVersion || {},
-            )
-          "
+          :icon="configuredInstanceIcon(instance.instance_info)"
         />
         <p v-else class="pcl-empty">{{ pclText('Proto.Instance.SelectFirst') }}</p>
       </div>
@@ -279,25 +323,10 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
           <SetupItem :label="pclText('Instance.Overall.Icon.Title')" v-slot="{ id }">
             <PComboBox
               :input-id="id"
-              :options="[
-                { key: '0', text: pclText('Common.Option.Auto') },
-                { key: '1', text: pclText('Common.Option.Customize') },
-                { key: '2', text: pclText('Instance.Overall.Icon.Cobblestone') },
-                { key: '3', text: pclText('Instance.Overall.Icon.CommandBlock') },
-                { key: '4', text: pclText('Instance.Overall.Icon.GoldBlock') },
-                { key: '5', text: pclText('Instance.Overall.Icon.GrassBlock') },
-                { key: '6', text: pclText('Instance.Overall.Icon.DirtPath') },
-                { key: '7', text: pclText('Instance.Overall.Icon.Anvil') },
-                { key: '8', text: pclText('Instance.Overall.Icon.RedstoneBlock') },
-                { key: '9', text: pclText('Instance.Overall.Icon.RedstoneLampOn') },
-                { key: '10', text: pclText('Instance.Overall.Icon.RedstoneLampOff') },
-                { key: '11', text: pclText('Instance.Overall.Icon.Egg') },
-                { key: '12', text: pclText('Instance.Overall.Icon.Fabric') },
-                { key: '13', text: pclText('Instance.Overall.Icon.Quilt') },
-                { key: '14', text: pclText('Instance.Overall.Icon.NeoForgeFox') },
-                { key: '15', text: pclText('Instance.Overall.Icon.Cleanroom') },
-              ]"
-              v-model="values.ComboDisplayLogo"
+              :options="logoOptions"
+              :model-value="displayLogo"
+              :disabled="!metadataReady"
+              @update:model-value="changeDisplayLogo"
             />
           </SetupItem>
           <SetupItem :label="pclText('Instance.Overall.Category.Title')" v-slot="{ id }">
@@ -315,7 +344,9 @@ async function openFolder(kind: 'instance' | 'saves' | 'mods') {
                 { key: '4', text: pclText('Instance.Overall.Category.LessUsed') },
                 { key: '5', text: pclText('Instance.Overall.Category.AprilFools') },
               ]"
-              v-model="values.ComboDisplayType"
+              :model-value="displayType"
+              :disabled="!metadataReady"
+              @update:model-value="changeDisplayType"
             />
           </SetupItem>
         </div>
