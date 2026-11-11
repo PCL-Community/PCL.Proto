@@ -1,4 +1,4 @@
-import { instancePictures } from '@/api/instanceLogo'
+import { blockImage } from '@/api/pclAssets'
 import type { gameVersionType } from '@/api/gameVersions'
 
 export type showIconType = 'command' | 'grass' | 'stone' | 'gold' | pluginType
@@ -27,22 +27,25 @@ export const gameInfoIcon: Record<showGameType, showIconType> = {
   old: 'stone',
 }
 
+/// 图标只有 CE 目录一份；非打包环境（如直接用 Bun 跑的检查脚本）没有 BASE_URL，退回站点根。
+const assetsBase = import.meta.env.BASE_URL ?? '/'
+
 export const showIconPath: Record<showIconType, string> = {
-  command: instancePictures.commandBlock,
-  grass: instancePictures.grassBlock,
-  stone: instancePictures.cobbleStone,
-  gold: instancePictures.goldBlock,
-  neoforge: instancePictures.neoForge,
-  fabric: instancePictures.fabric,
-  legacyfabric: instancePictures.fabric,
-  liteloader: instancePictures.egg,
-  cleanroom: instancePictures.cleanroom,
-  'fabric-api': instancePictures.fabric,
-  quilt: instancePictures.quilt,
-  'laby-mod': instancePictures.labyMod,
-  optifine: instancePictures.grassPath,
-  vanilla: instancePictures.grassBlock,
-  forge: instancePictures.anvil,
+  command: blockImage('CommandBlock', assetsBase),
+  grass: blockImage('Grass', assetsBase),
+  stone: blockImage('CobbleStone', assetsBase),
+  gold: blockImage('GoldBlock', assetsBase),
+  neoforge: blockImage('NeoForge', assetsBase),
+  fabric: blockImage('Fabric', assetsBase),
+  legacyfabric: blockImage('Fabric', assetsBase),
+  liteloader: blockImage('Egg', assetsBase),
+  cleanroom: blockImage('Cleanroom', assetsBase),
+  'fabric-api': blockImage('Fabric', assetsBase),
+  quilt: blockImage('Quilt', assetsBase),
+  'laby-mod': blockImage('LabyMod', assetsBase),
+  optifine: blockImage('GrassPath', assetsBase),
+  vanilla: blockImage('Grass', assetsBase),
+  forge: blockImage('Anvil', assetsBase),
 }
 
 export const instanceLoaderOrder: pluginType[] = [
@@ -104,18 +107,4 @@ export const pluginShowText: Record<pluginType, string> = {
   quilt: 'Quilt',
   'laby-mod': 'LabyMod',
   optifine: 'OptiFine',
-}
-
-export const isIconPixelated: Record<pluginType, boolean> = {
-  vanilla: false,
-  forge: false,
-  neoforge: false,
-  fabric: true,
-  legacyfabric: true,
-  liteloader: true,
-  cleanroom: true,
-  'fabric-api': true,
-  quilt: true,
-  'laby-mod': true,
-  optifine: true,
 }

@@ -1,5 +1,6 @@
 <script lang="tsx" setup>
 import { pclText } from '@/api/pclLocale'
+import { pclImagePath } from '@/api/pclAssets'
 import { defineComponent, ref } from 'vue'
 import PCard from './PCard.vue'
 import PTextBox from './PTextBox.vue'
@@ -14,6 +15,11 @@ defineProps<{ embedded?: boolean }>()
 const serverInput = ref<string>()
 const mcPingResult = ref<MCPingResult | null>()
 const latency = ref<number>()
+/// 背景沿用 CE 的资源目录，不再额外打包一份副本。
+const serverBackground = `url("${pclImagePath(
+  'images/Backgrounds/server_bg.png',
+  import.meta.env.BASE_URL,
+)}")`
 
 async function performQuery() {
   try {
@@ -111,7 +117,7 @@ const DescriptionExtra = defineComponent(
 
 <style scoped>
 .server-card {
-  background-image: url('@/assets/pictures/server_bg.png');
+  background-image: v-bind(serverBackground);
   background-size: auto;
   background-repeat: repeat-x;
   image-rendering: pixelated;

@@ -9,8 +9,9 @@
 - `src/assets/layouts` 的 70 份 JSON 是源布局快照，用于追溯和检查，不参与运行时页面渲染。70 是布局文件数量，包含控件及组合布局，不代表 70 条独立路由。
 - 源文案从语言资源提取，由 `pclText` 按当前语言解析；表单默认值、导出选项、导航辅助操作、下载分类从源 XAML 和配置提取。
 - Lucide 通用图标通过官方 `@lucide/vue` 包具名导入。`pclIcons.ts` 注册 92 个名称（包括源图标和前端辅助图标）；不复制 Lucide SVG 到 public。
+- 方块图标只保留一份，放在 `src/assets/icons/instance/`，文件名沿用 CE 的 `images/Blocks` 名称（动画图用同名 `.gif`）。页面和 CE 路径都经 `src/api/pclAssets.ts` 的 `blockImage`/`pclImagePath` 解析，`public/pcl/images` 不再放副本；语言、皮肤、头像等非图标资源仍按 CE 目录留在 public。
 - Logo、镐头等自定义 WPF Geometry 从源代码或 XML 提取，保留填充规则、描边与边界，生成 26 份 SVG；图片保留源目录结构。资源来源及许可证见 `public/pcl/LICENCE`。
-- 悬停与按下背景（`--color-tint-lighter`、`--half-transparent-blue`）取主题色的半透明叠加，而不是源色阶 `ColorBrush6/7` 的纯色：深色主题下这些纯色阶比卡片表面更暗，会把按钮、列表项和下拉框的悬停画成一块黑。同步 CE 色板时不要改回 `--ce-color-6/7`。
+- 悬停与按下背景（`--color-tint-lighter`、`--half-transparent-blue`）取主题色的半透明叠加，而不是源色阶 `ColorBrush6/7` 的纯色：深色主题下这些纯色阶比卡片表面更暗，会把按钮、列表项和下拉框的悬停画成一块黑。调整 CE 色板时不要改回 `--ce-color-6/7`。
 - 交互表面的静止态使用 `--color-tint-rest`，与悬停态同色、仅 alpha 为 0。按钮背景过渡由 CSS `:hover/:active` 承担，`PButton` 只把 scale 交给 Motion。Java 行回弹时图标变灰的原因是禁用状态改色，见下条。
 - 图标操作统一复用 `.pcl-icon-button`：对齐 CE `MyIconButton` 的 `ColorBrush4` 常态与 `ColorBrush2` hover，不为 disabled 增加改色规则。Java 行保存时仍临时禁用操作，但图标保持原色；Home 三个账户操作不再单独覆盖为最深的 `--color-tint-dark`。
 - 原生主页制作器、加载方式及 CE 兼容边界见 [CUSTOM_HOMEPAGE.md](CUSTOM_HOMEPAGE.md)。
@@ -20,19 +21,18 @@
 
 ## Proto 自身身份例外
 
-按要求保留 Header 的 Proto 标记、首页 Proto 介绍、关于页开发者 AMagicPear、应用版本、Vue/Rust/Tauri 技术栈及本项目仓库。标题栏 Logo 使用 Proto 原有的 52×16 图形，加载镐头保留原有动画；同步脚本不覆盖这两项。CE Geometry 仍完整保留在 public 资源中。
+按要求保留 Header 的 Proto 标记、首页 Proto 介绍、关于页开发者 AMagicPear、应用版本、Vue/Rust/Tauri 技术栈及本项目仓库。标题栏 Logo 使用 Proto 原有的 52×16 图形，加载镐头保留原有动画；这两项不跟随 CE 资源。CE Geometry 仍完整保留在 public 资源中。
 更新和反馈针对 PCL.Proto 的真实 GitHub Release / Issue。CE 的更新渠道、CDK、赞助入口和 EasyTier 模块下载协议不套用到 Proto。
 源中默认隐藏且没有适用功能的网络测试及崩溃按钮保持隐藏。
 
-## 同步和检查
+## 检查
 
 ```sh
-python3 scripts/sync-pcl-ui.py ../PCL2-CE
 bun run check:ui
 bun run ui:build
 ```
 
-同步脚本只更新提取资源和图标映射，不覆盖手工 Vue 页面。`src/assets/layouts` 是追溯快照，不参与运行时渲染。组件包的构建与接入见 [组件指南](../packages/components/README.md)。
+提取资源、图标映射和多语言文案随仓库直接维护，不覆盖手工 Vue 页面。`src/assets/layouts` 是追溯快照，不参与运行时渲染。组件包的构建与接入见 [组件指南](../packages/components/README.md)。
 
 浏览器可预览界面和公开服务；本机文件、Java、账户和游戏进程能力需要 Tauri。未完成动作必须显示明确提示，不能返回伪造成功。构建通过不代表逐像素对齐或原生 WebView 验收。
 
@@ -40,7 +40,7 @@ bun run ui:build
 
 应用统一使用 `src/api/pclLocale.ts`。页面、组件、导航、路由标题和 store 共用一个响应式语言状态，不再使用 `vue-i18n`。
 
-- `src/assets/languages/*.json`：从 PCL2-CE 同步的七种语言资源，由 `scripts/sync-pcl-ui.py` 管理。
+- `src/assets/languages/*.json`：来自 PCL2-CE 的七种语言资源，随仓库直接维护。
 - `src/assets/messages/*.json`：PCL.Proto 自有文案，使用 `Proto.*` 键。新增或修改文案请编辑这里，不要改上游资源。当前提供简体中文和英语。
 - `src/assets/language-names.json`：语言选项列表。增加语言时，同时提供对应的上游语言文件。
 
