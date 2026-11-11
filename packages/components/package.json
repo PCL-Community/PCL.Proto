@@ -1,6 +1,6 @@
 {
   "name": "@amagicpear/pcl-proto-components",
-  "version": "0.11.1",
+  "version": "0.11.2",
   "description": "PCL.Proto Vue 3 components",
   "scripts": { "build": "bun run --cwd ../.. components:build", "prepack": "bun run build" },
   "type": "module",
