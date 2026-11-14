@@ -44,7 +44,7 @@ reqwest = { workspace = true, features = ["json", "stream", "form", "multipart",
 thiserror = "2.0.21"
 futures-util = "0.3.34"
 serde_repr = "0.1.21"
-sha1 = "0.11.0"
+sha1 = "0.10"
 md5 = "0.7.0"
 sha2 = "0.10"
 zip = { version = "9.1.3", default-features = false, features = ["deflate"] }
@@ -56,8 +56,8 @@ fastrand = "2.5.0"
 base64 = "0.23.1"
 axum = "0.8"
 rsa = { version = "0.9", features = ["sha1", "pem"] }
+# 0.8 与 easytier、num-bigint-dig 共用；升到 0.9/0.10 只会在树里多出第三份 rand。
 rand = "0.8"
-sha1-legacy = { package = "sha1", version = "0.10", features = ["oid"] }
 jsonwebtoken = "9"
 sysinfo = { version = "0.40.1", default-features = false, features = ["system"] }
 trash = "5.2.9"

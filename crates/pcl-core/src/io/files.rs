@@ -43,7 +43,7 @@ pub fn open_directory(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-/// Lowercase hex of a SHA-1 output; hybrid-array (sha1 0.11) no longer formats as `{:x}`.
+/// Lowercase hex of a SHA-1 output; the digest output type does not format as `{:x}`.
 pub fn sha1_hex(digest: impl AsRef<[u8]>) -> String {
     digest.as_ref().iter().map(|b| format!("{b:02x}")).collect()
 }

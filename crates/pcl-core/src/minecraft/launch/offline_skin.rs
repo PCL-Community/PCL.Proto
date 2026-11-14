@@ -80,7 +80,7 @@ pub async fn start(profile: &McProfile) -> Result<SkinServer, String> {
     let textures = json!({"timestamp": chrono::Utc::now().timestamp_millis(), "profileId": uuid, "profileName": profile.user_name, "textures": {"SKIN": skin_texture}});
     let value = STANDARD.encode(serde_json::to_vec(&textures).map_err(|error| error.to_string())?);
     let signature = STANDARD.encode(
-        SigningKey::<sha1_legacy::Sha1>::new(key)
+        SigningKey::<sha1::Sha1>::new(key)
             .sign(value.as_bytes())
             .to_bytes(),
     );
@@ -216,7 +216,7 @@ mod tests {
             .decode(property["signature"].as_str().unwrap())
             .unwrap();
         let signature = rsa::pkcs1v15::Signature::try_from(signature.as_slice()).unwrap();
-        rsa::pkcs1v15::VerifyingKey::<sha1_legacy::Sha1>::new(public)
+        rsa::pkcs1v15::VerifyingKey::<sha1::Sha1>::new(public)
             .verify(value.as_bytes(), &signature)
             .unwrap();
         let textures: Value = serde_json::from_slice(&STANDARD.decode(value).unwrap()).unwrap();
