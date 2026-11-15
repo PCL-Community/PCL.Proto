@@ -852,11 +852,37 @@ fn materialize_assets(
     Ok(())
 }
 
+/// CE `Config.Download.FixAuthLib`：1.16.5 的旧 authlib 会阻止部分第三方登录，替换为 2.3.31。
+fn apply_fix_authlib(metadata: &mut serde_json::Value) {
+    let Some(libraries) = metadata.get_mut("libraries").and_then(|value| value.as_array_mut())
+    else {
+        return;
+    };
+    for library in libraries {
+        if library.get("name").and_then(|value| value.as_str())
+            != Some("com.mojang:authlib:2.1.28")
+        {
+            continue;
+        }
+        library["name"] = "com.mojang:authlib:2.3.31".into();
+        let Some(artifact) = library.pointer_mut("/downloads/artifact") else {
+            continue;
+        };
+        artifact["path"] = "com/mojang/authlib/2.3.31/authlib-2.3.31.jar".into();
+        artifact["sha1"] = "bbd00ca33b052f73a6312254780fc580d2da3535".into();
+        artifact["size"] = 87662.into();
+        if let Some(url) = artifact.get("url").and_then(|value| value.as_str()) {
+            artifact["url"] = url
+                .replace("2.1.28/authlib-2.1.28.jar", "2.3.31/authlib-2.3.31.jar")
+                .into();
+        }
+    }
+}
+
 fn merge_loader_profile(
     metadata: &mut serde_json::Value,
     profile: &serde_json::Value,
-) -> anyhow::Result<()> {
-    profile["libraries"]
+) -> anyhow::Result<()> {    profile["libraries"]
         .as_array()
         .context("Invalid loader libraries")?;
     metadata["libraries"]
@@ -935,6 +961,7 @@ pub async fn install_version(
     java: &[crate::minecraft::java::JavaEntry],
     java_runtime_dir: &Path,
     forge_installer: Option<&Path>,
+    fix_authlib: bool,
 ) -> anyhow::Result<InstallOutcome> {
     install_version_with_modpack(
         client,
@@ -948,6 +975,7 @@ pub async fn install_version(
         java,
         java_runtime_dir,
         forge_installer,
+        fix_authlib,
     )
     .await
 }
@@ -966,6 +994,7 @@ async fn install_version_with_modpack(
     java: &[crate::minecraft::java::JavaEntry],
     java_runtime_dir: &Path,
     forge_installer: Option<&Path>,
+    fix_authlib: bool,
 ) -> anyhow::Result<InstallOutcome> {
     validate_file_name(version_id)?;
     ensure!(
@@ -1055,6 +1084,9 @@ async fn install_version_with_modpack(
     } else {
         None
     };
+    if fix_authlib && version_id == "1.16.5" {
+        apply_fix_authlib(&mut metadata);
+    }
     let details: McVersion =
         serde_json::from_value(metadata.clone()).context("Invalid vanilla version metadata")?;
     validate_file_name(&details.asset_index.id)?;
@@ -1214,6 +1246,7 @@ pub async fn download_minecraft_version(
     java: &[crate::minecraft::java::JavaEntry],
     java_runtime_dir: &Path,
     forge_installer: Option<&Path>,
+    fix_authlib: bool,
 ) -> Result<InstallOutcome, String> {
     crate::io::download::tasks::run(task_id, async {
         install_version(
@@ -1227,6 +1260,7 @@ pub async fn download_minecraft_version(
             java,
             java_runtime_dir,
             forge_installer,
+            fix_authlib,
         )
         .await
         .map_err(|error| format!("{error:#}"))
@@ -1256,6 +1290,7 @@ pub(crate) async fn install_version_for_test(
         &[],
         &paths,
         None,
+        false,
     )
     .await
 }

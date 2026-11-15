@@ -18,6 +18,18 @@ pub async fn set_launch_preferences(
 }
 
 #[tauri::command]
+pub async fn get_system_preferences() -> crate::config::system::SystemPreferences {
+    settings::get_system_preferences().await
+}
+
+#[tauri::command]
+pub async fn set_system_preferences(
+    preferences: crate::config::system::SystemPreferences,
+) -> Result<crate::config::system::SystemPreferences, String> {
+    settings::set_system_preferences(preferences).await
+}
+
+#[tauri::command]
 pub async fn get_window_settings() -> Option<WindowSettings> {
     settings::get_window_settings().await
 }

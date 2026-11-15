@@ -55,6 +55,13 @@ pub async fn download_minecraft_version(
         .as_ref()
         .map(|settings| settings.auto_set_language)
         .unwrap_or(false);
+    let fix_authlib = state
+        .lock()
+        .await
+        .download_settings
+        .as_ref()
+        .map(|settings| settings.fix_authlib)
+        .unwrap_or(true);
     let java = crate::config::java::installer_candidates(&state).await;
     let paths = ConfigManager::instance().java_runtime_dir();
     let bridge =
@@ -70,6 +77,7 @@ pub async fn download_minecraft_version(
         &java,
         &paths,
         bridge.as_deref(),
+        fix_authlib,
     )
     .await?;
     if auto_set_language {

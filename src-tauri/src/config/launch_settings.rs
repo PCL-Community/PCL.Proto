@@ -18,6 +18,8 @@ pub struct GlobalLaunchPreferences {
     pub disable_legacy_fix: bool,
     pub disable_lwjgl_unsafe_agent: bool,
     pub lock_memory: bool,
+    /// Windows 进程优先级，取值对齐 CE：0 AboveNormal、1 Normal、2 BelowNormal、3 High、4 RealTime。
+    pub process_priority: u8,
 }
 
 impl Default for GlobalLaunchPreferences {
@@ -30,6 +32,7 @@ impl Default for GlobalLaunchPreferences {
             disable_legacy_fix: false,
             disable_lwjgl_unsafe_agent: false,
             lock_memory: false,
+            process_priority: 1,
         }
     }
 }
@@ -38,6 +41,9 @@ impl GlobalLaunchPreferences {
     pub fn validate(&self) -> Result<(), String> {
         if self.ip_stack > 2 {
             return Err("Invalid IP stack preference".into());
+        }
+        if self.process_priority > 4 {
+            return Err("Invalid process priority".into());
         }
         if self.prelaunch_command.len() > 16384 || self.prelaunch_command.contains('\0') {
             return Err("Invalid pre-launch command".into());
@@ -56,6 +62,7 @@ impl From<&AppState> for GlobalLaunchPreferences {
             disable_legacy_fix: state.disable_legacy_fix,
             disable_lwjgl_unsafe_agent: state.disable_lwjgl_unsafe_agent,
             lock_memory: state.lock_memory,
+            process_priority: state.process_priority.unwrap_or(1),
         }
     }
 }
@@ -69,6 +76,7 @@ impl GlobalLaunchPreferences {
         state.disable_legacy_fix = self.disable_legacy_fix;
         state.disable_lwjgl_unsafe_agent = self.disable_lwjgl_unsafe_agent;
         state.lock_memory = self.lock_memory;
+        state.process_priority = Some(self.process_priority);
     }
 }
 
@@ -233,6 +241,7 @@ pub fn resolve(
         lwjgl_unsafe_agent: !global.disable_lwjgl_unsafe_agent
             && !settings.disable_lwjgl_unsafe_agent,
         proxy,
+        process_priority: global.process_priority.unwrap_or(1),
     }
 }
 

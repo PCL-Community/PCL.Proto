@@ -49,6 +49,7 @@ pub struct LaunchRequest {
     pub initial_memory: Option<usize>,
     pub width: Option<usize>,
     pub height: Option<usize>,
+    pub fullscreen: bool,
     pub arguments: crate::minecraft::launch::arguments::LaunchArguments,
     pub extras: crate::minecraft::launch::settings::LaunchExtras,
 }
@@ -67,6 +68,7 @@ pub struct LaunchOption {
     initial_memory: Option<usize>,
     width: Option<usize>,
     height: Option<usize>,
+    fullscreen: bool,
     version_details: McVersion,
     natives_path: std::path::PathBuf,
     arguments: crate::minecraft::launch::arguments::LaunchArguments,
@@ -99,6 +101,26 @@ impl AuthlibAgent {
             args.push("-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT".to_owned());
         }
         args
+    }
+}
+
+#[cfg(windows)]
+fn apply_process_priority(child: &std::process::Child, priority: u8) {
+    use std::os::windows::io::AsRawHandle;
+    use windows_sys::Win32::System::Threading::{
+        ABOVE_NORMAL_PRIORITY_CLASS, BELOW_NORMAL_PRIORITY_CLASS, HIGH_PRIORITY_CLASS,
+        NORMAL_PRIORITY_CLASS, REALTIME_PRIORITY_CLASS, SetPriorityClass,
+    };
+    let class = match priority {
+        0 => ABOVE_NORMAL_PRIORITY_CLASS,
+        2 => BELOW_NORMAL_PRIORITY_CLASS,
+        3 => HIGH_PRIORITY_CLASS,
+        4 => REALTIME_PRIORITY_CLASS,
+        _ => NORMAL_PRIORITY_CLASS,
+    };
+    // SAFETY: the handle stays valid while the child is alive.
+    if unsafe { SetPriorityClass(child.as_raw_handle(), class) } == 0 {
+        log::warn!("Cannot apply process priority {priority}");
     }
 }
 
@@ -181,6 +203,11 @@ impl LaunchOption {
         self
     }
 
+    pub fn with_fullscreen(mut self, fullscreen: bool) -> Self {
+        self.fullscreen = fullscreen;
+        self
+    }
+
     pub fn launch_checked(&self) -> Result<std::process::Child, GameLaunchError> {
         // check account
         // check all the libraries
@@ -199,7 +226,10 @@ impl LaunchOption {
             &self.extras,
             &self.game_instance.global_dir,
         );
-        Ok(command.spawn()?)
+        let child = command.spawn()?;
+        #[cfg(windows)]
+        apply_process_priority(&child, self.extras.process_priority);
+        Ok(child)
     }
 
     /// Build the java command without running it, so scripts can be exported.
@@ -725,6 +755,9 @@ impl LaunchOption {
                 ]);
             }
         }
+        if self.fullscreen && !game.iter().any(|argument| argument == "--fullscreen") {
+            game.push("--fullscreen".into());
+        }
         Ok((custom_jvm, jvm, game))
     }
 
@@ -758,6 +791,7 @@ impl LaunchOption {
             initial_memory: request.initial_memory,
             width: request.width,
             height: request.height,
+            fullscreen: request.fullscreen,
             arguments: request.arguments,
             extras: request.extras,
             server: None,
@@ -1139,6 +1173,7 @@ pub(crate) fn test_request(
         initial_memory: None,
         width: None,
         height: None,
+        fullscreen: false,
         arguments: crate::minecraft::launch::arguments::LaunchArguments::default(),
         extras: Default::default(),
     }

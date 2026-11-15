@@ -4,7 +4,6 @@ export const useSetup = defineStore('setup', {
   state: () => ({
     launch: {
       defaultVersionIsolation: 'isolate-all',
-      gameWindowTitle: '',
       customInfo: 'PCL.Proto',
       launcherVisibility: 'close-immediately',
     },

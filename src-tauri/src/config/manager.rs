@@ -93,6 +93,23 @@ pub async fn set_launch_preferences(
     .map_err(|error| error.to_string())?
 }
 
+pub async fn get_system_preferences() -> crate::config::system::SystemPreferences {
+    crate::config::system::SystemPreferences::from(&*ConfigManager::instance().app_state.lock().await)
+}
+
+pub async fn set_system_preferences(
+    preferences: crate::config::system::SystemPreferences,
+) -> Result<crate::config::system::SystemPreferences, String> {
+    tokio::task::spawn_blocking(move || {
+        ConfigManager::instance().update(|state| {
+            preferences.apply(state);
+            Ok(preferences)
+        })
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
 impl ConfigManager {
     fn update_launch_preferences(
         &self,

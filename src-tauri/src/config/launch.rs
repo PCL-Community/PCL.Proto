@@ -12,8 +12,30 @@ use crate::config::manager::ConfigManager;
 use crate::config::metadata::constants::{APP_VERSION, LAUNCHER_NAME};
 use crate::config::states::{AppState, WindowMode};
 
-pub fn request(state: &AppState, java: Arc<JavaEntry>) -> Result<LaunchOption, GameLaunchError> {
-    let Some(game_instance) = state.active_game_instance.as_ref() else {
+/// CE `_ApplyGameWindowMode`：全屏写 true，跟随启动器/自定义写 false，默认模式不覆盖。
+fn apply_window_mode(directory: &std::path::Path, mode: &WindowMode) {
+    let fullscreen = match mode {
+        WindowMode::Fullscreen => true,
+        WindowMode::Launcher | WindowMode::Custom => false,
+        WindowMode::Default => return,
+    };
+    let options = directory.join("options.txt");
+    let mut lines = match std::fs::read_to_string(&options) {
+        Ok(content) => content.lines().map(str::to_owned).collect::<Vec<_>>(),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+        Err(error) => {
+            log::warn!("Cannot read options.txt: {error}");
+            return;
+        }
+    };
+    lines.retain(|line| !line.starts_with("fullscreen:"));
+    lines.push(format!("fullscreen:{fullscreen}"));
+    if let Err(error) = std::fs::write(&options, lines.join("\n") + "\n") {
+        log::warn!("Cannot update options.txt: {error}");
+    }
+}
+
+pub fn request(state: &AppState, java: Arc<JavaEntry>) -> Result<LaunchOption, GameLaunchError> {    let Some(game_instance) = state.active_game_instance.as_ref() else {
         return Err(GameLaunchError::MissingInstance);
     };
     let Some(account) = state.profile.current() else {
@@ -79,6 +101,10 @@ pub fn request(state: &AppState, java: Arc<JavaEntry>) -> Result<LaunchOption, G
         .map_err(GameLaunchError::InvalidProfile)?
         .effective(&global);
     let window = state.window_settings.as_ref();
+    let fullscreen = window.is_some_and(|settings| settings.mode == WindowMode::Fullscreen);
+    if let Some(window) = window {
+        apply_window_mode(&game_directory, &window.mode);
+    }
     let custom = window.filter(|settings| settings.mode == WindowMode::Custom);
     let config = ConfigManager::instance();
     LaunchOption::new(LaunchRequest {
@@ -97,6 +123,7 @@ pub fn request(state: &AppState, java: Arc<JavaEntry>) -> Result<LaunchOption, G
         initial_memory,
         width: custom.map(|settings| settings.width as usize),
         height: custom.map(|settings| settings.height as usize),
+        fullscreen,
         arguments,
         extras: crate::config::launch_settings::resolve(state, Some(&settings)),
     })

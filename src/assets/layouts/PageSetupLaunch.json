@@ -227,39 +227,6 @@
                         {
                           "type": "TextBlock",
                           "attrs": {
-                            "Grid.Row": "2",
-                            "VerticalAlignment": "Center",
-                            "HorizontalAlignment": "Left",
-                            "Text": "{DynamicResource Setup.Launch.Options.WindowTitle.Label}",
-                            "Margin": "0,0,25,0"
-                          }
-                        },
-                        {
-                          "type": "PComboBox",
-                          "attrs": {
-                            "Name": "TextArgumentTitle",
-                            "Grid.Row": "2",
-                            "Grid.ColumnSpan": "2",
-                            "Tag": "LaunchArgumentTitle",
-                            "Grid.Column": "1",
-                            "IsEditable": "True",
-                            "IsTextSearchEnabled": "False",
-                            "TextChanged": "TextArgumentTitle_OnTextChanged",
-                            "ToolTip": "{DynamicResource Setup.Launch.Options.WindowTitle.ToolTip}",
-                            "HintText": "{DynamicResource Common.Option.Default}"
-                          },
-                          "children": [
-                            {
-                              "type": "PComboBoxItem",
-                              "attrs": {
-                                "Content": "{DynamicResource Setup.Launch.Options.WindowTitle.SampleFormat}"
-                              }
-                            }
-                          ]
-                        },
-                        {
-                          "type": "TextBlock",
-                          "attrs": {
                             "Grid.Row": "4",
                             "VerticalAlignment": "Center",
                             "HorizontalAlignment": "Left",

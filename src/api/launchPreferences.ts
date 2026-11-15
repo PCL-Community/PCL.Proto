@@ -10,6 +10,8 @@ export interface LaunchPreferences {
   disable_legacy_fix: boolean
   disable_lwjgl_unsafe_agent: boolean
   lock_memory: boolean
+  /** Windows 进程优先级：0 AboveNormal、1 Normal、2 BelowNormal、3 High、4 RealTime。 */
+  process_priority: number
 }
 
 export const getLaunchPreferences = () => invoke<LaunchPreferences>('get_launch_preferences')

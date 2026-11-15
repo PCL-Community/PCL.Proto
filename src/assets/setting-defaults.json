@@ -53,7 +53,6 @@
   },
   "PageSetupLaunch": {
     "ComboArgumentIndieV2": "4",
-    "TextArgumentTitle": "",
     "TextArgumentInfo": "PCLCE",
     "TextArgumentWindowWidth": "854",
     "TextArgumentWindowHeight": "480",
@@ -85,9 +84,7 @@
     "TextSystemHttpProxyCustomUsername": "",
     "TextSystemHttpProxyCustomPassword": "",
     "SliderDebugAnim": 9,
-    "CheckDebugSkipCopy": false,
-    "CheckDebugMode": false,
-    "CheckDebugDelay": false
+    "CheckDebugSkipCopy": false
   },
   "PageSetupUI": {
     "UiLogoType": "1",

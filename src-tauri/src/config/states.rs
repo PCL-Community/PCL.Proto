@@ -104,6 +104,13 @@ pub struct AppState {
     pub disable_jlw: bool,
     pub disable_legacy_fix: bool,
     pub disable_lwjgl_unsafe_agent: bool,
+    /// Windows 进程优先级，取值对齐 CE：0 AboveNormal、1 Normal、2 BelowNormal、3 High、4 RealTime。
+    #[serde(default)]
+    pub process_priority: Option<u8>,
+    #[serde(default)]
+    pub debug_mode: bool,
+    #[serde(default)]
+    pub random_delay: bool,
     pub proxy: crate::config::network::ProxySettings,
     pub link_settings: crate::config::link::LinkSettings,
     pub link_state: crate::config::link::LinkState,
@@ -125,6 +132,7 @@ pub enum WindowMode {
     Default,
     Launcher,
     Custom,
+    Fullscreen,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq)]

@@ -32,6 +32,10 @@ pub fn run() {
     #[cfg(not(all(target_os = "macos", not(dev))))]
     let context = tauri::generate_context!();
 
+    let log_level = match crate::config::manager::CONFIG_MANAGER.as_ref() {
+        Ok(manager) if manager.app_state.blocking_lock().debug_mode => log::LevelFilter::Debug,
+        _ => log::LevelFilter::Info,
+    };
     tauri::Builder::default()
         .register_uri_scheme_protocol("pclinstance", |_app, request| protocol::serve(request))
         .plugin(tauri_plugin_dialog::init())
@@ -48,7 +52,7 @@ pub fn run() {
                 ])
                 .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
                 .max_file_size(32 * 1024 * 1024)
-                .level(log::LevelFilter::Info)
+                .level(log_level)
                 .build(),
         )
         .setup(|app| {
@@ -108,6 +112,8 @@ pub fn run() {
             commands::config::set_launcher_visibility,
             commands::config::get_launch_preferences,
             commands::config::set_launch_preferences,
+            commands::config::get_system_preferences,
+            commands::config::set_system_preferences,
             commands::config::get_version_info,
             commands::config::set_version_info,
             commands::memory::get_memory_settings,

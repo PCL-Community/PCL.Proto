@@ -12,6 +12,7 @@ export interface DownloadSettings {
   auto_select_instance: boolean | null
   ignore_quilt: boolean
   auto_set_language: boolean
+  fix_authlib: boolean
 }
 
 export const downloadSettingKeys = [
@@ -25,6 +26,7 @@ export const downloadSettingKeys = [
   'CheckDownloadAutoSelectVersion',
   'CheckDownloadIgnoreQuilt',
   'CheckHelpLauncherLanguage',
+  'CheckFixAuthlib',
 ]
 
 export async function initializeDownloadSettings() {
@@ -63,6 +65,7 @@ export function downloadSettingValues(settings: DownloadSettings) {
     CheckDownloadAutoSelectVersion: settings.auto_select_instance ?? true,
     CheckDownloadIgnoreQuilt: settings.ignore_quilt,
     CheckHelpLauncherLanguage: settings.auto_set_language,
+    CheckFixAuthlib: settings.fix_authlib,
   }
 }
 
@@ -110,5 +113,7 @@ export function downloadSettings(values: Record<string, unknown> = {}): Download
       typeof settings.CheckHelpLauncherLanguage === 'boolean'
         ? settings.CheckHelpLauncherLanguage
         : false,
+    fix_authlib:
+      typeof settings.CheckFixAuthlib === 'boolean' ? settings.CheckFixAuthlib : true,
   }
 }

@@ -1203,6 +1203,7 @@ echo true
                 &java_state,
                 &paths,
                 None,
+                false,
             )
             .await
             .unwrap();

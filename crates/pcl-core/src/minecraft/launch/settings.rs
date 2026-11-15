@@ -16,6 +16,8 @@ pub struct LaunchExtras {
     pub debug_log4j2: bool,
     pub lwjgl_unsafe_agent: bool,
     pub proxy: Option<(String, u16)>,
+    /// Windows 进程优先级：0 AboveNormal、1 Normal、2 BelowNormal、3 High、4 RealTime。
+    pub process_priority: u8,
 }
 
 /// CE only uses the Java wrapper for legacy versions under a UTF-8 Windows code page.

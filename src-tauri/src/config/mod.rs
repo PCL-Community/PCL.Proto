@@ -18,6 +18,7 @@ pub mod network;
 pub mod paths;
 pub mod profiles;
 pub mod states;
+pub mod system;
 
 pub use java::active_instance as current_instance;
 pub use states::WindowSettings;

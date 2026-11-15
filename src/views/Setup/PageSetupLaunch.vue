@@ -46,10 +46,8 @@ const desktop = isTauri()
 const { values } = usePageSettings(
   'PageSetupLaunch',
   {
-    TextArgumentTitle: setup.launch.gameWindowTitle,
     TextArgumentInfo: setup.launch.customInfo,
     ComboArgumentVisibie: '4',
-    ComboArgumentPriority: '3',
     ComboArgumentWindowType: '1',
   },
   desktop
@@ -194,7 +192,9 @@ function loadWindowSettings() {
     .read()
     .then(({ settings }) => {
       hydratingWindow = true
-      values.ComboArgumentWindowType = { default: '1', launcher: '2', custom: '3' }[settings.mode]
+      values.ComboArgumentWindowType = { default: '1', launcher: '2', custom: '3', fullscreen: '0' }[
+        settings.mode
+      ]
       values.TextArgumentWindowWidth = String(settings.width)
       values.TextArgumentWindowHeight = String(settings.height)
       hydratingWindow = false
@@ -223,7 +223,10 @@ function applyWindowSettings() {
     return
   }
   const mode = (
-    { '1': 'default', '2': 'launcher', '3': 'custom' } as Record<string, WindowSettings['mode']>
+    { '0': 'fullscreen', '1': 'default', '2': 'launcher', '3': 'custom' } as Record<
+      string,
+      WindowSettings['mode']
+    >
   )[values.ComboArgumentWindowType]
   if (!mode) return
   windowError.value = null
@@ -241,9 +244,8 @@ watch(
 )
 
 watch(
-  () => [values.TextArgumentTitle, values.TextArgumentInfo],
-  ([title, info]) => {
-    setup.launch.gameWindowTitle = title || ''
+  () => values.TextArgumentInfo,
+  (info) => {
     setup.launch.customInfo = info || ''
   },
   { immediate: true },
@@ -259,6 +261,7 @@ const preferences = reactive<LaunchPreferences>({
   disable_legacy_fix: false,
   disable_lwjgl_unsafe_agent: false,
   lock_memory: false,
+  process_priority: 1,
 })
 const preferencesReady = ref(false)
 const preferencesError = ref<string | null>(null)
@@ -367,15 +370,6 @@ function changeAdvanced(field: keyof LaunchPreferences | undefined, value: boole
               :model-value="isolationValue"
               @update:model-value="changeIsolation"
           /></SetupItem>
-          <SetupItem :label="pclText('Setup.Launch.Options.WindowTitle.Label')" v-slot="{ id }"
-            ><PTextBox
-              disabled
-              :input-id="id"
-              :suggestions="[pclText('Setup.Launch.Options.WindowTitle.SampleFormat')]"
-              :title="pclText('Setup.Launch.Options.WindowTitle.ToolTip')"
-              :placeholder="pclText('Common.Option.Default')"
-              v-model="values.TextArgumentTitle"
-          /></SetupItem>
           <SetupItem :label="pclText('Setup.Launch.Options.CustomInfo.Label')" v-slot="{ id }"
             ><PTextBox
               :disabled="!desktop || !infoReady"
@@ -414,16 +408,20 @@ function changeAdvanced(field: keyof LaunchPreferences | undefined, value: boole
             :label="pclText('Setup.Launch.Options.Priority.Label')"
             v-slot="{ id }"
             ><PComboBox
-              disabled
+              :disabled="!desktop || !preferencesReady"
               :input-id="id"
               :options="[
-                { key: '0', text: pclText('Setup.Launch.Options.Priority.RealTime') },
-                { key: '1', text: pclText('Setup.Launch.Options.Priority.High') },
-                { key: '2', text: pclText('Setup.Launch.Options.Priority.AboveNormal') },
-                { key: '3', text: pclText('Setup.Launch.Options.Priority.Normal') },
-                { key: '4', text: pclText('Setup.Launch.Options.Priority.BelowNormal') },
+                { key: '4', text: pclText('Setup.Launch.Options.Priority.RealTime') },
+                { key: '3', text: pclText('Setup.Launch.Options.Priority.High') },
+                { key: '0', text: pclText('Setup.Launch.Options.Priority.AboveNormal') },
+                { key: '1', text: pclText('Setup.Launch.Options.Priority.Normal') },
+                { key: '2', text: pclText('Setup.Launch.Options.Priority.BelowNormal') },
               ]"
-              v-model="values.ComboArgumentPriority"
+              :model-value="String(preferences.process_priority)"
+              @update:model-value="
+                (value) =>
+                  value !== undefined && changePreferences({ process_priority: Number(value) })
+              "
           /></SetupItem>
           <SetupItem :label="pclText('Setup.Launch.Options.WindowSize.Label')" v-slot="{ id }"
             ><div style="display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto">
@@ -436,7 +434,6 @@ function changeAdvanced(field: keyof LaunchPreferences | undefined, value: boole
                   {
                     key: '0',
                     text: pclText('Setup.Launch.Options.WindowSize.Fullscreen'),
-                    disabled: true,
                   },
                   { key: '1', text: pclText('Common.Option.Default') },
                   { key: '2', text: pclText('Setup.Launch.Options.WindowSize.SameAsLauncher') },

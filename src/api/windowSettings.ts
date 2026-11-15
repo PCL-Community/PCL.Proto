@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { createSettingsPersistence } from '@/util/settingsPersistence'
 
 export interface WindowSettings {
-  mode: 'default' | 'launcher' | 'custom'
+  mode: 'default' | 'launcher' | 'custom' | 'fullscreen'
   width: number
   height: number
 }

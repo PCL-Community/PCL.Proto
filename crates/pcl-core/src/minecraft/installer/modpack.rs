@@ -414,6 +414,7 @@ async fn install_pack(
         java,
         java_runtime_dir,
         forge_installer,
+        false,
     )
     .await?;
     Ok(())

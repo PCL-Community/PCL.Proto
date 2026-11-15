@@ -16,6 +16,8 @@ pub struct DownloadSettings {
     pub ignore_quilt: bool,
     /// 安装实例后按启动器语言写入 `options.txt`（CE `ToolHelpChinese`）。
     pub auto_set_language: bool,
+    /// 安装 1.16.5 时把旧 authlib 替换为 2.3.31（CE `ToolFixAuthlib`）。
+    pub fix_authlib: bool,
 }
 impl Default for DownloadSettings {
     fn default() -> Self {
@@ -30,6 +32,7 @@ impl Default for DownloadSettings {
             auto_select_instance: None,
             ignore_quilt: false,
             auto_set_language: false,
+            fix_authlib: true,
         }
     }
 }

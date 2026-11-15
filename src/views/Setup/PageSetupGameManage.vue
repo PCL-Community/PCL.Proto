@@ -172,7 +172,7 @@ onScopeDispose(() => {
                 v-model="values.CheckDownloadAutoSelectVersion"
               />
               <PCheckBox
-                disabled
+                :disabled="!desktop || !ready"
                 :title="pclText('Setup.GameManage.Download.FixAuthlib.ToolTip')"
                 id="PageSetupGameManage-CheckFixAuthlib"
                 :label="pclText('Setup.GameManage.Download.FixAuthlib')"

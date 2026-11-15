@@ -11,12 +11,18 @@ import PComboBox from '@/components/widget/PComboBox.vue'
 import PHint from '@/components/widget/PHint.vue'
 import PTextBox from '@/components/widget/PTextBox.vue'
 import { logSlider, logSaveError, saveLogSettings, updateLogSlider } from '@/api/logSettings'
+import {
+  getSystemPreferences,
+  setSystemPreferences,
+  type SystemPreferences,
+} from '@/api/systemPreferences'
 import { useProxySettings } from '@/composables/useProxySettings'
 import sideTip from '@/composables/sideTip'
 import { availableOnPlatform } from '@/util/platform'
 import { invoke, isTauri } from '@tauri-apps/api/core'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { useModal } from '@/composables/useModal'
+import { reactive, ref } from 'vue'
 const { values } = usePageSettings(
   'PageSetupLauncherMisc',
   {
@@ -34,6 +40,32 @@ const {
   error: proxyError,
   save: saveProxy,
 } = useProxySettings()
+const desktop = isTauri()
+const preferences = reactive<SystemPreferences>({ debug_mode: false, random_delay: false })
+const preferencesReady = ref(false)
+const preferencesError = ref<string | null>(null)
+async function loadPreferences() {
+  if (!desktop) return
+  try {
+    Object.assign(preferences, await getSystemPreferences())
+    preferencesReady.value = true
+    preferencesError.value = null
+  } catch (error) {
+    preferencesError.value = String(error)
+  }
+}
+async function changePreferences(patch: Partial<SystemPreferences>) {
+  if (!preferencesReady.value) return
+  Object.assign(preferences, patch)
+  try {
+    Object.assign(preferences, await setSystemPreferences({ ...preferences }))
+    preferencesError.value = null
+  } catch (error) {
+    preferencesError.value = String(error)
+    await loadPreferences()
+  }
+}
+if (desktop) void loadPreferences()
 async function applyProxy() {
   await saveProxy()
   if (!proxyError.value) sideTip.show(pclText('Proto.Settings.ProxySaved'), 'success')
@@ -87,6 +119,7 @@ async function importSettings() {
   <div class="pcl-page">
     <PErrorRetry :error="logSaveError" @retry="saveLogSettings" />
     <PErrorRetry :error="proxyError" @retry="saveProxy()" />
+    <PErrorRetry :error="preferencesError" @retry="loadPreferences" />
 
     <PCard :title="pclText('Setup.Misc.System.Title')">
       <div class="pcl-card-body settings-grid">
@@ -336,20 +369,22 @@ async function importSettings() {
             v-model="values.CheckDebugSkipCopy"
           />
           <PCheckBox
-            disabled
+            :disabled="!desktop || !preferencesReady"
             style="grid-row: 1 / span 1; grid-column: 2 / span 1"
             :title="pclText('Setup.Misc.Debug.Mode.ToolTip')"
             id="PageSetupLauncherMisc-CheckDebugMode"
             :label="pclText('Setup.Misc.Debug.Mode')"
-            v-model="values.CheckDebugMode"
+            :model-value="preferences.debug_mode"
+            @update:model-value="(value) => changePreferences({ debug_mode: value })"
           />
           <PCheckBox
-            disabled
+            :disabled="!desktop || !preferencesReady"
             style="grid-row: 1 / span 1; grid-column: 3 / span 1"
             :title="pclText('Setup.Misc.Debug.Delay.ToolTip')"
             id="PageSetupLauncherMisc-CheckDebugDelay"
             :label="pclText('Setup.Misc.Debug.Delay')"
-            v-model="values.CheckDebugDelay"
+            :model-value="preferences.random_delay"
+            @update:model-value="(value) => changePreferences({ random_delay: value })"
           />
         </div>
       </div>

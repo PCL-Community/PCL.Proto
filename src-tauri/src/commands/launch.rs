@@ -7,6 +7,7 @@ use std::{
         Arc, LazyLock, Mutex as StdMutex,
         atomic::{AtomicBool, Ordering},
     },
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::watch;
 
@@ -242,6 +243,15 @@ async fn launch_game_inner(
     let report = |stage, value, downloading| {
         let _ = progress.send(LaunchProgress::new(stage, value, downloading));
     };
+    // CE `Config.Debug.AddRandomDelay`：启动前随机等待 0.5–3 秒，用于模拟真实环境的加载波动。
+    if ConfigManager::instance().app_state.lock().await.random_delay {
+        let delay = 500
+            + SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|elapsed| u64::from(elapsed.subsec_nanos()) % 2501)
+                .unwrap_or(0);
+        tokio::time::sleep(Duration::from_millis(delay)).await;
+    }
     report("Minecraft.Launch.Stage.GetJava", 0.08, false);
     let info = wait_for_launch(
         &mut ticket.receiver,
