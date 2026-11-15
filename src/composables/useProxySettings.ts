@@ -5,6 +5,8 @@ import { getProxySettings, setProxySettings, type ProxyMode } from '@/api/networ
 export function useProxySettings() {
   const mode = ref<ProxyMode>('off')
   const address = ref('')
+  const username = ref('')
+  const password = ref('')
   const ready = ref(false)
   const busy = ref(false)
   const error = ref<string | null>(null)
@@ -15,6 +17,8 @@ export function useProxySettings() {
       const settings = await getProxySettings()
       mode.value = settings.mode
       address.value = settings.address
+      username.value = settings.username
+      password.value = settings.password
       error.value = null
     } catch (failure) {
       error.value = String(failure)
@@ -27,9 +31,16 @@ export function useProxySettings() {
     if (!isTauri() || busy.value) return
     busy.value = true
     try {
-      const settings = await setProxySettings({ mode: mode.value, address: address.value.trim() })
+      const settings = await setProxySettings({
+        mode: mode.value,
+        address: address.value.trim(),
+        username: username.value.trim(),
+        password: password.value,
+      })
       mode.value = settings.mode
       address.value = settings.address
+      username.value = settings.username
+      password.value = settings.password
       error.value = null
     } catch (failure) {
       error.value = String(failure)
@@ -39,5 +50,5 @@ export function useProxySettings() {
   }
 
   onMounted(load)
-  return { mode, address, ready, busy, error, load, save }
+  return { mode, address, username, password, ready, busy, error, load, save }
 }

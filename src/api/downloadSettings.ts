@@ -10,6 +10,8 @@ export interface DownloadSettings {
   version_source: number
   community_source: number
   auto_select_instance: boolean | null
+  ignore_quilt: boolean
+  auto_set_language: boolean
 }
 
 export const downloadSettingKeys = [
@@ -21,6 +23,8 @@ export const downloadSettingKeys = [
   'SliderDownloadFileConnection',
   'SliderDownloadSpeed',
   'CheckDownloadAutoSelectVersion',
+  'CheckDownloadIgnoreQuilt',
+  'CheckHelpLauncherLanguage',
 ]
 
 export async function initializeDownloadSettings() {
@@ -57,6 +61,8 @@ export function downloadSettingValues(settings: DownloadSettings) {
     SliderDownloadFileConnection: settings.file_connections - 1,
     SliderDownloadSpeed: speed.index,
     CheckDownloadAutoSelectVersion: settings.auto_select_instance ?? true,
+    CheckDownloadIgnoreQuilt: settings.ignore_quilt,
+    CheckHelpLauncherLanguage: settings.auto_set_language,
   }
 }
 
@@ -96,5 +102,13 @@ export function downloadSettings(values: Record<string, unknown> = {}): Download
       typeof settings.CheckDownloadAutoSelectVersion === 'boolean'
         ? settings.CheckDownloadAutoSelectVersion
         : true,
+    ignore_quilt:
+      typeof settings.CheckDownloadIgnoreQuilt === 'boolean'
+        ? settings.CheckDownloadIgnoreQuilt
+        : false,
+    auto_set_language:
+      typeof settings.CheckHelpLauncherLanguage === 'boolean'
+        ? settings.CheckHelpLauncherLanguage
+        : false,
   }
 }

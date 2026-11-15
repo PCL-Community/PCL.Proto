@@ -5,6 +5,8 @@ export type ProxyMode = 'off' | 'system' | 'custom'
 export interface ProxySettings {
   mode: ProxyMode
   address: string
+  username: string
+  password: string
 }
 
 export const getProxySettings = () => invoke<ProxySettings>('get_proxy_settings')

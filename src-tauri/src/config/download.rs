@@ -12,6 +12,10 @@ pub struct DownloadSettings {
     /// 社区资源（CurseForge / Modrinth）的 API 与文件来源。
     pub community_source: SourcePreference,
     pub auto_select_instance: Option<bool>,
+    /// 隐藏 Quilt 装载器选项（CE `ToolDownloadIgnoreQuilt`）。
+    pub ignore_quilt: bool,
+    /// 安装实例后按启动器语言写入 `options.txt`（CE `ToolHelpChinese`）。
+    pub auto_set_language: bool,
 }
 impl Default for DownloadSettings {
     fn default() -> Self {
@@ -24,6 +28,8 @@ impl Default for DownloadSettings {
             version_source: SourcePreference::Auto,
             community_source: SourcePreference::Auto,
             auto_select_instance: None,
+            ignore_quilt: false,
+            auto_set_language: false,
         }
     }
 }

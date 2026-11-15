@@ -91,6 +91,13 @@ pub struct AppState {
     pub launch_arguments: Option<crate::config::arguments::LaunchArguments>,
     pub launcher_visibility: crate::window::LauncherVisibility,
     pub renderer: u8,
+    /// CE `LaunchPreferredIpStack`：0 = 优先 IPv4，1 = JVM 默认，2 = 优先 IPv6。
+    #[serde(default = "default_ip_stack")]
+    pub launch_ip_stack: u8,
+    pub prelaunch_command: String,
+    #[serde(default = "default_true")]
+    pub prelaunch_wait: bool,
+    pub lock_memory: bool,
     #[serde(default = "crate::config::metadata::default_version_info")]
     pub version_info: String,
     #[serde(default = "default_true")]
@@ -105,6 +112,11 @@ pub struct AppState {
 #[inline]
 fn default_true() -> bool {
     true
+}
+
+#[inline]
+fn default_ip_stack() -> u8 {
+    1
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq)]

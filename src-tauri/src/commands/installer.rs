@@ -21,6 +21,19 @@ pub struct InstallResult {
     selection_error: Option<String>,
 }
 
+/// 把启动器语言写入新实例的 `options.txt`，已有其它选项保持不变。
+fn apply_game_language(directory: &std::path::Path, language: &str) -> Result<(), String> {
+    let options = directory.join("options.txt");
+    let mut lines = match std::fs::read_to_string(&options) {
+        Ok(content) => content.lines().map(str::to_owned).collect::<Vec<_>>(),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+        Err(error) => return Err(error.to_string()),
+    };
+    lines.retain(|line| !line.starts_with("lang:"));
+    lines.push(format!("lang:{}", language.to_ascii_lowercase().replace('-', "_")));
+    std::fs::write(&options, lines.join("\n") + "\n").map_err(|error| error.to_string())
+}
+
 #[tauri::command(rename_all = "snake_case")]
 #[allow(clippy::too_many_arguments)] // IPC 参数固定
 pub async fn download_minecraft_version(
@@ -31,8 +44,17 @@ pub async fn download_minecraft_version(
     task_id: i32,
     instance_name: String,
     loader: Option<LoaderInstall>,
+    // 启动器当前语言；仅在开启「自动设置游戏语言」时用于写入 options.txt。
+    language: Option<String>,
 ) -> Result<InstallResult, String> {
     let repo = state.lock().await.active_repo_path.clone();
+    let auto_set_language = state
+        .lock()
+        .await
+        .download_settings
+        .as_ref()
+        .map(|settings| settings.auto_set_language)
+        .unwrap_or(false);
     let java = crate::config::java::installer_candidates(&state).await;
     let paths = ConfigManager::instance().java_runtime_dir();
     let bridge =
@@ -50,6 +72,13 @@ pub async fn download_minecraft_version(
         bridge.as_deref(),
     )
     .await?;
+    if auto_set_language {
+        if let Some(language) = language.as_deref() {
+            if let Err(error) = apply_game_language(&outcome.directory, language) {
+                log::warn!("Cannot apply game language: {error}");
+            }
+        }
+    }
     if outcome.isolated {
         let directory = outcome.directory.clone();
         tokio::task::spawn_blocking(move || {

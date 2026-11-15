@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import SetupItem from '@/components/widget/SetupItem.vue'
 import { useSetup } from '@/stores/setup'
-import { watch, computed, onMounted, onUnmounted, ref } from 'vue'
+import { watch, computed, onMounted, onUnmounted, ref, reactive } from 'vue'
 import { isTauri } from '@tauri-apps/api/core'
 import type { Platform } from '@tauri-apps/plugin-os'
 import { availableOnPlatform } from '@/util/platform'
+import {
+  getLaunchPreferences,
+  setLaunchPreferences,
+  type LaunchPreferences,
+} from '@/api/launchPreferences'
 import { useJavaStore } from '@/stores/java'
 import { useRouter } from 'vue-router'
 import { pclText } from '@/api/pclLocale'
@@ -46,7 +51,6 @@ const { values } = usePageSettings(
     ComboArgumentVisibie: '4',
     ComboArgumentPriority: '3',
     ComboArgumentWindowType: '1',
-    ComboPreferredIpStack: '0',
   },
   desktop
     ? [
@@ -247,22 +251,63 @@ watch(
 const router = useRouter()
 // 某项仅在特定平台生效时在第三项标注，未标注表示所有平台通用
 const rendererVisible = availableOnPlatform('windows')
-const unavailableAdvancedOptions: readonly (readonly [
+const preferences = reactive<LaunchPreferences>({
+  ip_stack: 1,
+  prelaunch_command: '',
+  prelaunch_wait: true,
+  disable_jlw: false,
+  disable_legacy_fix: false,
+  disable_lwjgl_unsafe_agent: false,
+  lock_memory: false,
+})
+const preferencesReady = ref(false)
+const preferencesError = ref<string | null>(null)
+async function loadPreferences() {
+  if (!desktop) return
+  try {
+    Object.assign(preferences, await getLaunchPreferences())
+    preferencesReady.value = true
+    preferencesError.value = null
+  } catch (error) {
+    preferencesError.value = String(error)
+  }
+}
+async function changePreferences(patch: Partial<LaunchPreferences>) {
+  if (!preferencesReady.value) return
+  Object.assign(preferences, patch)
+  try {
+    Object.assign(preferences, await setLaunchPreferences({ ...preferences }))
+    preferencesError.value = null
+  } catch (error) {
+    preferencesError.value = String(error)
+    await loadPreferences()
+  }
+}
+if (desktop) void loadPreferences()
+type AdvancedOption = readonly [
   key: string,
   label: string,
+  field?: keyof LaunchPreferences,
   platform?: Platform,
-])[] = [
-  ['CheckAdvanceDisableJLW', 'DisableJlw', 'windows'],
-  ['CheckAdvanceDisableLF', 'DisableLF'],
-  ['CheckAdvanceGraphicCard', 'GpuPreference', 'windows'],
-  ['CheckAdvanceNoJavaw', 'UseJavaExe', 'windows'],
-  ['CheckAdvanceDisableLwjglUnsafeAgent', 'DisableLwjglUnsafeAgent'],
-  ['CheckAdvanceDisableCrashAnalysis', 'DisableCrashAnalysis'],
-  ['CheckAdvanceLockMemory', 'LockMemory'],
+]
+const advancedOptions: readonly AdvancedOption[] = [
+  ['CheckAdvanceDisableJLW', 'DisableJlw', 'disable_jlw', 'windows'],
+  ['CheckAdvanceDisableLF', 'DisableLF', 'disable_legacy_fix'],
+  ['CheckAdvanceGraphicCard', 'GpuPreference', undefined, 'windows'],
+  ['CheckAdvanceNoJavaw', 'UseJavaExe', undefined, 'windows'],
+  ['CheckAdvanceDisableLwjglUnsafeAgent', 'DisableLwjglUnsafeAgent', 'disable_lwjgl_unsafe_agent'],
+  ['CheckAdvanceDisableCrashAnalysis', 'DisableCrashAnalysis', undefined, 'windows'],
+  ['CheckAdvanceLockMemory', 'LockMemory', 'lock_memory'],
 ]
 const visibleAdvancedOptions = computed(() =>
-  unavailableAdvancedOptions.filter(([, , platform]) => availableOnPlatform(platform)),
+  advancedOptions.filter(([, , , platform]) => availableOnPlatform(platform)),
 )
+function advancedValue(key: string, field?: keyof LaunchPreferences) {
+  return field ? Boolean(preferences[field]) : Boolean(values[key])
+}
+function changeAdvanced(field: keyof LaunchPreferences | undefined, value: boolean) {
+  if (field) void changePreferences({ [field]: value } as Partial<LaunchPreferences>)
+}
 </script>
 <template>
   <div class="pcl-page">
@@ -271,6 +316,7 @@ const visibleAdvancedOptions = computed(() =>
       @retry="visibilityReady ? changeVisibility(visibilityDraft) : loadVisibility()"
     />
     <PErrorRetry :error="isolationError" @retry="loadIsolation" />
+    <PErrorRetry :error="preferencesError" @retry="loadPreferences" />
     <PErrorRetry :error="infoError" @retry="infoReady ? saveVersionInfo() : loadVersionInfo()" />
     <PErrorRetry
       :error="argumentsError"
@@ -363,7 +409,10 @@ const visibleAdvancedOptions = computed(() =>
               :model-value="visibilityValue"
               @update:model-value="changeVisibility"
           /></SetupItem>
-          <SetupItem :label="pclText('Setup.Launch.Options.Priority.Label')" v-slot="{ id }"
+          <SetupItem
+            v-if="availableOnPlatform('windows')"
+            :label="pclText('Setup.Launch.Options.Priority.Label')"
+            v-slot="{ id }"
             ><PComboBox
               disabled
               :input-id="id"
@@ -457,7 +506,7 @@ const visibleAdvancedOptions = computed(() =>
           /></SetupItem>
           <SetupItem :label="pclText('Setup.Launch.Options.IpStack.Label')" v-slot="{ id }"
             ><PComboBox
-              disabled
+              :disabled="!desktop || !preferencesReady"
               :input-id="id"
               :title="pclText('Setup.Launch.Options.IpStack.ToolTip')"
               :options="[
@@ -465,7 +514,10 @@ const visibleAdvancedOptions = computed(() =>
                 { key: '1', text: pclText('Setup.Launch.Options.IpStack.JavaDefault') },
                 { key: '2', text: pclText('Setup.Launch.Options.IpStack.Ipv6') },
               ]"
-              v-model="values.ComboPreferredIpStack"
+              :model-value="String(preferences.ip_stack)"
+              @update:model-value="
+                (value) => value !== undefined && changePreferences({ ip_stack: Number(value) })
+              "
           /></SetupItem>
         </div>
       </div>
@@ -545,19 +597,21 @@ const visibleAdvancedOptions = computed(() =>
         /></SetupItem>
         <SetupItem :label="pclText('Setup.Launch.Advanced.PreLaunchCommand')" v-slot="{ id }"
           ><PTextBox
-            disabled
+            :disabled="!desktop || !preferencesReady"
             :input-id="id"
             :title="pclText('Setup.Launch.Advanced.PreLaunchCommand.ToolTip')"
             :placeholder="pclText('')"
-            v-model="values.TextAdvanceRun"
+            v-model="preferences.prelaunch_command"
+            @blur="changePreferences({ prelaunch_command: preferences.prelaunch_command })"
         /></SetupItem>
         <PCheckBox
-          disabled
-          v-if="String(values.TextAdvanceRun || '').trim()"
+          v-if="preferences.prelaunch_command.trim()"
           style="grid-column: 2"
+          :disabled="!desktop || !preferencesReady"
           id="PageSetupLaunch-CheckAdvanceRunWait"
           :label="pclText('Setup.Launch.Advanced.PreLaunchCommand.Wait')"
-          v-model="values.CheckAdvanceRunWait"
+          :model-value="preferences.prelaunch_wait"
+          @update:model-value="(value) => changePreferences({ prelaunch_wait: value })"
         />
         <div
           style="
@@ -568,13 +622,14 @@ const visibleAdvancedOptions = computed(() =>
           "
         >
           <PCheckBox
-            v-for="[key, label] in visibleAdvancedOptions"
+            v-for="[key, label, field] in visibleAdvancedOptions"
             :key
-            disabled
+            :disabled="field ? !desktop || !preferencesReady : true"
             :title="pclText(`Setup.Launch.Advanced.${label}.ToolTip`)"
             :id="`PageSetupLaunch-${key}`"
             :label="pclText(`Setup.Launch.Advanced.${label}`)"
-            :model-value="Boolean(values[key])"
+            :model-value="advancedValue(key, field)"
+            @update:model-value="(value) => changeAdvanced(field, value)"
           />
         </div>
         <PHint style="margin: 5px 0px 10px 0px; grid-column: 1 / -1" severity="info" closable>{{

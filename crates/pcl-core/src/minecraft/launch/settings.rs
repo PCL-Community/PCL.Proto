@@ -6,6 +6,8 @@ pub struct LaunchExtras {
     pub info: String,
     /// 0 = game default, 1 = llvmpipe, 2 = d3d12, 3 = zink.
     pub renderer: u8,
+    /// CE `JvmPreferredIpStack`：0 = 优先 IPv4，1 = JVM 默认，2 = 优先 IPv6。
+    pub ip_stack: u8,
     pub prelaunch_command: String,
     pub prelaunch_wait: bool,
     pub disable_asset_verify: bool,

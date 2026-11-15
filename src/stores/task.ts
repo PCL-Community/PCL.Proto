@@ -1,4 +1,4 @@
-import { pclText } from '@/api/pclLocale'
+import { pclLocale, pclText } from '@/api/pclLocale'
 import { FloatButtonType, useFloatButton } from '@/composables/useFloatButton'
 import { Channel, invoke } from '@tauri-apps/api/core'
 import { defineStore } from 'pinia'
@@ -317,7 +317,7 @@ export const useTaskManager = defineStore('task-manager', () => {
     return runDownload(
       versionId,
       'download_minecraft_version',
-      { instance_name: instanceName, loader: loader || null },
+      { instance_name: instanceName, loader: loader || null, language: pclLocale.value },
       'install',
       loader?.family,
       !!loader?.api,

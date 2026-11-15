@@ -64,6 +64,12 @@ pub fn request(state: &AppState, java: Arc<JavaEntry>) -> Result<LaunchOption, G
             }
             None => (state.launcher_setup.max_memory, None),
         };
+    // 锁定内存：-Xms 恒等于 -Xmx，初始堆滑块不再生效（CE `Config.Launch.LockMemory`）。
+    let initial_memory = if state.lock_memory {
+        Some(max_memory)
+    } else {
+        initial_memory
+    };
     let global = state
         .launch_arguments
         .clone()

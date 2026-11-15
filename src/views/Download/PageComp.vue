@@ -14,7 +14,8 @@ import PSvgIcon from '@/components/widget/PSvgIcon.vue'
 import PHint from '@/components/widget/PHint.vue'
 import PLoading from '@/components/widget/PLoading.vue'
 import { compTagOptions, instanceCompFilter } from '@/api/compResources'
-import { computed, reactive, ref, watch } from 'vue'
+import { downloadSettingsStorage } from '@/api/downloadSettings'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { pclText } from '@/api/pclLocale'
 import { useSelectedInstance } from '@/stores/gameLaunch'
 import { useRoute } from 'vue-router'
@@ -69,11 +70,20 @@ const sourceOptions = computed(() => [
   },
   { key: 'modrinth', text: 'Modrinth', disabled: modrinthUnsupported.value },
 ])
+const ignoreQuilt = ref(false)
+onMounted(() => {
+  void downloadSettingsStorage
+    .read()
+    .then(({ settings }) => (ignoreQuilt.value = settings.ignore_quilt))
+    .catch(() => {})
+})
 const loaderOptions = computed(() =>
   (props.projectType === 'shader'
     ? ['', 'vanilla', 'iris', 'optifine']
     : ['', 'forge', 'neoforge', 'fabric', 'quilt']
-  ).map((value) => ({
+  )
+    .filter((value) => value !== 'quilt' || !ignoreQuilt.value)
+    .map((value) => ({
     key: value,
     text:
       value === 'vanilla'

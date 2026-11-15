@@ -222,7 +222,6 @@ onScopeDispose(() => {
           </SetupItem>
           <div class="community-checks">
             <PCheckBox
-              disabled
               :title="pclText('Setup.GameManage.Community.HideQuilt.ToolTip')"
               id="PageSetupGameManage-CheckDownloadIgnoreQuilt"
               :label="pclText('Setup.GameManage.Community.HideQuilt')"
@@ -265,7 +264,6 @@ onScopeDispose(() => {
         <SetupItem>
           <template #label>{{ pclText('Setup.GameManage.Accessibility.GameLanguage') }}</template>
           <PCheckBox
-            disabled
             id="PageSetupGameManage-CheckHelpLauncherLanguage"
             :label="pclText('Setup.GameManage.Accessibility.AutoLauncherLanguage')"
             v-model="values.CheckHelpLauncherLanguage"

@@ -13,23 +13,38 @@ pub struct ProxySettings {
     pub mode: ProxyMode,
     /// Custom proxy URL, possibly carrying credentials (`http://user:pass@host:port`).
     pub address: String,
+    /// 自定义代理凭据；地址里已带用户名时以这里为准。
+    pub username: String,
+    pub password: String,
 }
 
 impl ProxySettings {
     pub fn validate(&self) -> Result<(), String> {
-        if self.address.len() > 2048 || self.address.contains('\0') {
+        if self.address.len() > 2048
+            || self.address.contains('\0')
+            || self.username.len() > 512
+            || self.password.len() > 512
+            || self.username.contains('\0')
+            || self.password.contains('\0')
+        {
             return Err("Invalid proxy address".into());
         }
         if self.mode != ProxyMode::Custom {
             return Ok(());
         }
-        let url = reqwest::Url::parse(self.address.trim())
+        let mut url = reqwest::Url::parse(self.address.trim())
             .map_err(|_| "Invalid proxy address; expected http://host:port".to_string())?;
         if !matches!(url.scheme(), "http" | "https")
             || url.host_str().is_none()
             || url.port().is_none()
         {
             return Err("Invalid proxy address; expected http://host:port".into());
+        }
+        if !self.username.is_empty() {
+            url.set_username(&self.username)
+                .map_err(|_| "Invalid proxy username".to_string())?;
+            url.set_password(Some(&self.password))
+                .map_err(|_| "Invalid proxy password".to_string())?;
         }
         Ok(())
     }
@@ -42,7 +57,20 @@ impl ProxySettings {
         let url = reqwest::Url::parse(self.address.trim()).ok()?;
         Some((url.host_str()?.to_owned(), url.port()?))
     }
+
+    /// 自定义代理的完整 URL（含凭据），供 reqwest 使用。
+    fn proxy_url(&self) -> Option<reqwest::Url> {
+        let mut url = reqwest::Url::parse(self.address.trim()).ok()?;
+        if self.username.is_empty() {
+            return Some(url);
+        }
+        // `set_username` 只对特殊 scheme 失败，validate 已限制为 http/https。
+        let _ = url.set_username(&self.username);
+        let _ = url.set_password(Some(&self.password));
+        Some(url)
+    }
 }
+
 
 pub fn builder_for(settings: &ProxySettings) -> reqwest::ClientBuilder {
     let builder =
@@ -51,11 +79,13 @@ pub fn builder_for(settings: &ProxySettings) -> reqwest::ClientBuilder {
         ProxyMode::Off => builder.no_proxy(),
         // reqwest already follows the system proxy configuration by default.
         ProxyMode::System => builder,
-        ProxyMode::Custom => match reqwest::Proxy::all(settings.address.trim()) {
-            Ok(proxy) => builder.proxy(proxy),
-            // Validation rejects malformed addresses, so this only guards stale settings.
-            Err(_) => builder.no_proxy(),
-        },
+        ProxyMode::Custom => {
+            match settings.proxy_url().and_then(|url| reqwest::Proxy::all(url).ok()) {
+                Some(proxy) => builder.proxy(proxy),
+                // Validation rejects malformed addresses, so this only guards stale settings.
+                None => builder.no_proxy(),
+            }
+        }
     }
 }
 

@@ -405,6 +405,18 @@ impl LaunchOption {
     /// Java agents and JVM switches from the instance settings (CE order: agents last).
     fn agent_arguments(&self) -> Result<Vec<String>, GameLaunchError> {
         let mut args = Vec::new();
+        // CE `JvmPreferredIpStack`: 0 = 优先 IPv4，1 = JVM 默认，2 = 优先 IPv6。
+        match self.extras.ip_stack {
+            0 => {
+                args.push("-Djava.net.preferIPv4Stack=true".to_owned());
+                args.push("-Djava.net.preferIPv4Addresses=true".to_owned());
+            }
+            2 => {
+                args.push("-Djava.net.preferIPv6Stack=true".to_owned());
+                args.push("-Djava.net.preferIPv6Addresses=true".to_owned());
+            }
+            _ => {}
+        }
         if let Some((host, port)) = &self.extras.proxy {
             for scheme in ["http", "https"] {
                 args.push(format!("-D{scheme}.proxyHost={host}"));

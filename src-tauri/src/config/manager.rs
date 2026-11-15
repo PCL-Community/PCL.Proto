@@ -77,6 +77,35 @@ pub async fn set_window_settings(settings: WindowSettings) -> Result<WindowSetti
         .map_err(|error| error.to_string())?
 }
 
+pub async fn get_launch_preferences() -> crate::config::launch_settings::GlobalLaunchPreferences {
+    crate::config::launch_settings::GlobalLaunchPreferences::from(
+        &*ConfigManager::instance().app_state.lock().await,
+    )
+}
+
+pub async fn set_launch_preferences(
+    settings: crate::config::launch_settings::GlobalLaunchPreferences,
+) -> Result<crate::config::launch_settings::GlobalLaunchPreferences, String> {
+    tokio::task::spawn_blocking(move || {
+        ConfigManager::instance().update_launch_preferences(settings)
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+impl ConfigManager {
+    fn update_launch_preferences(
+        &self,
+        settings: crate::config::launch_settings::GlobalLaunchPreferences,
+    ) -> Result<crate::config::launch_settings::GlobalLaunchPreferences, String> {
+        settings.validate()?;
+        self.update(|state| {
+            settings.apply(state);
+            Ok(settings.clone())
+        })
+    }
+}
+
 impl ConfigManager {
     pub fn read_instance<T>(
         &self,
@@ -283,6 +312,11 @@ impl ConfigManager {
         &self.config_dir
     }
 
+    /// Path of the persisted `config.yml`.
+    pub fn config_path(&self) -> &std::path::Path {
+        &self.config_path
+    }
+
     pub fn update_proxy_settings(
         &self,
         settings: crate::config::network::ProxySettings,
@@ -339,6 +373,8 @@ impl ConfigManager {
             .map_err(|_| ConfigManagerError::ConfigDirNotFound)?;
         let mut state = self.app_state.blocking_lock();
         state.version_info = crate::config::metadata::default_version_info();
+        // CE 默认 `JvmPreferredIpStack.Default`。
+        state.launch_ip_stack = 1;
         state.active_repo_path = game_dir.clone();
         state.repositories.push(McFolder {
             name: "Default".into(),
@@ -559,8 +595,7 @@ fn normalize_loaded_paths(state: &mut AppState) {
     }
 }
 
-fn valid_loaded_state(state: &AppState) -> bool {
-    !(state
+pub(crate) fn valid_loaded_state(state: &AppState) -> bool {    !(state
         .log_max_lines
         .is_some_and(|lines| lines != 0 && !(50..=2000).contains(&lines))
         || state
@@ -581,6 +616,9 @@ fn valid_loaded_state(state: &AppState) -> bool {
             .is_some_and(|settings| settings.validate().is_err())
         || state.link_settings.validate().is_err()
         || state.renderer > 3
+        || crate::config::launch_settings::GlobalLaunchPreferences::from(state)
+            .validate()
+            .is_err()
         || state.proxy.validate().is_err())
 }
 

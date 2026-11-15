@@ -13,6 +13,10 @@ import PTextBox from '@/components/widget/PTextBox.vue'
 import { logSlider, logSaveError, saveLogSettings, updateLogSlider } from '@/api/logSettings'
 import { useProxySettings } from '@/composables/useProxySettings'
 import sideTip from '@/composables/sideTip'
+import { availableOnPlatform } from '@/util/platform'
+import { invoke, isTauri } from '@tauri-apps/api/core'
+import { open, save } from '@tauri-apps/plugin-dialog'
+import { useModal } from '@/composables/useModal'
 const { values } = usePageSettings(
   'PageSetupLauncherMisc',
   {
@@ -23,6 +27,8 @@ const { values } = usePageSettings(
 const {
   mode: proxyMode,
   address: proxyAddress,
+  username: proxyUsername,
+  password: proxyPassword,
   ready: proxyReady,
   busy: proxyBusy,
   error: proxyError,
@@ -31,6 +37,50 @@ const {
 async function applyProxy() {
   await saveProxy()
   if (!proxyError.value) sideTip.show(pclText('Proto.Settings.ProxySaved'), 'success')
+}
+const settingsFilter = [{ name: 'YAML', extensions: ['yml', 'yaml'] }]
+async function exportSettings() {
+  if (!isTauri()) return showUnavailable()
+  const path = await save({
+    title: pclText('Setup.Misc.System.ExportSettings.SaveTitle'),
+    defaultPath: 'pcl-proto-settings.yml',
+    filters: settingsFilter,
+  })
+  if (typeof path !== 'string') return
+  try {
+    await invoke('export_launcher_settings', { path })
+    sideTip.show(pclText('Setup.Misc.System.ExportSettings.Success'), 'success')
+  } catch (error) {
+    sideTip.show(String(error), 'warn')
+  }
+}
+async function importSettings() {
+  if (!isTauri()) return showUnavailable()
+  const path = await open({
+    title: pclText('Setup.Misc.System.ImportSettings.SelectTitle'),
+    multiple: false,
+    filters: settingsFilter,
+  })
+  if (typeof path !== 'string') return
+  const modal = useModal()
+  const result = await modal.open({
+    title: pclText('Common.Dialog.Title'),
+    content: pclText('Setup.Misc.System.ImportSettings.Success.Message'),
+    buttons: [
+      {
+        type: 'tint',
+        content: pclText('Setup.Misc.System.ImportSettings.Success.Restart'),
+        operation: () => modal.close(true),
+      },
+      { content: pclText('Common.Action.Cancel'), operation: () => modal.close(false) },
+    ],
+  })
+  if (!result.confirmed) return
+  try {
+    await invoke('import_launcher_settings', { path })
+  } catch (error) {
+    sideTip.show(String(error), 'warn')
+  }
 }
 </script>
 <template>
@@ -80,6 +130,7 @@ async function applyProxy() {
         </SetupItem>
         <div style="grid-column: 1 / -1; display: grid; grid-template-columns: auto auto auto auto">
           <PCheckBox
+            v-if="availableOnPlatform('windows')"
             disabled
             style="grid-row: 1 / span 1; grid-column: 1 / span 1"
             id="PageSetupLauncherMisc-CheckSystemDisableHardwareAcceleration"
@@ -96,13 +147,14 @@ async function applyProxy() {
           />
         </div>
         <div class="pcl-button-row pcl-button-row-fill" style="grid-column: 1 / -1">
-          <PButton style="min-width: 140px; padding: 0px 13px" @click="showUnavailable">{{
+          <PButton style="min-width: 140px; padding: 0px 13px" @click="exportSettings">{{
             pclText('Setup.Misc.System.ExportSettings')
           }}</PButton>
-          <PButton style="min-width: 140px; padding: 0px 13px" @click="showUnavailable">{{
+          <PButton style="min-width: 140px; padding: 0px 13px" @click="importSettings">{{
             pclText('Setup.Misc.System.ImportSettings')
           }}</PButton>
           <PButton
+            v-if="availableOnPlatform('windows')"
             style="min-width: 140px; padding: 0px 13px"
             @click="() => showUnavailable()"
             type="warn"
@@ -205,11 +257,11 @@ async function applyProxy() {
             >{{ pclText('Setup.Misc.Network.Proxy.Username') }}</span
           >
           <PTextBox
-            disabled
+            :disabled="!proxyReady || proxyBusy"
             style="margin: 0px 5px 0px 0px; grid-row: 5 / span 1; grid-column: 2 / span 1"
             :title="pclText('Proto.Settings.ProxyCredentialsHint')"
             :placeholder="pclText('Setup.Misc.Network.Proxy.Optional')"
-            v-model="values.TextSystemHttpProxyCustomUsername"
+            v-model="proxyUsername"
           />
           <span
             style="
@@ -223,12 +275,12 @@ async function applyProxy() {
             >{{ pclText('Setup.Misc.Network.Proxy.Password') }}</span
           >
           <PTextBox
-            disabled
+            :disabled="!proxyReady || proxyBusy"
             type="password"
             style="margin: 0px 5px 0px 0px; grid-row: 5 / span 1; grid-column: 4 / span 1"
             :title="pclText('Proto.Settings.ProxyCredentialsHint')"
             :placeholder="pclText('Setup.Misc.Network.Proxy.Optional')"
-            v-model="values.TextSystemHttpProxyCustomPassword"
+            v-model="proxyPassword"
           />
           <PButton
             compact

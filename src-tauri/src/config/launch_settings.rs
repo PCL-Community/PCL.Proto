@@ -6,6 +6,72 @@ use crate::config::states::AppState;
 
 /// 0 follows the global renderer, 1..=4 map to the global numbering 0..=3.
 pub const RENDERER_FOLLOW_GLOBAL: u8 = 0;
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(default)]
+pub struct GlobalLaunchPreferences {
+    /// CE `LaunchPreferredIpStack`：0 = 优先 IPv4，1 = JVM 默认，2 = 优先 IPv6。
+    pub ip_stack: u8,
+    pub prelaunch_command: String,
+    pub prelaunch_wait: bool,
+    pub disable_jlw: bool,
+    pub disable_legacy_fix: bool,
+    pub disable_lwjgl_unsafe_agent: bool,
+    pub lock_memory: bool,
+}
+
+impl Default for GlobalLaunchPreferences {
+    fn default() -> Self {
+        Self {
+            ip_stack: 1,
+            prelaunch_command: String::new(),
+            prelaunch_wait: true,
+            disable_jlw: false,
+            disable_legacy_fix: false,
+            disable_lwjgl_unsafe_agent: false,
+            lock_memory: false,
+        }
+    }
+}
+
+impl GlobalLaunchPreferences {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.ip_stack > 2 {
+            return Err("Invalid IP stack preference".into());
+        }
+        if self.prelaunch_command.len() > 16384 || self.prelaunch_command.contains('\0') {
+            return Err("Invalid pre-launch command".into());
+        }
+        Ok(())
+    }
+}
+
+impl From<&AppState> for GlobalLaunchPreferences {
+    fn from(state: &AppState) -> Self {
+        Self {
+            ip_stack: state.launch_ip_stack,
+            prelaunch_command: state.prelaunch_command.clone(),
+            prelaunch_wait: state.prelaunch_wait,
+            disable_jlw: state.disable_jlw,
+            disable_legacy_fix: state.disable_legacy_fix,
+            disable_lwjgl_unsafe_agent: state.disable_lwjgl_unsafe_agent,
+            lock_memory: state.lock_memory,
+        }
+    }
+}
+
+impl GlobalLaunchPreferences {
+    pub fn apply(&self, state: &mut AppState) {
+        state.launch_ip_stack = self.ip_stack;
+        state.prelaunch_command = self.prelaunch_command.clone();
+        state.prelaunch_wait = self.prelaunch_wait;
+        state.disable_jlw = self.disable_jlw;
+        state.disable_legacy_fix = self.disable_legacy_fix;
+        state.disable_lwjgl_unsafe_agent = self.disable_lwjgl_unsafe_agent;
+        state.lock_memory = self.lock_memory;
+    }
+}
+
 pub const RENDERER_MAX: u8 = 4;
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -148,11 +214,18 @@ pub fn resolve(
         .use_proxy
         .then_some(&global.proxy)
         .and_then(|settings| settings.game_endpoint());
+    // 实例留空时跟随全局启动前命令，与 CE 的全局/实例继承一致。
+    let (prelaunch_command, prelaunch_wait) = if settings.prelaunch_command.trim().is_empty() {
+        (global.prelaunch_command.clone(), global.prelaunch_wait)
+    } else {
+        (settings.prelaunch_command, settings.prelaunch_wait)
+    };
     LaunchExtras {
         info,
         renderer,
-        prelaunch_command: settings.prelaunch_command,
-        prelaunch_wait: settings.prelaunch_wait,
+        ip_stack: global.launch_ip_stack,
+        prelaunch_command,
+        prelaunch_wait,
         disable_asset_verify: settings.disable_asset_verify,
         java_wrapper: !global.disable_jlw && !settings.disable_jlw,
         legacy_fix: !global.disable_legacy_fix && !settings.disable_legacy_fix,
