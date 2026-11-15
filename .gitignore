@@ -36,3 +36,7 @@ coverage
 *.tsbuildinfo
 target
 sweep.timestamp
+
+# Agent 工作目录与按日期生成的审计/报告目录，不入库
+.trae*/
+/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
