@@ -2,6 +2,7 @@
 const SECRET_KEYS: [&str; 2] = ["CURSEFORGE_API_KEY", "MS_CLIENT_ID"];
 
 fn main() {
+    prepare_app_version();
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
         prepare_windows_driver();
     }
@@ -30,6 +31,37 @@ fn main() {
             .windows_attributes(tauri_build::WindowsAttributes::new_without_app_manifest());
     }
     tauri_build::try_build(attributes).expect("failed to build Tauri resources")
+}
+
+fn prepare_app_version() {
+    use std::process::Command;
+    println!("cargo:rerun-if-env-changed=PCL_RELEASE");
+    let mut version = std::env::var("CARGO_PKG_VERSION").unwrap();
+    if std::env::var("PCL_RELEASE").as_deref() != Ok("true") {
+        let git = |args: &[&str]| {
+            Command::new("git")
+                .args(args)
+                .output()
+                .ok()
+                .filter(|output| output.status.success())
+                .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_owned())
+        };
+        for name in ["HEAD", "refs", "packed-refs"] {
+            if let Some(path) = git(&["rev-parse", "--git-path", name])
+                && std::path::Path::new(&path).exists()
+            {
+                println!("cargo:rerun-if-changed={path}");
+            }
+        }
+        let revision = git(&["rev-parse", "--short=8", "HEAD"]).unwrap_or_else(|| "unknown".into());
+        version.push_str(if version.contains('-') {
+            ".dev+"
+        } else {
+            "-dev+"
+        });
+        version.push_str(&revision);
+    }
+    println!("cargo:rustc-env=PCL_APP_VERSION={version}");
 }
 
 fn prepare_windows_driver() {

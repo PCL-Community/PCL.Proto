@@ -80,7 +80,7 @@ pub struct LinkNatStatus {
 }
 
 fn apply_vendor() {
-    scaffolding::set_vendor(format!("PCL.Proto {}", env!("CARGO_PKG_VERSION")));
+    scaffolding::set_vendor(format!("PCL.Proto {}", env!("PCL_APP_VERSION")));
 }
 
 fn apply_settings(settings: &LinkSettings) {

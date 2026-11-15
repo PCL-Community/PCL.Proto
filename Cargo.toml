@@ -4,7 +4,6 @@ members = [
     "crates/pcl-core",
     "src-tauri",
     "crates/terracotta",
-    "crates/terracotta/timestamp",
 ]
 
 [workspace.package]

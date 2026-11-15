@@ -60,6 +60,8 @@ jobs:
   build-tauri:
     if: github.repository == 'PCL-Community/PCL.Proto'
     needs: create-release
+    env:
+      PCL_RELEASE: 'true'
     permissions:
       contents: write
     strategy:

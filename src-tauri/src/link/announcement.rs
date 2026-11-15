@@ -263,5 +263,5 @@ fn parse(json: &str) -> Result<LinkAnnouncement, String> {
 }
 
 fn user_agent() -> String {
-    format!("PCL.Proto/{}", env!("CARGO_PKG_VERSION"))
+    format!("PCL.Proto/{}", env!("PCL_APP_VERSION"))
 }

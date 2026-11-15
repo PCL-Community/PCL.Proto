@@ -22,7 +22,7 @@ import { attachConsole } from '@tauri-apps/plugin-log'
 import { useSelectedInstance } from './stores/gameLaunch'
 import { installExternalLinkHandler } from './util/externalLink'
 import './api/appearance'
-import { checkLauncherUpdate, launcherUpdate } from './api/launcherUpdate'
+import { checkLauncherUpdate, launcherUpdate, launcherUpdateAvailable } from './api/launcherUpdate'
 import { useModal } from './composables/useModal'
 
 const pinia = createPinia()
@@ -67,7 +67,7 @@ void initializePclLocale().then(async () => {
   if (isTauri()) {
     void checkLauncherUpdate().then(() => {
       const update = launcherUpdate.value
-      if (!update || update.version.replace(/^v/, '') === __APP_VERSION__) return
+      if (!update || !launcherUpdateAvailable.value) return
 
       const modal = useModal()
       void modal.open({

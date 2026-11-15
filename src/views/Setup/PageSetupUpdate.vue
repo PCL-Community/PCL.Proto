@@ -12,6 +12,7 @@ import {
   launcherUpdate,
   launcherUpdateChecking,
   launcherUpdateError,
+  launcherUpdateAvailable,
 } from '@/api/launcherUpdate'
 const appVersion = __APP_VERSION__
 
@@ -21,9 +22,9 @@ const status = computed(() =>
   launcherUpdateChecking.value
     ? pclText('Proto.Update.Checking')
     : launcherUpdate.value
-      ? launcherUpdate.value.version.replace(/^v/, '') === appVersion
-        ? pclText('Proto.Update.Current')
-        : pclText('Proto.Update.Latest', [launcherUpdate.value.version])
+      ? launcherUpdateAvailable.value
+        ? pclText('Proto.Update.Latest', [launcherUpdate.value.version])
+        : pclText('Proto.Update.Current')
       : pclText('Proto.Update.NotChecked'),
 )
 onMounted(() => void checkLauncherUpdate())
@@ -59,7 +60,7 @@ const openRelease = () => openExternal(releaseUrl.value)
         <PButton inline @click="openRelease">{{
           pclText('Setup.Update.Changelog.MoreInfo')
         }}</PButton
-        ><PButton v-if="launcherUpdate" type="tint" @click="openRelease">{{
+        ><PButton v-if="launcherUpdateAvailable" type="tint" @click="openRelease">{{
           pclText('Proto.Update.Download')
         }}</PButton>
       </div></PCard

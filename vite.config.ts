@@ -1,4 +1,5 @@
 import { fileURLToPath, URL } from 'node:url'
+import { execFileSync } from 'node:child_process'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -8,6 +9,21 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 // import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
+let appVersion = packageJson.version
+if (process.env.PCL_RELEASE !== 'true') {
+  let revision = 'unknown'
+  try {
+    revision = execFileSync('git', ['rev-parse', '--short=8', 'HEAD'], {
+      cwd: fileURLToPath(new URL('.', import.meta.url)),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+  } catch {
+    // 源码压缩包可能不包含 Git 信息。
+  }
+  appVersion += `${appVersion.includes('-') ? '.dev' : '-dev'}+${revision}`
+}
+
 export default defineConfig({
   base: process.env.TAURI_ENV_PLATFORM ? '/' : '/PCL.Proto/',
   clearScreen: false,
@@ -41,6 +57,6 @@ export default defineConfig({
     },
   },
   define: {
-    __APP_VERSION__: JSON.stringify(packageJson.version),
+    __APP_VERSION__: JSON.stringify(appVersion),
   },
 })

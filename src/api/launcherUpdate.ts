@@ -1,9 +1,13 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { pclText } from './pclLocale'
+import { isNewerRelease } from '@/util/releaseVersion'
 
 export const launcherUpdate = ref<{ version: string; body: string; url: string }>()
 export const launcherUpdateChecking = ref(false)
 export const launcherUpdateError = ref<string | null>(null)
+export const launcherUpdateAvailable = computed(() =>
+  launcherUpdate.value ? isNewerRelease(launcherUpdate.value.version, __APP_VERSION__) : false,
+)
 
 let checkPromise: Promise<void> | undefined
 

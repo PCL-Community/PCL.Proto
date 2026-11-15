@@ -7993,11 +7993,11 @@ dependencies = [
  "rand_core 0.9.5",
  "reqwest 0.13.5",
  "rocket",
+ "semver",
  "serde",
  "serde_json",
  "sevenz-rust2",
  "socket2 0.6.5",
- "timestamp",
  "tokio",
  "toml 1.2.1+spec-1.1.0",
  "winapi",
@@ -8095,13 +8095,6 @@ name = "timedmap"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "825f6c8a18bc36d56a62f66af7296385b628c9c5543a8663d4c217fc920bfefd"
-
-[[package]]
-name = "timestamp"
-version = "0.0.0"
-dependencies = [
- "lazy_static",
-]
 
 [[package]]
 name = "tinystr"
