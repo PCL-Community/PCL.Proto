@@ -101,6 +101,7 @@ pub fn run() {
             commands::config::set_log_max_lines,
             commands::config::export_launcher_settings,
             commands::config::import_launcher_settings,
+            commands::config::read_launch_hints,
             commands::config::get_window_settings,
             commands::config::set_window_settings,
             commands::config::get_launcher_visibility,

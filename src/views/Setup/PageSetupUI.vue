@@ -196,7 +196,6 @@ async function clearTitleLogo() {
             v-model="values.CheckLockWindowSize"
           />
           <PCheckBox
-            disabled
             id="PageSetupUI-CheckShowLaunchingHint"
             :label="pclText('Setup.Ui.Basic.ShowTriviaHint')"
             v-model="values.CheckShowLaunchingHint"

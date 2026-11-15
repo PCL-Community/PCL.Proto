@@ -15,7 +15,7 @@ import type { ProfileView } from '@/types/profile'
 import { Channel, invoke, isTauri } from '@tauri-apps/api/core'
 import { prepareGameJava, downloadGameJava } from '@/api/javaReq'
 import { useModal } from '@/composables/useModal'
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { pclText } from '@/api/pclLocale'
 import sideTip from '@/composables/sideTip'
 import { ModalWidthVariant } from '@/types/modal'
@@ -23,6 +23,7 @@ import { useLaunchState, type LaunchFailure, type LaunchProgress } from '@/store
 import { storeToRefs } from 'pinia'
 import { authServerPreset } from './authServerPreset'
 import { instanceLaunchSettingsStorage } from '@/api/instanceLaunchSettings'
+import { launchHintEnabled, pickLaunchHint } from '@/api/launchHints'
 
 defineProps<{ loadingInstances?: boolean }>()
 
@@ -60,6 +61,29 @@ const launchState = useLaunchState()
 const authRegister = ref<string | undefined>()
 const authName = ref<string | undefined>()
 const { preparing, launching, downloadSpeed, leavingLaunch } = storeToRefs(launchState)
+/** 本次启动随机选中的「你知道吗」，启动耗时达到阈值后才会抽取。 */
+const launchHint = ref('')
+/** 启动很快时不打扰用户，只有确实等了一会儿才显示提示。 */
+const HINT_DELAY_MS = 3000
+let hintTimer: ReturnType<typeof setTimeout> | undefined
+function cancelLaunchHint() {
+  clearTimeout(hintTimer)
+  hintTimer = undefined
+  launchHint.value = ''
+}
+function scheduleLaunchHint(id: number) {
+  cancelLaunchHint()
+  if (!launchHintEnabled()) return
+  hintTimer = setTimeout(() => {
+    hintTimer = undefined
+    if (!launchState.isCurrent(id) || launchState.leavingLaunch || !launchState.launching) return
+    void pickLaunchHint().then((hint) => {
+      if (launchState.isCurrent(id) && !launchState.leavingLaunch && launchState.launching)
+        launchHint.value = hint
+    })
+  }, HINT_DELAY_MS)
+}
+onUnmounted(cancelLaunchHint)
 
 /** 启动页显示的验证方式，对照 CE 的 `LabLaunchingMethod`。 */
 function getLaunchMethod() {
@@ -71,6 +95,7 @@ function startLaunching() {
   return launchState.start(instance.instance_info?.name || '', getLaunchMethod())
 }
 function returnToHome(attempt: number) {
+  cancelLaunchHint()
   launchState.returnToHome(attempt)
 }
 async function abandonLaunch(attempt: number) {
@@ -148,6 +173,7 @@ async function launch(serverAddress?: string, world?: string) {
     await invoke('begin_launch')
     attempt = startLaunching()
     launchState.setPreparing(attempt, true)
+    scheduleLaunchHint(attempt)
     launchState.update(attempt, {
       stage: 'Minecraft.Launch.Stage.GetJava',
       progress: 0.05,
@@ -361,9 +387,9 @@ function settings() {
         </dt>
         <dd v-if="launching.downloading">{{ downloadSpeed || '0 B/s' }}</dd>
       </dl>
-      <div v-if="launching.progress === 1" class="launch-trivia">
+      <div v-if="launchHint" class="launch-trivia">
         <span>{{ pclText('Launch.Status.Trivia') }}</span>
-        <p>{{ pclText('Launch.Status.Trivia.Placeholder') }}</p>
+        <p>{{ launchHint }}</p>
       </div>
       <PButton v-if="launching.progress < 1" class="launch-cancel" @click="cancelLaunch">{{
         pclText('Common.Action.Cancel')

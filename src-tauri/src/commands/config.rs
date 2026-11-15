@@ -57,6 +57,21 @@ pub async fn set_log_max_lines(lines: u32) -> Result<u32, String> {
     settings::set_log_max_lines(lines).await
 }
 
+/// 读取用户放在配置目录下的 `hints.txt`（CE 的 `PCL/hints.txt`），用于启动页「你知道吗」。
+#[tauri::command]
+pub async fn read_launch_hints() -> Option<String> {
+    let path = crate::config::manager::ConfigManager::instance()
+        .config_dir()
+        .join("hints.txt");
+    tauri::async_runtime::spawn_blocking(move || {
+        let bytes = std::fs::read(&path).ok()?;
+        Some(String::from_utf8_lossy(crate::config::strip_bom(&bytes)).into_owned())
+    })
+    .await
+    .ok()
+    .flatten()
+}
+
 /// 导出整份 `config.yml`，与 CE「导出设置」一致。
 #[tauri::command]
 pub async fn export_launcher_settings(path: std::path::PathBuf) -> Result<(), String> {
