@@ -23,6 +23,7 @@ import { useSelectedInstance } from './stores/gameLaunch'
 import { installExternalLinkHandler } from './util/externalLink'
 import './api/appearance'
 import { checkLauncherUpdate, launcherUpdate, launcherUpdateAvailable } from './api/launcherUpdate'
+import { isGameUpdateNoticeEnabled } from './api/gameUpdateNotice'
 import { useModal } from './composables/useModal'
 
 const pinia = createPinia()
@@ -67,7 +68,7 @@ void initializePclLocale().then(async () => {
   if (isTauri()) {
     void checkLauncherUpdate().then(() => {
       const update = launcherUpdate.value
-      if (!update || !launcherUpdateAvailable.value) return
+      if (!update || !launcherUpdateAvailable.value || !isGameUpdateNoticeEnabled()) return
 
       const modal = useModal()
       void modal.open({

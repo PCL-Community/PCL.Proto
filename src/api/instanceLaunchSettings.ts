@@ -2,8 +2,6 @@ import { invoke } from '@tauri-apps/api/core'
 import { createSettingsPersistence } from '@/util/settingsPersistence'
 
 export interface InstanceLaunchSettings {
-  title: string
-  use_global_title: boolean
   disable_mod_update: boolean
   info: string
   server_login: number
@@ -24,8 +22,6 @@ export interface InstanceLaunchSettings {
 }
 
 export const emptyInstanceLaunchSettings = (): InstanceLaunchSettings => ({
-  title: '',
-  use_global_title: false,
   disable_mod_update: false,
   info: '',
   server_login: 0,

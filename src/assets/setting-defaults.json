@@ -4,8 +4,6 @@
   },
   "PageInstanceSetup": {
     "ComboArgumentIndieV2": "1",
-    "TextArgumentTitle": "",
-    "CheckArgumentTitleEmpty": false,
     "TextArgumentInfo": "",
     "VersionRamType": "2",
     "SliderRamCustom": 15,
@@ -46,8 +44,6 @@
     "ComboDownloadQuickBehavior": "0",
     "CheckDownloadIgnoreQuilt": true,
     "CheckDownloadAutoInstallDependencies": true,
-    "CheckUpdateRelease": false,
-    "CheckUpdateSnapshot": false,
     "CheckHelpLauncherLanguage": true,
     "CheckDownloadClipboard": false
   },
@@ -77,7 +73,6 @@
     "SliderAniFPS": 59,
     "SliderMaxLog": 13,
     "CheckSystemDisableHardwareAcceleration": false,
-    "CheckSystemTelemetry": false,
     "CheckNetDohEnable": true,
     "SystemHttpProxyType": "1",
     "TextSystemHttpProxy": "",

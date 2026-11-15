@@ -1,4 +1,6 @@
 {
+  "Proto.Settings.UpdateNotice": "启动时检查到新版本就弹窗提示",
+  "Proto.Settings.UpdateNotice.ToolTip": "启动器发现新版本时弹出更新提示；关闭后仍可在更新页手动检查。",
   "Proto.Saves.Created": "创建时间：{0}",
   "Proto.Saves.Modified": "最后修改时间：{0}",
   "Proto.Account.ResetOfflineSkin": "恢复默认皮肤",

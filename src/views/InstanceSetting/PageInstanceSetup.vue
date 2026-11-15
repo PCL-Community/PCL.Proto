@@ -355,23 +355,6 @@ const router = useRouter()
               :model-value="isolationValue"
               @update:model-value="changeIsolation"
           /></SetupItem>
-          <SetupItem :label="pclText('Setup.Launch.Options.WindowTitle.Label')" v-slot="{ id }"
-            ><PTextBox
-              disabled
-              :input-id="id"
-              :suggestions="[pclText('Setup.Launch.Options.WindowTitle.SampleFormat')]"
-              :title="pclText('Instance.Setup.Options.WindowTitle.ToolTip')"
-              :placeholder="pclText('')"
-              v-model="launchSettings.title"
-          /></SetupItem>
-          <PCheckBox
-            disabled
-            style="grid-column: 1 / -1"
-            :title="pclText('Instance.Setup.Options.WindowTitle.Default.ToolTip')"
-            id="PageInstanceSetup-CheckArgumentTitleEmpty"
-            :label="pclText('Instance.Setup.Options.WindowTitle.Default')"
-            v-model="launchSettings.use_global_title"
-          />
           <SetupItem :label="pclText('Setup.Launch.Options.CustomInfo.Label')" v-slot="{ id }"
             ><PTextBox
               :disabled="!launchSettingsReady"

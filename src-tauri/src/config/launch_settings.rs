@@ -87,8 +87,6 @@ pub const RENDERER_MAX: u8 = 4;
 pub struct InstanceLaunchSettings {
     /// Custom version info shown in the game; empty follows the global value.
     pub info: String,
-    pub title: String,
-    pub use_global_title: bool,
     pub disable_mod_update: bool,
     pub server_login: u8,
     pub server_login_locked: bool,
@@ -111,8 +109,6 @@ impl Default for InstanceLaunchSettings {
     fn default() -> Self {
         Self {
             info: String::new(),
-            title: String::new(),
-            use_global_title: false,
             disable_mod_update: false,
             server_login: 0,
             server_login_locked: false,
@@ -191,9 +187,6 @@ impl InstanceLaunchSettings {
             return Err("Invalid renderer choice".into());
         }
         validate_info(&self.info)?;
-        if self.title.len() > 16384 || self.title.contains('\0') {
-            return Err("Invalid window title".into());
-        }
         if self.prelaunch_command.len() > 16384 || self.prelaunch_command.contains('\0') {
             return Err("Invalid instance launch setting".into());
         }

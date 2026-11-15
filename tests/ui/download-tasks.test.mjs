@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { build } from "esbuild";
 
 const mocks = {
-  "@/api/pclLocale": `export const pclText = (key) => key`,
+  "@/api/pclLocale": `export const pclLocale = { value: "zh-CN" }; export const pclText = (key) => key`,
   "@/composables/useFloatButton": `export const FloatButtonType = { TaskManage: 1 }; export const useFloatButton = () => ({ setFloatButton() {}, floatButtonState: {} })`,
   "@/stores/gameLaunch": `export const useSelectedInstance = () => ({ fetch: async () => {} })`,
   "@/composables/sideTip": `export default { show() {} }`,

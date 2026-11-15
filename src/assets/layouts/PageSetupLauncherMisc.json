@@ -262,18 +262,6 @@
                             "Tag": "SystemDisableHardwareAcceleration",
                             "Change": "CheckSystemDisableHardwareAcceleration_OnChange"
                           }
-                        },
-                        {
-                          "type": "PCheckBox",
-                          "attrs": {
-                            "Grid.Row": "0",
-                            "Grid.Column": "1",
-                            "Text": "{DynamicResource Setup.Misc.System.Telemetry}",
-                            "Name": "CheckSystemTelemetry",
-                            "Tag": "SystemTelemetry",
-                            "Change": "CheckBoxChange",
-                            "ToolTip": "{DynamicResource Setup.Misc.System.Telemetry.ToolTip}"
-                          }
                         }
                       ]
                     },

@@ -12,6 +12,10 @@ import {
   downloadSettingValues,
   downloadSettingsStorage,
 } from '@/api/downloadSettings'
+import {
+  isGameUpdateNoticeEnabled,
+  setGameUpdateNoticeEnabled,
+} from '@/api/gameUpdateNotice'
 import { isTauri } from '@tauri-apps/api/core'
 import { onScopeDispose, ref, watch } from 'vue'
 import sideTip from '@/composables/sideTip'
@@ -24,6 +28,11 @@ const { values } = usePageSettings(
   desktop ? downloadSettingKeys : [],
 )
 const ready = ref(false)
+const gameUpdateNotice = ref(isGameUpdateNoticeEnabled())
+function changeGameUpdateNotice(enabled: boolean) {
+  gameUpdateNotice.value = enabled
+  setGameUpdateNoticeEnabled(enabled)
+}
 const loadError = ref<string | null>(null)
 let hydrating = false
 let timer: ReturnType<typeof setTimeout> | undefined
@@ -244,22 +253,13 @@ onScopeDispose(() => {
           <template #label>{{
             pclText('Setup.GameManage.Accessibility.GameUpdateNotice')
           }}</template>
-          <div class="download-install-options">
-            <PCheckBox
-              disabled
-              :title="pclText('Setup.GameManage.Accessibility.ReleaseNotice.ToolTip')"
-              id="PageSetupGameManage-CheckUpdateRelease"
-              :label="pclText('Setup.GameManage.Accessibility.ReleaseNotice')"
-              v-model="values.CheckUpdateRelease"
-            />
-            <PCheckBox
-              disabled
-              :title="pclText('Setup.GameManage.Accessibility.SnapshotNotice.ToolTip')"
-              id="PageSetupGameManage-CheckUpdateSnapshot"
-              :label="pclText('Setup.GameManage.Accessibility.SnapshotNotice')"
-              v-model="values.CheckUpdateSnapshot"
-            />
-          </div>
+          <PCheckBox
+            :title="pclText('Proto.Settings.UpdateNotice.ToolTip')"
+            id="PageSetupGameManage-CheckUpdateRelease"
+            :label="pclText('Proto.Settings.UpdateNotice')"
+            :model-value="gameUpdateNotice"
+            @update:model-value="changeGameUpdateNotice"
+          />
         </SetupItem>
         <SetupItem>
           <template #label>{{ pclText('Setup.GameManage.Accessibility.GameLanguage') }}</template>

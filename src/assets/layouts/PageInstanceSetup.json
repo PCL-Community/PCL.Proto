@@ -178,50 +178,6 @@
                         {
                           "type": "TextBlock",
                           "attrs": {
-                            "Grid.Row": "2",
-                            "VerticalAlignment": "Center",
-                            "HorizontalAlignment": "Left",
-                            "Text": "{DynamicResource Setup.Launch.Options.WindowTitle.Label}",
-                            "Margin": "0,0,25,0"
-                          }
-                        },
-                        {
-                          "type": "PComboBox",
-                          "attrs": {
-                            "Name": "TextArgumentTitle",
-                            "Grid.Row": "2",
-                            "Grid.ColumnSpan": "2",
-                            "Tag": "VersionArgumentTitle",
-                            "Grid.Column": "1",
-                            "IsEditable": "True",
-                            "IsTextSearchEnabled": "False",
-                            "ToolTip": "{DynamicResource Instance.Setup.Options.WindowTitle.ToolTip}"
-                          },
-                          "children": [
-                            {
-                              "type": "PComboBoxItem",
-                              "attrs": {
-                                "Content": "{DynamicResource Setup.Launch.Options.WindowTitle.SampleFormat}"
-                              }
-                            }
-                          ]
-                        },
-                        {
-                          "type": "PCheckBox",
-                          "attrs": {
-                            "Name": "CheckArgumentTitleEmpty",
-                            "Margin": "0,0,0,9",
-                            "Grid.Row": "4",
-                            "Grid.ColumnSpan": "3",
-                            "Text": "{DynamicResource Instance.Setup.Options.WindowTitle.Default}",
-                            "Tag": "VersionArgumentTitleEmpty",
-                            "Grid.Column": "0",
-                            "ToolTip": "{DynamicResource Instance.Setup.Options.WindowTitle.Default.ToolTip}"
-                          }
-                        },
-                        {
-                          "type": "TextBlock",
-                          "attrs": {
                             "Grid.Row": "6",
                             "VerticalAlignment": "Center",
                             "HorizontalAlignment": "Left",

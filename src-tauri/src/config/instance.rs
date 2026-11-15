@@ -186,8 +186,6 @@ impl InstanceConfig {
     pub fn launch_settings(&self) -> Result<InstanceLaunchSettings, String> {
         Ok(InstanceLaunchSettings {
             info: self.get("VersionArgumentInfo", String::new())?,
-            title: self.get("VersionArgumentTitle", String::new())?,
-            use_global_title: self.get("VersionArgumentTitleEmpty", false)?,
             disable_mod_update: self.get("VersionAdvanceDisableModUpdate", false)?,
             server_login: self.get("VersionServerLoginRequire", 0)?,
             server_login_locked: self.get("VersionServerLoginLock", false)?,
@@ -220,8 +218,8 @@ impl InstanceConfig {
         }
         macro_rules! fields { ($($key:literal => $field:ident),* $(,)?) => { $(self.set($key, &settings.$field)?;)* }; }
         fields! {
-            "VersionArgumentInfo" => info, "VersionArgumentTitle" => title,
-            "VersionArgumentTitleEmpty" => use_global_title, "VersionAdvanceDisableModUpdate" => disable_mod_update,
+            "VersionArgumentInfo" => info,
+            "VersionAdvanceDisableModUpdate" => disable_mod_update,
             "VersionServerLoginRequire" => server_login, "VersionServerLoginLock" => server_login_locked,
             "VersionServerAuthServer" => auth_server, "VersionServerAuthRegister" => auth_register,
             "VersionServerAuthName" => auth_name, "VersionServerEnter" => server_address,

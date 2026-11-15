@@ -1,4 +1,6 @@
 {
+  "Proto.Settings.UpdateNotice": "Show a popup when a new version is available",
+  "Proto.Settings.UpdateNotice.ToolTip": "Show an update prompt at startup when a newer launcher version is available. You can still check manually on the update page.",
   "Proto.Saves.Created": "Created: {0}",
   "Proto.Saves.Modified": "Last modified: {0}",
   "Tools.GameLink.Agreement.Title": "Multiplayer instructions and terms",

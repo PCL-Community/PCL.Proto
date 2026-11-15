@@ -170,14 +170,6 @@ async function importSettings() {
             :label="pclText('Setup.Misc.System.DisableHardwareAcceleration')"
             v-model="values.CheckSystemDisableHardwareAcceleration"
           />
-          <PCheckBox
-            disabled
-            style="grid-row: 1 / span 1; grid-column: 2 / span 1"
-            :title="pclText('Setup.Misc.System.Telemetry.ToolTip')"
-            id="PageSetupLauncherMisc-CheckSystemTelemetry"
-            :label="pclText('Setup.Misc.System.Telemetry')"
-            v-model="values.CheckSystemTelemetry"
-          />
         </div>
         <div class="pcl-button-row pcl-button-row-fill" style="grid-column: 1 / -1">
           <PButton style="min-width: 140px; padding: 0px 13px" @click="exportSettings">{{

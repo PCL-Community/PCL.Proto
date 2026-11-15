@@ -1,4 +1,6 @@
 {
+  "Proto.Settings.UpdateNotice": "啟動時檢查到新版本就彈窗提示",
+  "Proto.Settings.UpdateNotice.ToolTip": "啟動器發現新版本時彈出更新提示；關閉後仍可在更新頁手動檢查。",
   "Proto.Saves.Created": "建立時間：{0}",
   "Proto.Saves.Modified": "最後修改時間：{0}",
   "Tools.GameLink.Agreement.Title": "連線使用說明與條款",

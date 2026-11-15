@@ -854,24 +854,12 @@
                     {
                       "type": "PCheckBox",
                       "attrs": {
-                        "Text": "{DynamicResource Setup.GameManage.Accessibility.ReleaseNotice}",
+                        "Text": "{DynamicResource Proto.Settings.UpdateNotice}",
                         "Grid.Column": "1",
                         "Name": "CheckUpdateRelease",
                         "Change": "CheckBoxChange",
                         "Tag": "ToolUpdateRelease",
-                        "ToolTip": "{DynamicResource Setup.GameManage.Accessibility.ReleaseNotice.ToolTip}"
-                      }
-                    },
-                    {
-                      "type": "PCheckBox",
-                      "attrs": {
-                        "Text": "{DynamicResource Setup.GameManage.Accessibility.SnapshotNotice}",
-                        "Grid.Column": "2",
-                        "Height": "22",
-                        "Name": "CheckUpdateSnapshot",
-                        "Change": "CheckBoxChange",
-                        "Tag": "ToolUpdateSnapshot",
-                        "ToolTip": "{DynamicResource Setup.GameManage.Accessibility.SnapshotNotice.ToolTip}"
+                        "ToolTip": "{DynamicResource Proto.Settings.UpdateNotice.ToolTip}"
                       }
                     },
                     {
