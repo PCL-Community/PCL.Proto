@@ -12,7 +12,9 @@ $stagingRoot = Join-Path $portableRoot ('.staging-' + [guid]::NewGuid().ToString
 $destination = Join-Path $stagingRoot $packageName
 New-Item -ItemType Directory -Path $destination -Force | Out-Null
 Copy-Item "$build/pcl-proto.exe" "$destination/PCL.Proto.exe"
-Copy-Item "$build/WinDivert64.sys" $destination
+$driver = $env:WINDIVERT_DRIVER
+if (-not $driver) { $driver = "$build/WinDivert64.sys" }
+Copy-Item $driver "$destination/WinDivert64.sys"
 $license = $env:WINDIVERT_LICENSE
 if (-not $license) { $license = "$root/target/build-tools/windivert-2.2.2/WinDivert-2.2.2-A/LICENSE" }
 Copy-Item $license "$destination/WinDivert-LICENSE.txt"
