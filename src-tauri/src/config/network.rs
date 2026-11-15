@@ -114,6 +114,7 @@ mod tests {
         let mut settings = ProxySettings {
             mode: ProxyMode::Custom,
             address: "http://user:secret@127.0.0.1:7890".into(),
+            ..Default::default()
         };
         settings.validate().unwrap();
         assert_eq!(settings.game_endpoint(), Some(("127.0.0.1".into(), 7890)));

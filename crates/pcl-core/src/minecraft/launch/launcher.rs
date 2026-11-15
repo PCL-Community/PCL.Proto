@@ -1275,6 +1275,7 @@ mod tests {
             initial_memory: None,
             width: Some(1024),
             height: Some(768),
+            fullscreen: false,
             version_details: instance.read_version_json().unwrap(),
             natives_path: instance.natives_path.clone(),
             arguments: crate::minecraft::launch::arguments::LaunchArguments::default(),
