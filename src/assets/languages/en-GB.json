@@ -613,6 +613,7 @@
   "Download.Version.Latest.Development": "Latest development, released on {0}",
   "Download.Version.Latest.Release": "Latest release, released on {0}",
   "Download.Version.Latest.Title": "Latest version",
+  "Download.Version.SearchPlaceholder": "Search version number",
   "Download.Version.LegacyFabric.Intro.Description": "Legacy Fabric is a backport of Fabric for older versions of Minecraft.\nYou must install it before using any Legacy Fabric mods. This page offers the Legacy Fabric installer for download. After downloading, you need to complete the installation process manually through the installer.",
   "Download.Version.LegacyFabric.Intro.Title": "Introduction of Legacy Fabric",
   "Download.Version.LegacyFabric.LoadingList": "Getting Legacy Fabric list...",

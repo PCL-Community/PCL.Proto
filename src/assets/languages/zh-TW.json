@@ -613,6 +613,7 @@
   "Download.Version.Latest.Development": "最新預覽版，釋出於 {0}",
   "Download.Version.Latest.Release": "最新正式版，釋出於 {0}",
   "Download.Version.Latest.Title": "最新版本",
+  "Download.Version.SearchPlaceholder": "搜尋版本號",
   "Download.Version.LegacyFabric.Intro.Description": "Legacy Fabric 是 Fabric 的舊版本移植，你需要先安裝它才能安裝各種 Legacy Fabric 模組。\n本頁面提供 Legacy Fabric 安裝器下載，在下載後你需要手動開啟安裝器進行安裝。",
   "Download.Version.LegacyFabric.Intro.Title": "Legacy Fabric 簡介",
   "Download.Version.LegacyFabric.LoadingList": "正在取得 Legacy Fabric 清單",

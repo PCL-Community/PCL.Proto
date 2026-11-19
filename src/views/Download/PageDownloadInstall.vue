@@ -9,6 +9,7 @@ import PVersionActions from '@/components/widget/PVersionActions.vue'
 import PLoaderVersionActions from '@/components/widget/PLoaderVersionActions.vue'
 import PButton from '@/components/widget/PButton.vue'
 import PTextBox from '@/components/widget/PTextBox.vue'
+import PSearchBox from '@/components/widget/PSearchBox.vue'
 import PHint from '@/components/widget/PHint.vue'
 import PLoading from '@/components/widget/PLoading.vue'
 import PSvgIcon from '@/components/widget/PSvgIcon.vue'
@@ -66,7 +67,7 @@ const selectedPlugins = computed(
       ]),
     ) as Partial<Record<pluginType, string>>,
 )
-const loaderCards: Record<string, InstanceType<typeof PCard> | null> = {}
+const activeLoader = ref('')
 function chooseLoader(loader: string, version: string) {
   selectLoader(selected, loader, version)
   if (loader === 'FabricApi') fabricApiAutoSelected = true
@@ -75,10 +76,19 @@ function chooseLoader(loader: string, version: string) {
     fabricApiAutoSelected = true
     chooseLoader('FabricApi', plugins.FabricApi.versions[0].version)
   }
-  loaderCards[loader]?.collapse()
+  activeLoader.value = loader
   if (!instanceNameEdited.value) instanceName.value = instanceDefaultName(versionId.value, selected)
 }
 const warnings = computed(() => installWarnings(selected, versionId.value))
+function loaderSummary(loader: string) {
+  return (
+    selected[loader] ||
+    plugins[loader]?.versions[0]?.version ||
+    (plugins[loader]?.loading
+      ? pclText('Proto.Download.Loading')
+      : pclText('Proto.Download.SelectVersion'))
+  )
+}
 function loaderSubtitle(version: McPluginReport) {
   if (version.release_time) {
     const date = new Date(version.release_time)
@@ -105,34 +115,45 @@ const loaders = [
 const visibleLoaders = computed(() =>
   loaders.filter((loader) => loaderVisible(loader, versionId.value, selected)),
 )
+watch(
+  visibleLoaders,
+  (list) => {
+    if (!list.includes(activeLoader.value)) activeLoader.value = list[0] || ''
+  },
+  { immediate: true },
+)
 const categories = [
   { key: 'release', label: 'Release', icon: showIconPath.grass },
   { key: 'snapshot', label: 'Development', icon: showIconPath.command },
   { key: 'old', label: 'BeforeRelease', icon: showIconPath.stone },
   { key: 'fool', label: 'AprilFools', icon: showIconPath.gold },
 ] as const
-const latest = computed(() => {
-  const data = versions.value
-  if (!data) return []
-  const list = data.latest.release
-    ? [{ ...data.latest.release, type: 'release', label: 'Release' }]
-    : []
-  if (
-    data.latest.snapshot &&
-    (!data.latest.release || data.latest.snapshot.timestamp > data.latest.release.timestamp)
-  )
-    list.push({
-      ...data.latest.snapshot,
-      type: 'snapshot',
-      label: 'Development',
-    })
-  return list
+type VersionCategory = (typeof categories)[number]['key']
+const selectedCategory = ref<VersionCategory>('release')
+const versionQuery = ref('')
+const visibleVersions = computed(() => {
+  const list = versions.value?.[selectedCategory.value] || []
+  const query = versionQuery.value.trim().toLowerCase()
+  return query ? list.filter((version) => version.id.toLowerCase().includes(query)) : list
 })
+const selectedCategoryInfo = computed(() =>
+  categories.find((category) => category.key === selectedCategory.value) || categories[0],
+)
 async function load() {
   loading.value = true
   error.value = null
   try {
-    versions.value = await getMinecraftVersions()
+    const data = await getMinecraftVersions()
+    versions.value = data
+    if (!props.manual && !props.modify && !route.query.version_id) {
+      const initial = data.latest.release || data.latest.snapshot
+      if (initial) {
+        void router.replace({
+          path: '/download/game',
+          query: { version_id: initial.id, version_type: data.latest.release ? 'release' : 'snapshot' },
+        })
+      }
+    }
   } catch (err) {
     error.value = pclText('Proto.Error.Versions', [String(err)])
   } finally {
@@ -144,8 +165,8 @@ function choose(id: string, type: string) {
     void saveMinecraftVersion(id)
     return
   }
-  void router.push({
-    path: '/download/game/inner',
+  void router.replace({
+    path: '/download/game',
     query: { version_id: id, version_type: type },
   })
 }
@@ -330,193 +351,371 @@ watch(versionId, (id) => {
 })
 </script>
 <template>
-  <section class="pcl-page">
+  <section class="pcl-page download-game-page">
     <p v-if="modify && !versionId" class="pcl-empty">
       {{ pclText('Proto.Instance.SelectFirst') }}
     </p>
-    <template v-else-if="!versionId">
-      <PLoading v-if="loading" :loading-text="pclText('Download.Version.LoadingList')" />
-      <PHint v-else-if="error" severity="error"
-        >{{ error }}
-        <PButton inline @click="load">{{
-          pclText('Launch.Homepage.LoadFailed.Retry')
-        }}</PButton></PHint
-      >
-      <template v-else-if="versions">
-        <PCard :title="pclText('Download.Version.Latest.Title')" class="latest-card">
-          <div class="version-list">
-            <PListItem
-              v-for="version in latest"
-              :key="version.id"
-              :title="version.id"
-              :icon="version.type === 'release' ? showIconPath.grass : showIconPath.command"
-              :subtitle="
-                pclText(`Download.Version.Latest.${version.label}`, [
-                  new Date(version.timestamp).toLocaleString(pclFormatLocale),
-                ])
-              "
-              clickable
-              @click="() => choose(version.id, version.type)"
-              ><template #icon-actions
-                ><PVersionActions :version-id="version.id" :manual="manual" /></template
-            ></PListItem>
-          </div>
-        </PCard>
-        <template v-for="category in categories" :key="category.key">
-          <PCard
-            v-if="versions[category.key].length"
-            :title="`${pclText(`Download.Version.Type.${category.label}`)} (${versions[category.key].length})`"
-            default-fold-status="fold"
-          >
-            <div class="version-list">
-              <PVirtualList
-                :items="versions[category.key]"
-                :item-key="(version) => version.id"
-                v-slot="{ item: version }"
-              >
-                <PListItem
-                  :key="version.id"
-                  :title="version.id"
-                  :icon="category.icon"
-                  :subtitle="new Date(version.timestamp).toLocaleString(pclFormatLocale)"
-                  clickable
-                  @click="() => choose(version.id, category.key)"
-                  ><template #icon-actions
-                    ><PVersionActions :version-id="version.id" :manual="manual" /></template
-                ></PListItem>
-              </PVirtualList>
-            </div>
-          </PCard>
-        </template>
-      </template>
-    </template>
-    <template v-else>
-      <PCard hide-title>
-        <div class="instance-name-row">
+    <PLoading v-if="loading" :loading-text="pclText('Download.Version.LoadingList')" />
+    <PHint v-else-if="error" severity="error"
+      >{{ error }}
+      <PButton inline @click="load">{{ pclText('Launch.Homepage.LoadFailed.Retry') }}</PButton></PHint
+    >
+    <div
+      v-else-if="versions"
+      class="download-game-columns"
+      :class="{ 'is-manual': manual && !versionId }"
+    >
+      <div v-if="!modify" class="version-browser">
+        <div class="category-tabs" role="tablist">
           <button
+            v-for="category in categories"
+            :key="category.key"
             type="button"
-            class="pcl-icon-button install-back"
-            @click="() => router.push('/download/game')"
-            :aria-label="pclText('Common.Action.Back')"
+            class="category-tab"
+            :class="{ active: selectedCategory === category.key }"
+            role="tab"
+            :aria-selected="selectedCategory === category.key"
+            @click="selectedCategory = category.key"
           >
-            <PSvgIcon name="lucide/arrow-left" :size="16" />
+            {{ pclText(`Download.Version.Type.${category.label}`) }}
           </button>
-          <img
-            :src="
-              instanceIcon(
-                versionId,
-                selectedPlugins,
-                typeof route.query.version_type === 'string' ? route.query.version_type : undefined,
-              )
-            "
-            alt=""
-          />
-          <PTextBox
-            :model-value="instanceName"
-            @update:model-value="
-              (value) => {
-                instanceName = value || ''
-                instanceNameEdited = true
-              }
-            "
-            :aria-label="pclText('Proto.Label.InstanceName')"
-          />
-          <span v-if="modify">{{ pclText('Instance.Install.Action.ModifyLabel') }}</span>
         </div>
-        <div v-if="warnings.length" class="install-warnings">
-          <PHint
-            v-for="warning in warnings"
-            :key="warning"
-            :severity="warning.endsWith('Api') ? 'error' : 'warning'"
-            >{{ pclText(`Download.Install.Warning.${warning}`) }}</PHint
-          >
-        </div>
-      </PCard>
-      <PCard
-        v-for="loader in visibleLoaders"
-        class="loader-card"
-        :key="`${versionId}-${loader}`"
-        :ref="
-          (card) => {
-            loaderCards[loader] = card as InstanceType<typeof PCard> | null
-          }
-        "
-        :title="pclText(`Common.Installation.${loader}`)"
-        :disabled="!!loaderConflict(loader, selected, versionId)"
-        default-fold-status="fold"
-        fold-arrow="right"
-      >
-        <template #description
-          ><span class="loader-status" :class="{ 'is-selected': selected[loader] }"
-            ><img v-if="selected[loader]" :src="loaderIcon(loader)" alt="" />{{
-              selected[loader] ||
-              (loaderConflict(loader, selected, versionId)
-                ? pclText('Download.Install.Compat.IncompatibleWithLoader', [
-                    loaderConflict(loader, selected, versionId)!,
-                  ])
-                : '') ||
-              (plugins[loader]?.loading
-                ? pclText('Proto.Download.Loading')
-                : pclText('Proto.Download.SelectVersion'))
-            }}</span
-          ></template
+        <PSearchBox
+          v-model="versionQuery"
+          :placeholder="pclText('Download.Version.SearchPlaceholder')"
+        />
+        <PCard
+          :title="`${pclText(`Download.Version.Type.${selectedCategoryInfo.label}`)} (${visibleVersions.length})`"
+          class="version-list-card"
         >
-        <template #header-actions>
-          <button
-            v-if="selected[loader]"
-            class="pcl-icon-button loader-clear"
-            type="button"
-            :title="pclText('Proto.Action.ClearSelection')"
-            :aria-label="pclText('Proto.Action.ClearSelection')"
-            @click.stop="chooseLoader(loader, '')"
-          >
-            <PSvgIcon name="lucide/x" :size="15" />
-          </button>
-        </template>
-        <div class="version-list">
-          <PLoading v-if="plugins[loader]?.loading" :card="false" />
-          <PHint v-else-if="plugins[loader]?.error" severity="error"
-            >{{ plugins[loader]?.error }}
-            <PButton inline @click="loadLoader(loader, versionId, request)">{{
-              pclText('Launch.Homepage.LoadFailed.Retry')
-            }}</PButton></PHint
-          >
-          <template v-else-if="plugins[loader]?.versions.length">
+          <div class="version-list">
             <PVirtualList
-              :items="plugins[loader]!.versions"
-              :item-key="(version) => version.version"
+              :items="visibleVersions"
+              :item-key="(version) => version.id"
               v-slot="{ item: version }"
             >
               <PListItem
-                :key="version.version"
-                :title="version.version"
-                :icon="loaderIcon(loader)"
-                :subtitle="loaderSubtitle(version)"
+                :key="version.id"
+                :title="version.id"
+                :icon="selectedCategoryInfo.icon"
+                :subtitle="new Date(version.timestamp).toLocaleString(pclFormatLocale)"
+                :selected="version.id === versionId"
                 clickable
-                @click="() => chooseLoader(loader, version.version)"
-                ><template v-if="loader !== 'FabricApi'" #icon-actions
-                  ><PLoaderVersionActions
-                    :loader="loader"
-                    :game="versionId"
-                    :version="version.version" /></template
-              ></PListItem>
+                @click="() => choose(version.id, selectedCategory)"
+              >
+                <template #icon-actions>
+                  <PVersionActions :version-id="version.id" :manual="manual" />
+                </template>
+              </PListItem>
             </PVirtualList>
-          </template>
-          <p v-else class="pcl-empty">
-            {{
-              ['Forge', 'NeoForge', 'Fabric', 'LegacyFabric', 'FabricApi'].includes(loader)
-                ? pclText('Download.Install.State.NoAvailableVersion')
-                : pclText('Proto.NotImplemented.Loader')
-            }}
-          </p>
-        </div>
-      </PCard>
-    </template>
+            <p v-if="!visibleVersions.length" class="pcl-empty">
+              {{ pclText('Download.Install.State.NoAvailableVersion') }}
+            </p>
+          </div>
+        </PCard>
+      </div>
+
+      <div v-if="!manual || versionId" class="installation-panel">
+        <template v-if="versionId">
+          <PCard hide-title>
+            <div class="instance-name-row">
+              <button
+                v-if="!modify"
+                type="button"
+                class="pcl-icon-button install-back"
+                @click="() => router.replace('/download/game')"
+                :aria-label="pclText('Common.Action.Back')"
+              >
+                <PSvgIcon name="lucide/arrow-left" :size="16" />
+              </button>
+              <img
+                :src="instanceIcon(
+                  versionId,
+                  selectedPlugins,
+                  typeof route.query.version_type === 'string' ? route.query.version_type : undefined,
+                )"
+                alt=""
+              />
+              <PTextBox
+                :model-value="instanceName"
+                @update:model-value="
+                  (value) => {
+                    instanceName = value || ''
+                    instanceNameEdited = true
+                  }
+                "
+                :aria-label="pclText('Proto.Label.InstanceName')"
+              />
+              <span v-if="modify">{{ pclText('Instance.Install.Action.ModifyLabel') }}</span>
+            </div>
+            <div v-if="warnings.length" class="install-warnings">
+              <PHint
+                v-for="warning in warnings"
+                :key="warning"
+                :severity="warning.endsWith('Api') ? 'error' : 'warning'"
+                >{{ pclText(`Download.Install.Warning.${warning}`) }}</PHint
+              >
+            </div>
+          </PCard>
+          <div class="loader-grid" role="list">
+            <div
+              v-for="loader in visibleLoaders"
+              :key="`${versionId}-${loader}`"
+              class="loader-choice"
+              role="listitem"
+            >
+              <button
+                type="button"
+                class="loader-choice-card"
+                :class="{
+                  active: activeLoader === loader,
+                  selected: !!selected[loader],
+                  disabled: !!loaderConflict(loader, selected, versionId),
+                }"
+                :disabled="!!loaderConflict(loader, selected, versionId)"
+                :aria-pressed="activeLoader === loader"
+                @click="activeLoader = loader"
+              >
+                <img :src="loaderIcon(loader)" alt="" />
+                <span class="loader-choice-copy">
+                  <strong>{{ pclText(`Common.Installation.${loader}`) }}</strong>
+                  <small>{{
+                    loaderConflict(loader, selected, versionId)
+                      ? pclText('Download.Install.Compat.IncompatibleWithLoader', [
+                          loaderConflict(loader, selected, versionId)!,
+                        ])
+                      : loaderSummary(loader)
+                  }}</small>
+                </span>
+                <PSvgIcon name="lucide/chevron-right" :size="16" />
+              </button>
+              <button
+                v-if="selected[loader]"
+                class="pcl-icon-button loader-clear"
+                type="button"
+                :title="pclText('Proto.Action.ClearSelection')"
+                :aria-label="pclText('Proto.Action.ClearSelection')"
+                @click="chooseLoader(loader, '')"
+              >
+                <PSvgIcon name="lucide/x" :size="15" />
+              </button>
+            </div>
+          </div>
+          <PCard
+            v-if="activeLoader"
+            hide-title
+            class="loader-version-panel"
+          >
+            <div class="loader-version-heading">
+              <strong>{{ pclText(`Common.Installation.${activeLoader}`) }}</strong>
+              <span>{{ pclText('Proto.Download.SelectVersion') }}</span>
+            </div>
+            <div class="version-list">
+              <PLoading v-if="plugins[activeLoader]?.loading" :card="false" />
+              <PHint v-else-if="plugins[activeLoader]?.error" severity="error"
+                >{{ plugins[activeLoader]?.error }}
+                <PButton inline @click="loadLoader(activeLoader, versionId, request)">{{
+                  pclText('Launch.Homepage.LoadFailed.Retry')
+                }}</PButton></PHint
+              >
+              <template v-else-if="plugins[activeLoader]?.versions.length">
+                <PVirtualList
+                  :items="plugins[activeLoader]!.versions"
+                  :item-key="(version) => version.version"
+                  v-slot="{ item: version }"
+                >
+                  <PListItem
+                    :key="version.version"
+                    :title="version.version"
+                    :icon="loaderIcon(activeLoader)"
+                    :subtitle="loaderSubtitle(version)"
+                    :selected="selected[activeLoader] === version.version"
+                    clickable
+                    @click="() => chooseLoader(activeLoader, version.version)"
+                    ><template v-if="activeLoader !== 'FabricApi'" #icon-actions
+                      ><PLoaderVersionActions
+                        :loader="activeLoader"
+                        :game="versionId"
+                        :version="version.version" /></template
+                  ></PListItem>
+                </PVirtualList>
+              </template>
+              <p v-else class="pcl-empty">
+                {{
+                  ['Forge', 'NeoForge', 'Fabric', 'LegacyFabric', 'FabricApi'].includes(activeLoader)
+                    ? pclText('Download.Install.State.NoAvailableVersion')
+                    : pclText('Proto.NotImplemented.Loader')
+                }}
+              </p>
+            </div>
+          </PCard>
+          <PButton v-if="!manual" class="install-action" type="tint" @click="install">
+            {{ modify ? pclText('Instance.Install.Action.StartModify') : pclText('Download.Install.StartDownload') }}
+          </PButton>
+        </template>
+      </div>
+    </div>
   </section>
 </template>
 <style scoped>
+.download-game-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.version-browser,
+.installation-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.category-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 40px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--control-background);
+}
+.category-tab {
+  min-width: 0;
+  min-height: 32px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 13px;
+  color: var(--color-text-grey);
+  white-space: nowrap;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  transition: color 120ms linear, background-color 120ms linear, box-shadow 120ms linear;
+}
+.category-tab:hover,
+.category-tab:focus-visible {
+  color: var(--color-text);
+}
+.category-tab.active {
+  color: var(--color-text);
+  background: var(--color-background-soft);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 8%);
+  font-weight: 600;
+}
+.version-list-card :deep(.mycard-title > p) {
+  font-size: 14px;
+}
 .version-list {
   padding: 0 18px 12px 20px;
+}
+.loader-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.loader-choice {
+  position: relative;
+  min-width: 0;
+}
+.loader-choice > .loader-clear {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  color: var(--color-text-grey);
+}
+.loader-choice-card {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 78px;
+  min-width: 0;
+  padding: 12px 28px 12px 12px;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--color-text);
+  background: var(--color-background-soft);
+  box-shadow: 0 0 5px rgb(0 0 0 / 7%);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms linear, box-shadow 120ms linear;
+}
+.loader-choice-card:hover,
+.loader-choice-card:focus-visible,
+.loader-choice-card.active {
+  border-color: var(--color-tint);
+  box-shadow: 0 0 6px var(--color-tint-shadow);
+}
+.loader-choice-card.selected {
+  background: var(--color-tint-lighter);
+}
+.loader-choice-card.disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.loader-choice-card > img {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+}
+.loader-choice-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+.loader-choice-copy strong,
+.loader-choice-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.loader-choice-copy strong {
+  font-size: 13px;
+}
+.loader-choice-copy small {
+  color: var(--color-text-grey);
+  font-size: 11px;
+}
+.loader-choice-card > :last-child {
+  flex: 0 0 auto;
+  color: var(--color-text-grey);
+}
+.loader-version-panel {
+  min-height: 150px;
+}
+.loader-version-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 20px 8px;
+}
+.loader-version-heading span {
+  color: var(--color-text-grey);
+  font-size: 12px;
+}
+.loader-choice:hover .loader-clear:not(:disabled),
+.loader-clear:not(:disabled):focus-visible {
+  color: var(--color-tint);
+  transition-duration: 120ms;
+}
+.loader-clear {
+  color: var(--color-text-grey);
+  transition: color 150ms linear;
+}
+.loader-clear:not(:disabled):active {
+  transform: none;
+}
+.loader-clear:focus-visible {
+  outline: 2px solid var(--color-text-grey);
 }
 .instance-name-row {
   display: flex;
@@ -528,93 +727,31 @@ watch(versionId, (id) => {
   width: 32px;
   height: 32px;
 }
+.instance-name-row > :last-child {
+  flex: 1;
+}
 .install-back {
   flex: 0 0 26px;
   height: 26px;
   width: 26px;
-  color: rgba(0, 0, 0, 0.62745);
-  opacity: 0.6;
-  transition: color 150ms linear;
-}
-.install-back:not(:disabled):active {
-  transform: none;
-}
-.install-back:not(:disabled):hover,
-.install-back:not(:disabled):focus-visible {
-  color: rgba(0, 0, 0, 0.90196);
-  transition-duration: 120ms;
+  color: var(--color-text-grey);
 }
 .install-back:focus-visible {
   outline: 2px solid var(--color-tint);
   outline-offset: 2px;
-}
-.install-back :deep(.pcl-icon) {
-  transition: transform 250ms cubic-bezier(0.34, 2, 0.64, 1);
-}
-.install-back:active :deep(.pcl-icon) {
-  transform: scale(0.8);
-  transition: transform 400ms cubic-bezier(0.25, 1, 0.5, 1);
-}
-:global(.dark) .install-back {
-  color: rgba(255, 255, 255, 0.62745);
-}
-:global(.dark) .install-back:not(:disabled):hover,
-:global(.dark) .install-back:not(:disabled):focus-visible {
-  color: rgba(255, 255, 255, 0.90196);
-}
-.instance-name-row > :last-child {
-  flex: 1;
-}
-.loader-card :deep(.mycard-title > p) {
-  flex: 0 0 min(117px, 30%);
-}
-.loader-card :deep(.mycard-title > .description) {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-}
-.loader-status {
-  color: var(--color-text-grey);
-  font-size: 12px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.loader-status.is-selected {
-  color: var(--color-text);
-}
-.loader-status img {
-  width: 18px;
-  height: 18px;
-}
-.loader-card :deep(.mycard-title-actions > i) {
-  color: var(--color-text-grey);
-}
-.loader-card:hover :deep(.mycard-title-actions > i) {
-  color: var(--color-tint);
-}
-.loader-card:hover .loader-clear:not(:disabled),
-.loader-clear:not(:disabled):focus-visible {
-  color: var(--color-tint);
-  transition-duration: 120ms;
-}
-.loader-clear {
-  color: var(--color-text-grey);
-  /* CE MyIconButton：移出 150 ms、指向 120 ms。 */
-  transition: color 150ms linear;
-}
-.loader-clear:not(:disabled):active {
-  transform: none;
-}
-.loader-clear:focus-visible {
-  outline: 2px solid var(--color-text-grey);
 }
 .install-warnings {
   padding: 0 16px 15px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+.install-action {
+  width: 100%;
+}
+@media (max-width: 520px) {
+  .category-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 </style>
