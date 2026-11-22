@@ -366,5 +366,6 @@
   "Download.Comp.Detail.Task.Failed": "L'installation du modpack a échoué.\n\nTâche: {0}\n\nDétails:\n{1}",
   "Launch.Homepage.LoadFailed.Message": "Le contenu de la page d'accueil est mal formé. Veuillez vérifier les informations d'erreur suivantes:\n{0}",
   "Launch.Homepage.LoadFailed.Retry": "Réessayer",
-  "Launch.Homepage.SlowWarning": "Le chargement de la page d'accueil est trop lent ({0} secondes). Veuillez signaler ce problème à l'auteur de la page d'accueil, ou cesser temporairement d'utiliser cette page."
+  "Launch.Homepage.SlowWarning": "Le chargement de la page d'accueil est trop lent ({0} secondes). Veuillez signaler ce problème à l'auteur de la page d'accueil, ou cesser temporairement d'utiliser cette page.",
+  "Download.Install.Compat.Incompatible": "Incompatible"
 }

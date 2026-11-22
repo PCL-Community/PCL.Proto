@@ -538,6 +538,7 @@
   "Download.Install.StartDownload": "Download",
   "Download.Install.Compat.CompatForgeSpecificOnly": "Compatible only with certain Forge versions",
   "Download.Install.Compat.IncompatibleWithLiteLoader": "Incompatible with LiteLoader",
+  "Download.Install.Compat.Incompatible": "Incompatible",
   "Download.Install.Compat.IncompatibleWithLoader": "Incompatible with {0}",
   "Download.Install.Compat.IncompatibleWithOptiFine": "Incompatible with OptiFine",
   "Download.Install.Compat.OptiFabricOriginsRequired": "Incompatible with older versions of Fabric, please download OptiFabric Origins manually.",

@@ -547,6 +547,7 @@
   "Download.Install.StartDownload": "开始下载",
   "Download.Install.Compat.CompatForgeSpecificOnly": "仅兼容特定版本的 Forge",
   "Download.Install.Compat.IncompatibleWithLiteLoader": "与 LiteLoader 不兼容",
+  "Download.Install.Compat.Incompatible": "不兼容",
   "Download.Install.Compat.IncompatibleWithLoader": "与 {0} 不兼容",
   "Download.Install.Compat.IncompatibleWithOptiFine": "与 OptiFine 不兼容",
   "Download.Install.Compat.OptiFabricOriginsRequired": "不兼容老版本 Fabric，请手动下载 OptiFabric Origins",

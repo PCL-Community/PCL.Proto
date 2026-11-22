@@ -66,7 +66,7 @@ watch([() => props.type, () => props.visible], ([type, visible], [previousType])
 .float-button.pcl-primary-action {
   position: absolute;
   bottom: 20px;
-  right: calc((100% - v-bind('sideNavState.sideNavWidthStr')) / 2 - 60px);
+  right: calc((100% - v-bind('sideNavState.sideNavWidthStr')) / 4 - 60px);
   z-index: 3;
   min-width: 0;
   width: 120px;

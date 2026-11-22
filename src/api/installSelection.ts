@@ -32,6 +32,7 @@ export function loaderConflict(
 ): string | undefined {
   const active = mainLoaders.find((name) => selected[name])
   if (mainLoaders.includes(loader) && active && active !== loader) return active
+  if (loader === 'FabricApi' && active && active !== 'Fabric') return active
   if (
     loader === 'LiteLoader' &&
     active &&
@@ -66,6 +67,7 @@ export function loaderConflict(
 
 // Mirrors PageDownloadInstall.SelectModLoader, including loader-specific add-ons.
 export function selectLoader(selected: Record<string, string>, loader: string, version: string) {
+  if (loader === 'FabricApi' && !selected.Fabric) return
   if (mainLoaders.includes(loader)) {
     for (const name of mainLoaders) if (name !== loader) delete selected[name]
     if (loader !== 'Fabric') {
@@ -157,10 +159,7 @@ export function loaderVisible(
     case 'LabyMod':
       return formatted && compareVersions(version, '1.8.9') >= 0
     case 'FabricApi':
-      return (
-        loaderVisible('Fabric', version, selected) &&
-        (!mainLoaders.some((name) => selected[name]) || !!selected.Fabric)
-      )
+      return loaderVisible('Fabric', version, selected)
     case 'LegacyFabricApi':
       return !!selected.LegacyFabric
     case 'OptiFabric':
@@ -173,7 +172,6 @@ export function loaderVisible(
 export function installWarnings(selected: Record<string, string>, version: string) {
   const warnings: string[] = []
   const drop = versionDrop(version)
-  if (selected.Fabric && !selected.FabricApi) warnings.push('FabricApi')
   if (selected.LegacyFabric && !selected.LegacyFabricApi) warnings.push('LegacyFabricApi')
   if ((selected.Fabric || selected.LegacyFabric) && selected.OptiFine && !selected.OptiFabric)
     warnings.push(

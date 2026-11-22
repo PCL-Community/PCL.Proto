@@ -30,7 +30,6 @@ import {
 import { saveMinecraftVersion } from '@/api/versionActions'
 import { getCompVersions } from '@/api/compProjects'
 import { FloatButtonType, useFloatButton } from '@/composables/useFloatButton'
-import type { ISetupOption } from '@/types/setupOption'
 
 const props = defineProps<{ manual?: boolean; modify?: boolean }>()
 const route = useRoute()
@@ -57,8 +56,10 @@ type FabricApiFile = {
   filename: string
 }
 const fabricApiFiles: Record<string, FabricApiFile> = {}
-let fabricApiAutoSelected = false
-const activatedLoaders = new Set<string>()
+// Selection is kept separately from the resolved version. This lets a card stay
+// selected while its version list is still loading.
+const selectedLoaders = reactive(new Set<string>())
+const supportedLoaders = ['Forge', 'NeoForge', 'Fabric', 'LegacyFabric', 'FabricApi']
 const selectedPlugins = computed(
   () =>
     Object.fromEntries(
@@ -68,55 +69,63 @@ const selectedPlugins = computed(
       ]),
     ) as Partial<Record<pluginType, string>>,
 )
-const activeLoader = ref('')
-const activeLoaderVersion = computed<string>({
-  get: () => (activeLoader.value ? selected[activeLoader.value] || '' : ''),
-  set: (version) => {
-    if (activeLoader.value && version) chooseLoader(activeLoader.value, version)
-  },
-})
-const activeLoaderOptions = computed<ISetupOption[]>(() =>
-  (plugins[activeLoader.value]?.versions || []).map((version) => ({
-    key: version.version,
-    text: version.version,
-  })),
-)
-function activateLoader(loader: string) {
-  if (activeLoader.value === loader && !selected[loader]) {
-    activeLoader.value = ''
-    activatedLoaders.delete(loader)
+function selectLatestOrWait(loader: string) {
+  selectedLoaders.add(loader)
+  const latest = plugins[loader]?.versions[0]?.version
+  if (latest && chooseLoader(loader, latest)) {
     return
   }
-  if (selected[loader]) {
-    selectLoader(selected, loader, '')
+}
+function activateLoader(loader: string) {
+  if (!supportedLoaders.includes(loader)) {
+    sideTip.show(pclText('Proto.NotImplemented.Loader'), 'warn')
+    return
+  }
+  if (selectedLoaders.has(loader)) {
     delete selected[loader]
-    activatedLoaders.delete(loader)
-    if (loader === 'Fabric' || loader === 'FabricApi') fabricApiAutoSelected = false
+    selectedLoaders.delete(loader)
+    if (loader === 'Fabric') {
+      selectedLoaders.delete('FabricApi')
+      delete selected.FabricApi
+      selectedLoaders.delete('OptiFabric')
+      delete selected.OptiFabric
+    }
+    if (loader === 'LegacyFabric') {
+      selectedLoaders.delete('LegacyFabricApi')
+      delete selected.LegacyFabricApi
+    }
+    if (loader === 'OptiFine') {
+      selectedLoaders.delete('OptiFabric')
+      delete selected.OptiFabric
+    }
     if (!instanceNameEdited.value)
       instanceName.value = instanceDefaultName(versionId.value, selected)
-    if (activeLoader.value === loader) activeLoader.value = ''
     return
   }
-  activeLoader.value = loader
-  activatedLoaders.add(loader)
-  if (loader === 'FabricApi' && !selected.Fabric) {
-    const fabricLatest = plugins.Fabric?.versions[0]?.version
-    if (fabricLatest) chooseLoader('Fabric', fabricLatest)
+  if (loader === 'Fabric' || loader === 'FabricApi') {
+    selectLatestOrWait('Fabric')
+    selectLatestOrWait('FabricApi')
+  } else {
+    selectLatestOrWait(loader)
   }
-  const latest = plugins[loader]?.versions[0]?.version
-  if (latest && !selected[loader]) chooseLoader(loader, latest)
-  activeLoader.value = loader
 }
 function chooseLoader(loader: string, version: string) {
+  if (!supportedLoaders.includes(loader)) return false
+  if (!selectedLoaders.has(loader)) return false
+  if (loader === 'FabricApi' && !selected.Fabric) return false
   selectLoader(selected, loader, version)
-  if (loader === 'FabricApi') fabricApiAutoSelected = true
-  if (!selected.Fabric) fabricApiAutoSelected = false
-  if (loader === 'Fabric' && version && !fabricApiAutoSelected && plugins.FabricApi?.versions[0]) {
-    fabricApiAutoSelected = true
-    chooseLoader('FabricApi', plugins.FabricApi.versions[0].version)
+  if (mainLoaderNames.includes(loader)) {
+    for (const name of mainLoaderNames) {
+      if (name !== loader) selectedLoaders.delete(name)
+    }
+    if (loader !== 'Fabric') selectedLoaders.delete('FabricApi')
+    if (loader !== 'LegacyFabric') selectedLoaders.delete('LegacyFabricApi')
   }
-  activeLoader.value = loader
+  if (!selected.Fabric) selectedLoaders.delete('FabricApi')
+  if (!selected.LegacyFabric) selectedLoaders.delete('LegacyFabricApi')
+  if (!selected.OptiFine) selectedLoaders.delete('OptiFabric')
   if (!instanceNameEdited.value) instanceName.value = instanceDefaultName(versionId.value, selected)
+  return true
 }
 const warnings = computed(() => installWarnings(selected, versionId.value))
 function loaderSummary(loader: string) {
@@ -141,25 +150,24 @@ const loaders = [
   'OptiFabric',
   'LiteLoader',
 ]
-const versionedLoaders = ['Forge', 'NeoForge', 'Fabric', 'LegacyFabric', 'FabricApi']
+const mainLoaderNames = ['Forge', 'Cleanroom', 'NeoForge', 'Fabric', 'LegacyFabric', 'LabyMod']
+const selectedLoaderNames = computed(() => loaders.filter((loader) => selectedLoaders.has(loader)))
 const visibleLoaders = computed(() =>
   loaders.filter((loader) => loaderVisible(loader, versionId.value, selected)),
 )
-const activeLoaderMessage = computed(() => {
-  const loader = activeLoader.value
-  const plugin = loader ? plugins[loader] : undefined
-  if (!loader || plugin?.loading || plugin?.error || plugin?.versions.length) return ''
-  return versionedLoaders.includes(loader)
+function loaderMessage(loader: string) {
+  const plugin = plugins[loader]
+  if (plugin?.loading || plugin?.error || plugin?.versions.length) return ''
+  return supportedLoaders.includes(loader)
     ? pclText('Download.Install.State.NoAvailableVersion')
     : pclText('Proto.NotImplemented.Loader')
-})
-watch(
-  visibleLoaders,
-  (list) => {
-    if (activeLoader.value && !list.includes(activeLoader.value)) activeLoader.value = ''
-  },
-  { immediate: true },
-)
+}
+function loaderOptions(loader: string) {
+  return (plugins[loader]?.versions || []).map((version) => ({
+    key: version.version,
+    text: version.version,
+  }))
+}
 const categories = [
   { key: 'release', label: 'Release', icon: showIconPath.grass },
   { key: 'snapshot', label: 'Development', icon: showIconPath.command },
@@ -254,11 +262,7 @@ async function loadFabricApi(id: string, current: number) {
     if (current !== request) return
     Object.assign(fabricApiFiles, files)
     plugins.FabricApi = { loading: false, versions, error: '' }
-    if (selected.Fabric && !fabricApiAutoSelected && versions[0]) {
-      fabricApiAutoSelected = true
-      chooseLoader('FabricApi', versions[0].version)
-    }
-    if (activatedLoaders.has('FabricApi') && !selected.FabricApi && versions[0])
+    if (selectedLoaders.has('FabricApi') && selected.Fabric && !selected.FabricApi && versions[0])
       chooseLoader('FabricApi', versions[0].version)
   } catch (err) {
     if (current === request)
@@ -280,8 +284,17 @@ async function loadLoader(name: string, id: string, current: number) {
     })
     if (current === request) {
       plugins[name] = { loading: false, versions: list, error: '' }
-      if (activatedLoaders.has(name) && !selected[name] && list[0])
+      if (selectedLoaders.has(name) && !selected[name] && list[0])
         chooseLoader(name, list[0].version)
+      if (
+        name === 'Fabric' &&
+        selectedLoaders.has('FabricApi') &&
+        selected.Fabric &&
+        !selected.FabricApi &&
+        plugins.FabricApi?.versions[0]
+      ) {
+        chooseLoader('FabricApi', plugins.FabricApi.versions[0].version)
+      }
     }
   } catch (err) {
     if (current === request)
@@ -297,11 +310,9 @@ watch(
   async (id) => {
     instanceName.value = id
     instanceNameEdited.value = false
-    activeLoader.value = ''
     Object.keys(selected).forEach((key) => delete selected[key])
     Object.keys(fabricApiFiles).forEach((key) => delete fabricApiFiles[key])
-    activatedLoaders.clear()
-    fabricApiAutoSelected = false
+    selectedLoaders.clear()
     const current = ++request
     if (!id) return
     await Promise.all(
@@ -486,99 +497,102 @@ watch(versionId, (id) => {
       <div
         v-if="(!manual || versionId) && versionId"
         class="download-game-column download-game-installation"
+        :class="{ 'has-float-action': floatButtonState.visible }"
       >
         <PCard hide-title class="instance-card">
-        <div class="instance-name-row">
-          <img
-            :src="
-              instanceIcon(
-                versionId,
-                selectedPlugins,
-                typeof route.query.version_type === 'string' ? route.query.version_type : undefined,
-              )
-            "
-            alt=""
-          />
-          <PTextBox
-            :model-value="instanceName"
-            @update:model-value="
-              (value) => {
-                instanceName = value || ''
-                instanceNameEdited = true
-              }
-            "
-            :aria-label="pclText('Proto.Label.InstanceName')"
-          />
-          <span v-if="modify">{{ pclText('Instance.Install.Action.ModifyLabel') }}</span>
-        </div>
-        <div v-if="warnings.length" class="install-warnings">
-          <PHint
-            v-for="warning in warnings"
-            :key="warning"
-            :severity="warning.endsWith('Api') ? 'error' : 'warning'"
-            >{{ pclText(`Download.Install.Warning.${warning}`) }}</PHint
-          >
-        </div>
+          <div class="instance-name-row">
+            <img
+              :src="
+                instanceIcon(
+                  versionId,
+                  selectedPlugins,
+                  typeof route.query.version_type === 'string'
+                    ? route.query.version_type
+                    : undefined,
+                )
+              "
+              alt=""
+            />
+            <PTextBox
+              :model-value="instanceName"
+              @update:model-value="
+                (value) => {
+                  instanceName = value || ''
+                  instanceNameEdited = true
+                }
+              "
+              :aria-label="pclText('Proto.Label.InstanceName')"
+            />
+            <span v-if="modify">{{ pclText('Instance.Install.Action.ModifyLabel') }}</span>
+          </div>
+          <div v-if="warnings.length" class="install-warnings">
+            <PHint
+              v-for="warning in warnings"
+              :key="warning"
+              :severity="warning.endsWith('Api') ? 'error' : 'warning'"
+              >{{ pclText(`Download.Install.Warning.${warning}`) }}</PHint
+            >
+          </div>
         </PCard>
-        <div class="loader-grid" role="list">
-        <div
-          v-for="loader in visibleLoaders"
-          :key="`${versionId}-${loader}`"
-          class="loader-choice"
-          role="listitem"
-        >
-          <button
-            type="button"
-            class="loader-choice-card"
-            :class="{
-              active: activeLoader === loader,
-              selected: !!selected[loader],
-              disabled: !!loaderConflict(loader, selected, versionId),
-            }"
-            :disabled="!!loaderConflict(loader, selected, versionId)"
-            :aria-pressed="!!selected[loader]"
-            @click="activateLoader(loader)"
-          >
-            <img :src="loaderIcon(loader)" alt="" />
-            <span class="loader-choice-copy">
+        <div class="loader-grid-viewport">
+          <div class="loader-grid" role="list">
+            <div
+              v-for="loader in visibleLoaders"
+              :key="`${versionId}-${loader}`"
+              class="loader-choice"
+              role="listitem"
+            >
+              <button
+                type="button"
+                class="loader-choice-card"
+                :class="{
+                  selected: selectedLoaders.has(loader),
+                  disabled: !!loaderConflict(loader, selected, versionId),
+                }"
+                :disabled="!!loaderConflict(loader, selected, versionId)"
+                :aria-pressed="selectedLoaders.has(loader)"
+                @click="activateLoader(loader)"
+              >
+                <img :src="loaderIcon(loader)" alt="" />
+                <span class="loader-choice-copy">
+                  <strong>{{ pclText(`Common.Installation.${loader}`) }}</strong>
+                  <small>{{
+                    loaderConflict(loader, selected, versionId)
+                      ? pclText('Download.Install.Compat.Incompatible')
+                      : loaderSummary(loader)
+                  }}</small>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <PCard hide-title class="loader-version-panel">
+          <div v-if="!selectedLoaderNames.length" class="loader-version-placeholder">
+            {{ pclText('Proto.Download.SelectVersion') }}
+          </div>
+          <div v-else class="loader-version-list">
+            <div v-for="loader in selectedLoaderNames" :key="loader" class="loader-version-row">
               <strong>{{ pclText(`Common.Installation.${loader}`) }}</strong>
-              <small>{{
-                loaderConflict(loader, selected, versionId)
-                  ? pclText('Download.Install.Compat.IncompatibleWithLoader', [
-                      loaderConflict(loader, selected, versionId)!,
-                    ])
-                  : loaderSummary(loader)
-              }}</small>
-            </span>
-          </button>
-        </div>
-        </div>
-        <PCard v-if="activeLoader && versionId" hide-title class="loader-version-panel">
-        <div class="loader-version-heading">
-          <strong>{{ pclText(`Common.Installation.${activeLoader}`) }}</strong>
-          <PComboBox
-            v-if="plugins[activeLoader]?.versions.length"
-            v-model="activeLoaderVersion"
-            class="loader-version-select"
-            :options="activeLoaderOptions"
-            :aria-label="pclText(`Common.Installation.${activeLoader}`)"
-          />
-          <span v-else-if="activeLoaderMessage" class="loader-version-message">
-            {{ activeLoaderMessage }}
-          </span>
-        </div>
-        <div
-          v-if="plugins[activeLoader]?.loading || plugins[activeLoader]?.error"
-          class="loader-version-state"
-        >
-          <PLoading v-if="plugins[activeLoader]?.loading" :card="false" />
-          <PHint v-else-if="plugins[activeLoader]?.error" severity="error"
-            >{{ plugins[activeLoader]?.error }}
-            <PButton inline @click="loadLoader(activeLoader, versionId, request)">{{
-              pclText('Launch.Homepage.LoadFailed.Retry')
-            }}</PButton></PHint
-          >
-        </div>
+              <PComboBox
+                v-if="plugins[loader]?.versions.length"
+                :model-value="selected[loader]"
+                class="loader-version-select"
+                :options="loaderOptions(loader)"
+                :aria-label="pclText(`Common.Installation.${loader}`)"
+                @update:model-value="(version) => version && chooseLoader(loader, version)"
+              />
+              <span v-else-if="loaderMessage(loader)" class="loader-version-message">
+                {{ loaderMessage(loader) }}
+              </span>
+              <PLoading v-if="plugins[loader]?.loading" class="loader-version-loading" :card="false" />
+              <PHint v-else-if="plugins[loader]?.error" severity="error">
+                {{ plugins[loader]?.error }}
+                <PButton inline @click="loadLoader(loader, versionId, request)">{{
+                  pclText('Launch.Homepage.LoadFailed.Retry')
+                }}</PButton>
+              </PHint>
+            </div>
+          </div>
         </PCard>
       </div>
     </div>
@@ -606,6 +620,9 @@ watch(versionId, (id) => {
   min-height: 0;
   flex-direction: column;
   gap: 12px;
+}
+.download-game-installation.has-float-action {
+  padding-bottom: 48px;
 }
 .category-tabs {
   position: relative;
@@ -684,15 +701,20 @@ watch(versionId, (id) => {
   overflow-y: auto;
   padding: 8px;
 }
-.loader-grid {
+.loader-grid-viewport {
   flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px;
+  margin: -4px;
+}
+.loader-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-auto-rows: minmax(52px, 1fr);
   gap: 8px;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  min-height: 100%;
+  overflow: visible;
   align-content: stretch;
   padding: 0;
 }
@@ -726,7 +748,8 @@ watch(versionId, (id) => {
 }
 .loader-choice-card.active,
 .loader-choice-card.selected {
-  background: var(--color-tint-lighter);
+  background: var(--color-background-soft);
+  border-color: color-mix(in srgb, var(--color-tint) 55%, transparent);
   box-shadow: 0 0 6px var(--color-tint-shadow);
 }
 .loader-choice-card.disabled {
@@ -748,9 +771,9 @@ watch(versionId, (id) => {
 }
 .loader-choice-copy strong,
 .loader-choice-copy small {
-  overflow: visible;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   line-height: 1.2;
 }
 .loader-choice-copy strong {
@@ -761,16 +784,36 @@ watch(versionId, (id) => {
   font-size: 11px;
 }
 .loader-version-panel {
+  flex: 0 0 auto;
   min-height: 0;
 }
-.loader-version-heading {
+.loader-version-list,
+.loader-version-placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 20px;
+}
+.loader-version-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 58px;
+  color: var(--color-text-grey);
+  text-align: center;
+}
+.loader-version-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 20px 12px;
+  min-width: 0;
+  min-height: 38px;
 }
-.loader-version-heading strong {
+.loader-version-row strong {
   flex: 0 0 auto;
+  max-width: 34%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .loader-version-message {
@@ -781,13 +824,23 @@ watch(versionId, (id) => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.loader-version-state {
-  padding: 0 20px 15px;
+.loader-version-loading {
+  flex: 0 0 auto;
+  min-width: 0;
 }
-.loader-version-state :deep(.loading-container) {
-  min-height: 130px;
-  padding: 12px 14px;
-  gap: 12px;
+.loader-version-loading :deep(.loading-container) {
+  min-height: 0;
+  padding: 0;
+  flex-direction: row;
+  gap: 6px;
+}
+.loader-version-loading :deep(.load-svg) {
+  width: 24px;
+  height: 24px;
+}
+.loader-version-loading :deep(.loading-text) {
+  font-size: 12px;
+  white-space: nowrap;
 }
 .loader-version-select {
   flex: 1 1 auto;
