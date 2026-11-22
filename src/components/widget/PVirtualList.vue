@@ -15,6 +15,16 @@ let scroller: HTMLElement | null = null
 let observer: ResizeObserver | undefined
 let frame = 0
 
+function findScroller(node: HTMLElement | null) {
+  let current = node?.parentElement
+  while (current && current !== document.body) {
+    const overflowY = getComputedStyle(current).overflowY
+    if (overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') return current
+    current = current.parentElement
+  }
+  return document.scrollingElement as HTMLElement | null
+}
+
 function measure() {
   frame = 0
   if (!root.value || !scroller) return
@@ -34,7 +44,7 @@ function schedule() {
 }
 watch(() => [props.items, props.rowHeight], schedule, { flush: 'post' })
 onMounted(() => {
-  scroller = root.value!.parentElement?.closest<HTMLElement>('.subview') ?? null
+  scroller = findScroller(root.value)
   scroller?.addEventListener('scroll', schedule, { passive: true })
   observer = new ResizeObserver(schedule)
   if (scroller) observer.observe(scroller)

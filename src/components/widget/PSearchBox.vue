@@ -3,7 +3,7 @@ import { pclText } from '@/api/pclLocale'
 import PButton from './PButton.vue'
 import PCard from './PCard.vue'
 import PSvgIcon from './PSvgIcon.vue'
-defineProps<{ placeholder?: string; searchButton?: boolean }>()
+defineProps<{ placeholder?: string; searchButton?: boolean; label?: string }>()
 const emit = defineEmits(['search'])
 const query = defineModel<string>({ default: '' })
 </script>
@@ -12,10 +12,11 @@ const query = defineModel<string>({ default: '' })
   <PCard hide-title>
     <section class="search-card">
       <PSvgIcon name="lucide/search" :size="14" class="search-icon" />
+      <span v-if="label" class="search-label">{{ label }}</span>
       <input
         type="text"
         :placeholder="placeholder"
-        :aria-label="placeholder || pclText('Common.Action.Search')"
+        :aria-label="label || placeholder || pclText('Common.Action.Search')"
         maxlength="50"
         class="search-input"
         v-model="query"
@@ -63,6 +64,14 @@ const query = defineModel<string>({ default: '' })
 
 .search-icon {
   color: var(--color-text-grey);
+}
+
+.search-label {
+  flex: 0 0 auto;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .search-input {

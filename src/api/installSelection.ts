@@ -128,7 +128,11 @@ function compareVersions(left: string, right: string) {
   return left > right ? 1 : left < right ? -1 : 0
 }
 
-export function loaderVisible(loader: string, version: string, selected: Record<string, string>) {
+export function loaderVisible(
+  loader: string,
+  version: string,
+  selected: Record<string, string>,
+): boolean {
   const drop = versionDrop(version)
   const formatted = /^1\.\d/.test(version) || Number(/^[2-9]\d\.\d+/.exec(version)?.[0]) > 25
   switch (loader) {
@@ -153,7 +157,10 @@ export function loaderVisible(loader: string, version: string, selected: Record<
     case 'LabyMod':
       return formatted && compareVersions(version, '1.8.9') >= 0
     case 'FabricApi':
-      return !!selected.Fabric
+      return (
+        loaderVisible('Fabric', version, selected) &&
+        (!mainLoaders.some((name) => selected[name]) || !!selected.Fabric)
+      )
     case 'LegacyFabricApi':
       return !!selected.LegacyFabric
     case 'OptiFabric':
