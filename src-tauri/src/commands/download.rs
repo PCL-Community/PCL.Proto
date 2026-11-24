@@ -20,7 +20,7 @@ pub async fn download_fabric_installer(
     on_event: tauri::ipc::Channel<TaskItemReport>,
 ) -> Result<(), String> {
     download::download_fabric_installer(
-        &ConfigManager::instance().api_client.downloader(),
+        &ConfigManager::instance().api_client.download_manager(),
         family,
         version,
         destination,
@@ -39,7 +39,7 @@ pub async fn download_custom_file(
 ) -> Result<(), String> {
     let url = crate::external::validate(&url)?;
     download::download_custom_file(
-        &ConfigManager::instance().api_client.downloader(),
+        &ConfigManager::instance().api_client.download_manager(),
         url,
         destination,
         task_id,
@@ -70,7 +70,7 @@ pub fn release_download_task(task_id: i32) {
 
 #[tauri::command]
 pub fn get_download_stats() -> DownloadStats {
-    ConfigManager::instance().api_client.resources().stats()
+    ConfigManager::instance().api_client.download_stats()
 }
 
 #[tauri::command]

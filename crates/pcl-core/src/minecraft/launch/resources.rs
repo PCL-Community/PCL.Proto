@@ -1,6 +1,6 @@
 //! 启动兼容资源；默认按功能需要准备，也可由宿主打包后传入替代路径。
 
-use crate::io::{download::Downloader, net::http::resources::HttpMode};
+use crate::{io::download::DownloadManager, io::net::http::api_client::game::DownloadFile};
 use std::path::{Path, PathBuf};
 
 pub const JAVA_WRAPPER_NAME: &str = "java-wrapper.jar";
@@ -82,7 +82,7 @@ pub fn mesa_loader_path(directory: &Path) -> PathBuf {
 }
 
 /// 下载渲染器代理；CE 的镜像没有校验值。
-pub async fn ensure_mesa_loader(downloader: &Downloader, path: &Path) -> Result<(), String> {
+pub async fn ensure_mesa_loader(downloader: &DownloadManager, path: &Path) -> Result<(), String> {
     if path.is_file() {
         return Ok(());
     }
@@ -97,29 +97,25 @@ pub async fn ensure_mesa_loader(downloader: &Downloader, path: &Path) -> Result<
         "https://mirrors.cloud.tencent.com/nexus/repository/maven-public/org/glavo/mesa-loader-windows/{MESA_LOADER_VERSION}/mesa-loader-windows-{MESA_LOADER_VERSION}-{arch}.jar"
     );
     log::info!("Downloading renderer agent from {url}");
-    let response = downloader
-        .transport()
-        .send_request(
-            HttpMode::Auto,
-            true,
-            &crate::io::net::http::RequestTarget::new(url),
-            None,
-            Some(std::time::Duration::from_secs(120)),
+    downloader
+        .download(
+            &DownloadFile {
+                url,
+                size: 0,
+                sha1: String::new(),
+                path: None,
+            },
+            path,
         )
         .await
-        .map_err(|error| error.to_string())?
-        .error_for_status()
         .map_err(|error| error.to_string())?;
-    let bytes = response.bytes().await.map_err(|error| error.to_string())?;
-    if !(1024..=64 * 1024 * 1024).contains(&bytes.len()) {
+    let size = tokio::fs::metadata(path)
+        .await
+        .map_err(|error| error.to_string())?
+        .len();
+    if !(1024..=64 * 1024 * 1024).contains(&size) {
+        let _ = tokio::fs::remove_file(path).await;
         return Err("Invalid renderer agent size".into());
     }
-    let temp = path.with_extension(format!("{}.tmp", std::process::id()));
-    tokio::fs::write(&temp, &bytes)
-        .await
-        .map_err(|error| error.to_string())?;
-    tokio::fs::rename(&temp, &path)
-        .await
-        .map_err(|error| error.to_string())?;
     Ok(())
 }

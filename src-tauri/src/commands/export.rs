@@ -16,7 +16,7 @@ pub async fn download_resource(
     on_event: tauri::ipc::Channel<TaskItemReport>,
 ) -> Result<(), String> {
     resource::download_resource(
-        &client.downloader(),
+        &client.download_manager(),
         info,
         destination,
         task_id,
@@ -71,7 +71,7 @@ pub async fn save_loader_file(
     loader::save_loader_file(
         &crate::config::manager::ConfigManager::instance()
             .api_client
-            .downloader(),
+            .download_manager(),
         loader,
         game,
         version,

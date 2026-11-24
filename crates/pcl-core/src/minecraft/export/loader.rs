@@ -1,4 +1,4 @@
-use crate::{io::download::Downloader, minecraft::version::DownloadFile};
+use crate::{io::download::DownloadManager, minecraft::version::DownloadFile};
 use anyhow::{Context, ensure};
 use std::path::{Path, PathBuf};
 
@@ -51,7 +51,7 @@ fn publish(temp: &Path, destination: &Path) -> anyhow::Result<()> {
 }
 
 pub async fn save_loader_file(
-    downloader: &Downloader,
+    downloader: &DownloadManager,
     loader: String,
     game: String,
     version: String,

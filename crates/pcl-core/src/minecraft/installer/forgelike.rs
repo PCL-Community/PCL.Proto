@@ -26,7 +26,7 @@ pub(super) struct PreparedInstaller {
 
 pub(super) async fn prepare(
     client: &super::MinecraftApiClient,
-    downloader: &super::Downloader,
+    downloader: &super::DownloadManager,
     game: &str,
     loader: &super::LoaderInstall,
     task_id: i32,
@@ -52,7 +52,7 @@ pub(super) async fn prepare(
 
 async fn download_installer(
     file: &InstallerFile,
-    downloader: &super::Downloader,
+    downloader: &super::DownloadManager,
     archive: &Path,
     task_id: i32,
     item_id: i32,
@@ -167,8 +167,15 @@ pub async fn download_forgelike_installer(
             let file = resolve_installer(client, &game, &loader).await?;
             let directory = tempfile::tempdir_in(parent)?;
             let archive = directory.path().join("installer");
-            download_installer(&file, &client.downloader(), &archive, task_id, 0, &on_event)
-                .await?;
+            download_installer(
+                &file,
+                &client.download_manager(),
+                &archive,
+                task_id,
+                0,
+                &on_event,
+            )
+            .await?;
             crate::io::download::tasks::commit(task_id, move || {
                 let _directory = directory;
                 fs::hard_link(&archive, &destination)
@@ -187,7 +194,7 @@ pub(super) async fn prepare_libraries(
     prepared: &PreparedInstaller,
     vanilla: &super::McVersion,
     metadata: &Value,
-    downloader: &super::Downloader,
+    downloader: &super::DownloadManager,
     task_id: i32,
     on_event: &EventSink<super::TaskItemReport>,
 ) -> anyhow::Result<()> {
@@ -376,7 +383,7 @@ pub(super) async fn ensure_java(
     let runtime = crate::minecraft::java::install::install(
         requirements,
         java_runtime_dir.to_owned(),
-        client.downloader(),
+        client.download_manager(),
         move |progress| {
             channel(super::TaskItemReport {
                 task_id,
@@ -1109,7 +1116,7 @@ echo true
             _ => panic!("Unknown smoke case"),
         };
         let client = MinecraftApiClient::new(crate::io::net::http::HttpTransport::default());
-        let downloader = client.downloader();
+        let downloader = client.download_manager();
         let metadata = client.get_version_metadata(game).await.unwrap();
         let vanilla: McVersion = serde_json::from_value(metadata.clone()).unwrap();
         let loader = LoaderInstall {

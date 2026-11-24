@@ -1,7 +1,7 @@
 //! Install Mojang runtimes without archives; share verified transfers with Minecraft installation.
 use super::{JavaEntry, JavaSource, requirements::JavaRequirements};
 use crate::{
-    io::download::Downloader,
+    io::download::DownloadManager,
     io::files::{safe_join, validate_file_name},
     minecraft::version::DownloadFile,
 };
@@ -82,7 +82,7 @@ pub(super) fn platform_key(os: &str, arch: &str) -> Option<&'static str> {
 pub async fn install(
     requirements: JavaRequirements,
     runtime_dir: PathBuf,
-    downloader: Downloader,
+    downloader: DownloadManager,
     progress: impl Fn(JavaInstallProgress) + Clone + Send + Sync + 'static,
 ) -> anyhow::Result<JavaEntry> {
     let major = requirements
@@ -254,7 +254,7 @@ pub async fn install(
 
 async fn fetch_index(
     client: &reqwest::Client,
-    downloader: &Downloader,
+    downloader: &DownloadManager,
 ) -> anyhow::Result<BTreeMap<String, BTreeMap<String, Vec<RuntimeRelease>>>> {
     let mut last = None;
     for target in downloader.resolve_sources(

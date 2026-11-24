@@ -32,11 +32,8 @@ pub enum McApiError {
     #[error("API key for {0} is not configured")]
     MissingApiKey(&'static str),
 
-    #[error("Download source does not support reliable HTTP Range")]
-    RangeUnsupported,
-
-    #[error("Download segment is significantly slower than its peers")]
-    SlowSegment,
+    #[error("Download failed: {0}")]
+    DownloadError(String),
 
     #[error("Version not found: {0}")]
     VersionNotFound(String),
@@ -222,6 +219,7 @@ pub struct MinecraftApiClient {
     transport: HttpTransport,
     pub(super) sources: Sources,
     cache: DashMap<String, (Instant, serde_json::Value)>,
+    downloads: crate::io::download::DownloadManager,
     ttl: Duration,
 }
 
@@ -253,6 +251,7 @@ impl MinecraftApiClient {
     pub fn new(transport: HttpTransport) -> Self {
         Self {
             sources: Sources::new(transport.resources().clone()),
+            downloads: crate::io::download::DownloadManager::new(transport.clone()),
             transport,
             cache: DashMap::new(),
             ttl: Duration::from_secs(60 * 5),
@@ -283,10 +282,15 @@ impl MinecraftApiClient {
         self.transport.resources()
     }
 
-    pub fn downloader(&self) -> crate::io::download::Downloader {
+    pub fn download_manager(&self) -> crate::io::download::DownloadManager {
         let sources = self.sources.clone();
-        crate::io::download::Downloader::new(self.transport.clone())
+        self.downloads
+            .clone()
             .with_sources(move |url, kind| sources.resolve(url, kind))
+    }
+
+    pub fn download_stats(&self) -> crate::io::net::http::resources::DownloadStats {
+        self.downloads.stats()
     }
 
     #[cfg(test)]
@@ -327,7 +331,6 @@ impl MinecraftApiClient {
                         settings.http_mode,
                         false,
                         &target,
-                        None,
                         Some(self.sources.timeout(actual_url)),
                     )
                     .await?
@@ -655,7 +658,7 @@ mod tests {
         ] {
             let targets = first.sources.resolve(official, SourceKind::File);
             let downloaded = first
-                .downloader()
+                .download_manager()
                 .resolve_sources(official, SourceKind::File);
             for (target, download) in targets.iter().zip(&downloaded) {
                 assert_eq!(target.url, download.url);
@@ -711,7 +714,7 @@ mod tests {
     fn source_updates_reach_existing_downloaders_without_crossing_services() {
         use crate::io::net::http::resources::{DownloadOptions, SourceKind, SourcePreference};
         let api = MinecraftApiClient::new(HttpTransport::default());
-        let downloader = api.downloader();
+        let downloader = api.download_manager();
         let library = "https://libraries.minecraft.net/org/test.jar";
         let manifest = format!(
             "https://piston-meta.mojang.com/{}",
@@ -823,15 +826,16 @@ mod tests {
             }
             let api = MinecraftApiClient::with_test_transport(bases, HttpTransport::default());
             let (client, http1) = clients(agent);
-            api.replace_clients(client, http1);
+            api.transport
+                .replace_clients_with_user_agent(client, http1, agent);
             api
         };
         let first = make("FirstLauncher");
         #[cfg(feature = "community")]
         let first = first.with_curseforge_api_key(Some("first-key"));
         let second = make("SecondLauncher");
-        let download = crate::io::download::Downloader::new(first.transport().clone());
-        let provider_download = first.downloader();
+        let download = crate::io::download::DownloadManager::new(first.transport().clone());
+        let provider_download = first.download_manager();
         first
             .resources()
             .configure(DownloadOptions {
@@ -869,7 +873,9 @@ mod tests {
             assert_eq!(reply["key"], serde_json::Value::Null);
         }
         let (client, http1) = clients("UpdatedLauncher");
-        first.replace_clients(client, http1);
+        first
+            .transport
+            .replace_clients_with_user_agent(client, http1, "UpdatedLauncher");
         let output = tempfile::tempdir().unwrap();
         let path = output.path().join("echo.json");
         download

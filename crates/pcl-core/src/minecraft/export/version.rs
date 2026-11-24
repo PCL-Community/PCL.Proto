@@ -2,7 +2,7 @@ use crate::events::EventSink;
 #[cfg(test)]
 use crate::events::event_sink;
 use crate::{
-    io::download::{DownloadConfig, Downloader, TaskItemReport, TaskStatus},
+    io::download::{DownloadConfig, DownloadManager, TaskItemReport, TaskStatus},
     io::net::http::api_client::{MinecraftApiClient, game::DownloadFile},
 };
 use anyhow::{Context, bail, ensure};
@@ -88,7 +88,7 @@ async fn download_jar(
     path: PathBuf,
     task_id: i32,
     on_event: &EventSink<TaskItemReport>,
-    downloader: &Downloader,
+    downloader: &DownloadManager,
 ) -> anyhow::Result<()> {
     let size = info.size;
     downloader
@@ -172,7 +172,7 @@ async fn export_version(
     } else {
         format!("{version_id}.jar")
     };
-    let downloader = client.downloader();
+    let downloader = client.download_manager();
     download_jar(
         info,
         staging.path.join(&jar_name),
@@ -407,7 +407,7 @@ mod tests {
             directory.path.join("test.jar"),
             7,
             &event_sink(|_| ()),
-            &Downloader::default(),
+            &DownloadManager::default(),
         )
         .await;
         server.join().unwrap();
@@ -424,7 +424,7 @@ mod tests {
             .await
             .unwrap();
         assert!(
-            checked_http_download("200 OK", b"jar", "0".repeat(40), 3)
+            checked_http_download("200 OK", b"jar", "0".repeat(40), 1)
                 .await
                 .is_err()
         );

@@ -358,7 +358,7 @@ async fn missing_client_jars_are_discovered_and_repaired_without_overwriting_loa
     let fabric = repo.game_instance_named("Fabric").unwrap();
     assert_eq!(fabric.jar_path, base.join("1.20.1.jar"));
     fabric
-        .repair_client_jar(&mirror.client().downloader())
+        .repair_client_jar(&mirror.client().download_manager())
         .await
         .unwrap();
     assert_eq!(fs::read(&fabric.jar_path).unwrap(), body);
@@ -369,7 +369,7 @@ async fn missing_client_jars_are_discovered_and_repaired_without_overwriting_loa
     let forge = repo.game_instance_named("Forge").unwrap();
     assert!(
         forge
-            .repair_client_jar(&mirror.client().downloader())
+            .repair_client_jar(&mirror.client().download_manager())
             .await
             .unwrap_err()
             .to_string()
@@ -378,7 +378,7 @@ async fn missing_client_jars_are_discovered_and_repaired_without_overwriting_loa
     assert!(!forge.jar_path.exists());
     fs::write(&forge.jar_path, b"generated loader jar").unwrap();
     forge
-        .repair_client_jar(&mirror.client().downloader())
+        .repair_client_jar(&mirror.client().download_manager())
         .await
         .unwrap();
     assert_eq!(fs::read(&forge.jar_path).unwrap(), b"generated loader jar");
@@ -396,7 +396,7 @@ async fn maven_libraries_are_verified_and_published_before_launch() {
         ]),
         false,
     );
-    let downloader = server.client().downloader();
+    let downloader = server.client().download_manager();
     let root = std::env::temp_dir().join(format!("pcl-maven-{}", uuid::Uuid::new_v4()));
     fs::create_dir(&root).unwrap();
     let download = json!({"sha1":"a".repeat(40),"size":1,"url":"https://example.org/file"});
@@ -477,7 +477,7 @@ async fn official_fabric_maven_libraries_smoke() {
             &root,
             &root,
             &McRuleContext::current(),
-            &Downloader::default(),
+            &DownloadManager::default(),
             true,
         )
         .await;
@@ -582,7 +582,7 @@ async fn official_fabric_install(
             Arc::new(runtime),
             directory,
         ))?;
-        let natives = option.prepare_natives(&client.downloader()).await?;
+        let natives = option.prepare_natives(&client.download_manager()).await?;
         ensure!(
             option.launch_checked()?.wait()?.success(),
             "Fake Java failed"
@@ -672,7 +672,7 @@ async fn official_legacy_lwjgl_architecture_smoke() {
     fs::create_dir(&root).unwrap();
     let path = root.join("native.jar");
     let result = async {
-        Downloader::default().download(&info, &path).await?;
+        DownloadManager::default().download(&info, &path).await?;
         let archive = NativeArchive {
             path,
             exclude: vec![],
@@ -707,7 +707,7 @@ async fn official_lwjgl2_architectures_smoke() {
         ] {
             let path = root.join(format!("{suffix}.jar"));
             let info = DownloadFile { path: None, size, sha1: sha1.into(), url: format!("https://libraries.minecraft.net/org/lwjgl/lwjgl/lwjgl-platform/2.9.0/lwjgl-platform-2.9.0-natives-{suffix}.jar") };
-            Downloader::default().download(&info, &path).await?;
+            DownloadManager::default().download(&info, &path).await?;
             let native = NativeArchive { path, exclude: vec![], lwjgl_core: true };
             let mut context = McRuleContext { os: os.into(), arch: "x86_64".into(), version: String::new(), features: Default::default() };
             validate_lwjgl_natives(std::slice::from_ref(&native), &context)?;
@@ -750,7 +750,7 @@ async fn launch_preparation_selects_java_classifier_and_isolates_natives() {
         version: String::new(),
         features: Default::default(),
     };
-    let downloader = Downloader::default();
+    let downloader = DownloadManager::default();
     let x86 = context("x86");
     let x64 = context("x86_64");
     let (a, b) = tokio::join!(
@@ -775,7 +775,7 @@ async fn launch_preparation_selects_java_classifier_and_isolates_natives() {
     assert_eq!(fs::read(repaired.join("native.bin")).unwrap(), b"32");
     fs::remove_file(root.join("libraries/test/32.jar")).unwrap();
     let mirror = MockMirror::new([("/maven/test/32.jar".into(), archive32)].into(), false);
-    let downloader = mirror.client().downloader();
+    let downloader = mirror.client().download_manager();
     let downloaded = prepare_launch_libraries(&details, &root, &root, &x86, &downloader, true)
         .await
         .unwrap();
@@ -1170,7 +1170,7 @@ async fn full_install_retries_publishes_custom_name_and_reuses_verified_cache() 
     assert_eq!(instances.len(), 1, "the same repository sees new installs");
     assert_eq!(instances[0].version, "1.test");
     let details = instances[0].read_version_json().unwrap();
-    let downloader = client.downloader();
+    let downloader = client.download_manager();
     prepare_legacy_assets(&details, &root, &root, &downloader, true)
         .await
         .unwrap();
@@ -1277,13 +1277,13 @@ fn native_extraction_refuses_zip_slip() {
 }
 
 #[tokio::test]
-async fn failed_transfers_preserve_existing_files_and_remove_partial_files() {
+async fn failed_transfers_preserve_existing_files_and_keep_partial_files_for_resume() {
     let mirror = MockMirror::new(fixture_files(false), false);
     let root = std::env::temp_dir().join(format!("pcl-transfer-test-{}", uuid::Uuid::new_v4()));
     fs::create_dir(&root).unwrap();
     let path = root.join("existing.jar");
     fs::write(&path, b"keep existing data").unwrap();
-    let downloader = Downloader::default();
+    let downloader = DownloadManager::default();
     let mut info = DownloadFile {
         sha1: "0".repeat(40),
         size: b"verified client".len() as u64,
@@ -1294,14 +1294,14 @@ async fn failed_transfers_preserve_existing_files_and_remove_partial_files() {
     assert_eq!(fs::read(&path).unwrap(), b"keep existing data");
     assert_eq!(
         fs::read_dir(&root).unwrap().count(),
-        1,
-        "failed .part files are removed"
+        2,
+        "failed .part files are retained for aria2 resume"
     );
     assert_eq!(mirror.count("/client.jar"), 3);
     info.size = 1;
     assert!(downloader.download(&info, &path).await.is_err());
     assert_eq!(fs::read(&path).unwrap(), b"keep existing data");
-    assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+    assert_eq!(fs::read_dir(&root).unwrap().count(), 2);
     info.sha1 = crate::io::files::sha1_hex(sha1::Sha1::digest(b"keep existing data"));
     info.size = b"keep existing data".len() as u64;
     downloader.download(&info, &path).await.unwrap();
@@ -1348,7 +1348,7 @@ async fn official_metadata_across_generations() {
         .get_with_endpoint(crate::minecraft::version::VERSION_MANIFEST_ENDPOINT, true)
         .await
         .unwrap();
-    let downloader = Downloader::default();
+    let downloader = DownloadManager::default();
     for id in [
         "rd-132211",
         "b1.7.3",

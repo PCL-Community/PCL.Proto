@@ -4,7 +4,7 @@ pub mod modpack;
 use crate::events::EventSink;
 use crate::io::files::{check_sha1, safe_join, validate_file_name};
 use crate::{
-    io::download::{DownloadConfig, Downloader, StageProgress, TaskItemReport, TaskStatus},
+    io::download::{DownloadConfig, DownloadManager, StageProgress, TaskItemReport, TaskStatus},
     io::net::http::api_client::MinecraftApiClient,
     minecraft::version::{DownloadFile, McRuleContext, McVersion, library_path, valid_sha1},
 };
@@ -227,7 +227,7 @@ impl InstallPlan {
 
 async fn download_plan(
     plan: &mut InstallPlan,
-    downloader: &Downloader,
+    downloader: &DownloadManager,
     task_id: i32,
     on_event: &EventSink<TaskItemReport>,
 ) -> anyhow::Result<()> {
@@ -280,7 +280,7 @@ async fn add_maven_libraries(
     repo: &Path,
     instance: &Path,
     context: &McRuleContext,
-    downloader: &Downloader,
+    downloader: &DownloadManager,
     stage: i32,
 ) -> anyhow::Result<()> {
     let mut seen = std::collections::HashSet::new();
@@ -428,7 +428,7 @@ async fn add_maven_libraries(
 }
 
 async fn maven_metadata_request(
-    downloader: &Downloader,
+    downloader: &DownloadManager,
     url: &str,
 ) -> anyhow::Result<reqwest::Response> {
     let mut last_error = None;
@@ -440,7 +440,6 @@ async fn maven_metadata_request(
                 downloader.resources().settings().http_mode,
                 false,
                 &source,
-                None,
                 None,
             )
             .await
@@ -652,7 +651,7 @@ pub async fn prepare_launch_libraries(
     repo: &Path,
     instance: &Path,
     context: &McRuleContext,
-    downloader: &Downloader,
+    downloader: &DownloadManager,
     verify: bool,
 ) -> anyhow::Result<PathBuf> {
     let mut plan = InstallPlan::new();
@@ -720,7 +719,7 @@ pub async fn prepare_legacy_assets(
     details: &McVersion,
     repo: &Path,
     game_directory: &Path,
-    downloader: &Downloader,
+    downloader: &DownloadManager,
     verify: bool,
 ) -> anyhow::Result<()> {
     validate_file_name(&details.asset_index.id)?;
@@ -854,13 +853,14 @@ fn materialize_assets(
 
 /// CE `Config.Download.FixAuthLib`：1.16.5 的旧 authlib 会阻止部分第三方登录，替换为 2.3.31。
 fn apply_fix_authlib(metadata: &mut serde_json::Value) {
-    let Some(libraries) = metadata.get_mut("libraries").and_then(|value| value.as_array_mut())
+    let Some(libraries) = metadata
+        .get_mut("libraries")
+        .and_then(|value| value.as_array_mut())
     else {
         return;
     };
     for library in libraries {
-        if library.get("name").and_then(|value| value.as_str())
-            != Some("com.mojang:authlib:2.1.28")
+        if library.get("name").and_then(|value| value.as_str()) != Some("com.mojang:authlib:2.1.28")
         {
             continue;
         }
@@ -882,7 +882,8 @@ fn apply_fix_authlib(metadata: &mut serde_json::Value) {
 fn merge_loader_profile(
     metadata: &mut serde_json::Value,
     profile: &serde_json::Value,
-) -> anyhow::Result<()> {    profile["libraries"]
+) -> anyhow::Result<()> {
+    profile["libraries"]
         .as_array()
         .context("Invalid loader libraries")?;
     metadata["libraries"]
@@ -1016,7 +1017,7 @@ async fn install_version_with_modpack(
         speed: None,
     });
     let mut metadata = client.get_version_metadata(version_id).await?;
-    let downloader = client.downloader();
+    let downloader = client.download_manager();
     let mut forgelike = None;
     if let Some(loader) = loader {
         on_event(TaskItemReport {

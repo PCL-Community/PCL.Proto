@@ -59,7 +59,7 @@ src-tauri（PCL.Proto 应用）
 | 位置 | 职责 |
 | --- | --- |
 | `pcl-core/src/minecraft/` | 版本、实例、安装、Java 探测/扫描/约束、启动、认证与皮肤协议、存档和服务器文件、导出 |
-| `pcl-core/src/io/` | 校验下载、Range、来源回退、可共享的连接/带宽配额、文件与 HTTP 操作 |
+| `pcl-core/src/io/` | aria2-rust 文件传输、校验、来源回退、可共享的下载设置、文件与 HTTP 操作 |
 | `pcl-core/src/link/` | 服务器 ping、局域网世界发现；`link` feature 提供 Terracotta 桥接 |
 | `pcl-core/src/events.rs` | 普通进度回调 `EventSink` |
 | `pcl-core/resources/` | 安装桥接、启动兼容 JAR、Log4j 配置与 macOS ARM64 库映射；由所属功能按需使用 |
@@ -85,12 +85,12 @@ src-tauri（PCL.Proto 应用）
 - 来源按服务识别：Mojang、Fabric、Forge、NeoForge、Modrinth、CurseForge 各有自己的官方地址及镜像规则；Authlib 保留独立的官方优先回退顺序。移除全局 `ApiProvider` 和应用旧 `api_provider` 字段；旧配置加载时忽略该字段，现有三类下载源偏好保持不变。
 - core 不保存代理、User-Agent 或密钥单例。宿主构建 reqwest 客户端，再传入 `HttpTransport`/认证提供者；OAuth Client ID 逐次传入，CurseForge key 由应用通过 `MinecraftApiClient::with_curseforge_api_key` 交给服务来源解析。
 
-`io/net/http/transport.rs` 管理 HTTP 客户端和协议回退，执行包含 URL 与请求头的 `RequestTarget`；同目录的 `resources.rs` 管理共享配额、限速与统计。传输层不依赖文件下载器或具体服务认证规则。
-`Downloader` 与 `MinecraftApiClient` 分别依赖 `HttpTransport`；传入同一传输对象的克隆即共享网络状态，独立构造传输对象则隔离。`downloader()` 同步创建带有来源解析函数的文件下载器。裸下载器只请求给定地址，不持有 Minecraft endpoint 或 provider。
-文件下载器继续负责 Range、重试、文件校验、落盘和进度；API 客户端继续负责元数据解析与缓存。`minecraft/sources.rs` 统一管理各服务的官方地址、镜像映射、候选顺序、CurseForge 请求头和 Mojang 自动源探测状态；API 请求与文件下载共用规则。下载参数与错误类型的领域依赖留待后续拆分。
+`io/net/http/transport.rs` 管理 HTTP 客户端和协议回退，执行包含 URL 与请求头的 `RequestTarget`；同目录的 `resources.rs` 管理共享配额、限速与统计。传输层不依赖具体文件传输实现或服务认证规则。
+`DownloadManager` 与 `MinecraftApiClient` 共享 `HttpTransport`；传入同一传输对象的克隆即共享网络状态，独立构造传输对象则隔离。`download_manager()` 将来源解析函数注入 aria2-rust 下载服务。下载服务只负责文件传输，不持有 Minecraft endpoint 或 provider。
+aria2-rust `DownloadManager` 负责分段连接、来源回退、重试、断点续传、文件校验、落盘和进度；API 客户端继续负责元数据解析与缓存。`minecraft/sources.rs` 统一管理各服务的官方地址、镜像映射、候选顺序、CurseForge 请求头和 Mojang 自动源探测状态；API 请求与文件下载共用规则。下载参数与错误类型的领域依赖留待后续拆分。
 更换代理时应用先预建客户端并保存配置，再替换该实例的客户端；已发出的请求继续使用原客户端。
 core 的任务取消、游戏会话、在线整合包暂存及 Terracotta 桥接仍有进程级运行状态；它们不保存启动器设置，任务 ID 需在进程内唯一。
-CurseForge Key 与微软 Client ID 由应用分别按需读取。服务来源解析仅为匹配的官方 HTTPS 目标附带 `x-api-key`；每个镜像、官方回退候选独立生成请求头，API 请求、下载重试及 Range 共用该请求目标。凭据归各 API 客户端所有，不绑定共享传输对象；core 不读取环境变量。
+CurseForge Key 与微软 Client ID 由应用分别按需读取。服务来源解析仅为匹配的官方 HTTPS 目标附带 `x-api-key`；每个镜像、官方回退候选独立生成请求头，API 请求与 aria2-rust 下载重试共用该请求目标。凭据归各 API 客户端所有，不绑定共享传输对象；core 不读取环境变量。
 
 ### 持久化与错误
 
@@ -107,7 +107,7 @@ CurseForge Key 与微软 Client ID 由应用分别按需读取。服务来源解
 历史迁移的阶段统计、旧源码路径、旧测试数量及“尚未实现”清单不再作为当前状态依据。新增能力以实际调用链和对应验收为准：
 
 - 本地 HTTP、假 Java 进程、路径/持久化测试验证行为与失败路径；不等于真实游戏、外部账户或局域网已验收。
-- Range 续传限于当前会话，不支持跨应用重启恢复；切换来源可能重新传输整份文件。
+- aria2-rust 使用固定的 `.part` 与 `.aria2` 暂存文件支持失败后和应用重启后的续传，校验通过后再发布为目标文件；来源不支持续传时遵循 aria2 的重新请求策略。
 - 尚未接入消费者的设置保持禁用或明确提示。跨窗口 revision/通知、配置导入导出、DoH、部分平台窗口能力等旧规划不视为已完成。
 - 配置重置、隔离切换、导入等不得隐式删除或搬移游戏数据；远程主页不能获得任意本地文件/命令能力。
 

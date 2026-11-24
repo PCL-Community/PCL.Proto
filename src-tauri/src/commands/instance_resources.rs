@@ -26,7 +26,7 @@ pub async fn repair_instance_files(instance_directory: std::path::PathBuf) -> Re
             .map_err(|error| error.to_string())?,
         None => pcl_core::minecraft::version::McRuleContext::current(),
     };
-    let downloader = ConfigManager::instance().api_client.downloader();
+    let downloader = ConfigManager::instance().api_client.download_manager();
     instance
         .repair_client_jar(&downloader)
         .await

@@ -802,7 +802,7 @@ impl LaunchOption {
 
     pub async fn prepare_natives(
         &mut self,
-        downloader: &crate::io::download::Downloader,
+        downloader: &crate::io::download::DownloadManager,
     ) -> anyhow::Result<std::path::PathBuf> {
         if self.extras.renderer != 0 && cfg!(windows) {
             let path = self
@@ -840,7 +840,7 @@ impl LaunchOption {
 
     pub async fn prepare_legacy_assets(
         &self,
-        downloader: &crate::io::download::Downloader,
+        downloader: &crate::io::download::DownloadManager,
     ) -> anyhow::Result<()> {
         crate::minecraft::installer::prepare_legacy_assets(
             &self.version_details,

@@ -475,7 +475,7 @@ mod download_tests {
             crate::io::net::http::api_client::MinecraftApiClient::with_test_endpoints(
                 mirror.bases.clone(),
             )
-            .downloader(),
+            .download_manager(),
             |_| {},
         )
         .await
@@ -512,7 +512,7 @@ mod download_tests {
                     crate::io::net::http::api_client::MinecraftApiClient::with_test_endpoints(
                         mirror.bases.clone()
                     )
-                    .downloader(),
+                    .download_manager(),
                     |_| {}
                 )
                 .await
@@ -537,7 +537,7 @@ mod download_tests {
             crate::io::net::http::api_client::MinecraftApiClient::with_test_endpoints(
                 mirror.bases.clone(),
             )
-            .downloader(),
+            .download_manager(),
             progress,
         ));
         tokio::time::timeout(Duration::from_secs(5), started.notified())
@@ -644,7 +644,7 @@ async fn official_native_java25_install_smoke() {
     let runtime = install::install(
         req,
         temp.0.clone(),
-        crate::io::download::Downloader::default(),
+        crate::io::download::DownloadManager::default(),
         |_| {},
     )
     .await

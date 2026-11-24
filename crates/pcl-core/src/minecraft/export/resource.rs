@@ -1,6 +1,6 @@
 use crate::events::EventSink;
 use crate::{
-    io::download::{DownloadConfig, Downloader, TaskItemReport, TaskStatus},
+    io::download::{DownloadConfig, DownloadManager, TaskItemReport, TaskStatus},
     minecraft::version::DownloadFile,
 };
 use anyhow::{Context, ensure};
@@ -38,7 +38,7 @@ pub(crate) fn validate(info: &DownloadFile) -> anyhow::Result<()> {
 }
 
 pub(crate) async fn download_to(
-    downloader: &Downloader,
+    downloader: &DownloadManager,
     info: DownloadFile,
     destination: PathBuf,
     task_id: i32,
@@ -70,7 +70,7 @@ pub(crate) async fn download_to(
 }
 
 pub async fn download_resource(
-    downloader: &Downloader,
+    downloader: &DownloadManager,
     info: DownloadFile,
     destination: PathBuf,
     task_id: i32,

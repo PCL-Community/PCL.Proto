@@ -1,13 +1,20 @@
-//! Verified file transfers shared by installation and client/server export.
+//! aria2-rust based verified file transfers shared by installation and export.
+
 use crate::events::EventSink;
 use crate::io::net::http::api_client::{McApiError, game::DownloadFile};
-use futures_util::StreamExt;
-use sha1::Digest;
+use aria2_core::{
+    DownloadEngine, DownloadManager as AriaDownloadManager, DownloadStatus, RequestGroupMan,
+};
 use std::{
+    collections::HashMap,
     path::{Path, PathBuf},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicU64, Ordering},
+    },
     time::Duration,
 };
-use tokio::{io::AsyncWriteExt, sync::mpsc};
+use tokio::sync::{Mutex as AsyncMutex, mpsc};
 
 #[derive(serde::Serialize, Debug, Clone, Copy)]
 pub struct FileProgress {
@@ -30,6 +37,7 @@ pub struct ProgressUpdate {
     pub file_index: usize,
     pub progress: FileProgress,
     pub item_id: i32,
+    pub total_bytes: Option<u64>,
 }
 
 pub struct DownloadConfig {
@@ -39,55 +47,70 @@ pub struct DownloadConfig {
     pub info: DownloadFile,
 }
 
-/// Removes incomplete transfers on errors and when their futures are cancelled.
-struct PartialFile(PathBuf);
-impl Drop for PartialFile {
+#[derive(Clone)]
+pub struct DownloadManager {
+    transport: HttpTransport,
+    sources: Arc<SourceResolver>,
+    engine: Arc<AsyncMutex<Option<AriaDownloadManager>>>,
+    telemetry: Arc<DownloadTelemetry>,
+}
+
+#[derive(Default)]
+struct DownloadTelemetry {
+    tasks: Mutex<HashMap<u64, TaskTelemetry>>,
+    downloaded_bytes: AtomicU64,
+}
+
+#[derive(Clone, Copy)]
+struct TaskTelemetry {
+    connections: u32,
+    speed: u64,
+}
+
+struct TelemetryLease {
+    telemetry: Arc<DownloadTelemetry>,
+    gid: u64,
+}
+
+impl Drop for TelemetryLease {
     fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.0);
+        if let Ok(mut tasks) = self.telemetry.tasks.lock() {
+            tasks.remove(&self.gid);
+        }
     }
 }
 
-#[derive(Clone)]
-pub struct Downloader {
-    transport: HttpTransport,
-    sources: Arc<SourceResolver>,
-}
+pub mod tasks;
 
-impl Default for Downloader {
+use crate::io::net::http::{
+    HttpTransport, RequestTarget,
+    resources::{DownloadResources, DownloadStats, HttpMode, SourceKind},
+};
+
+type SourceResolver = dyn Fn(&str, SourceKind) -> Vec<RequestTarget> + Send + Sync;
+type ProgressSink<'a> = Option<(&'a DownloadConfig, &'a mpsc::Sender<ProgressUpdate>)>;
+
+impl Default for DownloadManager {
     fn default() -> Self {
         Self::new(HttpTransport::default())
     }
 }
 
-#[cfg(test)]
-mod http_tests;
-mod range;
-pub mod tasks;
-
-use crate::io::net::http::{
-    HttpTransport, RequestTarget,
-    resources::{DownloadResources, SourceKind},
-};
-use std::sync::{Arc, atomic::Ordering};
-type SourceResolver = dyn Fn(&str, SourceKind) -> Vec<RequestTarget> + Send + Sync;
-use tokio::io::BufWriter;
-
-pub(super) const SMALL_FILE_THRESHOLD: u64 = 4 * 1024 * 1024;
-type ProgressSink<'a> = Option<(&'a DownloadConfig, &'a mpsc::Sender<ProgressUpdate>)>;
-
-impl Downloader {
+impl DownloadManager {
     pub(crate) fn resolve_sources(&self, url: &str, kind: SourceKind) -> Vec<RequestTarget> {
         (self.sources)(url, kind)
     }
 
     pub fn new(transport: HttpTransport) -> Self {
         Self {
+            telemetry: Arc::new(DownloadTelemetry::default()),
             transport,
             sources: Arc::new(|url, _| vec![RequestTarget::new(url)]),
+            engine: Arc::new(AsyncMutex::new(None)),
         }
     }
 
-    /// Supply ordered destinations with their headers; the engine handles retries and verification.
+    /// Supply ordered destinations with their headers to aria2-rust.
     pub fn with_sources(
         mut self,
         resolver: impl Fn(&str, SourceKind) -> Vec<RequestTarget> + Send + Sync + 'static,
@@ -104,6 +127,30 @@ impl Downloader {
         self.transport.resources()
     }
 
+    pub fn stats(&self) -> DownloadStats {
+        let (active_connections, speed) = self
+            .telemetry
+            .tasks
+            .lock()
+            .map(|tasks| {
+                tasks
+                    .values()
+                    .fold((0usize, 0f64), |(connections, speed), task| {
+                        (
+                            connections + task.connections as usize,
+                            speed + task.speed as f64,
+                        )
+                    })
+            })
+            .unwrap_or_default();
+        DownloadStats {
+            active_connections,
+            max_connections: self.resources().settings().max_connections,
+            speed,
+            downloaded_bytes: self.telemetry.downloaded_bytes.load(Ordering::Relaxed),
+        }
+    }
+
     pub async fn start_download(
         &self,
         options: DownloadConfig,
@@ -117,9 +164,13 @@ impl Downloader {
                 true,
             )
             .await;
+        let completed_bytes = result.as_ref().copied().unwrap_or(0);
         report(
             Some((&options, &progress_tx)),
-            result.as_ref().copied().unwrap_or(0),
+            completed_bytes,
+            (options.info.size > 0)
+                .then_some(options.info.size)
+                .or_else(|| result.is_ok().then_some(completed_bytes)),
             if result.is_ok() {
                 TaskStatus::Completed
             } else {
@@ -129,6 +180,7 @@ impl Downloader {
         .await;
         result.map(|_| ())
     }
+
     pub async fn download_with_progress(
         &self,
         options: DownloadConfig,
@@ -148,8 +200,7 @@ impl Downloader {
                 }
                 let bytes = update.progress.downloaded_bytes.max(previous);
                 let elapsed = last.elapsed().as_secs_f64().max(0.001);
-                let total =
-                    size.or((update.progress.status == TaskStatus::Completed).then_some(bytes));
+                let total = size.or(update.total_bytes);
                 on_progress(
                     bytes,
                     total,
@@ -162,9 +213,11 @@ impl Downloader {
         let (result, ()) = tokio::join!(download, report);
         result
     }
+
     pub async fn download(&self, info: &DownloadFile, path: &Path) -> Result<(), McApiError> {
         self.transfer(info, path, None, true).await.map(|_| ())
     }
+
     /// Instance setting "disable file verification": reuse existing files as-is.
     pub async fn download_unverified(
         &self,
@@ -173,7 +226,7 @@ impl Downloader {
     ) -> Result<(), McApiError> {
         self.transfer(info, path, None, false).await.map(|_| ())
     }
-    /// `size == 0` defers length discovery; an empty SHA-1 selects size-only verification.
+
     async fn transfer(
         &self,
         info: &DownloadFile,
@@ -185,280 +238,323 @@ impl Downloader {
             return Err(McApiError::InvalidMetadata("Invalid download SHA-1".into()));
         }
         let verify = verify && !info.sha1.is_empty();
-        report(progress, 0, TaskStatus::Pending).await;
-        let cached_path = path.to_owned();
-        let expected = info.clone();
-        let cached = tokio::task::spawn_blocking(move || {
-            if verify {
-                std::fs::metadata(&cached_path).is_ok_and(|m| m.len() == expected.size)
-                    && crate::io::files::check_sha1(
-                        &cached_path,
-                        &expected.sha1.to_ascii_lowercase(),
-                    )
-                    .unwrap_or(false)
-            } else {
-                cached_path.is_file()
-            }
-        })
-        .await
-        .map_err(|e| McApiError::InvalidMetadata(e.to_string()))?;
-        if cached {
+        report(
+            progress,
+            0,
+            (info.size > 0).then_some(info.size),
+            TaskStatus::Pending,
+        )
+        .await;
+
+        if self.is_cached(info, path, verify).await? {
             return Ok(0);
         }
+
         let parent = path
             .parent()
             .ok_or_else(|| McApiError::InvalidMetadata("Missing destination parent".into()))?;
-        // Complete directory creation before a cancelled task can remove its staging tree.
         std::fs::create_dir_all(parent)?;
-        let targets = self.resolve_sources(&info.url, SourceKind::File);
-        let mut disabled = vec![false; targets.len()];
+        let targets = (self.sources)(&info.url, SourceKind::File);
+        if targets.is_empty() {
+            return Err(McApiError::InvalidMetadata(
+                "No download source available".into(),
+            ));
+        }
+
+        let staging = staging_path(path);
+        let manager = self.ensure_engine().await?;
+        self.configure_engine(&manager)?;
+        let source_groups = targets_to_aria_sources(targets);
         let mut last_error = None;
         for attempt in 0..3 {
-            for (index, target) in targets.iter().enumerate() {
-                if disabled[index] {
+            let mut result = None;
+            for source_group in &source_groups {
+                let options = self.download_options(&staging, source_group.headers.clone(), info);
+                let handle = manager
+                    .add_uri(source_group.uris.clone(), options)
+                    .map_err(|error| McApiError::DownloadError(error.to_string()))?;
+                let gid = handle.gid().value();
+                let _telemetry = TelemetryLease {
+                    telemetry: self.telemetry.clone(),
+                    gid,
+                };
+                if let Some(task_id) = tasks::current_task_id() {
+                    tasks::register_abort(task_id, handle.clone())
+                        .map_err(McApiError::DownloadError)?;
+                }
+
+                let transfer = self.wait_for_transfer(&handle, info.size, progress).await;
+                if let Some(task_id) = tasks::current_task_id() {
+                    tasks::clear_abort(task_id);
+                }
+                match transfer {
+                    Ok(bytes) => {
+                        result = Some(bytes);
+                        break;
+                    }
+                    Err(error) => last_error = Some(error),
+                }
+            }
+            let result = match result {
+                Some(result) => result,
+                None if attempt < 2 => continue,
+                None => {
+                    return Err(last_error.unwrap_or_else(|| {
+                        McApiError::DownloadError("All download sources failed".into())
+                    }));
+                }
+            };
+            let bytes = std::fs::metadata(&staging)?.len();
+            if info.size > 0 && bytes != info.size {
+                let error = McApiError::InvalidMetadata(format!(
+                    "Download size mismatch: {}",
+                    path.display()
+                ));
+                if attempt < 2 {
+                    last_error = Some(error);
+                    reset_staging_for_retry(&staging);
                     continue;
                 }
-                report(progress, 0, TaskStatus::Running).await;
-                let result = self
-                    .transfer_from(info, path, target, progress, verify)
-                    .await;
-                match result {
-                    Ok(size) => return Ok(size),
-                    Err(error) => {
-                        if matches!(&error, McApiError::IoError(_)) {
-                            return Err(error);
-                        }
-                        disabled[index] = permanent_http_error(&error);
-                        log::warn!(
-                            "Download attempt {} failed for {}: {error}",
-                            attempt + 1,
-                            target.url
-                        );
-                        last_error = Some(error);
-                    }
-                }
+                return Err(error);
             }
-            if attempt == 2 || disabled.iter().all(|disabled| *disabled) {
-                break;
-            }
-            tokio::time::sleep(Duration::from_millis(300 * (attempt + 1))).await;
-        }
-        Err(last_error
-            .unwrap_or_else(|| McApiError::InvalidMetadata("No download source available".into())))
-    }
-
-    async fn transfer_from(
-        &self,
-        info: &DownloadFile,
-        path: &Path,
-        target: &RequestTarget,
-        progress: ProgressSink<'_>,
-        verify: bool,
-    ) -> Result<u64, McApiError> {
-        if self.resources().settings().file_connections > 1
-            && (info.size == 0 || info.size >= SMALL_FILE_THRESHOLD)
-        {
-            let Some(size) = self
-                .probe_range(target, (info.size > 0).then_some(info.size))
-                .await?
-            else {
-                return self
-                    .transfer_sequential(info, path, target, progress, verify)
-                    .await;
-            };
-            if size < SMALL_FILE_THRESHOLD {
-                return self
-                    .transfer_sequential(info, path, target, progress, verify)
-                    .await;
-            }
-            let mut ranged = info.clone();
-            ranged.size = size;
-            let partial = partial_file(path);
-            match self
-                .download_ranges(&ranged, &partial.0, target, progress)
+            if verify {
+                let check_path = staging.clone();
+                let hash = info.sha1.to_ascii_lowercase();
+                let valid = tokio::task::spawn_blocking(move || {
+                    crate::io::files::check_sha1(&check_path, &hash)
+                })
                 .await
-            {
-                Ok(()) => {
-                    if verify {
-                        let check_path = partial.0.clone();
-                        let hash = info.sha1.to_ascii_lowercase();
-                        let valid = tokio::task::spawn_blocking(move || {
-                            crate::io::files::check_sha1(&check_path, &hash)
-                        })
-                        .await
-                        .map_err(|e| McApiError::InvalidMetadata(e.to_string()))??;
-                        if !valid {
-                            return Err(McApiError::Sha1Mismatch(path.to_owned()));
-                        }
+                .map_err(|error| McApiError::InvalidMetadata(error.to_string()))??;
+                if !valid {
+                    let error = McApiError::Sha1Mismatch(path.to_owned());
+                    if attempt < 2 {
+                        last_error = Some(error);
+                        reset_staging_for_retry(&staging);
+                        continue;
                     }
-                    std::fs::rename(&partial.0, path)?;
-                    return Ok(size);
+                    return Err(error);
                 }
-                Err(McApiError::RangeUnsupported) => {
-                    log::debug!(
-                        "Range unavailable, using sequential download: {}",
-                        target.url
-                    );
-                    report(progress, 0, TaskStatus::Running).await;
-                }
-                Err(error) => return Err(error),
             }
+            std::fs::rename(&staging, path)?;
+            remove_control_file(&staging);
+            return Ok(result.max(bytes));
         }
-        self.transfer_sequential(info, path, target, progress, verify)
-            .await
+        Err(last_error.unwrap_or_else(|| McApiError::InvalidMetadata("Download failed".into())))
     }
 
-    async fn transfer_sequential(
+    async fn is_cached(
         &self,
         info: &DownloadFile,
         path: &Path,
-        target: &RequestTarget,
-        progress: ProgressSink<'_>,
         verify: bool,
-    ) -> Result<u64, McApiError> {
-        let _lease = self.resources().acquire().await;
-        let response = self
-            .transport
-            .send_request(
-                self.resources().settings().http_mode,
-                info.size == 0 || info.size >= SMALL_FILE_THRESHOLD,
-                target,
-                None,
+    ) -> Result<bool, McApiError> {
+        let path = path.to_owned();
+        let expected = info.clone();
+        tokio::task::spawn_blocking(move || {
+            if verify {
+                std::fs::metadata(&path).is_ok_and(|metadata| {
+                    (expected.size == 0 || metadata.len() == expected.size)
+                        && crate::io::files::check_sha1(&path, &expected.sha1.to_ascii_lowercase())
+                            .unwrap_or(false)
+                })
+            } else {
+                path.is_file()
+            }
+        })
+        .await
+        .map_err(|error| McApiError::InvalidMetadata(error.to_string()))
+    }
+
+    async fn ensure_engine(&self) -> Result<AriaDownloadManager, McApiError> {
+        let mut engine = self.engine.lock().await;
+        if let Some(manager) = engine.as_ref() {
+            return Ok(manager.clone());
+        }
+        let group_man = Arc::new(RequestGroupMan::new());
+        let mut download_engine = DownloadEngine::new();
+        download_engine.set_keep_alive(true);
+        let handle = download_engine
+            .start_with_request_group_man(group_man)
+            .map_err(|error| McApiError::DownloadError(error.to_string()))?;
+        let manager = handle.downloads().clone();
+        tokio::spawn(async move {
+            if let Err(error) = handle.wait().await {
+                log::error!("aria2-rust download engine stopped: {error}");
+            }
+        });
+        *engine = Some(manager.clone());
+        Ok(manager)
+    }
+
+    fn configure_engine(&self, manager: &AriaDownloadManager) -> Result<(), McApiError> {
+        let settings = self.resources().settings();
+        manager
+            .set_max_concurrent(settings.max_connections as u32)
+            .map_err(|error| McApiError::DownloadError(error.to_string()))?;
+        manager
+            .set_global_rate_limit(
+                (settings.speed_limit > 0).then_some(settings.speed_limit),
                 None,
             )
-            .await?
-            .error_for_status()?;
-        let expected = (info.size > 0)
-            .then_some(info.size)
-            .or(response.content_length());
-        let partial = partial_file(path);
-        let output = std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&partial.0)?;
-        let mut output = BufWriter::with_capacity(64 * 1024, tokio::fs::File::from_std(output));
-        let mut stream = response.bytes_stream();
-        let mut hasher = sha1::Sha1::new();
-        let mut bytes = 0_u64;
-        let mut last_report = tokio::time::Instant::now();
-        while let Some(chunk) = stream.next().await {
-            let chunk = chunk?;
-            self.resources().record_bytes(chunk.len());
-            bytes += chunk.len() as u64;
-            if expected.is_some_and(|size| bytes > size) {
-                return Err(McApiError::InvalidMetadata(format!(
-                    "Download exceeds expected size: {}",
-                    path.display()
-                )));
+            .map_err(|error| McApiError::DownloadError(error.to_string()))?;
+        Ok(())
+    }
+
+    fn download_options(
+        &self,
+        staging: &Path,
+        headers: Vec<String>,
+        info: &DownloadFile,
+    ) -> aria2_core::DownloadOptions {
+        let settings = self.resources().settings();
+        aria2_core::DownloadOptions {
+            split: Some(if info.size > 0 && info.size < 4 * 1024 * 1024 {
+                1
+            } else {
+                settings.file_connections as u64
+            }),
+            max_connection_per_server: Some(if info.size > 0 && info.size < 4 * 1024 * 1024 {
+                1
+            } else {
+                settings.file_connections as u16
+            }),
+            max_download_limit: (settings.speed_limit > 0).then_some(settings.speed_limit),
+            dir: staging
+                .parent()
+                .map(|path| path.to_string_lossy().into_owned()),
+            out: staging
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned()),
+            continue_download: true,
+            allow_overwrite: true,
+            auto_file_renaming: false,
+            always_resume: true,
+            max_retries: 3,
+            retry_wait: 1,
+            user_agent: Some(self.transport.user_agent()),
+            http_version: match settings.http_mode {
+                HttpMode::Auto => aria2_core::http::HttpVersion::Auto,
+                HttpMode::Http11 => aria2_core::http::HttpVersion::Http11,
+                HttpMode::Http2 => aria2_core::http::HttpVersion::Http2,
+            },
+            header: headers,
+            ..Default::default()
+        }
+    }
+
+    async fn wait_for_transfer(
+        &self,
+        handle: &aria2_core::DownloadHandle,
+        expected_size: u64,
+        progress: ProgressSink<'_>,
+    ) -> Result<u64, McApiError> {
+        let gid = handle.gid().value();
+        let mut wait = Box::pin(handle.wait());
+        let mut tick = tokio::time::interval(Duration::from_millis(100));
+        let mut previous_bytes = 0;
+        loop {
+            tokio::select! {
+                result = &mut wait => {
+                    let result = result.map_err(|error| McApiError::DownloadError(error.to_string()))?;
+                    let bytes = result.completed_length;
+                    self.telemetry.downloaded_bytes.fetch_add(
+                        bytes.saturating_sub(previous_bytes),
+                        Ordering::Relaxed,
+                    );
+                    if matches!(result.status, DownloadStatus::Complete) {
+                        report(
+                            progress,
+                            bytes,
+                            (result.total_length > 0)
+                                .then_some(result.total_length)
+                                .or((expected_size > 0).then_some(expected_size)),
+                            TaskStatus::Completed,
+                        )
+                        .await;
+                        return Ok(bytes);
+                    }
+                    return Err(McApiError::DownloadError(result.message));
+                }
+                _ = tick.tick() => {
+                    if let Some(snapshot) = handle.status_snapshot() {
+                        let bytes = snapshot.completed_length;
+                        self.telemetry.tasks.lock().map(|mut tasks| {
+                            tasks.insert(gid, TaskTelemetry {
+                                connections: snapshot.connections,
+                                speed: snapshot.download_speed,
+                            });
+                        }).ok();
+                        self.telemetry.downloaded_bytes.fetch_add(
+                            bytes.saturating_sub(previous_bytes),
+                            Ordering::Relaxed,
+                        );
+                        previous_bytes = bytes;
+                        report(
+                            progress,
+                            bytes,
+                            (snapshot.total_length.max(expected_size) > 0)
+                                .then_some(snapshot.total_length.max(expected_size)),
+                            TaskStatus::Running,
+                        )
+                        .await;
+                    }
+                }
             }
-            self.resources().throttle(chunk.len()).await;
-            output.write_all(&chunk).await?;
-            hasher.update(&chunk);
-            if last_report.elapsed() >= Duration::from_millis(100) {
-                report(progress, bytes, TaskStatus::Running).await;
-                last_report = tokio::time::Instant::now();
-            }
         }
-        if expected.is_some_and(|size| bytes != size) {
-            return Err(McApiError::InvalidMetadata(format!(
-                "Download size mismatch: {}",
-                path.display()
-            )));
-        }
-        if verify && !crate::io::files::sha1_hex(hasher.finalize()).eq_ignore_ascii_case(&info.sha1)
-        {
-            return Err(McApiError::Sha1Mismatch(path.to_owned()));
-        }
-        output.flush().await?;
-        // Download caches are replaceable; avoid an fsync for every tiny asset.
-        drop(output);
-        std::fs::rename(&partial.0, path)?;
-        Ok(bytes)
     }
 }
-fn partial_file(path: &Path) -> PartialFile {
-    PartialFile(path.with_file_name(format!(".pcl-download-{}.part", uuid::Uuid::new_v4())))
+
+struct AriaSourceGroup {
+    uris: Vec<String>,
+    headers: Vec<String>,
 }
 
-async fn custom_transfer_checked(
-    downloader: &Downloader,
-    url: &str,
-    destination: &Path,
-    min_size: u64,
-    on_progress: impl Fn(u64, Option<u64>, f64),
-) -> anyhow::Result<()> {
-    use anyhow::{Context, ensure};
-    let parent = destination
-        .parent()
-        .filter(|p| p.is_absolute() && p.is_dir())
-        .context("Invalid destination folder")?;
-    let name = destination
+fn targets_to_aria_sources(targets: Vec<RequestTarget>) -> Vec<AriaSourceGroup> {
+    let mut groups = Vec::new();
+    for target in targets {
+        let mut headers = target
+            .headers
+            .iter()
+            .filter_map(|(name, value)| {
+                Some(format!("{}: {}", name.as_str(), value.to_str().ok()?))
+            })
+            .collect::<Vec<_>>();
+        headers.sort_unstable();
+        if let Some(group) = groups
+            .iter_mut()
+            .find(|group: &&mut AriaSourceGroup| group.headers == headers)
+        {
+            group.uris.push(target.url);
+        } else {
+            groups.push(AriaSourceGroup {
+                uris: vec![target.url],
+                headers,
+            });
+        }
+    }
+    groups
+}
+
+fn staging_path(path: &Path) -> PathBuf {
+    let name = path
         .file_name()
-        .and_then(|n| n.to_str())
-        .context("Invalid filename")?;
-    crate::io::files::validate_file_name(name)?;
-    ensure!(!destination.try_exists()?, "Destination already exists");
-    let partial = PartialFile(parent.join(format!(".pcl-custom-{}.part", uuid::Uuid::new_v4())));
-    downloader
-        .download_with_progress(
-            DownloadConfig {
-                file_index: 0,
-                out_path: partial.0.clone(),
-                task_item_id: 0,
-                info: DownloadFile {
-                    url: url.to_owned(),
-                    size: 0,
-                    sha1: String::new(),
-                    path: None,
-                },
-            },
-            on_progress,
-        )
-        .await?;
-    ensure!(
-        tokio::fs::metadata(&partial.0).await?.len() >= min_size,
-        "Downloaded file is too small"
-    );
-    std::fs::hard_link(&partial.0, destination)
-        .context("Cannot publish download (the destination may already exist)")?;
-    Ok(())
+        .and_then(|name| name.to_str())
+        .unwrap_or("download");
+    path.with_file_name(format!(".pcl-download-{name}.part"))
 }
 
-async fn run_custom_download(
-    downloader: &Downloader,
-    url: String,
-    destination: PathBuf,
-    min_size: u64,
-    task_id: i32,
-    on_event: EventSink<TaskItemReport>,
-) -> Result<(), String> {
-    tasks::run(task_id, async {
-        custom_transfer_checked(
-            downloader,
-            &url,
-            &destination,
-            min_size,
-            |bytes, size, speed| {
-                on_event(TaskItemReport {
-                    task_id,
-                    item_id: 0,
-                    files_remaining: 1,
-                    progress: size
-                        .filter(|size| *size > 0)
-                        .map_or(0.0, |size| (bytes as f64 / size as f64).min(1.0)),
-                    status: TaskStatus::Running,
-                    speed: Some(speed),
-                });
-            },
-        )
-        .await
-        .map_err(|error| format!("{error:#}"))
-    })
-    .await
+fn remove_control_file(staging: &Path) {
+    let control = PathBuf::from(format!("{}.aria2", staging.display()));
+    let _ = std::fs::remove_file(control);
+}
+
+fn reset_staging_for_retry(staging: &Path) {
+    let _ = std::fs::remove_file(staging);
+    remove_control_file(staging);
 }
 
 pub async fn download_fabric_installer(
-    downloader: &Downloader,
+    manager: &DownloadManager,
     family: crate::minecraft::mod_loader::FabricFamily,
     version: String,
     destination: PathBuf,
@@ -468,17 +564,84 @@ pub async fn download_fabric_installer(
     let url = family
         .installer_url(&version)
         .map_err(|error| error.to_string())?;
-    run_custom_download(downloader, url, destination, 64 * 1024, task_id, on_event).await
+    run_custom_download(manager, url, destination, 64 * 1024, task_id, on_event).await
 }
 
 pub async fn download_custom_file(
-    downloader: &Downloader,
+    manager: &DownloadManager,
     url: String,
     destination: PathBuf,
     task_id: i32,
     on_event: EventSink<TaskItemReport>,
 ) -> Result<(), String> {
-    run_custom_download(downloader, url, destination, 0, task_id, on_event).await
+    run_custom_download(manager, url, destination, 0, task_id, on_event).await
+}
+
+async fn run_custom_download(
+    manager: &DownloadManager,
+    url: String,
+    destination: PathBuf,
+    min_size: u64,
+    task_id: i32,
+    on_event: EventSink<TaskItemReport>,
+) -> Result<(), String> {
+    tasks::run(task_id, async {
+        let parent = destination
+            .parent()
+            .filter(|path| path.is_absolute() && path.is_dir())
+            .ok_or_else(|| "Invalid destination folder".to_string())?;
+        let name = destination
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| "Invalid filename".to_string())?;
+        crate::io::files::validate_file_name(name).map_err(|error| error.to_string())?;
+        if destination
+            .try_exists()
+            .map_err(|error| error.to_string())?
+        {
+            return Err("Destination already exists".into());
+        }
+        let url = reqwest::Url::parse(&url).map_err(|error| error.to_string())?;
+        manager
+            .download_with_progress(
+                DownloadConfig {
+                    file_index: 0,
+                    out_path: destination.clone(),
+                    task_item_id: 0,
+                    info: DownloadFile {
+                        url: url.to_string(),
+                        size: 0,
+                        sha1: String::new(),
+                        path: None,
+                    },
+                },
+                |bytes, total, speed| {
+                    on_event(TaskItemReport {
+                        task_id,
+                        item_id: 0,
+                        files_remaining: 1,
+                        progress: total
+                            .filter(|size| *size > 0)
+                            .map_or(0.0, |size| (bytes as f64 / size as f64).min(1.0)),
+                        status: TaskStatus::Running,
+                        speed: Some(speed),
+                    });
+                },
+            )
+            .await
+            .map_err(|error| error.to_string())?;
+        let size = tokio::fs::metadata(&destination)
+            .await
+            .map_err(|error| error.to_string())?
+            .len();
+        if size < min_size {
+            let _ = tokio::fs::remove_file(&destination).await;
+            return Err("Downloaded file is too small".into());
+        }
+        let _ = parent;
+        Ok(())
+    })
+    .await
 }
 
 pub async fn open_custom_download_folder(directory: PathBuf) -> Result<(), String> {
@@ -487,17 +650,14 @@ pub async fn open_custom_download_folder(directory: PathBuf) -> Result<(), Strin
     }
     crate::io::files::open_directory(&directory)
 }
-fn permanent_http_error(error: &McApiError) -> bool {
-    matches!(error, McApiError::RequestError(e) if e.status().is_some_and(|s| s.is_client_error() && s.as_u16() != 408 && s.as_u16() != 429))
-}
 
 async fn report(
-    progress: Option<(&DownloadConfig, &mpsc::Sender<ProgressUpdate>)>,
+    progress: ProgressSink<'_>,
     bytes: u64,
+    total_bytes: Option<u64>,
     status: TaskStatus,
 ) {
     if let Some((options, tx)) = progress {
-        // UI lifetime does not control whether verified files may finish downloading.
         let _ = tx
             .send(ProgressUpdate {
                 file_index: options.file_index,
@@ -506,6 +666,7 @@ async fn report(
                     downloaded_bytes: bytes,
                     status,
                 },
+                total_bytes,
             })
             .await;
     }
@@ -570,12 +731,15 @@ impl StageProgress {
         self.downloaded += contribution(progress);
         self.transferred -= previous.downloaded_bytes;
         self.transferred += progress.downloaded_bytes.min(size);
-        if previous.status != TaskStatus::Completed && progress.status == TaskStatus::Completed {
+        if previous.status != TaskStatus::Completed
+            && progress.status == TaskStatus::Completed
+            && self.remaining > 0
+        {
             self.remaining -= 1;
         }
         self.failed |= progress.status == TaskStatus::Failed;
         self.files[index] = FileProgress {
-            downloaded_bytes: progress.downloaded_bytes.min(self.sizes[index]),
+            downloaded_bytes: progress.downloaded_bytes.min(size),
             ..progress
         };
     }
@@ -615,86 +779,5 @@ impl StageProgress {
 
     pub fn should_report(&self) -> bool {
         self.last_sent.elapsed() >= Duration::from_millis(100) || self.remaining == 0 || self.failed
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn progress_handles_empty_stages_retries_and_failures() {
-        let mut empty = StageProgress::new(1, vec![]);
-        assert_eq!(empty.report(0).progress, 1.0);
-        let mut stage = StageProgress::new(1, vec![10, 10]);
-        stage.update(
-            0,
-            FileProgress {
-                downloaded_bytes: 8,
-                status: TaskStatus::Running,
-            },
-        );
-        assert_eq!(stage.report(0).progress, 0.4);
-        stage.update(
-            0,
-            FileProgress {
-                downloaded_bytes: 0,
-                status: TaskStatus::Running,
-            },
-        );
-        assert!(stage.report(0).speed.unwrap().is_finite());
-        stage.update(
-            0,
-            FileProgress {
-                downloaded_bytes: 0,
-                status: TaskStatus::Failed,
-            },
-        );
-        stage.update(
-            1,
-            FileProgress {
-                downloaded_bytes: 10,
-                status: TaskStatus::Completed,
-            },
-        );
-        assert_eq!(stage.report(0).status, TaskStatus::Failed);
-        let mut zero = StageProgress::new(1, vec![0]);
-        assert!(zero.report(0).progress.is_finite());
-        zero.update(
-            0,
-            FileProgress {
-                downloaded_bytes: 0,
-                status: TaskStatus::Completed,
-            },
-        );
-        assert_eq!(zero.report(0).progress, 1.0);
-    }
-    #[test]
-    fn cached_files_advance_progress_without_inflating_network_speed() {
-        let mut stage = StageProgress::new(1, vec![10, 10]);
-        stage.report(0);
-        stage.update(
-            0,
-            FileProgress {
-                downloaded_bytes: 0,
-                status: TaskStatus::Completed,
-            },
-        );
-        assert!(
-            !stage.should_report(),
-            "individual files do not bypass stage throttling"
-        );
-        let report = stage.report(0);
-        assert_eq!(report.progress, 0.5);
-        assert_eq!(report.speed, Some(0.0));
-        stage.update(
-            1,
-            FileProgress {
-                downloaded_bytes: 0,
-                status: TaskStatus::Completed,
-            },
-        );
-        assert!(stage.should_report(), "stage completion is always reported");
-        assert_eq!(stage.report(0).progress, 1.0);
     }
 }

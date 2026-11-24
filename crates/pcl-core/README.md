@@ -34,7 +34,7 @@ Terracotta 来自同仓 Git 子模块，使用 AGPL-3.0；使用 Git CLI/镜像�
 
 ```rust,no_run
 use pcl_core::io::{
-    download::Downloader,
+    download::DownloadManager,
     net::http::{
         HttpTransport,
         resources::DownloadOptions,
@@ -49,16 +49,16 @@ let build = || reqwest::Client::builder()
 let transport = HttpTransport::new(build().build()?, build().http1_only().build()?);
 transport.resources().configure(DownloadOptions::default())?;
 let api = MinecraftApiClient::new(transport.clone());
-let downloader = Downloader::new(transport);
+let download_manager = DownloadManager::new(transport);
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-`HttpTransport::default()` 提供中性 UA 和默认 HTTP 客户端。传输对象的 `clone()` 共享连接配额、限速、统计和客户端；独立构造则隔离。`Downloader` 与 `MinecraftApiClient` 分别持有传输对象，不再通过文件下载器发送 API 请求。`api.downloader()` 将同一套服务来源规则注入下载器，并共享传输对象。直接构造的 `Downloader` 只请求给定 URL，其他宿主可以用 `with_sources` 提供候选请求解析函数，返回包含 URL 与请求头的 `RequestTarget`。
+`HttpTransport::default()` 提供中性 UA 和默认 HTTP 客户端。传输对象的 `clone()` 共享连接配额、限速、统计和客户端；独立构造则隔离。`DownloadManager` 与 `MinecraftApiClient` 分别持有传输对象，API 请求继续由客户端处理。`api.download_manager()` 将同一套服务来源规则注入 aria2-rust 文件传输，并共享传输对象。直接构造的 `DownloadManager` 只请求给定 URL，其他宿主可以用 `with_sources` 提供候选请求解析函数，返回包含 URL 与请求头的 `RequestTarget`。
 `transport.replace_clients(client, http1)` 让后续请求使用新客户端，已发出的请求不受影响。
 
 `minecraft/sources.rs` 按具体服务解析来源：Mojang、Fabric、Forge、NeoForge 各有自己的官方与 BMCL 映射；Modrinth、CurseForge 各有自己的官方与 MCIM 映射。文件、版本元数据和社区资源偏好决定各组候选地址的顺序，不再使用全局 `ApiProvider`。Authlib 的官方优先地址规则也归该模块管理，保留原有缓存与校验流程。
 
-开启 `community` 后可用 `api.fetch_with_modrinth(endpoint)` 和 `api.fetch_with_curseforge(endpoint)`。宿主通过 `MinecraftApiClient::with_curseforge_api_key` 提供密钥；`minecraft/sources.rs` 在解析每个候选目标后，仅为匹配的官方 HTTPS 主机附带 `x-api-key`。镜像候选不附带官方密钥。API 与 `api.downloader()` 共用该规则；直接构造的下载器只使用调用方提供的请求目标。即使共享传输对象，独立 API 客户端的缓存与凭据也相互隔离。下载选项只控制网络功能，不包含安装后选中实例等界面策略。
+开启 `community` 后可用 `api.fetch_with_modrinth(endpoint)` 和 `api.fetch_with_curseforge(endpoint)`。宿主通过 `MinecraftApiClient::with_curseforge_api_key` 提供密钥；`minecraft/sources.rs` 在解析每个候选目标后，仅为匹配的官方 HTTPS 主机附带 `x-api-key`。镜像候选不附带官方密钥。API 与 `api.download_manager()` 共用该规则；直接构造的下载管理器只使用调用方提供的请求目标。即使共享传输对象，独立 API 客户端的缓存与凭据也相互隔离。下载选项只控制网络功能，不包含安装后选中实例等界面策略。
 
 ## 安装
 
@@ -106,9 +106,9 @@ let mut option = LaunchOption::new(LaunchRequest {
     extras: LaunchExtras::default(),
     helpers: LaunchHelpers::default(),
 })?;
-let downloader = api.downloader();
-option.prepare_natives(&downloader).await?;
-option.prepare_legacy_assets(&downloader).await?;
+let download_manager = api.download_manager();
+option.prepare_natives(&download_manager).await?;
+option.prepare_legacy_assets(&download_manager).await?;
 let child = option.launch_checked()?;
 ```
 
@@ -118,7 +118,7 @@ let child = option.launch_checked()?;
 ## Java、认证与皮肤
 
 - `minecraft::java::scan(known, roots).await` 扫描系统 Java 和指定目录。`JavaManager` 合并列表，`JavaRequirements` 判断版本兼容性；选择偏好、相对启动器目录与扫描节流由宿主负责。
-- `minecraft::java::install::install(requirements, runtime_dir, downloader, progress)` 安装 Mojang Java，不写启动器配置。
+- `minecraft::java::install::install(requirements, runtime_dir, download_manager, progress)` 安装 Mojang Java，不写启动器配置。
 - 开启 `microsoft` 后，`MicrosoftProvider::new(client, client_id)` 提供微软登录；`AuthlibProvider::new(client, server)` 和 `Connect::new(client, discovery, client_id, server)` 不依赖该 feature。它们接收自己的客户端与参数，设备码交互、角色选择、档案持久化由宿主编排。
 - `minecraft::profile::skin` 提供用户名/UUID 查询、皮肤会话读取与纹理解码、默认皮肤选择和文件校验；开启 `microsoft` 后提供皮肤上传。宿主提供 HTTP 客户端，并负责缓存、令牌刷新、文件选择和界面展示。
 - Connect 未指定 Client ID 时可使用服务发现文档的共享 ID；PCL 在皮肤站注册的 ID 留在应用，第三方应提供自己的注册信息。

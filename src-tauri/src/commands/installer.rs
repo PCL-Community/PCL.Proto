@@ -30,7 +30,10 @@ fn apply_game_language(directory: &std::path::Path, language: &str) -> Result<()
         Err(error) => return Err(error.to_string()),
     };
     lines.retain(|line| !line.starts_with("lang:"));
-    lines.push(format!("lang:{}", language.to_ascii_lowercase().replace('-', "_")));
+    lines.push(format!(
+        "lang:{}",
+        language.to_ascii_lowercase().replace('-', "_")
+    ));
     std::fs::write(&options, lines.join("\n") + "\n").map_err(|error| error.to_string())
 }
 
@@ -202,7 +205,7 @@ pub async fn prepare_online_modpack(
     on_event: tauri::ipc::Channel<TaskItemReport>,
 ) -> Result<OnlinePackInfo, String> {
     modpack::prepare_online_modpack(
-        &client.downloader(),
+        &client.download_manager(),
         info,
         task_id,
         super::channel_sink(on_event),

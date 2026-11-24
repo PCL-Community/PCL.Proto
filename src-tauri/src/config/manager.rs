@@ -94,7 +94,9 @@ pub async fn set_launch_preferences(
 }
 
 pub async fn get_system_preferences() -> crate::config::system::SystemPreferences {
-    crate::config::system::SystemPreferences::from(&*ConfigManager::instance().app_state.lock().await)
+    crate::config::system::SystemPreferences::from(
+        &*ConfigManager::instance().app_state.lock().await,
+    )
 }
 
 pub async fn set_system_preferences(
@@ -292,7 +294,11 @@ impl ConfigManager {
             api_client: MinecraftApiClient::new({
                 let (client, http1) = crate::config::network::clients(&Default::default())
                     .map_err(|_| ConfigManagerError::ApiClientBuildError)?;
-                pcl_core::io::net::http::HttpTransport::new(client, http1)
+                pcl_core::io::net::http::HttpTransport::new_with_user_agent(
+                    client,
+                    http1,
+                    crate::config::metadata::constants::USER_AGENT,
+                )
             })
             .with_curseforge_api_key(crate::secrets::CURSEFORGE_API_KEY.as_deref()),
         };
@@ -612,7 +618,8 @@ fn normalize_loaded_paths(state: &mut AppState) {
     }
 }
 
-pub(crate) fn valid_loaded_state(state: &AppState) -> bool {    !(state
+pub(crate) fn valid_loaded_state(state: &AppState) -> bool {
+    !(state
         .log_max_lines
         .is_some_and(|lines| lines != 0 && !(50..=2000).contains(&lines))
         || state

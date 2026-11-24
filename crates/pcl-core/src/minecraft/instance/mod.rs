@@ -294,7 +294,7 @@ impl McInstance {
     /// Download the client JAR when metadata provides a verifiable source.
     pub async fn repair_client_jar(
         &self,
-        downloader: &crate::io::download::Downloader,
+        downloader: &crate::io::download::DownloadManager,
     ) -> anyhow::Result<()> {
         let chain = read_version_chain(&self.json_path, &self.global_dir)?;
         if uses_forge_instance_jar(&chain, &self.version)

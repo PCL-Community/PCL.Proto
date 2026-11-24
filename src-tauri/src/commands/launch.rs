@@ -244,7 +244,12 @@ async fn launch_game_inner(
         let _ = progress.send(LaunchProgress::new(stage, value, downloading));
     };
     // CE `Config.Debug.AddRandomDelay`：启动前随机等待 0.5–3 秒，用于模拟真实环境的加载波动。
-    if ConfigManager::instance().app_state.lock().await.random_delay {
+    if ConfigManager::instance()
+        .app_state
+        .lock()
+        .await
+        .random_delay
+    {
         let delay = 500
             + SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -304,7 +309,7 @@ async fn launch_game_inner(
         option = option.with_window_size(size.width as usize, size.height as usize);
     }
     let config = ConfigManager::instance();
-    let downloader = config.api_client.downloader();
+    let downloader = config.api_client.download_manager();
     report("Minecraft.Launch.Stage.CompleteFiles", 0.35, true);
     wait_for_launch(&mut ticket.receiver, option.prepare_natives(&downloader))
         .await?
@@ -321,14 +326,12 @@ async fn launch_game_inner(
         == pcl_core::minecraft::profile::ProfileType::Offline
         && option.account().offline_skin.is_some()
     {
-        let client = ConfigManager::instance().api_client.http_client();
+        let download_manager = config.api_client.download_manager();
         let jar = wait_for_launch(
             &mut ticket.receiver,
             pcl_core::minecraft::launch::authlib::ensure_jar(
-                &client,
-                &ConfigManager::instance()
-                    .config_dir()
-                    .join("authlib-injector.jar"),
+                &download_manager,
+                &config.config_dir().join("authlib-injector.jar"),
             ),
         )
         .await??;
@@ -516,12 +519,11 @@ async fn prepare_authlib(option: LaunchOption) -> Result<LaunchOption, String> {
     ) {
         return Ok(option);
     }
+    let config = ConfigManager::instance();
     let agent = pcl_core::minecraft::launch::authlib::prepare(
-        &ConfigManager::instance().api_client.http_client(),
+        &config.api_client.download_manager(),
         &profile,
-        &ConfigManager::instance()
-            .config_dir()
-            .join("authlib-injector.jar"),
+        &config.config_dir().join("authlib-injector.jar"),
     )
     .await?;
     Ok(option.with_authlib(agent))
@@ -566,7 +568,7 @@ pub async fn export_launch_script(
         }
         option = option.with_window_size(size.width as usize, size.height as usize);
     }
-    let downloader = ConfigManager::instance().api_client.downloader();
+    let downloader = ConfigManager::instance().api_client.download_manager();
     option
         .prepare_natives(&downloader)
         .await

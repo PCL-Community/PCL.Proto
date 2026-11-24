@@ -236,6 +236,11 @@ fn source_urls(
             return vec![overridden];
         }
     }
+    if url.starts_with("https://authlib-injector.yushi.moe/")
+        || url.starts_with("https://bmclapi2.bangbang93.com/mirrors/authlib-injector/")
+    {
+        return authlib_sources(url);
+    }
     // Each community service retains its own official origin.
     #[cfg(feature = "community")]
     if let Some(mirror) = mod_mirror_url(url) {

@@ -11,6 +11,8 @@ use std::{
 use base64::Engine;
 use sha2::Digest;
 
+use crate::io::download::DownloadManager;
+use crate::io::net::http::api_client::game::DownloadFile;
 use crate::minecraft::launch::launcher::AuthlibAgent;
 use crate::minecraft::profile::McProfile;
 
@@ -18,10 +20,11 @@ use crate::minecraft::sources::{AUTHLIB_METADATA, authlib_sources};
 
 /// 第三方档案启动前的准备：确保 jar 存在，并预取认证服务器元数据。
 pub async fn prepare(
-    client: &reqwest::Client,
+    download_manager: &DownloadManager,
     profile: &McProfile,
     jar: &Path,
 ) -> Result<AuthlibAgent, String> {
+    let client = download_manager.transport().http_client();
     let server = profile
         .server
         .as_deref()
@@ -33,7 +36,7 @@ pub async fn prepare(
         })
         .filter(|server| !server.is_empty())
         .ok_or("第三方档案没有认证服务器地址")?;
-    let jar = ensure_jar(client, jar).await?;
+    let jar = ensure_jar(download_manager, jar).await?;
     // CE 把服务器根地址的元数据 Base64 后交给 agent，避免游戏启动时再请求一次。
     let metadata = client
         .get(&server)
@@ -58,7 +61,10 @@ pub async fn prepare(
 /// 按 latest.json 的 sha256 校验本地 jar，需要时重新下载。
 ///
 /// 元数据取不到时沿用已有 jar（与 CE 一致：下载信息失败只记日志）。
-pub async fn ensure_jar(client: &reqwest::Client, path: &Path) -> Result<PathBuf, String> {
+pub async fn ensure_jar(
+    download_manager: &DownloadManager,
+    path: &Path,
+) -> Result<PathBuf, String> {
     static DOWNLOAD_LOCK: LazyLock<tokio::sync::Mutex<()>> =
         LazyLock::new(|| tokio::sync::Mutex::new(()));
     let _guard = DOWNLOAD_LOCK.lock().await;
@@ -68,7 +74,7 @@ pub async fn ensure_jar(client: &reqwest::Client, path: &Path) -> Result<PathBuf
             .await
             .map_err(|error| error.to_string())?;
     }
-    let latest = fetch_latest(client).await;
+    let latest = fetch_latest(&download_manager.transport().http_client()).await;
     let expected = match &latest {
         Some((_, sha256)) => sha256.clone(),
         None => {
@@ -82,7 +88,8 @@ pub async fn ensure_jar(client: &reqwest::Client, path: &Path) -> Result<PathBuf
         return Ok(path);
     }
     let (urls, _) = latest.unwrap();
-    download(client, &urls, &path, &expected).await?;
+    let _ = std::fs::remove_file(&path);
+    download(download_manager, &urls, &path, &expected).await?;
     Ok(path)
 }
 
@@ -112,14 +119,14 @@ async fn fetch_latest(client: &reqwest::Client) -> Option<(Vec<String>, String)>
 }
 
 async fn download(
-    client: &reqwest::Client,
+    download_manager: &DownloadManager,
     urls: &[String],
     path: &Path,
     expected: &str,
 ) -> Result<(), String> {
     let mut last_error = "没有可用的 Authlib-Injector 下载地址".to_owned();
     for url in urls {
-        match download_once(client, url, path).await {
+        match download_once(download_manager, url, path).await {
             Ok(()) => {
                 if sha256_of(path).as_deref() == Some(expected) {
                     return Ok(());
@@ -133,31 +140,23 @@ async fn download(
     Err(last_error)
 }
 
-async fn download_once(client: &reqwest::Client, url: &str, path: &Path) -> Result<(), String> {
-    let response = client
-        .get(url)
-        .send()
+async fn download_once(
+    download_manager: &DownloadManager,
+    url: &str,
+    path: &Path,
+) -> Result<(), String> {
+    download_manager
+        .download(
+            &DownloadFile {
+                url: url.to_owned(),
+                size: 0,
+                sha1: String::new(),
+                path: None,
+            },
+            path,
+        )
         .await
-        .map_err(|error| format!("下载 Authlib-Injector 失败：{error}"))?;
-    if !response.status().is_success() {
-        return Err(format!(
-            "下载 Authlib-Injector 失败：HTTP {}",
-            response.status()
-        ));
-    }
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|error| format!("下载 Authlib-Injector 失败：{error}"))?;
-    // 先写临时文件再改名，避免半截文件被当成有效缓存。
-    let temp = path.with_extension("jar.downloading");
-    tokio::fs::write(&temp, &bytes)
-        .await
-        .map_err(|error| error.to_string())?;
-    tokio::fs::rename(&temp, path)
-        .await
-        .map_err(|error| error.to_string())?;
-    Ok(())
+        .map_err(|error| format!("下载 Authlib-Injector 失败：{error}"))
 }
 
 fn sha256_of(path: &Path) -> Option<String> {

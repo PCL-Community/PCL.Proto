@@ -25,6 +25,7 @@ impl RequestTarget {
 pub struct HttpTransport {
     resources: Arc<DownloadResources>,
     clients: Arc<RwLock<(reqwest::Client, reqwest::Client)>>,
+    user_agent: Arc<RwLock<String>>,
 }
 
 impl Default for HttpTransport {
@@ -35,10 +36,27 @@ impl Default for HttpTransport {
 
 impl HttpTransport {
     pub fn new(client: reqwest::Client, http1: reqwest::Client) -> Self {
+        Self::new_with_user_agent(
+            client,
+            http1,
+            concat!("pcl-core/", env!("CARGO_PKG_VERSION")),
+        )
+    }
+
+    pub fn new_with_user_agent(
+        client: reqwest::Client,
+        http1: reqwest::Client,
+        user_agent: impl Into<String>,
+    ) -> Self {
         Self {
             clients: Arc::new(RwLock::new((client, http1))),
+            user_agent: Arc::new(RwLock::new(user_agent.into())),
             resources: Arc::new(DownloadResources::default()),
         }
+    }
+
+    pub fn user_agent(&self) -> String {
+        self.user_agent.read().unwrap().clone()
     }
 
     /// Clones share clients, bandwidth budget and connection quota.
@@ -55,24 +73,30 @@ impl HttpTransport {
         *self.clients.write().unwrap() = (client, http1);
     }
 
+    pub fn replace_clients_with_user_agent(
+        &self,
+        client: reqwest::Client,
+        http1: reqwest::Client,
+        user_agent: impl Into<String>,
+    ) {
+        self.replace_clients(client, http1);
+        *self.user_agent.write().unwrap() = user_agent.into();
+    }
+
     /// Sends a GET; callers hold the quota lease and account for streamed response bytes.
     pub async fn send_request(
         &self,
         mode: HttpMode,
         large: bool,
         target: &RequestTarget,
-        range: Option<(u64, u64)>,
         timeout: Option<Duration>,
     ) -> Result<reqwest::Response, reqwest::Error> {
         let url = &target.url;
         let send = |client: &reqwest::Client| {
             let mut request = client.get(url).headers(target.headers.clone());
-            // Range 和大文件保留原始字节；普通请求交给客户端协商压缩。
-            if large || range.is_some() {
+            // 大文件保留原始字节；普通请求交给客户端协商压缩。
+            if large {
                 request = request.header(reqwest::header::ACCEPT_ENCODING, "identity");
-            }
-            if let Some((start, end)) = range {
-                request = request.header(reqwest::header::RANGE, format!("bytes={start}-{end}"));
             }
             if let Some(timeout) = timeout {
                 request = request.timeout(timeout);
@@ -118,7 +142,7 @@ mod tests {
     use std::io::Write;
 
     #[tokio::test]
-    async fn compression_preserves_range_and_large_transfer_bytes() {
+    async fn compression_preserves_metadata_and_large_transfer_bytes() {
         const BODY: &[u8] = b"{\"data\":[{\"id\":1}]}";
         let mut gzip = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
         gzip.write_all(BODY).unwrap();
@@ -150,18 +174,16 @@ mod tests {
         let base = format!("http://{}", listener.local_addr().unwrap());
         let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
         let transport = HttpTransport::default();
-        for (mode, large, range, path) in [
-            (HttpMode::Auto, false, None, "metadata"),
-            (HttpMode::Http11, false, None, "metadata"),
-            (HttpMode::Auto, true, None, "file"),
-            (HttpMode::Auto, false, Some((0, 0)), "file"),
+        for (mode, large, path) in [
+            (HttpMode::Auto, false, "metadata"),
+            (HttpMode::Http11, false, "metadata"),
+            (HttpMode::Auto, true, "file"),
         ] {
             let response = transport
                 .send_request(
                     mode,
                     large,
                     &RequestTarget::new(format!("{base}/{path}")),
-                    range,
                     Some(Duration::from_secs(5)),
                 )
                 .await

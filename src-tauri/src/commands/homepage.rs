@@ -39,7 +39,6 @@ pub async fn load_custom_homepage(url: Option<String>) -> Result<String, String>
                 settings.http_mode,
                 false,
                 &pcl_core::io::net::http::RequestTarget::new(url.as_str()),
-                None,
                 Some(std::time::Duration::from_secs(20)),
             )
             .await

@@ -8,35 +8,91 @@ use std::{
 };
 use tokio::sync::{Mutex as AsyncMutex, watch};
 
+type Abort = Arc<dyn Fn() + Send + Sync>;
+
 struct Task {
     cancelled: watch::Sender<bool>,
     blocking: Arc<AsyncMutex<()>>,
     committed: AtomicBool,
+    abort: Mutex<Option<Abort>>,
 }
 
 static TASKS: LazyLock<Mutex<HashMap<i32, Arc<Task>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
+
+tokio::task_local! {
+    static CURRENT_TASK_ID: i32;
+}
+
+fn new_task() -> Arc<Task> {
+    Arc::new(Task {
+        cancelled: watch::channel(false).0,
+        blocking: Arc::new(AsyncMutex::new(())),
+        committed: AtomicBool::new(false),
+        abort: Mutex::new(None),
+    })
+}
+
+pub fn current_task_id() -> Option<i32> {
+    CURRENT_TASK_ID.try_with(|task_id| *task_id).ok()
+}
 
 pub fn prepare_download_task(task_id: i32) -> Result<(), String> {
     let mut tasks = TASKS.lock().map_err(|e| e.to_string())?;
     if tasks.contains_key(&task_id) {
         return Err("Download task already exists".into());
     }
-    tasks.insert(
-        task_id,
-        Arc::new(Task {
-            cancelled: watch::channel(false).0,
-            blocking: Arc::new(AsyncMutex::new(())),
-            committed: AtomicBool::new(false),
-        }),
-    );
+    tasks.insert(task_id, new_task());
     Ok(())
 }
 
+pub fn register_abort(task_id: i32, handle: aria2_core::DownloadHandle) -> Result<(), String> {
+    let abort: Abort = Arc::new(move || {
+        let _ = handle.force_remove();
+    });
+    let task = TASKS
+        .lock()
+        .map_err(|e| e.to_string())?
+        .get(&task_id)
+        .cloned();
+    if let Some(task) = task {
+        let cancelled = *task.cancelled.borrow();
+        *task.abort.lock().map_err(|e| e.to_string())? = Some(abort.clone());
+        if cancelled && !task.committed.load(Ordering::Acquire) {
+            abort();
+        }
+    }
+    Ok(())
+}
+
+pub fn clear_abort(task_id: i32) {
+    if let Ok(tasks) = TASKS.lock()
+        && let Some(task) = tasks.get(&task_id)
+        && let Ok(mut abort) = task.abort.lock()
+    {
+        *abort = None;
+    }
+}
+
+fn abort(task: &Task) {
+    if let Ok(abort) = task.abort.lock()
+        && let Some(abort) = abort.as_ref()
+    {
+        abort();
+    }
+}
+
 pub fn cancel_download_task(task_id: i32) -> Result<(), String> {
-    let tasks = TASKS.lock().map_err(|e| e.to_string())?;
-    if let Some(task) = tasks.get(&task_id) {
+    let task = TASKS
+        .lock()
+        .map_err(|e| e.to_string())?
+        .get(&task_id)
+        .cloned();
+    if let Some(task) = task {
         task.cancelled.send_replace(true);
+        if !task.committed.load(Ordering::Acquire) {
+            abort(&task);
+        }
     }
     Ok(())
 }
@@ -53,16 +109,7 @@ pub async fn run<T>(
 ) -> Result<T, String> {
     let task = {
         let mut tasks = TASKS.lock().map_err(|e| e.to_string())?;
-        tasks
-            .entry(task_id)
-            .or_insert_with(|| {
-                Arc::new(Task {
-                    cancelled: watch::channel(false).0,
-                    blocking: Arc::new(AsyncMutex::new(())),
-                    committed: AtomicBool::new(false),
-                })
-            })
-            .clone()
+        tasks.entry(task_id).or_insert_with(|| new_task()).clone()
     };
     struct Remove(i32, Arc<Task>);
     impl Drop for Remove {
@@ -78,19 +125,26 @@ pub async fn run<T>(
     }
     let _remove = Remove(task_id, task.clone());
     let mut cancelled = task.cancelled.subscribe();
-    tokio::pin!(future);
-    let result = tokio::select! {
-        biased;
-        _ = async { if !*cancelled.borrow() { let _ = cancelled.changed().await; } } => {
-            let _guard = task.blocking.lock().await;
-            if task.committed.load(Ordering::Acquire) {
-                future.await
-            } else {
-                Err("Download cancelled".into())
+    let result = CURRENT_TASK_ID
+        .scope(task_id, async move {
+            tokio::pin!(future);
+            tokio::select! {
+                biased;
+                _ = async { if !*cancelled.borrow() { let _ = cancelled.changed().await; } } => {
+                    if !task.committed.load(Ordering::Acquire) {
+                        abort(&task);
+                    }
+                    let _guard = task.blocking.lock().await;
+                    if task.committed.load(Ordering::Acquire) {
+                        future.await
+                    } else {
+                        Err("Download cancelled".into())
+                    }
+                }
+                result = &mut future => result,
             }
-        }
-        result = &mut future => result,
-    };
+        })
+        .await;
     result
 }
 

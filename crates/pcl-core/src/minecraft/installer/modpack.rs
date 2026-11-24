@@ -191,7 +191,7 @@ impl Modpack {
         &self,
         directory: &Path,
         name: &str,
-        downloader: &Downloader,
+        downloader: &DownloadManager,
         task_id: i32,
         on_event: &EventSink<TaskItemReport>,
     ) -> anyhow::Result<()> {
@@ -329,7 +329,7 @@ pub async fn inspect_modpack(path: PathBuf) -> Result<PackInfo, String> {
 
 #[cfg(feature = "community")]
 pub async fn prepare_online_modpack(
-    downloader: &crate::io::download::Downloader,
+    downloader: &crate::io::download::DownloadManager,
     info: DownloadFile,
     task_id: i32,
     on_event: EventSink<TaskItemReport>,
@@ -351,7 +351,7 @@ pub async fn prepare_online_modpack(
 
 #[cfg(feature = "community")]
 async fn prepare_online_archive(
-    downloader: &crate::io::download::Downloader,
+    downloader: &crate::io::download::DownloadManager,
     info: DownloadFile,
     task_id: i32,
     on_event: &EventSink<TaskItemReport>,
@@ -637,7 +637,7 @@ mod tests {
         };
         let events = event_sink(|_| ());
         let prepared = prepare_online_archive(
-            &crate::io::download::Downloader::default(),
+            &crate::io::download::DownloadManager::default(),
             info,
             -2000,
             &events,
