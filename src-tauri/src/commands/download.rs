@@ -6,13 +6,14 @@ use std::path::PathBuf;
 use crate::config::manager::ConfigManager;
 
 use pcl_core::io::{
-    download::{self, TaskItemReport, tasks},
+    download::{self, DownloadManager, TaskItemReport, tasks},
     net::http::resources::DownloadStats,
 };
 use pcl_core::minecraft::mod_loader::FabricFamily;
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn download_fabric_installer(
+    manager: tauri::State<'_, DownloadManager>,
     family: FabricFamily,
     version: String,
     destination: PathBuf,
@@ -20,7 +21,7 @@ pub async fn download_fabric_installer(
     on_event: tauri::ipc::Channel<TaskItemReport>,
 ) -> Result<(), String> {
     download::download_fabric_installer(
-        &ConfigManager::instance().api_client.download_manager(),
+        &manager,
         family,
         version,
         destination,
@@ -32,6 +33,7 @@ pub async fn download_fabric_installer(
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn download_custom_file(
+    manager: tauri::State<'_, DownloadManager>,
     url: String,
     destination: PathBuf,
     task_id: i32,
@@ -39,7 +41,7 @@ pub async fn download_custom_file(
 ) -> Result<(), String> {
     let url = crate::external::validate(&url)?;
     download::download_custom_file(
-        &ConfigManager::instance().api_client.download_manager(),
+        &manager,
         url,
         destination,
         task_id,
@@ -69,17 +71,25 @@ pub fn release_download_task(task_id: i32) {
 }
 
 #[tauri::command]
-pub fn get_download_stats() -> DownloadStats {
-    ConfigManager::instance().api_client.download_stats()
+pub fn get_download_stats(manager: tauri::State<'_, DownloadManager>) -> DownloadStats {
+    manager.stats()
 }
 
 #[tauri::command]
-pub async fn set_download_settings(settings: DownloadSettings) -> Result<DownloadSettings, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn set_download_settings(
+    manager: tauri::State<'_, DownloadManager>,
+    settings: DownloadSettings,
+) -> Result<DownloadSettings, String> {
+    let options = settings.options();
+    let http_options = settings.http_options();
+    let result = tokio::task::spawn_blocking(move || {
         ConfigManager::instance().update_download_settings(settings)
     })
     .await
-    .map_err(|error| error.to_string())?
+    .map_err(|error| error.to_string())??;
+    manager.resources().configure(options)?;
+    manager.transport().configure_http(http_options);
+    Ok(result)
 }
 
 #[tauri::command]
@@ -99,6 +109,7 @@ mod tests {
     #[test]
     fn custom_download_ipc_accepts_task_argument_names() {
         let app = tauri::test::mock_builder()
+            .manage(DownloadManager::default())
             .invoke_handler(tauri::generate_handler![download_custom_file])
             .build(tauri::test::mock_context(tauri::test::noop_assets()))
             .unwrap();

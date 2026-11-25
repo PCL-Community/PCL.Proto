@@ -1,6 +1,6 @@
 use crate::events::EventSink;
 use crate::{
-    io::download::{DownloadConfig, DownloadManager, TaskItemReport, TaskStatus},
+    io::download::{DownloadManager, DownloadTask, TaskItemReport, TaskStatus},
     minecraft::version::DownloadFile,
 };
 use anyhow::{Context, ensure};
@@ -38,15 +38,15 @@ pub(crate) fn validate(info: &DownloadFile) -> anyhow::Result<()> {
 }
 
 pub(crate) async fn download_to(
-    downloader: &DownloadManager,
+    download_manager: &DownloadManager,
     info: DownloadFile,
     destination: PathBuf,
     task_id: i32,
     on_event: &EventSink<TaskItemReport>,
 ) -> anyhow::Result<()> {
-    downloader
+    download_manager
         .download_with_progress(
-            DownloadConfig {
+            DownloadTask {
                 file_index: 0,
                 out_path: destination,
                 task_item_id: 0,
@@ -70,7 +70,7 @@ pub(crate) async fn download_to(
 }
 
 pub async fn download_resource(
-    downloader: &DownloadManager,
+    download_manager: &DownloadManager,
     info: DownloadFile,
     destination: PathBuf,
     task_id: i32,
@@ -88,7 +88,7 @@ pub async fn download_resource(
                 "Destination already exists or is invalid"
             );
             let temp = TempFile(parent.join(format!(".pcl-resource-{}.tmp", uuid::Uuid::new_v4())));
-            download_to(downloader, info, temp.0.clone(), task_id, &on_event).await?;
+            download_to(download_manager, info, temp.0.clone(), task_id, &on_event).await?;
             std::fs::hard_link(&temp.0, &destination)
                 .context("Cannot publish resource (the destination may already exist)")?;
             Ok::<(), anyhow::Error>(())

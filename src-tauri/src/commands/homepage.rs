@@ -31,12 +31,18 @@ pub async fn load_custom_homepage(url: Option<String>) -> Result<String, String>
             return Err("Invalid homepage URL".into());
         }
         use futures_util::StreamExt;
-        let settings = ConfigManager::instance().api_client.resources().settings();
+        let http_mode = crate::config::manager::ConfigManager::instance()
+            .api_client
+            .transport()
+            .http_options()
+            .read()
+            .unwrap()
+            .http_mode;
         let response = crate::config::manager::ConfigManager::instance()
             .api_client
             .transport()
             .send_request(
-                settings.http_mode,
+                http_mode,
                 false,
                 &pcl_core::io::net::http::RequestTarget::new(url.as_str()),
                 Some(std::time::Duration::from_secs(20)),

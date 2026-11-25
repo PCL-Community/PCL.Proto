@@ -11,7 +11,7 @@ use serde::{
     de::{DeserializeOwned, Error},
 };
 use std::{
-    path::{Path, PathBuf},
+    path::Path,
     time::{Duration, Instant},
 };
 
@@ -32,14 +32,8 @@ pub enum McApiError {
     #[error("API key for {0} is not configured")]
     MissingApiKey(&'static str),
 
-    #[error("Download failed: {0}")]
-    DownloadError(String),
-
     #[error("Version not found: {0}")]
     VersionNotFound(String),
-
-    #[error("sha1 check failed: {0}")]
-    Sha1Mismatch(PathBuf),
 
     #[error("plugin type {0:?} not supported")]
     PluginMismatch(crate::minecraft::mod_loader::ModLoaderType),
@@ -219,7 +213,6 @@ pub struct MinecraftApiClient {
     transport: HttpTransport,
     pub(super) sources: Sources,
     cache: DashMap<String, (Instant, serde_json::Value)>,
-    downloads: crate::io::download::DownloadManager,
     ttl: Duration,
 }
 
@@ -250,8 +243,7 @@ impl MinecraftApiClient {
     /// Create a new MinecraftApiClient
     pub fn new(transport: HttpTransport) -> Self {
         Self {
-            sources: Sources::new(transport.resources().clone()),
-            downloads: crate::io::download::DownloadManager::new(transport.clone()),
+            sources: Sources::new(transport.http_options()),
             transport,
             cache: DashMap::new(),
             ttl: Duration::from_secs(60 * 5),
@@ -278,21 +270,6 @@ impl MinecraftApiClient {
         self.transport.http_client()
     }
 
-    pub fn resources(&self) -> &std::sync::Arc<crate::io::net::http::resources::DownloadResources> {
-        self.transport.resources()
-    }
-
-    pub fn download_manager(&self) -> crate::io::download::DownloadManager {
-        let sources = self.sources.clone();
-        self.downloads
-            .clone()
-            .with_sources(move |url, kind| sources.resolve(url, kind))
-    }
-
-    pub fn download_stats(&self) -> crate::io::net::http::resources::DownloadStats {
-        self.downloads.stats()
-    }
-
     #[cfg(test)]
     pub(crate) fn with_test_endpoints(endpoints: ApiEndpoints) -> Self {
         Self::with_test_transport(endpoints, HttpTransport::default())
@@ -303,6 +280,11 @@ impl MinecraftApiClient {
         let mut client = Self::new(transport);
         client.sources.endpoints = endpoints;
         client
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_endpoints(&self) -> ApiEndpoints {
+        self.sources.endpoints.clone()
     }
 
     /// Get data from a URL
@@ -317,12 +299,11 @@ impl MinecraftApiClient {
         validate: impl Fn(&[u8]) -> McApiResult<T>,
     ) -> McApiResult<T> {
         use futures_util::StreamExt;
-        let settings = self.resources().settings();
+        let settings = self.transport.http_options().read().unwrap().clone();
         let targets = self.sources.resolve(url, SourceKind::File);
         let mut last_error = None;
         for target in targets {
             let actual_url = &target.url;
-            let _lease = self.resources().acquire().await;
             let started = Instant::now();
             let result = async {
                 let response = self
@@ -339,8 +320,6 @@ impl MinecraftApiClient {
                 let mut bytes = Vec::new();
                 while let Some(chunk) = stream.next().await {
                     let chunk = chunk?;
-                    self.resources().record_bytes(chunk.len());
-                    self.resources().throttle(chunk.len()).await;
                     bytes.extend_from_slice(&chunk);
                 }
                 validate(&bytes)
@@ -635,20 +614,17 @@ mod tests {
     #[cfg(feature = "community")]
     #[test]
     fn curseforge_credentials_follow_resolved_destinations() {
-        use crate::io::net::http::resources::{DownloadOptions, SourcePreference};
+        use crate::io::net::http::resources::{HttpOptions, SourcePreference};
         let transport = HttpTransport::default();
         let first = MinecraftApiClient::new(transport.clone())
             .with_curseforge_api_key(Some("  first-key  "));
         let second =
             MinecraftApiClient::new(transport.clone()).with_curseforge_api_key(Some("second-key"));
         let plain = MinecraftApiClient::new(transport);
-        first
-            .resources()
-            .configure(DownloadOptions {
-                community_source: SourcePreference::Mirror,
-                ..Default::default()
-            })
-            .unwrap();
+        first.transport().configure_http(HttpOptions {
+            community_source: SourcePreference::Mirror,
+            ..Default::default()
+        });
         for official in [
             "https://api.curseforge.com/v1/mods/1",
             "https://edge.forgecdn.net/files/a.jar",
@@ -657,12 +633,7 @@ mod tests {
             "https://media.cursecdn.com/files/a.jar",
         ] {
             let targets = first.sources.resolve(official, SourceKind::File);
-            let downloaded = first
-                .download_manager()
-                .resolve_sources(official, SourceKind::File);
-            for (target, download) in targets.iter().zip(&downloaded) {
-                assert_eq!(target.url, download.url);
-                assert_eq!(target.headers, download.headers);
+            for target in &targets {
                 if target.url == official {
                     assert_eq!(target.headers["x-api-key"], "first-key");
                     assert!(target.headers["x-api-key"].is_sensitive());
@@ -710,69 +681,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn source_updates_reach_existing_downloaders_without_crossing_services() {
-        use crate::io::net::http::resources::{DownloadOptions, SourceKind, SourcePreference};
-        let api = MinecraftApiClient::new(HttpTransport::default());
-        let downloader = api.download_manager();
-        let library = "https://libraries.minecraft.net/org/test.jar";
-        let manifest = format!(
-            "https://piston-meta.mojang.com/{}",
-            game::VERSION_MANIFEST_ENDPOINT
-        );
-        assert_eq!(
-            downloader.resolve_sources(library, SourceKind::File)[0].url,
-            library
-        );
-        api.sources
-            .record_response(&manifest, Duration::from_secs(5), false);
-        assert!(
-            downloader.resolve_sources(library, SourceKind::File)[0]
-                .url
-                .starts_with("https://bmclapi2.bangbang93.com/")
-        );
-        api.sources
-            .record_response("https://example.org/metadata", Duration::ZERO, true);
-        assert!(
-            downloader.resolve_sources(library, SourceKind::File)[0]
-                .url
-                .starts_with("https://bmclapi2.bangbang93.com/")
-        );
-        api.sources.record_response(&manifest, Duration::ZERO, true);
-        assert_eq!(
-            downloader.resolve_sources(library, SourceKind::File)[0].url,
-            library
-        );
-        api.resources()
-            .configure(DownloadOptions {
-                file_source: SourcePreference::Mirror,
-                community_source: SourcePreference::Official,
-                ..Default::default()
-            })
-            .unwrap();
-        assert!(
-            downloader.resolve_sources(library, SourceKind::File)[0]
-                .url
-                .starts_with("https://bmclapi2.bangbang93.com/")
-        );
-        #[cfg(feature = "community")]
-        for official in [
-            "https://api.curseforge.com/v1/mods/1",
-            "https://api.modrinth.com/v2/project/test",
-        ] {
-            assert_eq!(
-                downloader.resolve_sources(official, SourceKind::File)[0].url,
-                official
-            );
-            assert_eq!(
-                api.sources.resolve(official, SourceKind::File)[0].url,
-                official
-            );
-        }
-    }
-
     #[tokio::test]
-    async fn clients_share_transport_resources_and_send_explicit_headers() {
+    async fn api_and_download_resources_are_independent() {
         use crate::io::net::http::resources::DownloadOptions;
         use axum::{Json, Router, http::HeaderMap, routing::get};
         let echo_handler = |headers: HeaderMap| async move {
@@ -789,13 +699,6 @@ mod tests {
                 listener,
                 Router::new()
                     .route("/echo", get(echo_handler))
-                    .route(
-                        "/cf/echo/unavailable",
-                        get(|headers: HeaderMap| async move {
-                            assert!(!headers.contains_key("x-api-key"));
-                            reqwest::StatusCode::FORBIDDEN
-                        }),
-                    )
                     .route("/cf/echo", get(echo_handler)),
             )
             .await
@@ -835,28 +738,14 @@ mod tests {
         let first = first.with_curseforge_api_key(Some("first-key"));
         let second = make("SecondLauncher");
         let download = crate::io::download::DownloadManager::new(first.transport().clone());
-        let provider_download = first.download_manager();
-        first
+        download
             .resources()
             .configure(DownloadOptions {
                 max_connections: 1,
                 ..Default::default()
             })
             .unwrap();
-        let lease = provider_download.resources().acquire().await;
-        assert!(
-            tokio::time::timeout(Duration::from_millis(10), download.resources().acquire())
-                .await
-                .is_err()
-        );
-        assert!(
-            tokio::time::timeout(Duration::from_millis(10), first.resources().acquire())
-                .await
-                .is_err()
-        );
-        let other_lease = second.resources().acquire().await;
-        assert_eq!(second.resources().settings().max_connections, 64);
-        drop((lease, other_lease));
+        let lease = download.resources().acquire().await;
         let echo = format!("{base}/echo");
         let metadata: serde_json::Value =
             serde_json::from_slice(&first.get_bytes(&echo).await.unwrap()).unwrap();
@@ -864,6 +753,7 @@ mod tests {
             metadata,
             serde_json::json!({"agent": "FirstLauncher", "key": null})
         );
+        drop(lease);
         #[cfg(feature = "community")]
         {
             // 自定义 HTTP 地址即使作为 CurseForge endpoint，也不能收到官方密钥。
@@ -879,16 +769,6 @@ mod tests {
         let output = tempfile::tempdir().unwrap();
         let path = output.path().join("echo.json");
         download
-            .with_sources(|url, _| {
-                let mut target = super::super::RequestTarget::new(url);
-                target
-                    .headers
-                    .insert("x-api-key", "explicit-key".parse().unwrap());
-                vec![
-                    super::super::RequestTarget::new(format!("{url}/unavailable")),
-                    target,
-                ]
-            })
             .download(
                 &game::DownloadFile {
                     url: format!("{base}/cf/echo"),
@@ -904,7 +784,7 @@ mod tests {
             serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
         assert_eq!(
             reply,
-            serde_json::json!({"agent": "UpdatedLauncher", "key": "explicit-key"})
+            serde_json::json!({"agent": "UpdatedLauncher", "key": null})
         );
         let reply: serde_json::Value =
             serde_json::from_slice(&second.get_bytes(&echo).await.unwrap()).unwrap();

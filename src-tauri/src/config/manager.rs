@@ -287,36 +287,25 @@ impl ConfigManager {
             fs::create_dir_all(config_dir).map_err(|_| ConfigManagerError::ConfigDirNotFound)?;
         }
         let config_path = config_dir.join("config.yml");
+        let (client, http1) = crate::config::network::clients(&Default::default())
+            .map_err(|_| ConfigManagerError::ApiClientBuildError)?;
+        let transport = pcl_core::io::net::http::HttpTransport::new_with_user_agent(
+            client,
+            http1,
+            crate::config::metadata::constants::USER_AGENT,
+        );
+        let curseforge_api_key = crate::secrets::CURSEFORGE_API_KEY.as_deref();
         let instance = Self {
             config_path,
             config_dir: config_dir.to_path_buf(),
             app_state: Arc::new(Mutex::new(AppState::default())),
-            api_client: MinecraftApiClient::new({
-                let (client, http1) = crate::config::network::clients(&Default::default())
-                    .map_err(|_| ConfigManagerError::ApiClientBuildError)?;
-                pcl_core::io::net::http::HttpTransport::new_with_user_agent(
-                    client,
-                    http1,
-                    crate::config::metadata::constants::USER_AGENT,
-                )
-            })
-            .with_curseforge_api_key(crate::secrets::CURSEFORGE_API_KEY.as_deref()),
+            api_client: MinecraftApiClient::new(transport)
+                .with_curseforge_api_key(curseforge_api_key),
         };
         instance.load_or_init(
             super::paths::launcher_minecraft_directory().as_deref(),
             super::paths::official_minecraft_directory().as_deref(),
         )?;
-        let download_settings = instance
-            .app_state
-            .blocking_lock()
-            .download_settings
-            .clone()
-            .unwrap_or_default();
-        instance
-            .api_client
-            .resources()
-            .configure(download_settings.options())
-            .map_err(|_| ConfigManagerError::ConfigFileCorrupted)?;
         log::info!(
             "Loaded configuration from {}",
             instance.config_path.display()
@@ -550,8 +539,6 @@ impl ConfigManager {
         candidate.download_settings = Some(settings.clone());
         save_config_atomically(&self.config_path, &candidate).map_err(|e| format!("{e:?}"))?;
         *state = candidate;
-        // 副作用放在提交之后：失败时磁盘与内存一致，用户重试即可恢复。
-        self.api_client.resources().configure(settings.options())?;
         Ok(settings)
     }
 
@@ -1016,10 +1003,6 @@ mod java_config_tests {
                 .as_ref()
                 .unwrap()
                 .max_connections,
-            32
-        );
-        assert_eq!(
-            manager.api_client.resources().settings().max_connections,
             32
         );
         fs::remove_dir_all(root).unwrap();

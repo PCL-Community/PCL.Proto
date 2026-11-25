@@ -1,9 +1,13 @@
 use crate::config::{current_instance, manager::ConfigManager};
+use pcl_core::io::download::DownloadManager;
 use pcl_core::io::files::open_directory;
 
 /// Re-download missing or broken instance files (CE "补全文件").
 #[tauri::command]
-pub async fn repair_instance_files(instance_directory: std::path::PathBuf) -> Result<(), String> {
+pub async fn repair_instance_files(
+    manager: tauri::State<'_, DownloadManager>,
+    instance_directory: std::path::PathBuf,
+) -> Result<(), String> {
     let info = crate::config::java::prepare(instance_directory.clone()).await?;
     let arch = info
         .runtime
@@ -26,9 +30,9 @@ pub async fn repair_instance_files(instance_directory: std::path::PathBuf) -> Re
             .map_err(|error| error.to_string())?,
         None => pcl_core::minecraft::version::McRuleContext::current(),
     };
-    let downloader = ConfigManager::instance().api_client.download_manager();
+    let download_manager = &manager;
     instance
-        .repair_client_jar(&downloader)
+        .repair_client_jar(&download_manager)
         .await
         .map_err(|error| format!("Cannot repair client JAR: {error:#}"))?;
     pcl_core::minecraft::installer::prepare_launch_libraries(
@@ -36,7 +40,7 @@ pub async fn repair_instance_files(instance_directory: std::path::PathBuf) -> Re
         &instance.global_dir,
         &instance.directory,
         &context,
-        &downloader,
+        &download_manager,
         true,
     )
     .await
@@ -45,7 +49,7 @@ pub async fn repair_instance_files(instance_directory: std::path::PathBuf) -> Re
         &details,
         &instance.global_dir,
         &game_directory,
-        &downloader,
+        &download_manager,
         true,
     )
     .await

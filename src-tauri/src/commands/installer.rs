@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use crate::config::manager::ConfigManager;
 use crate::config::states::AppState;
-use pcl_core::io::download::TaskItemReport;
+use pcl_core::io::download::{DownloadManager, TaskItemReport};
 use pcl_core::io::net::http::api_client::MinecraftApiClient;
 use pcl_core::minecraft::installer::{
     self, LoaderInstall,
@@ -42,6 +42,7 @@ fn apply_game_language(directory: &std::path::Path, language: &str) -> Result<()
 pub async fn download_minecraft_version(
     state: tauri::State<'_, Arc<AsyncMutex<AppState>>>,
     client: tauri::State<'_, &MinecraftApiClient>,
+    manager: tauri::State<'_, DownloadManager>,
     on_event: tauri::ipc::Channel<TaskItemReport>,
     version_id: String,
     task_id: i32,
@@ -72,6 +73,7 @@ pub async fn download_minecraft_version(
     let outcome = installer::download_minecraft_version(
         &repo,
         &client,
+        &manager,
         super::channel_sink(on_event),
         version_id,
         task_id,
@@ -154,6 +156,7 @@ pub async fn forgelike_installer_name(
 #[tauri::command(rename_all = "snake_case")]
 pub async fn download_forgelike_installer(
     client: tauri::State<'_, &MinecraftApiClient>,
+    manager: tauri::State<'_, DownloadManager>,
     game: String,
     loader: LoaderInstall,
     destination: PathBuf,
@@ -162,6 +165,7 @@ pub async fn download_forgelike_installer(
 ) -> Result<(), String> {
     forgelike::download_forgelike_installer(
         &client,
+        &manager,
         game,
         loader,
         destination,
@@ -199,18 +203,12 @@ pub async fn inspect_modpack(path: PathBuf) -> Result<PackInfo, String> {
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn prepare_online_modpack(
-    client: tauri::State<'_, &MinecraftApiClient>,
+    manager: tauri::State<'_, DownloadManager>,
     info: DownloadFile,
     task_id: i32,
     on_event: tauri::ipc::Channel<TaskItemReport>,
 ) -> Result<OnlinePackInfo, String> {
-    modpack::prepare_online_modpack(
-        &client.download_manager(),
-        info,
-        task_id,
-        super::channel_sink(on_event),
-    )
-    .await
+    modpack::prepare_online_modpack(&manager, info, task_id, super::channel_sink(on_event)).await
 }
 
 #[tauri::command]
@@ -223,6 +221,7 @@ pub fn release_online_modpack(token: String) {
 pub async fn install_modpack(
     state: tauri::State<'_, Arc<AsyncMutex<AppState>>>,
     client: tauri::State<'_, &MinecraftApiClient>,
+    manager: tauri::State<'_, DownloadManager>,
     path: PathBuf,
     instance_name: String,
     optional_files: Vec<String>,
@@ -235,6 +234,7 @@ pub async fn install_modpack(
     modpack::install_modpack(
         &repo,
         &client,
+        &manager,
         path,
         instance_name,
         optional_files,
@@ -260,6 +260,7 @@ pub async fn install_modpack(
 pub async fn install_online_modpack(
     state: tauri::State<'_, Arc<AsyncMutex<AppState>>>,
     client: tauri::State<'_, &MinecraftApiClient>,
+    manager: tauri::State<'_, DownloadManager>,
     token: String,
     instance_name: String,
     optional_files: Vec<String>,
@@ -272,6 +273,7 @@ pub async fn install_online_modpack(
     modpack::install_online_modpack(
         &repo,
         &client,
+        &manager,
         token,
         instance_name,
         optional_files,
@@ -298,11 +300,8 @@ mod tests {
 
     #[test]
     fn online_prepare_ipc_accepts_task_arguments_and_validates_source() {
-        let client: &'static MinecraftApiClient = Box::leak(Box::new(MinecraftApiClient::new(
-            pcl_core::io::net::http::HttpTransport::default(),
-        )));
         let app = tauri::test::mock_builder()
-            .manage(client)
+            .manage(DownloadManager::default())
             .invoke_handler(tauri::generate_handler![prepare_online_modpack])
             .build(tauri::test::mock_context(tauri::test::noop_assets()))
             .unwrap();

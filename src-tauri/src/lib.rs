@@ -59,6 +59,25 @@ pub fn run() {
             if let Ok(config_manager) = crate::config::manager::CONFIG_MANAGER.as_ref() {
                 app.manage(Arc::clone(&config_manager.app_state));
                 app.manage(&config_manager.api_client);
+                let download_settings = config_manager
+                    .app_state
+                    .blocking_lock()
+                    .download_settings
+                    .clone()
+                    .unwrap_or_default();
+                let download_manager = pcl_core::io::download::DownloadManager::new(
+                    config_manager.api_client.transport().clone(),
+                )
+                .with_curseforge_api_key(crate::secrets::CURSEFORGE_API_KEY.as_deref());
+                download_manager
+                    .resources()
+                    .configure(download_settings.options())
+                    .expect("loaded download settings must be valid");
+                config_manager
+                    .api_client
+                    .transport()
+                    .configure_http(download_settings.http_options());
+                app.manage(download_manager);
                 // 启动器与联机共用同一个机器码。
                 pcl_core::link::init(crate::config::link::machine_id_path(config_manager.config_dir()));
             } else {

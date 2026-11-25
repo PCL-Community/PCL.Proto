@@ -1,4 +1,6 @@
-use pcl_core::io::net::http::resources::{HttpMode, SourcePreference};
+use pcl_core::io::net::http::resources::{
+    DownloadOptions, HttpMode, HttpOptions, SourcePreference,
+};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(default)]
@@ -37,11 +39,16 @@ impl Default for DownloadSettings {
     }
 }
 impl DownloadSettings {
-    pub fn options(&self) -> pcl_core::io::net::http::resources::DownloadOptions {
-        pcl_core::io::net::http::resources::DownloadOptions {
+    pub fn options(&self) -> DownloadOptions {
+        DownloadOptions {
             max_connections: self.max_connections,
             file_connections: self.file_connections,
             speed_limit: self.speed_limit,
+        }
+    }
+
+    pub fn http_options(&self) -> HttpOptions {
+        HttpOptions {
             http_mode: self.http_mode,
             file_source: self.file_source,
             version_source: self.version_source,

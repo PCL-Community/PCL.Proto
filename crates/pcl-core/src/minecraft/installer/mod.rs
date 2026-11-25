@@ -4,7 +4,7 @@ pub mod modpack;
 use crate::events::EventSink;
 use crate::io::files::{check_sha1, safe_join, validate_file_name};
 use crate::{
-    io::download::{DownloadConfig, DownloadManager, StageProgress, TaskItemReport, TaskStatus},
+    io::download::{DownloadManager, DownloadTask, StageProgress, TaskItemReport, TaskStatus},
     io::net::http::api_client::MinecraftApiClient,
     minecraft::version::{DownloadFile, McRuleContext, McVersion, library_path, valid_sha1},
 };
@@ -81,7 +81,7 @@ struct NativeArchive {
 }
 
 struct InstallPlan {
-    files: Vec<DownloadConfig>,
+    files: Vec<DownloadTask>,
     natives: Vec<NativeArchive>,
     paths: HashMap<PathBuf, (String, u64)>,
     stages: BTreeMap<i32, Vec<u64>>,
@@ -113,7 +113,7 @@ impl InstallPlan {
             .stages
             .get_mut(&stage)
             .context("Unknown install stage")?;
-        self.files.push(DownloadConfig {
+        self.files.push(DownloadTask {
             file_index: sizes.len(),
             task_item_id: stage,
             out_path: path,
@@ -227,7 +227,7 @@ impl InstallPlan {
 
 async fn download_plan(
     plan: &mut InstallPlan,
-    downloader: &DownloadManager,
+    download_manager: &DownloadManager,
     task_id: i32,
     on_event: &EventSink<TaskItemReport>,
 ) -> anyhow::Result<()> {
@@ -245,8 +245,8 @@ async fn download_plan(
                 let tx = tx.clone();
                 async move {
                     let path = options.out_path.clone();
-                    downloader
-                        .start_download(options, tx)
+                    download_manager
+                        .run_task(options, tx)
                         .await
                         .with_context(|| format!("Cannot download {}", path.display()))
                 }
@@ -280,7 +280,7 @@ async fn add_maven_libraries(
     repo: &Path,
     instance: &Path,
     context: &McRuleContext,
-    downloader: &DownloadManager,
+    download_manager: &DownloadManager,
     stage: i32,
 ) -> anyhow::Result<()> {
     let mut seen = std::collections::HashSet::new();
@@ -352,12 +352,12 @@ async fn add_maven_libraries(
         }
         let mut checksum_url = url.clone();
         checksum_url.set_path(&format!("{}.sha1", url.path()));
-        let resources = downloader.resources();
+        let resources = download_manager.resources();
         let sha1 = if let Some(sha1) = library.sha1.as_ref().filter(|_| native.is_none()) {
             sha1.clone()
         } else {
             let _lease = resources.acquire().await;
-            let response = maven_metadata_request(downloader, checksum_url.as_str()).await?;
+            let response = maven_metadata_request(download_manager, checksum_url.as_str()).await?;
             let mut stream = response.bytes_stream();
             let mut bytes = Vec::new();
             while let Some(chunk) = stream.next().await {
@@ -385,7 +385,7 @@ async fn add_maven_libraries(
             size
         } else {
             let _lease = resources.acquire().await;
-            let response = maven_metadata_request(downloader, url.as_str()).await?;
+            let response = maven_metadata_request(download_manager, url.as_str()).await?;
             response
                 .content_length()
                 .context("Maven library has no content length")?
@@ -428,20 +428,22 @@ async fn add_maven_libraries(
 }
 
 async fn maven_metadata_request(
-    downloader: &DownloadManager,
+    download_manager: &DownloadManager,
     url: &str,
 ) -> anyhow::Result<reqwest::Response> {
     let mut last_error = None;
-    for source in downloader.resolve_sources(url, crate::io::net::http::resources::SourceKind::File)
+    let http_mode = download_manager
+        .transport()
+        .http_options()
+        .read()
+        .unwrap()
+        .http_mode;
+    for source in
+        download_manager.resolve_sources(url, crate::io::net::http::resources::SourceKind::File)
     {
-        match downloader
+        match download_manager
             .transport()
-            .send_request(
-                downloader.resources().settings().http_mode,
-                false,
-                &source,
-                None,
-            )
+            .send_request(http_mode, false, &source, None)
             .await
             .and_then(reqwest::Response::error_for_status)
         {
@@ -651,20 +653,29 @@ pub async fn prepare_launch_libraries(
     repo: &Path,
     instance: &Path,
     context: &McRuleContext,
-    downloader: &DownloadManager,
+    download_manager: &DownloadManager,
     verify: bool,
 ) -> anyhow::Result<PathBuf> {
     let mut plan = InstallPlan::new();
     plan.libraries(details, repo, context, 2)?;
-    add_maven_libraries(&mut plan, details, repo, instance, context, downloader, 2).await?;
+    add_maven_libraries(
+        &mut plan,
+        details,
+        repo,
+        instance,
+        context,
+        download_manager,
+        2,
+    )
+    .await?;
     futures_util::stream::iter(std::mem::take(&mut plan.files))
         .map(|file| {
-            let downloader = downloader.clone();
+            let download_manager = download_manager.clone();
             async move {
                 let result = if verify {
-                    downloader.download(&file.info, &file.out_path).await
+                    download_manager.download(&file.info, &file.out_path).await
                 } else {
-                    downloader
+                    download_manager
                         .download_unverified(&file.info, &file.out_path)
                         .await
                 };
@@ -719,7 +730,7 @@ pub async fn prepare_legacy_assets(
     details: &McVersion,
     repo: &Path,
     game_directory: &Path,
-    downloader: &DownloadManager,
+    download_manager: &DownloadManager,
     verify: bool,
 ) -> anyhow::Result<()> {
     validate_file_name(&details.asset_index.id)?;
@@ -728,11 +739,11 @@ pub async fn prepare_legacy_assets(
         .join(format!("{}.json", details.asset_index.id));
     if details.asset_index.download.validate().is_ok() {
         if verify {
-            downloader
+            download_manager
                 .download(&details.asset_index.download, &index_path)
                 .await?;
         } else {
-            downloader
+            download_manager
                 .download_unverified(&details.asset_index.download, &index_path)
                 .await?;
         }
@@ -753,9 +764,9 @@ pub async fn prepare_legacy_assets(
     futures_util::stream::iter(plan.files)
         .map(|file| async move {
             if verify {
-                downloader.download(&file.info, &file.out_path).await
+                download_manager.download(&file.info, &file.out_path).await
             } else {
-                downloader
+                download_manager
                     .download_unverified(&file.info, &file.out_path)
                     .await
             }
@@ -953,6 +964,7 @@ pub struct InstallOutcome {
 /// 安装版本；`forge_installer` 缺省时使用 core 自带的处理器桥接。
 pub async fn install_version(
     client: &MinecraftApiClient,
+    download_manager: &DownloadManager,
     repo: &Path,
     version_id: &str,
     name: &str,
@@ -966,6 +978,7 @@ pub async fn install_version(
 ) -> anyhow::Result<InstallOutcome> {
     install_version_with_modpack(
         client,
+        download_manager,
         repo,
         version_id,
         name,
@@ -985,6 +998,7 @@ pub async fn install_version(
 #[allow(clippy::too_many_arguments)]
 async fn install_version_with_modpack(
     client: &MinecraftApiClient,
+    download_manager: &DownloadManager,
     repo: &Path,
     version_id: &str,
     name: &str,
@@ -1017,7 +1031,6 @@ async fn install_version_with_modpack(
         speed: None,
     });
     let mut metadata = client.get_version_metadata(version_id).await?;
-    let downloader = client.download_manager();
     let mut forgelike = None;
     if let Some(loader) = loader {
         on_event(TaskItemReport {
@@ -1059,8 +1072,15 @@ async fn install_version_with_modpack(
                 #[cfg(feature = "community")]
                 ensure!(loader.api.is_none(), "Fabric API requires Fabric");
                 forgelike = Some(
-                    forgelike::prepare(client, &downloader, version_id, loader, task_id, on_event)
-                        .await?,
+                    forgelike::prepare(
+                        client,
+                        download_manager,
+                        version_id,
+                        loader,
+                        task_id,
+                        on_event,
+                    )
+                    .await?,
                 );
             }
         }
@@ -1071,7 +1091,7 @@ async fn install_version_with_modpack(
     {
         Some(
             forgelike::ensure_java(
-                client,
+                download_manager,
                 &metadata,
                 version_id,
                 loader.is_some_and(|loader| loader.install_java),
@@ -1095,7 +1115,7 @@ async fn install_version_with_modpack(
     let index_path = repo
         .join("assets/indexes")
         .join(format!("{}.json", details.asset_index.id));
-    downloader
+    download_manager
         .download(&details.asset_index.download, &index_path)
         .await?;
     let index: AssetIndex = serde_json::from_slice(&tokio::fs::read(&index_path).await?)
@@ -1113,7 +1133,7 @@ async fn install_version_with_modpack(
         &repo,
         &directory.path,
         &McRuleContext::current(),
-        &downloader,
+        &download_manager,
         2,
     )
     .await?;
@@ -1140,13 +1160,13 @@ async fn install_version_with_modpack(
         status: TaskStatus::Completed,
         speed: None,
     });
-    download_plan(&mut plan, &downloader, task_id, on_event).await?;
+    download_plan(&mut plan, &download_manager, task_id, on_event).await?;
     if let Some(prepared) = forgelike {
         forgelike::prepare_libraries(
             &prepared,
             &details,
             &metadata,
-            &downloader,
+            &download_manager,
             task_id,
             on_event,
         )
@@ -1198,7 +1218,7 @@ async fn install_version_with_modpack(
     })
     .await??;
     if let Some(pack) = pack {
-        pack.install_files(&directory.path, name, &downloader, task_id, on_event)
+        pack.install_files(&directory.path, name, &download_manager, task_id, on_event)
             .await?;
     }
     // CE preserves the source version separately when the instance has a custom name.
@@ -1239,6 +1259,7 @@ async fn install_version_with_modpack(
 pub async fn download_minecraft_version(
     repo: &Path,
     client: &MinecraftApiClient,
+    download_manager: &DownloadManager,
     on_event: EventSink<TaskItemReport>,
     version_id: String,
     task_id: i32,
@@ -1252,6 +1273,7 @@ pub async fn download_minecraft_version(
     crate::io::download::tasks::run(task_id, async {
         install_version(
             client,
+            download_manager,
             repo,
             &version_id,
             &instance_name,
@@ -1280,8 +1302,10 @@ pub(crate) async fn install_version_for_test(
     on_event: &EventSink<TaskItemReport>,
 ) -> anyhow::Result<InstallOutcome> {
     let paths = std::env::temp_dir().join("pcl-test-jre");
+    let download_manager = DownloadManager::with_test_endpoints(client.test_endpoints());
     install_version(
         client,
+        &download_manager,
         repo,
         version_id,
         name,

@@ -294,7 +294,7 @@ impl McInstance {
     /// Download the client JAR when metadata provides a verifiable source.
     pub async fn repair_client_jar(
         &self,
-        downloader: &crate::io::download::DownloadManager,
+        download_manager: &crate::io::download::DownloadManager,
     ) -> anyhow::Result<()> {
         let chain = read_version_chain(&self.json_path, &self.global_dir)?;
         if uses_forge_instance_jar(&chain, &self.version)
@@ -312,7 +312,7 @@ impl McInstance {
         );
         match download {
             Ok(download) if download.validate().is_ok() => {
-                downloader.download(&download, &self.jar_path).await?
+                download_manager.download(&download, &self.jar_path).await?
             }
             _ if !self.jar_path.is_file() => anyhow::bail!(
                 "Client JAR is missing and its download information is unavailable or invalid"

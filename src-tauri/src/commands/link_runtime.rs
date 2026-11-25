@@ -90,6 +90,8 @@ pub async fn install_link_runtime(
 
 #[cfg(windows)]
 mod imp {
+    use pcl_core::io::download::DownloadManager;
+
     use super::{LinkRuntimeEvent, LinkRuntimeState, LinkRuntimeStatus};
     use pcl_core::io::download::TaskItemReport;
     use std::{
@@ -237,6 +239,7 @@ mod imp {
     }
 
     async fn download_installer(
+        manager: &DownloadManager,
         on_event: &tauri::ipc::Channel<LinkRuntimeEvent>,
     ) -> Result<PathBuf, String> {
         let path = installer_path();
@@ -264,9 +267,7 @@ mod imp {
             uuid::Uuid::new_v4()
         ));
 
-        let downloader = crate::config::manager::ConfigManager::instance()
-            .api_client
-            .download_manager();
+        let download_manager = manager.clone();
         let task_id = NEXT_DOWNLOAD_TASK.fetch_sub(1, Ordering::Relaxed);
         let event = on_event.clone();
         let sink = pcl_core::events::event_sink(move |report: TaskItemReport| {
@@ -277,7 +278,7 @@ mod imp {
             ));
         });
         let result = pcl_core::io::download::download_custom_file(
-            &downloader,
+            &download_manager,
             NPCAP_URL.to_string(),
             temporary.clone(),
             task_id,
@@ -360,6 +361,7 @@ mod imp {
     }
 
     pub(super) async fn install(
+        manager: &DownloadManager,
         on_event: tauri::ipc::Channel<LinkRuntimeEvent>,
     ) -> Result<LinkRuntimeStatus, String> {
         let _guard = INSTALL_LOCK.lock().await;
@@ -377,7 +379,7 @@ mod imp {
             LinkRuntimeState::NeedsInstall => {}
         }
 
-        let installer = download_installer(&on_event).await?;
+        let installer = download_installer(manager, &on_event).await?;
 
         let _ = on_event.send(LinkRuntimeEvent::phase("installing"));
         let outcome = tokio::task::spawn_blocking(move || run_installer(&installer))
@@ -430,7 +432,8 @@ pub fn get_link_runtime_status() -> LinkRuntimeStatus {
 #[cfg(windows)]
 #[tauri::command(rename_all = "snake_case")]
 pub async fn install_link_runtime(
+    manager: tauri::State<'_, DownloadManager>,
     on_event: tauri::ipc::Channel<LinkRuntimeEvent>,
 ) -> Result<LinkRuntimeStatus, String> {
-    imp::install(on_event).await
+    imp::install(&manager, on_event).await
 }

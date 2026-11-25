@@ -26,7 +26,7 @@ pub(super) struct PreparedInstaller {
 
 pub(super) async fn prepare(
     client: &super::MinecraftApiClient,
-    downloader: &super::DownloadManager,
+    download_manager: &super::DownloadManager,
     game: &str,
     loader: &super::LoaderInstall,
     task_id: i32,
@@ -35,7 +35,7 @@ pub(super) async fn prepare(
     let file = resolve_installer(client, game, loader).await?;
     let directory = tempfile::tempdir()?;
     let archive = directory.path().join("installer.jar");
-    download_installer(&file, downloader, &archive, task_id, 5, on_event).await?;
+    download_installer(&file, download_manager, &archive, task_id, 5, on_event).await?;
     let archive_path = archive.clone();
     let libraries = directory.path().join("libraries");
     let game = game.to_owned();
@@ -52,7 +52,7 @@ pub(super) async fn prepare(
 
 async fn download_installer(
     file: &InstallerFile,
-    downloader: &super::DownloadManager,
+    download_manager: &super::DownloadManager,
     archive: &Path,
     task_id: i32,
     item_id: i32,
@@ -64,9 +64,9 @@ async fn download_installer(
         .filter(|hash| hash.len() == 40)
         .cloned()
         .unwrap_or_default();
-    downloader
+    download_manager
         .download_with_progress(
-            super::DownloadConfig {
+            super::DownloadTask {
                 file_index: 0,
                 out_path: archive.to_owned(),
                 task_item_id: item_id,
@@ -146,6 +146,7 @@ pub async fn forgelike_installer_name(
 
 pub async fn download_forgelike_installer(
     client: &super::MinecraftApiClient,
+    download_manager: &super::DownloadManager,
     game: String,
     loader: super::LoaderInstall,
     destination: std::path::PathBuf,
@@ -167,15 +168,7 @@ pub async fn download_forgelike_installer(
             let file = resolve_installer(client, &game, &loader).await?;
             let directory = tempfile::tempdir_in(parent)?;
             let archive = directory.path().join("installer");
-            download_installer(
-                &file,
-                &client.download_manager(),
-                &archive,
-                task_id,
-                0,
-                &on_event,
-            )
-            .await?;
+            download_installer(&file, download_manager, &archive, task_id, 0, &on_event).await?;
             crate::io::download::tasks::commit(task_id, move || {
                 let _directory = directory;
                 fs::hard_link(&archive, &destination)
@@ -194,7 +187,7 @@ pub(super) async fn prepare_libraries(
     prepared: &PreparedInstaller,
     vanilla: &super::McVersion,
     metadata: &Value,
-    downloader: &super::DownloadManager,
+    download_manager: &super::DownloadManager,
     task_id: i32,
     on_event: &EventSink<super::TaskItemReport>,
 ) -> anyhow::Result<()> {
@@ -231,7 +224,16 @@ pub(super) async fn prepare_libraries(
     plan.stages.clear();
     plan.stages.insert(6, Vec::new());
     plan.libraries(&details, root, &context, 6)?;
-    super::add_maven_libraries(&mut plan, &details, root, root, &context, downloader, 6).await?;
+    super::add_maven_libraries(
+        &mut plan,
+        &details,
+        root,
+        root,
+        &context,
+        download_manager,
+        6,
+    )
+    .await?;
     if let Some(mapping) = prepared
         .profile
         .install
@@ -253,7 +255,7 @@ pub(super) async fn prepare_libraries(
         )?;
         plan.add(6, &download, destination)?;
     }
-    super::download_plan(&mut plan, downloader, task_id, on_event).await
+    super::download_plan(&mut plan, download_manager, task_id, on_event).await
 }
 
 fn java_requirements(
@@ -350,7 +352,7 @@ pub async fn prepare_forgelike_java(
 
 #[allow(clippy::too_many_arguments)]
 pub(super) async fn ensure_java(
-    client: &super::MinecraftApiClient,
+    download_manager: &super::DownloadManager,
     metadata: &Value,
     game: &str,
     install_java: bool,
@@ -383,7 +385,7 @@ pub(super) async fn ensure_java(
     let runtime = crate::minecraft::java::install::install(
         requirements,
         java_runtime_dir.to_owned(),
-        client.download_manager(),
+        download_manager.clone(),
         move |progress| {
             channel(super::TaskItemReport {
                 task_id,
@@ -1116,7 +1118,8 @@ echo true
             _ => panic!("Unknown smoke case"),
         };
         let client = MinecraftApiClient::new(crate::io::net::http::HttpTransport::default());
-        let downloader = client.download_manager();
+        let download_manager =
+            crate::io::download::DownloadManager::new(client.transport().clone());
         let metadata = client.get_version_metadata(game).await.unwrap();
         let vanilla: McVersion = serde_json::from_value(metadata.clone()).unwrap();
         let loader = LoaderInstall {
@@ -1129,18 +1132,25 @@ echo true
         let events = event_sink(|_| ());
         let paths = std::env::temp_dir().join("pcl-forge-smoke-jre");
         let java_state = Vec::new();
-        let prepared = prepare(&client, &downloader, game, &loader, 0, &events)
+        let prepared = prepare(&client, &download_manager, game, &loader, 0, &events)
             .await
             .unwrap();
         let temp = tempfile::tempdir().unwrap();
         let jar = temp.path().join("client.jar");
-        downloader
+        download_manager
             .download(&vanilla.downloads.client, &jar)
             .await
             .unwrap();
-        prepare_libraries(&prepared, &vanilla, &metadata, &downloader, 0, &events)
-            .await
-            .unwrap();
+        prepare_libraries(
+            &prepared,
+            &vanilla,
+            &metadata,
+            &download_manager,
+            0,
+            &events,
+        )
+        .await
+        .unwrap();
         let profile = if prepared.profile.kind == InstallerKind::Processors {
             let java = select_java(java_requirements(&metadata, game), 0, &java_state)
                 .await
@@ -1201,6 +1211,7 @@ echo true
             let repository = tempfile::tempdir().unwrap();
             super::super::install_version(
                 &client,
+                &download_manager,
                 repository.path(),
                 game,
                 "Full Loader Test",

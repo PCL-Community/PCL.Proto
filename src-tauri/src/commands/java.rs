@@ -1,5 +1,6 @@
 use crate::config::java_preference::{InstanceJavaSettings, JavaLaunchInfo, JavaPreference};
 use crate::config::{current_instance, manager::ConfigManager, states::AppState};
+use pcl_core::io::download::DownloadManager;
 use pcl_core::{
     io::files::open_directory,
     minecraft::java::{self, JavaEntry, JavaSource},
@@ -228,6 +229,7 @@ pub async fn prepare_game_java(
 static JAVA_INSTALL: Mutex<Option<tokio::task::AbortHandle>> = Mutex::const_new(None);
 #[tauri::command]
 pub async fn download_game_java(
+    manager: tauri::State<'_, DownloadManager>,
     instance_directory: std::path::PathBuf,
     progress: tauri::ipc::Channel<java::install::JavaInstallProgress>,
 ) -> Result<JavaEntry, String> {
@@ -237,11 +239,11 @@ pub async fn download_game_java(
     }
     let info = crate::config::java::prepare(instance_directory).await?;
     let config = ConfigManager::instance();
-    let downloader = config.api_client.download_manager();
+    let download_manager = (*manager).clone();
     let task = tauri::async_runtime::spawn(java::install::install(
         info.requirements,
         config.java_runtime_dir(),
-        downloader,
+        download_manager,
         move |update| {
             let _ = progress.send(update);
         },

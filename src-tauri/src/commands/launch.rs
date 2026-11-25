@@ -1,5 +1,6 @@
 use super::java::cancel_java_download;
 use crate::config::{current_instance, manager::ConfigManager};
+use pcl_core::io::download::DownloadManager;
 use pcl_core::minecraft::{java::JavaEntry, launch::launcher::LaunchOption};
 use std::{
     future::Future,
@@ -210,6 +211,7 @@ pub async fn cancel_launch() -> Result<(), String> {
 
 #[tauri::command]
 pub async fn launch_game(
+    manager: tauri::State<'_, DownloadManager>,
     window: tauri::WebviewWindow,
     instance_directory: std::path::PathBuf,
     progress: tauri::ipc::Channel<LaunchProgress>,
@@ -223,6 +225,7 @@ pub async fn launch_game(
         progress,
         server_address,
         world,
+        &manager,
         ticket.clone(),
     )
     .await;
@@ -238,6 +241,7 @@ async fn launch_game_inner(
     progress: tauri::ipc::Channel<LaunchProgress>,
     server_address: Option<String>,
     world: Option<String>,
+    download_manager: &DownloadManager,
     mut ticket: LaunchTicket,
 ) -> Result<(), String> {
     let report = |stage, value, downloading| {
@@ -309,28 +313,33 @@ async fn launch_game_inner(
         option = option.with_window_size(size.width as usize, size.height as usize);
     }
     let config = ConfigManager::instance();
-    let downloader = config.api_client.download_manager();
     report("Minecraft.Launch.Stage.CompleteFiles", 0.35, true);
-    wait_for_launch(&mut ticket.receiver, option.prepare_natives(&downloader))
-        .await?
-        .map_err(|e| format!("{e:#}"))?;
-    report("Minecraft.Launch.Stage.CompleteFiles", 0.65, true);
     wait_for_launch(
         &mut ticket.receiver,
-        option.prepare_legacy_assets(&downloader),
+        option.prepare_natives(download_manager),
     )
     .await?
     .map_err(|e| format!("{e:#}"))?;
-    option = wait_for_launch(&mut ticket.receiver, prepare_authlib(option)).await??;
+    report("Minecraft.Launch.Stage.CompleteFiles", 0.65, true);
+    wait_for_launch(
+        &mut ticket.receiver,
+        option.prepare_legacy_assets(download_manager),
+    )
+    .await?
+    .map_err(|e| format!("{e:#}"))?;
+    option = wait_for_launch(
+        &mut ticket.receiver,
+        prepare_authlib(option, download_manager),
+    )
+    .await??;
     let skin_server = if option.account().profile_type
         == pcl_core::minecraft::profile::ProfileType::Offline
         && option.account().offline_skin.is_some()
     {
-        let download_manager = config.api_client.download_manager();
         let jar = wait_for_launch(
             &mut ticket.receiver,
             pcl_core::minecraft::launch::authlib::ensure_jar(
-                &download_manager,
+                download_manager,
                 &config.config_dir().join("authlib-injector.jar"),
             ),
         )
@@ -429,6 +438,7 @@ async fn launch_game_inner(
 }
 /// Resolve the instance from the configured repositories and build its launch plan.
 async fn prepare_launch_option(
+    download_manager: &DownloadManager,
     instance_directory: std::path::PathBuf,
 ) -> Result<(LaunchOption, bool), String> {
     let info = crate::config::java::prepare(instance_directory.clone()).await?;
@@ -457,7 +467,10 @@ async fn prepare_launch_option(
     {
         return Err("Exporting a launch script with an offline skin is not supported because the skin service requires the launcher to run.".into());
     }
-    Ok((prepare_authlib(option).await?, launcher_size))
+    Ok((
+        prepare_authlib(option, download_manager).await?,
+        launcher_size,
+    ))
 }
 
 fn select_server(
@@ -510,7 +523,10 @@ async fn refresh_active_account() -> Result<(), String> {
 }
 
 /// 第三方账号需要 authlib-injector 才能连到自己的认证服务器。
-async fn prepare_authlib(option: LaunchOption) -> Result<LaunchOption, String> {
+async fn prepare_authlib(
+    option: LaunchOption,
+    download_manager: &DownloadManager,
+) -> Result<LaunchOption, String> {
     use pcl_core::minecraft::profile::ProfileType;
     let profile = option.account().clone();
     if !matches!(
@@ -521,7 +537,7 @@ async fn prepare_authlib(option: LaunchOption) -> Result<LaunchOption, String> {
     }
     let config = ConfigManager::instance();
     let agent = pcl_core::minecraft::launch::authlib::prepare(
-        &config.api_client.download_manager(),
+        download_manager,
         &profile,
         &config.config_dir().join("authlib-injector.jar"),
     )
@@ -552,6 +568,7 @@ fn build_launch_option(
 
 #[tauri::command]
 pub async fn export_launch_script(
+    manager: tauri::State<'_, DownloadManager>,
     window: tauri::WebviewWindow,
     instance_directory: std::path::PathBuf,
     target_path: std::path::PathBuf,
@@ -559,8 +576,12 @@ pub async fn export_launch_script(
     if !target_path.is_absolute() || target_path.file_name().is_none() {
         return Err("Invalid launch script path".into());
     }
-    crate::commands::instance_resources::repair_instance_files(instance_directory.clone()).await?;
-    let (mut option, launcher_size) = prepare_launch_option(instance_directory).await?;
+    crate::commands::instance_resources::repair_instance_files(
+        manager.clone(),
+        instance_directory.clone(),
+    )
+    .await?;
+    let (mut option, launcher_size) = prepare_launch_option(&manager, instance_directory).await?;
     if launcher_size {
         let size = window.inner_size().map_err(|error| error.to_string())?;
         if size.width == 0 || size.height == 0 {
@@ -568,13 +589,12 @@ pub async fn export_launch_script(
         }
         option = option.with_window_size(size.width as usize, size.height as usize);
     }
-    let downloader = ConfigManager::instance().api_client.download_manager();
     option
-        .prepare_natives(&downloader)
+        .prepare_natives(&manager)
         .await
         .map_err(|e| format!("{e:#}"))?;
     option
-        .prepare_legacy_assets(&downloader)
+        .prepare_legacy_assets(&manager)
         .await
         .map_err(|e| format!("{e:#}"))?;
     option

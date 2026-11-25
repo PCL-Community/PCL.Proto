@@ -82,7 +82,7 @@ pub(super) fn platform_key(os: &str, arch: &str) -> Option<&'static str> {
 pub async fn install(
     requirements: JavaRequirements,
     runtime_dir: PathBuf,
-    downloader: DownloadManager,
+    download_manager: DownloadManager,
     progress: impl Fn(JavaInstallProgress) + Clone + Send + Sync + 'static,
 ) -> anyhow::Result<JavaEntry> {
     let major = requirements
@@ -93,9 +93,9 @@ pub async fn install(
         crate::utils::platform::host_architecture(),
     )
     .context("Mojang does not provide a runtime for this OS/architecture; install Java manually")?;
-    let client = downloader.transport().http_client();
+    let client = download_manager.transport().http_client();
     let index: BTreeMap<String, BTreeMap<String, Vec<RuntimeRelease>>> =
-        fetch_index(&client, &downloader).await?;
+        fetch_index(&client, &download_manager).await?;
     let components = index
         .get(platform)
         .context("No Mojang runtimes available for this platform")?;
@@ -126,7 +126,7 @@ pub async fn install(
         committed: false,
     };
     let manifest_file = staging.join("runtime-manifest.json");
-    downloader
+    download_manager
         .download(&release.manifest, &manifest_file)
         .await?;
     let manifest: RuntimeManifest =
@@ -157,11 +157,11 @@ pub async fn install(
         total,
     });
     futures_util::stream::iter(downloads.into_iter().map(|(path, info, executable)| {
-        let downloader = downloader.clone();
+        let download_manager = download_manager.clone();
         let completed = completed.clone();
         let progress = progress.clone();
         async move {
-            downloader.download(&info, &path).await?;
+            download_manager.download(&info, &path).await?;
             #[cfg(unix)]
             if executable {
                 use std::os::unix::fs::PermissionsExt;
@@ -254,10 +254,10 @@ pub async fn install(
 
 async fn fetch_index(
     client: &reqwest::Client,
-    downloader: &DownloadManager,
+    download_manager: &DownloadManager,
 ) -> anyhow::Result<BTreeMap<String, BTreeMap<String, Vec<RuntimeRelease>>>> {
     let mut last = None;
-    for target in downloader.resolve_sources(
+    for target in download_manager.resolve_sources(
         INDEX,
         crate::io::net::http::resources::SourceKind::VersionMetadata,
     ) {

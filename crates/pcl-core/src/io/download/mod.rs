@@ -1,7 +1,9 @@
 //! aria2-rust based verified file transfers shared by installation and export.
 
 use crate::events::EventSink;
-use crate::io::net::http::api_client::{McApiError, game::DownloadFile};
+#[cfg(test)]
+use crate::minecraft::sources::ApiEndpoints;
+use crate::minecraft::{sources::Sources, version::DownloadFile};
 use aria2_core::{
     DownloadEngine, DownloadManager as AriaDownloadManager, DownloadStatus, RequestGroupMan,
 };
@@ -40,7 +42,24 @@ pub struct ProgressUpdate {
     pub total_bytes: Option<u64>,
 }
 
-pub struct DownloadConfig {
+#[derive(thiserror::Error, Debug)]
+pub enum DownloadError {
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("Invalid download metadata: {0}")]
+    InvalidMetadata(String),
+
+    #[error("Download failed: {0}")]
+    Failed(String),
+
+    #[error("sha1 check failed: {0}")]
+    Sha1Mismatch(PathBuf),
+}
+
+pub type DownloadResult<T> = Result<T, DownloadError>;
+
+pub struct DownloadTask {
     pub file_index: usize,
     pub out_path: PathBuf,
     pub task_item_id: i32,
@@ -50,7 +69,8 @@ pub struct DownloadConfig {
 #[derive(Clone)]
 pub struct DownloadManager {
     transport: HttpTransport,
-    sources: Arc<SourceResolver>,
+    resources: Arc<DownloadResources>,
+    sources: Sources,
     engine: Arc<AsyncMutex<Option<AriaDownloadManager>>>,
     telemetry: Arc<DownloadTelemetry>,
 }
@@ -87,8 +107,7 @@ use crate::io::net::http::{
     resources::{DownloadResources, DownloadStats, HttpMode, SourceKind},
 };
 
-type SourceResolver = dyn Fn(&str, SourceKind) -> Vec<RequestTarget> + Send + Sync;
-type ProgressSink<'a> = Option<(&'a DownloadConfig, &'a mpsc::Sender<ProgressUpdate>)>;
+type ProgressSink<'a> = Option<(&'a DownloadTask, &'a mpsc::Sender<ProgressUpdate>)>;
 
 impl Default for DownloadManager {
     fn default() -> Self {
@@ -98,25 +117,30 @@ impl Default for DownloadManager {
 
 impl DownloadManager {
     pub(crate) fn resolve_sources(&self, url: &str, kind: SourceKind) -> Vec<RequestTarget> {
-        (self.sources)(url, kind)
+        self.sources.resolve(url, kind)
     }
 
     pub fn new(transport: HttpTransport) -> Self {
         Self {
             telemetry: Arc::new(DownloadTelemetry::default()),
-            transport,
-            sources: Arc::new(|url, _| vec![RequestTarget::new(url)]),
+            resources: Arc::new(DownloadResources::default()),
+            sources: Sources::new(transport.http_options()),
             engine: Arc::new(AsyncMutex::new(None)),
+            transport,
         }
     }
 
-    /// Supply ordered destinations with their headers to aria2-rust.
-    pub fn with_sources(
-        mut self,
-        resolver: impl Fn(&str, SourceKind) -> Vec<RequestTarget> + Send + Sync + 'static,
-    ) -> Self {
-        self.sources = Arc::new(resolver);
+    #[cfg(feature = "community")]
+    pub fn with_curseforge_api_key(mut self, key: Option<&str>) -> Self {
+        self.sources.set_curseforge_api_key(key);
         self
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_test_endpoints(endpoints: ApiEndpoints) -> Self {
+        let mut manager = Self::new(HttpTransport::default());
+        manager.sources.endpoints = endpoints;
+        manager
     }
 
     pub fn transport(&self) -> &HttpTransport {
@@ -124,7 +148,7 @@ impl DownloadManager {
     }
 
     pub fn resources(&self) -> &Arc<DownloadResources> {
-        self.transport.resources()
+        &self.resources
     }
 
     pub fn stats(&self) -> DownloadStats {
@@ -151,11 +175,11 @@ impl DownloadManager {
         }
     }
 
-    pub async fn start_download(
+    pub async fn run_task(
         &self,
-        options: DownloadConfig,
+        options: DownloadTask,
         progress_tx: mpsc::Sender<ProgressUpdate>,
-    ) -> Result<(), McApiError> {
+    ) -> DownloadResult<()> {
         let result = self
             .transfer(
                 &options.info,
@@ -183,12 +207,12 @@ impl DownloadManager {
 
     pub async fn download_with_progress(
         &self,
-        options: DownloadConfig,
+        options: DownloadTask,
         mut on_progress: impl FnMut(u64, Option<u64>, f64),
-    ) -> Result<(), McApiError> {
+    ) -> DownloadResult<()> {
         let size = (options.info.size > 0).then_some(options.info.size);
         let (tx, mut rx) = mpsc::channel(100);
-        let download = self.start_download(options, tx);
+        let download = self.run_task(options, tx);
         let report = async {
             let mut last = tokio::time::Instant::now();
             let mut previous = 0;
@@ -214,7 +238,7 @@ impl DownloadManager {
         result
     }
 
-    pub async fn download(&self, info: &DownloadFile, path: &Path) -> Result<(), McApiError> {
+    pub async fn download(&self, info: &DownloadFile, path: &Path) -> DownloadResult<()> {
         self.transfer(info, path, None, true).await.map(|_| ())
     }
 
@@ -223,7 +247,7 @@ impl DownloadManager {
         &self,
         info: &DownloadFile,
         path: &Path,
-    ) -> Result<(), McApiError> {
+    ) -> DownloadResult<()> {
         self.transfer(info, path, None, false).await.map(|_| ())
     }
 
@@ -233,9 +257,11 @@ impl DownloadManager {
         path: &Path,
         progress: ProgressSink<'_>,
         verify: bool,
-    ) -> Result<u64, McApiError> {
+    ) -> DownloadResult<u64> {
         if !info.sha1.is_empty() && !crate::minecraft::version::valid_sha1(&info.sha1) {
-            return Err(McApiError::InvalidMetadata("Invalid download SHA-1".into()));
+            return Err(DownloadError::InvalidMetadata(
+                "Invalid download SHA-1".into(),
+            ));
         }
         let verify = verify && !info.sha1.is_empty();
         report(
@@ -252,11 +278,11 @@ impl DownloadManager {
 
         let parent = path
             .parent()
-            .ok_or_else(|| McApiError::InvalidMetadata("Missing destination parent".into()))?;
+            .ok_or_else(|| DownloadError::InvalidMetadata("Missing destination parent".into()))?;
         std::fs::create_dir_all(parent)?;
-        let targets = (self.sources)(&info.url, SourceKind::File);
+        let targets = self.sources.resolve(&info.url, SourceKind::File);
         if targets.is_empty() {
-            return Err(McApiError::InvalidMetadata(
+            return Err(DownloadError::InvalidMetadata(
                 "No download source available".into(),
             ));
         }
@@ -272,7 +298,7 @@ impl DownloadManager {
                 let options = self.download_options(&staging, source_group.headers.clone(), info);
                 let handle = manager
                     .add_uri(source_group.uris.clone(), options)
-                    .map_err(|error| McApiError::DownloadError(error.to_string()))?;
+                    .map_err(|error| DownloadError::Failed(error.to_string()))?;
                 let gid = handle.gid().value();
                 let _telemetry = TelemetryLease {
                     telemetry: self.telemetry.clone(),
@@ -280,7 +306,7 @@ impl DownloadManager {
                 };
                 if let Some(task_id) = tasks::current_task_id() {
                     tasks::register_abort(task_id, handle.clone())
-                        .map_err(McApiError::DownloadError)?;
+                        .map_err(DownloadError::Failed)?;
                 }
 
                 let transfer = self.wait_for_transfer(&handle, info.size, progress).await;
@@ -300,13 +326,13 @@ impl DownloadManager {
                 None if attempt < 2 => continue,
                 None => {
                     return Err(last_error.unwrap_or_else(|| {
-                        McApiError::DownloadError("All download sources failed".into())
+                        DownloadError::Failed("All download sources failed".into())
                     }));
                 }
             };
             let bytes = std::fs::metadata(&staging)?.len();
             if info.size > 0 && bytes != info.size {
-                let error = McApiError::InvalidMetadata(format!(
+                let error = DownloadError::InvalidMetadata(format!(
                     "Download size mismatch: {}",
                     path.display()
                 ));
@@ -324,9 +350,9 @@ impl DownloadManager {
                     crate::io::files::check_sha1(&check_path, &hash)
                 })
                 .await
-                .map_err(|error| McApiError::InvalidMetadata(error.to_string()))??;
+                .map_err(|error| DownloadError::InvalidMetadata(error.to_string()))??;
                 if !valid {
-                    let error = McApiError::Sha1Mismatch(path.to_owned());
+                    let error = DownloadError::Sha1Mismatch(path.to_owned());
                     if attempt < 2 {
                         last_error = Some(error);
                         reset_staging_for_retry(&staging);
@@ -339,7 +365,7 @@ impl DownloadManager {
             remove_control_file(&staging);
             return Ok(result.max(bytes));
         }
-        Err(last_error.unwrap_or_else(|| McApiError::InvalidMetadata("Download failed".into())))
+        Err(last_error.unwrap_or_else(|| DownloadError::InvalidMetadata("Download failed".into())))
     }
 
     async fn is_cached(
@@ -347,7 +373,7 @@ impl DownloadManager {
         info: &DownloadFile,
         path: &Path,
         verify: bool,
-    ) -> Result<bool, McApiError> {
+    ) -> DownloadResult<bool> {
         let path = path.to_owned();
         let expected = info.clone();
         tokio::task::spawn_blocking(move || {
@@ -362,10 +388,10 @@ impl DownloadManager {
             }
         })
         .await
-        .map_err(|error| McApiError::InvalidMetadata(error.to_string()))
+        .map_err(|error| DownloadError::InvalidMetadata(error.to_string()))
     }
 
-    async fn ensure_engine(&self) -> Result<AriaDownloadManager, McApiError> {
+    async fn ensure_engine(&self) -> DownloadResult<AriaDownloadManager> {
         let mut engine = self.engine.lock().await;
         if let Some(manager) = engine.as_ref() {
             return Ok(manager.clone());
@@ -375,7 +401,7 @@ impl DownloadManager {
         download_engine.set_keep_alive(true);
         let handle = download_engine
             .start_with_request_group_man(group_man)
-            .map_err(|error| McApiError::DownloadError(error.to_string()))?;
+            .map_err(|error| DownloadError::Failed(error.to_string()))?;
         let manager = handle.downloads().clone();
         tokio::spawn(async move {
             if let Err(error) = handle.wait().await {
@@ -386,17 +412,17 @@ impl DownloadManager {
         Ok(manager)
     }
 
-    fn configure_engine(&self, manager: &AriaDownloadManager) -> Result<(), McApiError> {
+    fn configure_engine(&self, manager: &AriaDownloadManager) -> DownloadResult<()> {
         let settings = self.resources().settings();
         manager
             .set_max_concurrent(settings.max_connections as u32)
-            .map_err(|error| McApiError::DownloadError(error.to_string()))?;
+            .map_err(|error| DownloadError::Failed(error.to_string()))?;
         manager
             .set_global_rate_limit(
                 (settings.speed_limit > 0).then_some(settings.speed_limit),
                 None,
             )
-            .map_err(|error| McApiError::DownloadError(error.to_string()))?;
+            .map_err(|error| DownloadError::Failed(error.to_string()))?;
         Ok(())
     }
 
@@ -407,6 +433,7 @@ impl DownloadManager {
         info: &DownloadFile,
     ) -> aria2_core::DownloadOptions {
         let settings = self.resources().settings();
+        let http_options = self.transport.http_options();
         aria2_core::DownloadOptions {
             split: Some(if info.size > 0 && info.size < 4 * 1024 * 1024 {
                 1
@@ -432,7 +459,7 @@ impl DownloadManager {
             max_retries: 3,
             retry_wait: 1,
             user_agent: Some(self.transport.user_agent()),
-            http_version: match settings.http_mode {
+            http_version: match http_options.read().unwrap().http_mode {
                 HttpMode::Auto => aria2_core::http::HttpVersion::Auto,
                 HttpMode::Http11 => aria2_core::http::HttpVersion::Http11,
                 HttpMode::Http2 => aria2_core::http::HttpVersion::Http2,
@@ -447,7 +474,7 @@ impl DownloadManager {
         handle: &aria2_core::DownloadHandle,
         expected_size: u64,
         progress: ProgressSink<'_>,
-    ) -> Result<u64, McApiError> {
+    ) -> DownloadResult<u64> {
         let gid = handle.gid().value();
         let mut wait = Box::pin(handle.wait());
         let mut tick = tokio::time::interval(Duration::from_millis(100));
@@ -455,7 +482,7 @@ impl DownloadManager {
         loop {
             tokio::select! {
                 result = &mut wait => {
-                    let result = result.map_err(|error| McApiError::DownloadError(error.to_string()))?;
+                    let result = result.map_err(|error| DownloadError::Failed(error.to_string()))?;
                     let bytes = result.completed_length;
                     self.telemetry.downloaded_bytes.fetch_add(
                         bytes.saturating_sub(previous_bytes),
@@ -473,7 +500,7 @@ impl DownloadManager {
                         .await;
                         return Ok(bytes);
                     }
-                    return Err(McApiError::DownloadError(result.message));
+                    return Err(DownloadError::Failed(result.message));
                 }
                 _ = tick.tick() => {
                     if let Some(snapshot) = handle.status_snapshot() {
@@ -604,7 +631,7 @@ async fn run_custom_download(
         let url = reqwest::Url::parse(&url).map_err(|error| error.to_string())?;
         manager
             .download_with_progress(
-                DownloadConfig {
+                DownloadTask {
                     file_index: 0,
                     out_path: destination.clone(),
                     task_item_id: 0,

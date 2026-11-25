@@ -1,4 +1,4 @@
-//! Shared per-client HTTP quotas, byte accounting and bandwidth budget.
+//! HTTP source preferences and aria2 download resources.
 use std::{
     sync::{
         Arc, Mutex, RwLock,
@@ -37,22 +37,17 @@ pub enum HttpMode {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(default)]
-pub struct DownloadOptions {
-    pub max_connections: usize,
-    pub file_connections: usize,
-    pub speed_limit: u64,
+pub struct HttpOptions {
     pub http_mode: HttpMode,
     pub file_source: SourcePreference,
     pub version_source: SourcePreference,
     /// 社区资源（CurseForge / Modrinth）的 API 与文件；`Mirror` 表示优先 MCIM。
     pub community_source: SourcePreference,
 }
-impl Default for DownloadOptions {
+
+impl Default for HttpOptions {
     fn default() -> Self {
         Self {
-            max_connections: 64,
-            file_connections: 8,
-            speed_limit: 0,
             http_mode: HttpMode::Auto,
             file_source: SourcePreference::Auto,
             version_source: SourcePreference::Auto,
@@ -60,14 +55,35 @@ impl Default for DownloadOptions {
         }
     }
 }
-impl DownloadOptions {
-    /// 某类请求实际生效的源偏好。
+
+impl HttpOptions {
     pub fn preference(&self, kind: SourceKind) -> SourcePreference {
         match kind {
             SourceKind::File => self.file_source,
             SourceKind::VersionMetadata => self.version_source,
         }
     }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(default)]
+pub struct DownloadOptions {
+    pub max_connections: usize,
+    pub file_connections: usize,
+    pub speed_limit: u64,
+}
+
+impl Default for DownloadOptions {
+    fn default() -> Self {
+        Self {
+            max_connections: 64,
+            file_connections: 8,
+            speed_limit: 0,
+        }
+    }
+}
+
+impl DownloadOptions {
     pub fn validate(&self) -> Result<(), String> {
         if !(1..=256).contains(&self.max_connections) || !(1..=8).contains(&self.file_connections) {
             return Err("Invalid download connection count or speed limit".into());
@@ -83,11 +99,13 @@ pub struct DownloadStats {
     pub speed: f64,
     pub downloaded_bytes: u64,
 }
+
 struct SpeedSample {
     at: Instant,
     bytes: u64,
     speed: f64,
 }
+
 struct Bandwidth {
     at: Instant,
     tokens: f64,

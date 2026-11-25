@@ -297,14 +297,22 @@ impl MockMirror {
         }
     }
 
-    fn client(&self) -> MinecraftApiClient {
+    fn endpoints(&self) -> crate::minecraft::sources::ApiEndpoints {
         let mut bases = crate::minecraft::sources::ApiEndpoints::default();
         bases.meta_base = self.url;
         bases.fabric_base = Box::leak(format!("{}/fabric", self.url).into_boxed_str());
         bases.legacy_fabric_base =
             Box::leak(format!("{}/legacy-fabric", self.url).into_boxed_str());
         bases.resources_base = Box::leak(format!("{}/assets", self.url).into_boxed_str());
-        MinecraftApiClient::with_test_endpoints(bases)
+        bases
+    }
+
+    fn client(&self) -> MinecraftApiClient {
+        MinecraftApiClient::with_test_endpoints(self.endpoints())
+    }
+
+    fn manager(&self) -> crate::io::download::DownloadManager {
+        crate::io::download::DownloadManager::with_test_endpoints(self.endpoints())
     }
 
     fn count(&self, path: &str) -> usize {
@@ -357,10 +365,7 @@ async fn missing_client_jars_are_discovered_and_repaired_without_overwriting_loa
     assert_eq!(instances.len(), 3);
     let fabric = repo.game_instance_named("Fabric").unwrap();
     assert_eq!(fabric.jar_path, base.join("1.20.1.jar"));
-    fabric
-        .repair_client_jar(&mirror.client().download_manager())
-        .await
-        .unwrap();
+    fabric.repair_client_jar(&mirror.manager()).await.unwrap();
     assert_eq!(fs::read(&fabric.jar_path).unwrap(), body);
     assert_eq!(
         fs::read(fabric.directory.join("Fabric.jar")).unwrap(),
@@ -369,7 +374,7 @@ async fn missing_client_jars_are_discovered_and_repaired_without_overwriting_loa
     let forge = repo.game_instance_named("Forge").unwrap();
     assert!(
         forge
-            .repair_client_jar(&mirror.client().download_manager())
+            .repair_client_jar(&mirror.manager())
             .await
             .unwrap_err()
             .to_string()
@@ -377,10 +382,7 @@ async fn missing_client_jars_are_discovered_and_repaired_without_overwriting_loa
     );
     assert!(!forge.jar_path.exists());
     fs::write(&forge.jar_path, b"generated loader jar").unwrap();
-    forge
-        .repair_client_jar(&mirror.client().download_manager())
-        .await
-        .unwrap();
+    forge.repair_client_jar(&mirror.manager()).await.unwrap();
     assert_eq!(fs::read(&forge.jar_path).unwrap(), b"generated loader jar");
 }
 
@@ -396,7 +398,7 @@ async fn maven_libraries_are_verified_and_published_before_launch() {
         ]),
         false,
     );
-    let downloader = server.client().download_manager();
+    let download_manager = server.manager();
     let root = std::env::temp_dir().join(format!("pcl-maven-{}", uuid::Uuid::new_v4()));
     fs::create_dir(&root).unwrap();
     let download = json!({"sha1":"a".repeat(40),"size":1,"url":"https://example.org/file"});
@@ -410,7 +412,7 @@ async fn maven_libraries_are_verified_and_published_before_launch() {
         &root,
         &root,
         &McRuleContext::current(),
-        &downloader,
+        &download_manager,
         true,
     )
     .await
@@ -428,7 +430,7 @@ async fn maven_libraries_are_verified_and_published_before_launch() {
             &root,
             &root,
             &McRuleContext::current(),
-            &downloader,
+            &download_manager,
             true
         )
         .await
@@ -442,7 +444,7 @@ async fn maven_libraries_are_verified_and_published_before_launch() {
             &root,
             &root,
             &McRuleContext::current(),
-            &downloader,
+            &download_manager,
             true
         )
         .await
@@ -582,7 +584,11 @@ async fn official_fabric_install(
             Arc::new(runtime),
             directory,
         ))?;
-        let natives = option.prepare_natives(&client.download_manager()).await?;
+        let natives = option
+            .prepare_natives(&crate::io::download::DownloadManager::new(
+                client.transport().clone(),
+            ))
+            .await?;
         ensure!(
             option.launch_checked()?.wait()?.success(),
             "Fake Java failed"
@@ -750,12 +756,12 @@ async fn launch_preparation_selects_java_classifier_and_isolates_natives() {
         version: String::new(),
         features: Default::default(),
     };
-    let downloader = DownloadManager::default();
+    let download_manager = DownloadManager::default();
     let x86 = context("x86");
     let x64 = context("x86_64");
     let (a, b) = tokio::join!(
-        prepare_launch_libraries(&details, &root, &root, &x86, &downloader, true),
-        prepare_launch_libraries(&details, &root, &root, &x64, &downloader, true),
+        prepare_launch_libraries(&details, &root, &root, &x86, &download_manager, true),
+        prepare_launch_libraries(&details, &root, &root, &x64, &download_manager, true),
     );
     let (a, b) = (a.unwrap(), b.unwrap());
     assert_ne!(a, b);
@@ -763,26 +769,27 @@ async fn launch_preparation_selects_java_classifier_and_isolates_natives() {
     assert_eq!(fs::read(b.join("native.bin")).unwrap(), b"64");
     assert!(!a.join("META-INF").exists());
     fs::write(a.join("runtime-extracted"), b"runtime").unwrap();
-    let same = prepare_launch_libraries(&details, &root, &root, &x86, &downloader, true)
+    let same = prepare_launch_libraries(&details, &root, &root, &x86, &download_manager, true)
         .await
         .unwrap();
     assert_eq!(a, same);
     fs::write(a.join("native.bin"), b"damaged").unwrap();
-    let repaired = prepare_launch_libraries(&details, &root, &root, &x86, &downloader, true)
+    let repaired = prepare_launch_libraries(&details, &root, &root, &x86, &download_manager, true)
         .await
         .unwrap();
     assert_ne!(a, repaired);
     assert_eq!(fs::read(repaired.join("native.bin")).unwrap(), b"32");
     fs::remove_file(root.join("libraries/test/32.jar")).unwrap();
     let mirror = MockMirror::new([("/maven/test/32.jar".into(), archive32)].into(), false);
-    let downloader = mirror.client().download_manager();
-    let downloaded = prepare_launch_libraries(&details, &root, &root, &x86, &downloader, true)
-        .await
-        .unwrap();
+    let download_manager = mirror.manager();
+    let downloaded =
+        prepare_launch_libraries(&details, &root, &root, &x86, &download_manager, true)
+            .await
+            .unwrap();
     assert_eq!(fs::read(downloaded.join("native.bin")).unwrap(), b"32");
     assert_eq!(mirror.count("/maven/test/32.jar"), 1);
     drop(downloaded);
-    let cached = prepare_launch_libraries(&details, &root, &root, &x86, &downloader, true)
+    let cached = prepare_launch_libraries(&details, &root, &root, &x86, &download_manager, true)
         .await
         .unwrap();
     assert_eq!(mirror.count("/maven/test/32.jar"), 1);
@@ -1170,8 +1177,8 @@ async fn full_install_retries_publishes_custom_name_and_reuses_verified_cache() 
     assert_eq!(instances.len(), 1, "the same repository sees new installs");
     assert_eq!(instances[0].version, "1.test");
     let details = instances[0].read_version_json().unwrap();
-    let downloader = client.download_manager();
-    prepare_legacy_assets(&details, &root, &root, &downloader, true)
+    let download_manager = mirror.manager();
+    prepare_legacy_assets(&details, &root, &root, &download_manager, true)
         .await
         .unwrap();
     assert_eq!(
@@ -1181,12 +1188,12 @@ async fn full_install_retries_publishes_custom_name_and_reuses_verified_cache() 
     let mut external_details = details.clone();
     external_details.asset_index.download.sha1.clear();
     external_details.asset_index.download.url.clear();
-    prepare_legacy_assets(&external_details, &root, &root, &downloader, true)
+    prepare_legacy_assets(&external_details, &root, &root, &download_manager, true)
         .await
         .unwrap();
     fs::write(root.join("resources/sounds/a.ogg"), b"user data").unwrap();
     assert!(
-        prepare_legacy_assets(&details, &root, &root, &downloader, true)
+        prepare_legacy_assets(&details, &root, &root, &download_manager, true)
             .await
             .is_err()
     );
@@ -1283,14 +1290,14 @@ async fn failed_transfers_preserve_existing_files_and_keep_partial_files_for_res
     fs::create_dir(&root).unwrap();
     let path = root.join("existing.jar");
     fs::write(&path, b"keep existing data").unwrap();
-    let downloader = DownloadManager::default();
+    let download_manager = DownloadManager::default();
     let mut info = DownloadFile {
         sha1: "0".repeat(40),
         size: b"verified client".len() as u64,
         url: format!("{}/client.jar", mirror.url),
         path: None,
     };
-    assert!(downloader.download(&info, &path).await.is_err());
+    assert!(download_manager.download(&info, &path).await.is_err());
     assert_eq!(fs::read(&path).unwrap(), b"keep existing data");
     assert_eq!(
         fs::read_dir(&root).unwrap().count(),
@@ -1299,12 +1306,12 @@ async fn failed_transfers_preserve_existing_files_and_keep_partial_files_for_res
     );
     assert_eq!(mirror.count("/client.jar"), 3);
     info.size = 1;
-    assert!(downloader.download(&info, &path).await.is_err());
+    assert!(download_manager.download(&info, &path).await.is_err());
     assert_eq!(fs::read(&path).unwrap(), b"keep existing data");
     assert_eq!(fs::read_dir(&root).unwrap().count(), 2);
     info.sha1 = crate::io::files::sha1_hex(sha1::Sha1::digest(b"keep existing data"));
     info.size = b"keep existing data".len() as u64;
-    downloader.download(&info, &path).await.unwrap();
+    download_manager.download(&info, &path).await.unwrap();
     assert_eq!(
         mirror.count("/client.jar"),
         6,
@@ -1348,7 +1355,7 @@ async fn official_metadata_across_generations() {
         .get_with_endpoint(crate::minecraft::version::VERSION_MANIFEST_ENDPOINT, true)
         .await
         .unwrap();
-    let downloader = DownloadManager::default();
+    let download_manager = DownloadManager::default();
     for id in [
         "rd-132211",
         "b1.7.3",
@@ -1360,7 +1367,7 @@ async fn official_metadata_across_generations() {
         let value = client.get_version_metadata(id).await.unwrap();
         let details: McVersion = serde_json::from_value(value).unwrap();
         let index_path = root.join(format!("{}.json", details.asset_index.id));
-        downloader
+        download_manager
             .download(&details.asset_index.download, &index_path)
             .await
             .unwrap();

@@ -802,7 +802,7 @@ impl LaunchOption {
 
     pub async fn prepare_natives(
         &mut self,
-        downloader: &crate::io::download::DownloadManager,
+        download_manager: &crate::io::download::DownloadManager,
     ) -> anyhow::Result<std::path::PathBuf> {
         if self.extras.renderer != 0 && cfg!(windows) {
             let path = self
@@ -810,7 +810,7 @@ impl LaunchOption {
                 .mesa_loader
                 .clone()
                 .unwrap_or_else(|| resources::mesa_loader_path(&self.helper_directory));
-            resources::ensure_mesa_loader(downloader, &path)
+            resources::ensure_mesa_loader(download_manager, &path)
                 .await
                 .map_err(anyhow::Error::msg)?;
             self.helpers.mesa_loader = Some(path);
@@ -830,7 +830,7 @@ impl LaunchOption {
             &self.game_instance.global_dir,
             &self.game_instance.directory,
             &context,
-            downloader,
+            download_manager,
             !self.extras.disable_asset_verify,
         )
         .await?;
@@ -840,13 +840,13 @@ impl LaunchOption {
 
     pub async fn prepare_legacy_assets(
         &self,
-        downloader: &crate::io::download::DownloadManager,
+        download_manager: &crate::io::download::DownloadManager,
     ) -> anyhow::Result<()> {
         crate::minecraft::installer::prepare_legacy_assets(
             &self.version_details,
             &self.game_instance.global_dir,
             &self.game_directory,
-            downloader,
+            download_manager,
             !self.extras.disable_asset_verify,
         )
         .await

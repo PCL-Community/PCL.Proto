@@ -82,7 +82,10 @@ pub fn mesa_loader_path(directory: &Path) -> PathBuf {
 }
 
 /// 下载渲染器代理；CE 的镜像没有校验值。
-pub async fn ensure_mesa_loader(downloader: &DownloadManager, path: &Path) -> Result<(), String> {
+pub async fn ensure_mesa_loader(
+    download_manager: &DownloadManager,
+    path: &Path,
+) -> Result<(), String> {
     if path.is_file() {
         return Ok(());
     }
@@ -97,7 +100,7 @@ pub async fn ensure_mesa_loader(downloader: &DownloadManager, path: &Path) -> Re
         "https://mirrors.cloud.tencent.com/nexus/repository/maven-public/org/glavo/mesa-loader-windows/{MESA_LOADER_VERSION}/mesa-loader-windows-{MESA_LOADER_VERSION}-{arch}.jar"
     );
     log::info!("Downloading renderer agent from {url}");
-    downloader
+    download_manager
         .download(
             &DownloadFile {
                 url,

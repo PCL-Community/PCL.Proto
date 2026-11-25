@@ -191,7 +191,7 @@ impl Modpack {
         &self,
         directory: &Path,
         name: &str,
-        downloader: &DownloadManager,
+        download_manager: &DownloadManager,
         task_id: i32,
         on_event: &EventSink<TaskItemReport>,
     ) -> anyhow::Result<()> {
@@ -217,7 +217,7 @@ impl Modpack {
                     size: file.file_size,
                     path: None,
                 };
-                match downloader.download(&info, &path).await {
+                match download_manager.download(&info, &path).await {
                     Ok(()) => {
                         last_error = None;
                         break;
@@ -329,13 +329,13 @@ pub async fn inspect_modpack(path: PathBuf) -> Result<PackInfo, String> {
 
 #[cfg(feature = "community")]
 pub async fn prepare_online_modpack(
-    downloader: &crate::io::download::DownloadManager,
+    download_manager: &crate::io::download::DownloadManager,
     info: DownloadFile,
     task_id: i32,
     on_event: EventSink<TaskItemReport>,
 ) -> Result<OnlinePackInfo, String> {
     let prepared = crate::io::download::tasks::run(task_id, async {
-        prepare_online_archive(downloader, info, task_id, &on_event)
+        prepare_online_archive(download_manager, info, task_id, &on_event)
             .await
             .map_err(|e| format!("{e:#}"))
     })
@@ -351,7 +351,7 @@ pub async fn prepare_online_modpack(
 
 #[cfg(feature = "community")]
 async fn prepare_online_archive(
-    downloader: &crate::io::download::DownloadManager,
+    download_manager: &crate::io::download::DownloadManager,
     info: DownloadFile,
     task_id: i32,
     on_event: &EventSink<TaskItemReport>,
@@ -360,7 +360,7 @@ async fn prepare_online_archive(
     let directory = tempfile::tempdir()?;
     let path = directory.path().join("modpack.zip");
     crate::minecraft::export::resource::download_to(
-        downloader,
+        download_manager,
         info,
         path.clone(),
         task_id,
@@ -389,6 +389,7 @@ async fn install_pack(
     mut pack: Modpack,
     repo: &Path,
     client: &MinecraftApiClient,
+    download_manager: &crate::io::download::DownloadManager,
     instance_name: &str,
     optional_files: Vec<String>,
     install_java: bool,
@@ -404,6 +405,7 @@ async fn install_pack(
     let loader = pack.loader(install_java);
     install_version_with_modpack(
         client,
+        download_manager,
         repo,
         &pack.index.dependencies["minecraft"],
         instance_name,
@@ -424,6 +426,7 @@ async fn install_pack(
 pub async fn install_modpack(
     repo: &Path,
     client: &MinecraftApiClient,
+    download_manager: &crate::io::download::DownloadManager,
     path: PathBuf,
     instance_name: String,
     optional_files: Vec<String>,
@@ -443,6 +446,7 @@ pub async fn install_modpack(
             pack,
             repo,
             client,
+            download_manager,
             &instance_name,
             optional_files,
             install_java,
@@ -463,6 +467,7 @@ pub async fn install_modpack(
 pub async fn install_online_modpack(
     repo: &Path,
     client: &MinecraftApiClient,
+    download_manager: &crate::io::download::DownloadManager,
     token: String,
     instance_name: String,
     optional_files: Vec<String>,
@@ -484,6 +489,7 @@ pub async fn install_online_modpack(
             pack,
             repo,
             client,
+            download_manager,
             &instance_name,
             optional_files,
             install_java,
@@ -652,11 +658,14 @@ mod tests {
         let temporary_path = prepared._directory.path().to_owned();
         let repo = tempfile::tempdir_in(&root).unwrap();
         let client = MinecraftApiClient::new(crate::io::net::http::HttpTransport::default());
+        let download_manager =
+            crate::io::download::DownloadManager::new(client.transport().clone());
         let PreparedPack { pack, _directory } = prepared;
         install_pack(
             pack,
             repo.path(),
             &client,
+            &download_manager,
             "Online Pack",
             vec![],
             false,

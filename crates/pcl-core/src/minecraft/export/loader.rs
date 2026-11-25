@@ -51,7 +51,7 @@ fn publish(temp: &Path, destination: &Path) -> anyhow::Result<()> {
 }
 
 pub async fn save_loader_file(
-    downloader: &DownloadManager,
+    download_manager: &DownloadManager,
     loader: String,
     game: String,
     version: String,
@@ -69,7 +69,7 @@ pub async fn save_loader_file(
             .context("Invalid destination")?;
         crate::io::files::validate_file_name(name)?;
         ensure!(!destination.try_exists()?, "Destination already exists");
-        let client = downloader.transport().http_client();
+        let client = download_manager.transport().http_client();
         let sha1 = client
             .get(format!("{url}.sha1"))
             .send()
@@ -88,7 +88,7 @@ pub async fn save_loader_file(
             .context("Missing file size")?;
         ensure!(size > 0 && size <= 64 * 1024 * 1024, "Invalid file size");
         let temp = TempFile(parent.join(format!(".pcl-loader-{}.tmp", uuid::Uuid::new_v4())));
-        downloader
+        download_manager
             .download(
                 &DownloadFile {
                     sha1,

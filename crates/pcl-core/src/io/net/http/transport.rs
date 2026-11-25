@@ -1,5 +1,5 @@
 //! Shared HTTP clients and protocol selection for API requests and file transfers.
-use super::resources::{DownloadResources, HttpMode};
+use super::resources::{HttpMode, HttpOptions};
 use reqwest::header::HeaderMap;
 use std::{
     sync::{Arc, RwLock},
@@ -23,7 +23,7 @@ impl RequestTarget {
 
 #[derive(Clone)]
 pub struct HttpTransport {
-    resources: Arc<DownloadResources>,
+    http_options: Arc<RwLock<HttpOptions>>,
     clients: Arc<RwLock<(reqwest::Client, reqwest::Client)>>,
     user_agent: Arc<RwLock<String>>,
 }
@@ -49,9 +49,9 @@ impl HttpTransport {
         user_agent: impl Into<String>,
     ) -> Self {
         Self {
+            http_options: Arc::new(RwLock::new(HttpOptions::default())),
             clients: Arc::new(RwLock::new((client, http1))),
             user_agent: Arc::new(RwLock::new(user_agent.into())),
-            resources: Arc::new(DownloadResources::default()),
         }
     }
 
@@ -59,9 +59,12 @@ impl HttpTransport {
         self.user_agent.read().unwrap().clone()
     }
 
-    /// Clones share clients, bandwidth budget and connection quota.
-    pub fn resources(&self) -> &Arc<DownloadResources> {
-        &self.resources
+    pub fn http_options(&self) -> Arc<RwLock<HttpOptions>> {
+        self.http_options.clone()
+    }
+
+    pub fn configure_http(&self, options: HttpOptions) {
+        *self.http_options.write().unwrap() = options;
     }
 
     pub fn http_client(&self) -> reqwest::Client {

@@ -2,7 +2,7 @@ use crate::events::EventSink;
 #[cfg(test)]
 use crate::events::event_sink;
 use crate::{
-    io::download::{DownloadConfig, DownloadManager, TaskItemReport, TaskStatus},
+    io::download::{DownloadManager, DownloadTask, TaskItemReport, TaskStatus},
     io::net::http::api_client::{MinecraftApiClient, game::DownloadFile},
 };
 use anyhow::{Context, bail, ensure};
@@ -88,12 +88,12 @@ async fn download_jar(
     path: PathBuf,
     task_id: i32,
     on_event: &EventSink<TaskItemReport>,
-    downloader: &DownloadManager,
+    download_manager: &DownloadManager,
 ) -> anyhow::Result<()> {
     let size = info.size;
-    downloader
+    download_manager
         .download_with_progress(
-            DownloadConfig {
+            DownloadTask {
                 file_index: 0,
                 task_item_id: 1,
                 out_path: path.clone(),
@@ -133,6 +133,7 @@ fn publish(staging: &Path, destination: PathBuf) -> anyhow::Result<PathBuf> {
 
 async fn export_version(
     client: &MinecraftApiClient,
+    download_manager: &DownloadManager,
     version_id: &str,
     directory: &Path,
     server: bool,
@@ -172,13 +173,12 @@ async fn export_version(
     } else {
         format!("{version_id}.jar")
     };
-    let downloader = client.download_manager();
     download_jar(
         info,
         staging.path.join(&jar_name),
         task_id,
         &on_event,
-        &downloader,
+        &download_manager,
     )
     .await?;
     if server {
@@ -223,6 +223,7 @@ async fn export_version(
 
 pub async fn export_minecraft_version(
     client: &MinecraftApiClient,
+    download_manager: &DownloadManager,
     version_id: String,
     directory: PathBuf,
     server: bool,
@@ -230,9 +231,17 @@ pub async fn export_minecraft_version(
     on_event: EventSink<TaskItemReport>,
 ) -> Result<String, String> {
     crate::io::download::tasks::run(task_id, async {
-        export_version(client, &version_id, &directory, server, task_id, on_event)
-            .await
-            .map_err(|error| error.to_string())
+        export_version(
+            client,
+            download_manager,
+            &version_id,
+            &directory,
+            server,
+            task_id,
+            on_event,
+        )
+        .await
+        .map_err(|error| error.to_string())
     })
     .await
 }
@@ -255,10 +264,12 @@ mod tests {
     #[ignore = "Downloads official Minecraft files; run explicitly for network smoke testing"]
     async fn official_client_and_server_export() {
         let client = MinecraftApiClient::new(crate::io::net::http::HttpTransport::default());
+        let download_manager = DownloadManager::new(client.transport().clone());
         let directory = temp_directory();
         for server in [false, true] {
             let path = export_version(
                 &client,
+                &download_manager,
                 "1.2.5",
                 &directory.path,
                 server,
@@ -281,6 +292,7 @@ mod tests {
         }
         let error = export_version(
             &client,
+            &download_manager,
             "rd-132211",
             &directory.path,
             true,
@@ -358,7 +370,7 @@ mod tests {
         assert!(published.exists());
     }
 
-    // Real HTTP responses exercise the shared downloader, digest checks, and IPC relay.
+    // Real HTTP responses exercise the shared download_manager, digest checks, and IPC relay.
     async fn checked_http_download(
         status: &str,
         body: &[u8],

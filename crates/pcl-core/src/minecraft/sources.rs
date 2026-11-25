@@ -1,9 +1,7 @@
 //! Service-specific official endpoints, mirror mappings and source ordering.
 use super::version::VERSION_MANIFEST_ENDPOINT;
 use crate::io::net::http::RequestTarget;
-use crate::io::net::http::resources::{
-    DownloadOptions, DownloadResources, SourceKind, SourcePreference,
-};
+use crate::io::net::http::resources::{HttpOptions, SourceKind, SourcePreference};
 use crate::minecraft::mod_loader::FabricFamily;
 use std::{
     sync::{
@@ -85,17 +83,17 @@ fn mojang_url(url: &str, meta_base: &str, resources_base: &str) -> String {
 #[derive(Clone)]
 pub(crate) struct Sources {
     pub endpoints: ApiEndpoints,
-    resources: Arc<DownloadResources>,
+    http_options: Arc<std::sync::RwLock<HttpOptions>>,
     official_fast: Arc<AtomicBool>,
     #[cfg(feature = "community")]
     curseforge_api_key: Option<reqwest::header::HeaderValue>,
 }
 
 impl Sources {
-    pub fn new(resources: Arc<DownloadResources>) -> Self {
+    pub fn new(http_options: Arc<std::sync::RwLock<HttpOptions>>) -> Self {
         Self {
             endpoints: ApiEndpoints::default(),
-            resources,
+            http_options,
             official_fast: Arc::new(AtomicBool::new(true)),
             #[cfg(feature = "community")]
             curseforge_api_key: None,
@@ -124,36 +122,42 @@ impl Sources {
         };
         let fast =
             manifest || (kind == SourceKind::File && self.official_fast.load(Ordering::Relaxed));
-        source_urls(&self.endpoints, url, kind, &self.resources.settings(), fast)
-            .into_iter()
-            .map(|url| {
-                let target = RequestTarget::new(url);
-                #[cfg(feature = "community")]
-                let mut target = target;
-                #[cfg(feature = "community")]
-                if let Some(key) = &self.curseforge_api_key
-                    && let Ok(url) = reqwest::Url::parse(&target.url)
-                    && url.scheme() == "https"
-                    && url.host_str().is_some_and(|host| {
-                        matches!(
-                            host,
-                            "api.curseforge.com" | "edge.forgecdn.net" | "mediafilez.forgecdn.net"
-                        ) || host == "cursecdn.com"
-                            || host.ends_with(".cursecdn.com")
-                    })
-                {
-                    target.headers.insert("x-api-key", key.clone());
-                }
-                target
-            })
-            .collect()
+        source_urls(
+            &self.endpoints,
+            url,
+            kind,
+            &self.http_options.read().unwrap(),
+            fast,
+        )
+        .into_iter()
+        .map(|url| {
+            let target = RequestTarget::new(url);
+            #[cfg(feature = "community")]
+            let mut target = target;
+            #[cfg(feature = "community")]
+            if let Some(key) = &self.curseforge_api_key
+                && let Ok(url) = reqwest::Url::parse(&target.url)
+                && url.scheme() == "https"
+                && url.host_str().is_some_and(|host| {
+                    matches!(
+                        host,
+                        "api.curseforge.com" | "edge.forgecdn.net" | "mediafilez.forgecdn.net"
+                    ) || host == "cursecdn.com"
+                        || host.ends_with(".cursecdn.com")
+                })
+            {
+                target.headers.insert("x-api-key", key.clone());
+            }
+            target
+        })
+        .collect()
     }
 
     pub fn timeout(&self, url: &str) -> Duration {
         Duration::from_secs(
             if official_manifest(url)
                 && matches!(
-                    self.resources.settings().version_source,
+                    self.http_options.read().unwrap().version_source,
                     SourcePreference::Auto
                 )
             {
@@ -185,7 +189,7 @@ impl Sources {
         }
         Vec::from(metadata_sources(
             [official, mirror],
-            self.resources.settings().preference(kind),
+            self.http_options.read().unwrap().preference(kind),
         ))
     }
 
@@ -197,7 +201,7 @@ impl Sources {
         let mirror = format!("{BMCL}/forge/minecraft/{game}");
         metadata_sources(
             [(false, official), (true, mirror)],
-            self.resources.settings().version_source,
+            self.http_options.read().unwrap().version_source,
         )
     }
 
@@ -207,7 +211,10 @@ impl Sources {
         );
         let mirror =
             format!("{BMCL}/neoforge/meta/api/maven/details/releases/net/neoforged/{package}");
-        metadata_sources([official, mirror], self.resources.settings().version_source)
+        metadata_sources(
+            [official, mirror],
+            self.http_options.read().unwrap().version_source,
+        )
     }
 }
 
@@ -226,7 +233,7 @@ fn source_urls(
     endpoints: &ApiEndpoints,
     url: &str,
     kind: SourceKind,
-    options: &DownloadOptions,
+    options: &HttpOptions,
     official_fast: bool,
 ) -> Vec<String> {
     let preference = options.preference(kind);
@@ -347,10 +354,10 @@ mod tests {
     use super::*;
     #[test]
     fn source_preferences_keep_official_fallback_and_both_library_mirrors() {
-        use crate::io::net::http::resources::{DownloadOptions, SourceKind, SourcePreference};
+        use crate::io::net::http::resources::{HttpOptions, SourceKind, SourcePreference};
         let bases = ApiEndpoints::default();
         let urls = |url: &str, preference: SourcePreference, official_fast: bool| {
-            let options = DownloadOptions {
+            let options = HttpOptions {
                 file_source: preference,
                 ..Default::default()
             };
@@ -407,12 +414,12 @@ mod tests {
     #[cfg(feature = "community")]
     #[test]
     fn community_sources_follow_their_own_preference() {
-        use crate::io::net::http::resources::{DownloadOptions, SourceKind, SourcePreference};
+        use crate::io::net::http::resources::{HttpOptions, SourceKind, SourcePreference};
         let bases = ApiEndpoints {
             meta_base: "https://private-mojang.test",
             ..Default::default()
         };
-        let options = |community_source| DownloadOptions {
+        let options = |community_source| HttpOptions {
             community_source,
             ..Default::default()
         };
